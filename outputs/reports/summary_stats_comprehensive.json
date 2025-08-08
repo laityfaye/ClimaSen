@@ -1,0 +1,447 @@
+{
+  "metadata": {
+    "generated_at": "2025-08-03T12:32:21.610282",
+    "generator_version": "2.0.0",
+    "project_info": {
+      "title": "Analyse des précipitations extrêmes au Sénégal",
+      "version": "2.0.0",
+      "author": "Équipe de recherche climatologique"
+    },
+    "analysis_type": "comprehensive_extreme_events",
+    "data_source": "CHIRPS",
+    "spatial_resolution": "0.25°",
+    "temporal_resolution": "daily"
+  },
+  "analysis_results": {
+    "general_stats": {
+      "total_events": 1317,
+      "period": {
+        "start": "1981-05-06",
+        "end": "2023-10-30",
+        "duration_years": 43
+      },
+      "frequency": 30.627906976744185,
+      "coverage_stats": {
+        "mean_percent": 22.318737872268624,
+        "median_percent": 18.22222222222222,
+        "max_percent": 86.66666666666667,
+        "std_percent": 12.850817732988768
+      },
+      "precipitation_stats": {
+        "mean_mm": 39.87455874532122,
+        "median_mm": 37.40685272216797,
+        "max_mm": 231.35137939453125,
+        "min_mm": 5.419501304626465,
+        "std_mm": 21.15800503248051,
+        "quantiles": {
+          "q25": 24.990713119506836,
+          "q75": 51.02690505981445,
+          "q90": 67.10248260498047,
+          "q95": 78.31118774414064,
+          "q99": 102.3384317016601
+        }
+      },
+      "anomaly_stats": {
+        "mean_sigma": 6.298576871699527,
+        "median_sigma": 5.491219251480516,
+        "max_sigma": 20.0,
+        "min_sigma": 2.7508669686748894,
+        "std_sigma": 2.9544622586930744
+      }
+    },
+    "phase_analysis": {
+      "distribution": {
+        "Phase_2_pleine": {
+          "count": 528,
+          "percentage": 40.091116173120724,
+          "description": "Pleine saison",
+          "months": [
+            7,
+            8
+          ],
+          "expected_behavior": "Variable"
+        },
+        "Phase_3_fin": {
+          "count": 495,
+          "percentage": 37.58542141230068,
+          "description": "Fin de saison",
+          "months": [
+            9,
+            10
+          ],
+          "expected_behavior": "Variable"
+        },
+        "Phase_1_debut": {
+          "count": 294,
+          "percentage": 22.323462414578586,
+          "description": "Début de saison",
+          "months": [
+            5,
+            6
+          ],
+          "expected_behavior": "Variable"
+        }
+      },
+      "detailed_stats": {
+        "Phase_2_pleine": {
+          "precipitation": {
+            "mean": 52.54984946684404,
+            "median": 49.00910568237305,
+            "max": 231.35137939453125,
+            "std": 20.88532023693459
+          },
+          "coverage": {
+            "mean": 21.276094276094277,
+            "max": 67.33333333333333
+          },
+          "anomaly": {
+            "mean": 5.358897432011607,
+            "max": 14.26910424055547
+          }
+        },
+        "Phase_3_fin": {
+          "precipitation": {
+            "mean": 34.73599606138287,
+            "median": 31.183977127075195,
+            "max": 102.45309448242188,
+            "std": 17.662117461390682
+          },
+          "coverage": {
+            "mean": 23.12951739618406,
+            "max": 86.66666666666667
+          },
+          "anomaly": {
+            "mean": 6.175733619304285,
+            "max": 16.37840517839309
+          }
+        },
+        "Phase_1_debut": {
+          "precipitation": {
+            "mean": 25.76243298880908,
+            "median": 23.895960807800293,
+            "max": 85.5930404663086,
+            "std": 12.891227782213704
+          },
+          "coverage": {
+            "mean": 22.826152683295543,
+            "max": 75.77777777777777
+          },
+          "anomaly": {
+            "mean": 8.192992361804519,
+            "max": 20.0
+          }
+        }
+      },
+      "climate_validation": {
+        "rainy_season_percentage": 100.0,
+        "is_coherent": true,
+        "peak_phase_dominant": true
+      }
+    },
+    "geographic_analysis": {
+      "regional_distribution": {
+        "Tambacounda": {
+          "count": 615,
+          "percentage": 46.69703872437358
+        },
+        "Matam": {
+          "count": 239,
+          "percentage": 18.147304479878514
+        },
+        "Kaffrine": {
+          "count": 165,
+          "percentage": 12.52847380410023
+        },
+        "Kolda": {
+          "count": 98,
+          "percentage": 7.4411541381928625
+        },
+        "Louga": {
+          "count": 69,
+          "percentage": 5.239179954441914
+        },
+        "Kaolack": {
+          "count": 40,
+          "percentage": 3.037205770690964
+        },
+        "Kédougou": {
+          "count": 31,
+          "percentage": 2.3538344722854974
+        },
+        "Diourbel": {
+          "count": 23,
+          "percentage": 1.7463933181473046
+        },
+        "Sédhiou": {
+          "count": 16,
+          "percentage": 1.2148823082763858
+        },
+        "Fatick": {
+          "count": 12,
+          "percentage": 0.9111617312072893
+        },
+        "Saint-Louis": {
+          "count": 9,
+          "percentage": 0.683371298405467
+        }
+      },
+      "most_affected_region": {
+        "name": "Tambacounda",
+        "count": 615,
+        "percentage": 46.69703872437358
+      },
+      "climate_zone_distribution": {
+        "Zone soudano-sahélienne": {
+          "count": 870,
+          "percentage": 66.05922551252847
+        },
+        "Zone soudanienne": {
+          "count": 321,
+          "percentage": 24.373576309794988
+        },
+        "Zone sahélienne": {
+          "count": 126,
+          "percentage": 9.567198177676538
+        }
+      },
+      "spatial_statistics": {
+        "centroid_mean": {
+          "latitude": 14.220166449325838,
+          "longitude": -13.945624992024587
+        },
+        "spatial_dispersion": {
+          "lat_std": 0.8750904509537507,
+          "lon_std": 1.1330137478559237
+        },
+        "spatial_extent": {
+          "lat_range": 3.830478038668833,
+          "lon_range": 4.8756783701708475
+        }
+      },
+      "extent_analysis": {
+        "mean_lat_extent_km": 371.74285888671875,
+        "mean_lon_extent_km": 455.15026775018106,
+        "mean_spatial_dispersion_km": 595.8810454519858
+      }
+    },
+    "temporal_analysis": {
+      "monthly_distribution": {
+        "Mai": {
+          "month_number": 5,
+          "count": 89,
+          "percentage": 6.757782839787396,
+          "phase": "Hors_saison",
+          "phase_description": "Hors saison"
+        },
+        "Jun": {
+          "month_number": 6,
+          "count": 205,
+          "percentage": 15.565679574791192,
+          "phase": "Hors_saison",
+          "phase_description": "Hors saison"
+        },
+        "Jul": {
+          "month_number": 7,
+          "count": 255,
+          "percentage": 19.362186788154897,
+          "phase": "Phase_2_pleine",
+          "phase_description": "Pleine saison"
+        },
+        "Aoû": {
+          "month_number": 8,
+          "count": 273,
+          "percentage": 20.72892938496583,
+          "phase": "Phase_2_pleine",
+          "phase_description": "Pleine saison"
+        },
+        "Sep": {
+          "month_number": 9,
+          "count": 274,
+          "percentage": 20.804859529233106,
+          "phase": "Hors_saison",
+          "phase_description": "Hors saison"
+        },
+        "Oct": {
+          "month_number": 10,
+          "count": 221,
+          "percentage": 16.780561883067577,
+          "phase": "Hors_saison",
+          "phase_description": "Hors saison"
+        }
+      },
+      "yearly_distribution": {
+        "mean_events_per_year": 30.627906976744185,
+        "std_events_per_year": 8.234721077804389,
+        "min_events_year": {
+          "year": 1990,
+          "count": 15
+        },
+        "max_events_year": {
+          "year": 2010,
+          "count": 50
+        },
+        "total_years": 43
+      },
+      "trend_analysis": {
+        "trend_slope": 0.1902748414376288,
+        "trend_interpretation": "Croissante"
+      }
+    },
+    "intensity_analysis": {
+      "intensity_categories": {
+        "< 20mm (Modéré)": {
+          "count": 210,
+          "percentage": 15.945330296127564
+        },
+        "20-50mm": {
+          "count": 754,
+          "percentage": 57.25132877752468
+        },
+        "50-100mm": {
+          "count": 335,
+          "percentage": 25.436598329536825
+        },
+        ">= 150mm (Extrême)": {
+          "count": 1,
+          "percentage": 0.07593014426727411
+        }
+      },
+      "correlations": {
+        "precip_coverage": 0.17498796302368413,
+        "precip_anomaly": -0.06746254381972704,
+        "coverage_anomaly": 0.4084737902386117
+      }
+    },
+    "spatial_metrics_summary": {
+      "status": "no_spatial_metrics",
+      "message": "Métriques spatiales non disponibles"
+    },
+    "quality_assessment": {
+      "data_completeness": {
+        "required_columns_present": true,
+        "missing_columns": [],
+        "total_events": 1317,
+        "completeness_score": 1.0
+      },
+      "value_validation": {
+        "anomaly_threshold": {
+          "events_below_2sigma": 0,
+          "percentage_below": 0.0,
+          "is_valid": true
+        },
+        "coverage_range": {
+          "invalid_values": 0,
+          "is_valid": true
+        }
+      }
+    },
+    "climate_coherence": {
+      "seasonal_coherence": {
+        "rainy_season_percentage": 100.0,
+        "is_coherent": true,
+        "expected_range": "80-95%"
+      },
+      "geographic_coherence": {
+        "events_in_senegal": 1317,
+        "percentage_valid": 100.0,
+        "is_coherent": true
+      }
+    }
+  },
+  "summary_statistics": {
+    "total_events": 1317,
+    "period_summary": {
+      "start_year": 1981,
+      "end_year": 2023,
+      "duration_years": 43,
+      "annual_frequency": 30.627906976744185
+    },
+    "key_metrics": {
+      "avg_precipitation": 39.87455874532122,
+      "max_precipitation": 231.35137939453125,
+      "avg_coverage": 22.318737872268624,
+      "max_coverage": 86.66666666666667,
+      "avg_anomaly": 6.298576871699527,
+      "max_anomaly": 20.0
+    },
+    "top_events": [
+      {
+        "date": "2012-09-28",
+        "rank": 2,
+        "coverage_percent": 86.66666666666667,
+        "max_precipitation": 44.27000427246094,
+        "max_anomaly": 8.137531016741498,
+        "phase": "Phase_3_fin",
+        "region": "Tambacounda"
+      },
+      {
+        "date": "2000-10-16",
+        "rank": 3,
+        "coverage_percent": 78.44444444444446,
+        "max_precipitation": 30.393627166748047,
+        "max_anomaly": 15.633331138014398,
+        "phase": "Phase_3_fin",
+        "region": "Tambacounda"
+      },
+      {
+        "date": "2022-05-27",
+        "rank": 4,
+        "coverage_percent": 75.77777777777777,
+        "max_precipitation": 37.51918411254883,
+        "max_anomaly": 20.0,
+        "phase": "Phase_1_debut",
+        "region": "Tambacounda"
+      },
+      {
+        "date": "2022-10-24",
+        "rank": 5,
+        "coverage_percent": 74.66666666666667,
+        "max_precipitation": 51.16484069824219,
+        "max_anomaly": 11.945029984097898,
+        "phase": "Phase_3_fin",
+        "region": "Tambacounda"
+      },
+      {
+        "date": "2018-06-27",
+        "rank": 6,
+        "coverage_percent": 74.66666666666667,
+        "max_precipitation": 37.518516540527344,
+        "max_anomaly": 10.90709087100438,
+        "phase": "Phase_1_debut",
+        "region": "Tambacounda"
+      }
+    ]
+  },
+  "data_quality_report": {
+    "overall_quality": "EXCELLENT",
+    "data_completeness": {
+      "required_columns_present": true,
+      "missing_columns": [],
+      "total_events": 1317,
+      "completeness_score": 1.0
+    },
+    "climate_coherence": {
+      "seasonal_coherence": {
+        "rainy_season_percentage": 100.0,
+        "is_coherent": true,
+        "expected_range": "80-95%"
+      },
+      "geographic_coherence": {
+        "events_in_senegal": 1317,
+        "percentage_valid": 100.0,
+        "is_coherent": true
+      }
+    },
+    "validation_passed": true,
+    "quality_score": 1.0
+  },
+  "recommendations": [
+    "Concentration élevée en pleine saison - surveillance renforcée juillet-août recommandée",
+    "Région Tambacounda fortement affectée - attention particulière recommandée",
+    "Faible corrélation précipitation-couverture - événements très localisés possibles",
+    "Intégration possible avec indices climatiques (ENSO, IOD, AMO)",
+    "Extension de l'analyse à d'autres pays sahéliens",
+    "Développement de modèles prédictifs basés sur ces patterns",
+    "Validation croisée avec données pluviométriques in-situ"
+  ]
+}

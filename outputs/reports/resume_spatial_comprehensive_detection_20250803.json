@@ -1,0 +1,2334 @@
+{
+  "metadata": {
+    "generated_at": "2025-08-03T12:32:22.301713",
+    "analysis_type": "comprehensive_detection",
+    "generator_version": "2.0.0",
+    "project_info": {
+      "title": "Analyse des précipitations extrêmes au Sénégal par phases",
+      "subtitle": "Caractérisation spatio-temporelle des événements pluviométriques",
+      "author": "Équipe de recherche climatologique",
+      "institution": "Centre de recherche climatique",
+      "version": "2.0.0",
+      "last_update": "2024-01-15",
+      "data_source": "CHIRPS (Climate Hazards Group InfraRed Precipitation with Station data)",
+      "temporal_coverage": "1981-2023 (43 ans)",
+      "spatial_coverage": "Sénégal (12°N-17°N, 18°W-11°W)",
+      "temporal_resolution": "Quotidienne",
+      "spatial_resolution": "0.25° (~25 km)",
+      "key_features": [
+        "Classification par phases de la saison des pluies",
+        "Métriques spatiales avancées",
+        "Analyse géographique par entités administratives",
+        "Validation climatologique intégrée",
+        "Visualisations interactives"
+      ],
+      "data_reference": "Funk, C., et al. (2015). The climate hazards infrared precipitation with stations—a new environmental record for monitoring extremes. Scientific Data, 2(1), 1-21.",
+      "methodology_reference": "Méthode développée spécifiquement pour le climat sahélien",
+      "contact_email": "contact@recherche-climat.org",
+      "documentation_url": "https://github.com/projet-senegal-climat"
+    }
+  },
+  "summary_statistics": {
+    "total_events": 1326,
+    "total_area_affected_km2": 114910487.34570312,
+    "average_event_size_km2": 86659.49271923312,
+    "peak_intensity_mm": 231.35137939453125,
+    "average_intensity_mm": 39.758741497094455
+  },
+  "spatial_analysis": {
+    "general_statistics": {
+      "total_events": 1326,
+      "total_area_affected": 114910487.34570312,
+      "average_event_size": 86659.49271923312,
+      "median_event_size": 75718.8671875,
+      "largest_event_size": 294599.4375,
+      "smallest_event_size": 29747.8515625,
+      "average_max_intensity": 39.758741497094455,
+      "peak_intensity": 231.35137939453125,
+      "median_intensity": 37.31837844848633,
+      "average_coverage": 25.66834255069549,
+      "max_coverage": 87.33333333333333,
+      "total_senegal_affected": 34036.22222222222,
+      "geographic_center": {
+        "latitude": 14.064850289759118,
+        "longitude": -13.984097012151947
+      },
+      "geographic_dispersion": {
+        "lat_std": 0.8144517352601557,
+        "lon_std": 1.073592553345361
+      },
+      "geographic_extent": {
+        "lat_range": 3.830514632874845,
+        "lon_range": 4.801412593629307
+      }
+    },
+    "geographic_distribution": {
+      "regional_distribution": {
+        "event_counts": {
+          "Tambacounda": 695,
+          "Kaffrine": 185,
+          "Matam": 156,
+          "Kolda": 114,
+          "Louga": 46,
+          "Kaolack": 44,
+          "Kédougou": 27,
+          "Diourbel": 22,
+          "Sédhiou": 19,
+          "Fatick": 13,
+          "Saint-Louis": 5
+        },
+        "detailed_stats": {
+          "Diourbel": {
+            "total_area_km2_count": 22,
+            "total_area_km2_mean": 52022.16,
+            "max_intensity_mm_count": 22,
+            "max_intensity_mm_mean": 41.77
+          },
+          "Fatick": {
+            "total_area_km2_count": 13,
+            "total_area_km2_mean": 53093.23,
+            "max_intensity_mm_count": 13,
+            "max_intensity_mm_mean": 44.86
+          },
+          "Kaffrine": {
+            "total_area_km2_count": 185,
+            "total_area_km2_mean": 96348.56,
+            "max_intensity_mm_count": 185,
+            "max_intensity_mm_mean": 41.64
+          },
+          "Kaolack": {
+            "total_area_km2_count": 44,
+            "total_area_km2_mean": 83323.05,
+            "max_intensity_mm_count": 44,
+            "max_intensity_mm_mean": 49.41
+          },
+          "Kolda": {
+            "total_area_km2_count": 114,
+            "total_area_km2_mean": 74606.47,
+            "max_intensity_mm_count": 114,
+            "max_intensity_mm_mean": 49.1
+          },
+          "Kédougou": {
+            "total_area_km2_count": 27,
+            "total_area_km2_mean": 46820.56,
+            "max_intensity_mm_count": 27,
+            "max_intensity_mm_mean": 30.35
+          },
+          "Louga": {
+            "total_area_km2_count": 46,
+            "total_area_km2_mean": 61122.32,
+            "max_intensity_mm_count": 46,
+            "max_intensity_mm_mean": 28.8
+          },
+          "Matam": {
+            "total_area_km2_count": 156,
+            "total_area_km2_mean": 71795.81,
+            "max_intensity_mm_count": 156,
+            "max_intensity_mm_mean": 29.49
+          },
+          "Saint-Louis": {
+            "total_area_km2_count": 5,
+            "total_area_km2_mean": 34715.2,
+            "max_intensity_mm_count": 5,
+            "max_intensity_mm_mean": 23.43
+          },
+          "Sédhiou": {
+            "total_area_km2_count": 19,
+            "total_area_km2_mean": 54216.91,
+            "max_intensity_mm_count": 19,
+            "max_intensity_mm_mean": 52.19
+          },
+          "Tambacounda": {
+            "total_area_km2_count": 695,
+            "total_area_km2_mean": 95827.81,
+            "max_intensity_mm_count": 695,
+            "max_intensity_mm_mean": 40.13
+          }
+        },
+        "most_affected_region": "Tambacounda",
+        "regional_diversity": 11
+      },
+      "climate_distribution": {
+        "event_counts": {
+          "Zone soudano-sahélienne": 856,
+          "Zone soudanienne": 386,
+          "Zone sahélienne": 84
+        },
+        "detailed_stats": {
+          "Zone sahélienne": {
+            "total_area_km2_count": 84,
+            "total_area_km2_mean": 53287.95,
+            "max_intensity_mm_count": 84,
+            "max_intensity_mm_mean": 27.31
+          },
+          "Zone soudanienne": {
+            "total_area_km2_count": 386,
+            "total_area_km2_mean": 71979.05,
+            "max_intensity_mm_count": 386,
+            "max_intensity_mm_mean": 44.83
+          },
+          "Zone soudano-sahélienne": {
+            "total_area_km2_count": 856,
+            "total_area_km2_mean": 96554.19,
+            "max_intensity_mm_count": 856,
+            "max_intensity_mm_mean": 38.7
+          }
+        },
+        "climate_diversity": 3
+      },
+      "hotspots": {
+        "hotspot_count": 6,
+        "detection_threshold": 91.88351474366107,
+        "hotspot_details": [
+          {
+            "grid_cell": "0_2",
+            "event_count": 94,
+            "center_coordinates": {
+              "latitude": 13.001799167655362,
+              "longitude": -14.131068870141842
+            },
+            "region": "Tambacounda",
+            "climate_zone": "Zone soudanienne"
+          },
+          {
+            "grid_cell": "0_3",
+            "event_count": 97,
+            "center_coordinates": {
+              "latitude": 13.001799167655362,
+              "longitude": -13.17078635141598
+            },
+            "region": "Tambacounda",
+            "climate_zone": "Zone soudanienne"
+          },
+          {
+            "grid_cell": "1_1",
+            "event_count": 98,
+            "center_coordinates": {
+              "latitude": 13.76790209423033,
+              "longitude": -15.091351388867704
+            },
+            "region": "Kaffrine",
+            "climate_zone": "Zone soudano-sahélienne"
+          },
+          {
+            "grid_cell": "1_2",
+            "event_count": 141,
+            "center_coordinates": {
+              "latitude": 13.76790209423033,
+              "longitude": -14.131068870141842
+            },
+            "region": "Tambacounda",
+            "climate_zone": "Zone soudano-sahélienne"
+          },
+          {
+            "grid_cell": "1_3",
+            "event_count": 123,
+            "center_coordinates": {
+              "latitude": 13.76790209423033,
+              "longitude": -13.17078635141598
+            },
+            "region": "Tambacounda",
+            "climate_zone": "Zone soudano-sahélienne"
+          },
+          {
+            "grid_cell": "2_2",
+            "event_count": 92,
+            "center_coordinates": {
+              "latitude": 14.5340050208053,
+              "longitude": -14.131068870141842
+            },
+            "region": "Tambacounda",
+            "climate_zone": "Zone soudano-sahélienne"
+          }
+        ]
+      }
+    },
+    "phase_analysis": {
+      "phase_distribution": {
+        "Phase_2_pleine": {
+          "event_count": 528,
+          "percentage": 39.81900452488688,
+          "description": "Juillet-Août - Pic des précipitations",
+          "months": [
+            7,
+            8
+          ],
+          "avg_area": 93121.66078139796,
+          "total_area": 49168236.892578125,
+          "max_area": 262337.15625,
+          "avg_intensity": 52.65719412312363,
+          "max_intensity": 231.35137939453125,
+          "preferred_regions": {
+            "Tambacounda": 264,
+            "Kaffrine": 82,
+            "Matam": 65
+          }
+        },
+        "Phase_3_fin": {
+          "event_count": 495,
+          "percentage": 37.33031674208145,
+          "description": "Septembre-Octobre - Diminution progressive",
+          "months": [
+            9,
+            10
+          ],
+          "avg_area": 85132.87313762626,
+          "total_area": 42140772.203125,
+          "max_area": 294599.4375,
+          "avg_intensity": 34.86168460942278,
+          "max_intensity": 102.45309448242188,
+          "preferred_regions": {
+            "Tambacounda": 232,
+            "Kaffrine": 78,
+            "Matam": 67
+          }
+        },
+        "Phase_1_debut": {
+          "event_count": 294,
+          "percentage": 22.171945701357465,
+          "description": "Mai-Juin - Installation progressive des pluies",
+          "months": [
+            5,
+            6
+          ],
+          "avg_area": 77428.81441326531,
+          "total_area": 22764071.4375,
+          "max_area": 255883.765625,
+          "avg_intensity": 25.832048432356647,
+          "max_intensity": 85.5930404663086,
+          "preferred_regions": {
+            "Tambacounda": 195,
+            "Kaffrine": 25,
+            "Matam": 24
+          }
+        },
+        "Hors_saison": {
+          "event_count": 9,
+          "percentage": 0.6787330316742082,
+          "description": "Novembre-Avril - Saison sèche",
+          "months": [
+            11,
+            12,
+            1,
+            2,
+            3,
+            4
+          ],
+          "avg_area": 93045.20138888889,
+          "total_area": 837406.8125,
+          "max_area": 293926.0625,
+          "avg_intensity": 7.326289706759983,
+          "max_intensity": 15.430146217346191,
+          "preferred_regions": {
+            "Tambacounda": 4,
+            "Kolda": 4,
+            "Kédougou": 1
+          }
+        }
+      },
+      "inter_phase_comparison": {
+        "Hors_saison_vs_Phase_3_fin": {
+          "event_count_diff": -486,
+          "avg_area_diff": 7912.328251262632,
+          "avg_intensity_diff": -27.535394902662798
+        },
+        "Hors_saison_vs_Phase_1_debut": {
+          "event_count_diff": -285,
+          "avg_area_diff": 15616.38697562358,
+          "avg_intensity_diff": -18.505758725596664
+        },
+        "Hors_saison_vs_Phase_2_pleine": {
+          "event_count_diff": -519,
+          "avg_area_diff": -76.45939250907395,
+          "avg_intensity_diff": -45.33090441636365
+        },
+        "Phase_3_fin_vs_Phase_1_debut": {
+          "event_count_diff": 201,
+          "avg_area_diff": 7704.058724360948,
+          "avg_intensity_diff": 9.029636177066134
+        },
+        "Phase_3_fin_vs_Phase_2_pleine": {
+          "event_count_diff": -33,
+          "avg_area_diff": -7988.787643771706,
+          "avg_intensity_diff": -17.79550951370085
+        },
+        "Phase_1_debut_vs_Phase_2_pleine": {
+          "event_count_diff": -234,
+          "avg_area_diff": -15692.846368132654,
+          "avg_intensity_diff": -26.825145690766984
+        }
+      }
+    },
+    "intensity_patterns": {
+      "intensity_distribution": {
+        "Intense": {
+          "count": 635,
+          "percentage": 47.88838612368024
+        },
+        "Modéré": {
+          "count": 337,
+          "percentage": 25.414781297134237
+        },
+        "Très intense": {
+          "count": 336,
+          "percentage": 25.339366515837103
+        },
+        "Extrême": {
+          "count": 18,
+          "percentage": 1.3574660633484164
+        }
+      },
+      "intensity_area_relationship": {
+        "correlation": 0.32233512817891513,
+        "interpretation": "Corrélation positive faible"
+      },
+      "intensity_hotspots": [
+        {
+          "date": "1985-08-06",
+          "intensity": 231.35137939453125,
+          "location": {
+            "lat": 12.82908150316017,
+            "lon": -13.21415329456998,
+            "region": "Tambacounda"
+          }
+        },
+        {
+          "date": "2009-08-28",
+          "intensity": 132.57249450683594,
+          "location": {
+            "lat": 14.317647818226197,
+            "lon": -15.48270462966021,
+            "region": "Kaolack"
+          }
+        },
+        {
+          "date": "1981-08-01",
+          "intensity": 129.42462158203125,
+          "location": {
+            "lat": 14.227144507477654,
+            "lon": -13.77278199427169,
+            "region": "Tambacounda"
+          }
+        },
+        {
+          "date": "1984-08-13",
+          "intensity": 127.062255859375,
+          "location": {
+            "lat": 13.139640745484092,
+            "lon": -12.366017084336903,
+            "region": "Tambacounda"
+          }
+        },
+        {
+          "date": "1992-08-31",
+          "intensity": 120.72540283203125,
+          "location": {
+            "lat": 13.615079221043214,
+            "lon": -15.784780308863766,
+            "region": "Kaffrine"
+          }
+        }
+      ]
+    },
+    "size_distribution": {
+      "size_distribution": {
+        "Très grand": {
+          "count": 1322,
+          "percentage": 99.69834087481146,
+          "avg_intensity": 39.80735864834057
+        },
+        "Grand": {
+          "count": 4,
+          "percentage": 0.301659125188537,
+          "avg_intensity": 23.690773010253906
+        },
+        "Moyen": {
+          "count": 0,
+          "percentage": 0.0,
+          "avg_intensity": null
+        },
+        "Petit": {
+          "count": 0,
+          "percentage": 0.0,
+          "avg_intensity": null
+        }
+      },
+      "size_statistics": {
+        "mean": 86659.49271923312,
+        "median": 75718.8671875,
+        "std": 46625.746409095096,
+        "min": 29747.8515625,
+        "max": 294599.4375,
+        "q25": 51189.1826171875,
+        "q75": 111269.287109375,
+        "q90": 150131.7578125,
+        "q95": 178360.9609375
+      },
+      "exceptional_events": {
+        "threshold_km2": 178360.9609375,
+        "count": 67,
+        "percentage": 5.052790346907994,
+        "total_area": 14305696.546875,
+        "dates": [
+          "1996-11-08",
+          "2012-09-28",
+          "2000-10-16",
+          "2022-05-27",
+          "2022-10-24"
+        ]
+      }
+    },
+    "spatial_clustering": {
+      "spatial_dispersion": {
+        "latitude_std": 0.8144517352601557,
+        "longitude_std": 1.073592553345361,
+        "overall_dispersion": 1.3475654342802394,
+        "clustering_level": "Modérément dispersé"
+      },
+      "center_of_mass": {
+        "latitude": 14.064850289759118,
+        "longitude": -13.984097012151947,
+        "region": "Tambacounda",
+        "climate_zone": "Zone soudano-sahélienne"
+      },
+      "distance_statistics": {
+        "mean_distance_to_center": 1.22904633655694,
+        "max_distance_to_center": 2.562602571893206,
+        "std_distance_to_center": 0.5515774295879524
+      }
+    },
+    "temporal_spatial_evolution": {
+      "yearly_evolution": {
+        "area_statistics": {
+          "1981": {
+            "count": 32,
+            "sum": 2888573.45,
+            "mean": 90267.92
+          },
+          "1982": {
+            "count": 23,
+            "sum": 1592632.75,
+            "mean": 69244.9
+          },
+          "1983": {
+            "count": 17,
+            "sum": 1420137.42,
+            "mean": 83537.5
+          },
+          "1984": {
+            "count": 34,
+            "sum": 2434103.06,
+            "mean": 71591.27
+          },
+          "1985": {
+            "count": 28,
+            "sum": 2676971.24,
+            "mean": 95606.12
+          },
+          "1986": {
+            "count": 32,
+            "sum": 2453354.5,
+            "mean": 76667.33
+          },
+          "1987": {
+            "count": 34,
+            "sum": 2680736.12,
+            "mean": 78845.18
+          },
+          "1988": {
+            "count": 29,
+            "sum": 2671082.64,
+            "mean": 92106.3
+          },
+          "1989": {
+            "count": 37,
+            "sum": 3003976.13,
+            "mean": 81188.54
+          },
+          "1990": {
+            "count": 15,
+            "sum": 866183.64,
+            "mean": 57745.58
+          },
+          "1991": {
+            "count": 19,
+            "sum": 1702701.59,
+            "mean": 89615.87
+          },
+          "1992": {
+            "count": 24,
+            "sum": 1983194.33,
+            "mean": 82633.1
+          },
+          "1993": {
+            "count": 26,
+            "sum": 2028542.64,
+            "mean": 78020.87
+          },
+          "1994": {
+            "count": 32,
+            "sum": 2723890.33,
+            "mean": 85121.57
+          },
+          "1995": {
+            "count": 18,
+            "sum": 1509395.3,
+            "mean": 83855.29
+          },
+          "1996": {
+            "count": 26,
+            "sum": 2618690.52,
+            "mean": 100718.87
+          },
+          "1997": {
+            "count": 30,
+            "sum": 2495450.38,
+            "mean": 83181.68
+          },
+          "1998": {
+            "count": 25,
+            "sum": 2258285.35,
+            "mean": 90331.41
+          },
+          "1999": {
+            "count": 44,
+            "sum": 4077498.62,
+            "mean": 92670.42
+          },
+          "2000": {
+            "count": 42,
+            "sum": 3341423.09,
+            "mean": 79557.69
+          },
+          "2001": {
+            "count": 25,
+            "sum": 2142524.09,
+            "mean": 85700.96
+          },
+          "2002": {
+            "count": 34,
+            "sum": 3379953.58,
+            "mean": 99410.4
+          },
+          "2003": {
+            "count": 37,
+            "sum": 3261866.37,
+            "mean": 88158.55
+          },
+          "2004": {
+            "count": 27,
+            "sum": 2389702.19,
+            "mean": 88507.49
+          },
+          "2005": {
+            "count": 44,
+            "sum": 4007174.69,
+            "mean": 91072.15
+          },
+          "2006": {
+            "count": 26,
+            "sum": 2079427.16,
+            "mean": 79977.97
+          },
+          "2007": {
+            "count": 26,
+            "sum": 2011402.02,
+            "mean": 77361.62
+          },
+          "2008": {
+            "count": 37,
+            "sum": 3029594.7,
+            "mean": 81880.94
+          },
+          "2009": {
+            "count": 36,
+            "sum": 3250962.09,
+            "mean": 90304.5
+          },
+          "2010": {
+            "count": 50,
+            "sum": 4387801.94,
+            "mean": 87756.04
+          },
+          "2011": {
+            "count": 26,
+            "sum": 2116871.62,
+            "mean": 81418.14
+          },
+          "2012": {
+            "count": 47,
+            "sum": 3909225.86,
+            "mean": 83175.02
+          },
+          "2013": {
+            "count": 28,
+            "sum": 2229879.64,
+            "mean": 79638.56
+          },
+          "2014": {
+            "count": 27,
+            "sum": 2294716.06,
+            "mean": 84989.48
+          },
+          "2015": {
+            "count": 38,
+            "sum": 3070108.58,
+            "mean": 80792.33
+          },
+          "2016": {
+            "count": 26,
+            "sum": 2358473.41,
+            "mean": 90710.52
+          },
+          "2017": {
+            "count": 34,
+            "sum": 2918079.12,
+            "mean": 85825.86
+          },
+          "2018": {
+            "count": 26,
+            "sum": 2203023.81,
+            "mean": 84731.68
+          },
+          "2019": {
+            "count": 20,
+            "sum": 2137965.55,
+            "mean": 106898.28
+          },
+          "2020": {
+            "count": 46,
+            "sum": 4267222.76,
+            "mean": 92765.71
+          },
+          "2021": {
+            "count": 29,
+            "sum": 3125748.23,
+            "mean": 107784.42
+          },
+          "2022": {
+            "count": 36,
+            "sum": 3836439.98,
+            "mean": 106567.78
+          },
+          "2023": {
+            "count": 34,
+            "sum": 3075500.79,
+            "mean": 90455.91
+          }
+        },
+        "trend_analysis": {
+          "count": {
+            "slope": 0.19027484143762832,
+            "interpretation": "Croissante"
+          },
+          "sum": {
+            "slope": 25356.824512231422,
+            "interpretation": "Croissante"
+          },
+          "mean": {
+            "slope": 323.8694729688822,
+            "interpretation": "Croissante"
+          }
+        }
+      },
+      "centroid_evolution": {
+        "yearly_centroids": {
+          "1981": {
+            "centroid_lat": 13.8831,
+            "centroid_lon": -14.0434
+          },
+          "1982": {
+            "centroid_lat": 14.1245,
+            "centroid_lon": -13.9998
+          },
+          "1983": {
+            "centroid_lat": 14.2395,
+            "centroid_lon": -13.8217
+          },
+          "1984": {
+            "centroid_lat": 14.0635,
+            "centroid_lon": -13.9034
+          },
+          "1985": {
+            "centroid_lat": 14.1076,
+            "centroid_lon": -14.0064
+          },
+          "1986": {
+            "centroid_lat": 13.9875,
+            "centroid_lon": -14.0277
+          },
+          "1987": {
+            "centroid_lat": 13.9535,
+            "centroid_lon": -13.9866
+          },
+          "1988": {
+            "centroid_lat": 14.1656,
+            "centroid_lon": -14.2022
+          },
+          "1989": {
+            "centroid_lat": 14.0748,
+            "centroid_lon": -14.187
+          },
+          "1990": {
+            "centroid_lat": 14.6975,
+            "centroid_lon": -14.4104
+          },
+          "1991": {
+            "centroid_lat": 13.7515,
+            "centroid_lon": -13.7019
+          },
+          "1992": {
+            "centroid_lat": 13.8316,
+            "centroid_lon": -13.7456
+          },
+          "1993": {
+            "centroid_lat": 14.1005,
+            "centroid_lon": -14.1624
+          },
+          "1994": {
+            "centroid_lat": 13.7718,
+            "centroid_lon": -13.846
+          },
+          "1995": {
+            "centroid_lat": 13.9101,
+            "centroid_lon": -14.1084
+          },
+          "1996": {
+            "centroid_lat": 14.0584,
+            "centroid_lon": -13.932
+          },
+          "1997": {
+            "centroid_lat": 14.0793,
+            "centroid_lon": -13.9455
+          },
+          "1998": {
+            "centroid_lat": 13.8916,
+            "centroid_lon": -13.9592
+          },
+          "1999": {
+            "centroid_lat": 14.0118,
+            "centroid_lon": -14.0817
+          },
+          "2000": {
+            "centroid_lat": 14.1572,
+            "centroid_lon": -13.8878
+          },
+          "2001": {
+            "centroid_lat": 14.2203,
+            "centroid_lon": -14.0504
+          },
+          "2002": {
+            "centroid_lat": 14.2713,
+            "centroid_lon": -13.905
+          },
+          "2003": {
+            "centroid_lat": 14.2293,
+            "centroid_lon": -14.24
+          },
+          "2004": {
+            "centroid_lat": 14.0244,
+            "centroid_lon": -14.0138
+          },
+          "2005": {
+            "centroid_lat": 14.2599,
+            "centroid_lon": -14.1544
+          },
+          "2006": {
+            "centroid_lat": 13.9976,
+            "centroid_lon": -14.2277
+          },
+          "2007": {
+            "centroid_lat": 14.071,
+            "centroid_lon": -13.8757
+          },
+          "2008": {
+            "centroid_lat": 13.9495,
+            "centroid_lon": -13.8131
+          },
+          "2009": {
+            "centroid_lat": 13.9776,
+            "centroid_lon": -13.9017
+          },
+          "2010": {
+            "centroid_lat": 14.169,
+            "centroid_lon": -14.132
+          },
+          "2011": {
+            "centroid_lat": 14.1003,
+            "centroid_lon": -13.9681
+          },
+          "2012": {
+            "centroid_lat": 14.27,
+            "centroid_lon": -13.8133
+          },
+          "2013": {
+            "centroid_lat": 14.2406,
+            "centroid_lon": -13.8222
+          },
+          "2014": {
+            "centroid_lat": 14.1498,
+            "centroid_lon": -13.4574
+          },
+          "2015": {
+            "centroid_lat": 13.7936,
+            "centroid_lon": -14.0463
+          },
+          "2016": {
+            "centroid_lat": 13.9524,
+            "centroid_lon": -14.0121
+          },
+          "2017": {
+            "centroid_lat": 13.9832,
+            "centroid_lon": -14.077
+          },
+          "2018": {
+            "centroid_lat": 14.1357,
+            "centroid_lon": -13.5709
+          },
+          "2019": {
+            "centroid_lat": 13.7961,
+            "centroid_lon": -13.9583
+          },
+          "2020": {
+            "centroid_lat": 14.0427,
+            "centroid_lon": -13.8945
+          },
+          "2021": {
+            "centroid_lat": 13.9715,
+            "centroid_lon": -14.079
+          },
+          "2022": {
+            "centroid_lat": 14.1368,
+            "centroid_lon": -14.0831
+          },
+          "2023": {
+            "centroid_lat": 14.1034,
+            "centroid_lon": -14.1042
+          }
+        },
+        "spatial_migration": {
+          "mean_annual_migration": 0.2671091294053407,
+          "max_annual_migration": 1.1819002707504547,
+          "total_migration": 11.218583435024309,
+          "migration_trend": "Variable"
+        }
+      }
+    },
+    "quality_metrics": {
+      "data_completeness": {
+        "required_columns": [
+          "date",
+          "centroid_lat",
+          "centroid_lon",
+          "total_area_km2",
+          "max_intensity_mm"
+        ],
+        "present_columns": [
+          "date",
+          "centroid_lat",
+          "centroid_lon",
+          "total_area_km2",
+          "max_intensity_mm"
+        ],
+        "completeness_ratio": 1.0,
+        "missing_columns": []
+      },
+      "coordinate_validation": {
+        "total_events": 1326,
+        "valid_coordinates": 1326,
+        "invalid_coordinates": 0,
+        "validity_ratio": 1.0
+      },
+      "physical_validation": {
+        "area_validation": {
+          "valid_areas": 1286,
+          "invalid_areas": 40,
+          "validity_ratio": 0.9698340874811463
+        },
+        "intensity_validation": {
+          "valid_intensities": 1326,
+          "invalid_intensities": 0,
+          "validity_ratio": 1.0
+        }
+      },
+      "overall_quality": {
+        "quality_score": 1.0,
+        "quality_level": "EXCELLENT"
+      }
+    }
+  },
+  "top_events": [
+    {
+      "rank": 1,
+      "date": "1996-11-08",
+      "source": "CHIRPS",
+      "total_area_km2": 293926.0625,
+      "num_pixels_affected": 392,
+      "coverage_percent": 87.11111111111111,
+      "average_pixel_area_km2": 749.8114013671875,
+      "centroid_lat": 13.674372306746271,
+      "centroid_lon": -13.954952532407852,
+      "centroid_region": "Tambacounda",
+      "centroid_department": "Tambacounda",
+      "centroid_climate_zone": "Zone soudano-sahélienne",
+      "max_intensity_mm": 5.603641510009766,
+      "max_intensity_lat": 12.375,
+      "max_intensity_lon": -15.125,
+      "max_intensity_region": "Sédhiou",
+      "max_intensity_department": "Bounkiling",
+      "lat_extent_deg": 4.25,
+      "lon_extent_deg": 5.75,
+      "lat_span_km": 473.10999999999996,
+      "lon_span_km": 619.8298950195312,
+      "aspect_ratio": 1.3101179599761963,
+      "intensity_stats": {
+        "mean_mm": 1.206889561776604,
+        "median_mm": 1.0080831050872803,
+        "std_mm": 0.9057105322649577,
+        "min_mm": 0.15987347066402435,
+        "max_mm": 5.603641510009766,
+        "p25_mm": 0.5726950764656067,
+        "p75_mm": 1.5076864659786224,
+        "p90_mm": 2.1514114618301403,
+        "p95_mm": 3.0527054786682113,
+        "p99_mm": 4.735494647026061,
+        "mean_anomaly": 6.736241211737546,
+        "max_anomaly": 12.56494704752427,
+        "extreme_pixels_pct": 98.72448979591837
+      },
+      "geometry_metrics": {
+        "lat_extent": 4.25,
+        "lon_extent": 5.75,
+        "lat_span_km": 473.10999999999996,
+        "lon_span_km": 619.8298950195312,
+        "aspect_ratio": 1.3101179599761963,
+        "diagonal_km": 779.7577514648438
+      },
+      "shape_metrics": {
+        "total_area_km2": 293926.0625,
+        "equivalent_radius_km": 305.8750915527344,
+        "perimeter_approx_km": 1921.8699951171875,
+        "compactness": 0.9999999403953552,
+        "elongation": 1.260775089263916
+      },
+      "connectivity": {
+        "num_clusters": 1,
+        "cluster_sizes": [
+          392
+        ],
+        "largest_cluster_size": 392,
+        "largest_cluster_ratio": 1.0,
+        "fragmentation_index": 0.002551020408163265
+      },
+      "geographic_analysis": {
+        "regions": {
+          "Ziguinchor": 15.414338231086731,
+          "Sédhiou": 41.06682801246643,
+          "Kolda": 81.67650496959686,
+          "Kédougou": 64.37213605642319,
+          "Tambacounda": 128.76988154649734,
+          "Kaolack": 9.204566776752472,
+          "Fatick": 8.696260333061218,
+          "Kaffrine": 27.092781245708466,
+          "Thiès": 5.457751154899597,
+          "Diourbel": 7.289872527122498,
+          "Dakar": 0.7402719259262085,
+          "Matam": 63.41073405742645,
+          "Louga": 12.977668315172195,
+          "Saint-Louis": 6.931113064289093
+        },
+        "departments": {
+          "Oussouye": 5.090122699737549,
+          "Goudomp": 20.44856095314026,
+          "Bounkiling": 10.359757423400879,
+          "Kolda": 32.079787850379944,
+          "Médina Yoro Foulah": 31.351194024086,
+          "Vélingara": 18.24552309513092,
+          "Salémata": 28.409194469451904,
+          "Kédougou": 15.79059112071991,
+          "Saraya": 20.172350466251373,
+          "Ziguinchor": 1.7915042638778687,
+          "Sédhiou": 10.258509635925293,
+          "Tambacounda": 55.111228227615356,
+          "Bignona": 8.532711267471313,
+          "Goudiry": 57.04048144817352,
+          "Nioro du Rip": 6.475395143032074,
+          "Foundiougne": 7.846337974071503,
+          "Kaffrine": 4.071093857288361,
+          "Malem-Hodar": 10.933711409568787,
+          "Koumpentoum": 8.861367046833038,
+          "Guinguinéo": 2.729171633720398,
+          "Koungheul": 10.470918238162994,
+          "Mbour": 0.806648850440979,
+          "Fatick": 0.8499223589897156,
+          "Diourbel": 2.5781405568122864,
+          "Mbacké": 3.515143394470215,
+          "Bakel": 7.756804823875427,
+          "Rufisque": 0.7402719259262085,
+          "Thiès": 2.3578280806541443,
+          "Bambey": 1.1965885758399963,
+          "Birkelane": 1.617057740688324,
+          "Kanel": 37.65474498271942,
+          "Tivaouane": 2.293274223804474,
+          "Ranérou": 12.860696375370026,
+          "Kébémer": 2.1520113945007324,
+          "Louga": 1.3866942524909973,
+          "Linguère": 9.438962668180466,
+          "Saint-Louis": 4.469890013337135,
+          "Dagana": 2.2322751879692078,
+          "Matam": 12.895292699337006,
+          "Podor": 0.22894786298274994
+        },
+        "climate_zones": {
+          "Zone soudanienne": 247.21438217163086,
+          "Zone soudano-sahélienne": 184.34616413712502,
+          "Zone sahélienne": 41.54016190767288
+        },
+        "total_coordinates": 392,
+        "valid_coordinates": 392
+      },
+      "intensity_density": 1.211040114382672,
+      "anomaly_severity": 6.736241211737546,
+      "spatial_concentration": 0.37428425238557783
+    },
+    {
+      "rank": 2,
+      "date": "2012-09-28",
+      "source": "CHIRPS",
+      "total_area_km2": 294599.4375,
+      "num_pixels_affected": 393,
+      "coverage_percent": 87.33333333333333,
+      "average_pixel_area_km2": 749.6168823242188,
+      "centroid_lat": 14.281035234038894,
+      "centroid_lon": -14.133424054727287,
+      "centroid_region": "Tambacounda",
+      "centroid_department": "Koumpentoum",
+      "centroid_climate_zone": "Zone soudano-sahélienne",
+      "max_intensity_mm": 44.27000427246094,
+      "max_intensity_lat": 12.625,
+      "max_intensity_lon": -13.875,
+      "max_intensity_region": "Kolda",
+      "max_intensity_department": "Vélingara",
+      "lat_extent_deg": 4.25,
+      "lon_extent_deg": 5.75,
+      "lat_span_km": 473.10999999999996,
+      "lon_span_km": 619.6705322265625,
+      "aspect_ratio": 1.3097810745239258,
+      "intensity_stats": {
+        "mean_mm": 22.591251763982022,
+        "median_mm": 22.427274703979492,
+        "std_mm": 6.3725750973405475,
+        "min_mm": 9.233241081237793,
+        "max_mm": 44.27000427246094,
+        "p25_mm": 18.151121139526367,
+        "p75_mm": 26.5543212890625,
+        "p90_mm": 30.95267143249512,
+        "p95_mm": 33.42156906127929,
+        "p99_mm": 39.29823226928709,
+        "mean_anomaly": 3.9339448652042432,
+        "max_anomaly": 8.137531016741498,
+        "extreme_pixels_pct": 80.1526717557252
+      },
+      "geometry_metrics": {
+        "lat_extent": 4.25,
+        "lon_extent": 5.75,
+        "lat_span_km": 473.10999999999996,
+        "lon_span_km": 619.6705322265625,
+        "aspect_ratio": 1.3097810745239258,
+        "diagonal_km": 779.631103515625
+      },
+      "shape_metrics": {
+        "total_area_km2": 294599.4375,
+        "equivalent_radius_km": 306.22528076171875,
+        "perimeter_approx_km": 1924.0701904296875,
+        "compactness": 0.9999999403953552,
+        "elongation": 1.260140299797058
+      },
+      "connectivity": {
+        "num_clusters": 1,
+        "cluster_sizes": [
+          393
+        ],
+        "largest_cluster_size": 393,
+        "largest_cluster_ratio": 1.0,
+        "fragmentation_index": 0.002544529262086514
+      },
+      "geographic_analysis": {
+        "regions": {
+          "Ziguinchor": 330.69694900512695,
+          "Sédhiou": 405.2839584350586,
+          "Kolda": 752.5008544921875,
+          "Kédougou": 674.8189563751221,
+          "Tambacounda": 2402.9418334960938,
+          "Kaolack": 181.550630569458,
+          "Fatick": 206.59987545013428,
+          "Kaffrine": 615.9566106796265,
+          "Thiès": 175.13286781311035,
+          "Diourbel": 232.45035934448242,
+          "Dakar": 27.030393600463867,
+          "Matam": 1788.646689414978,
+          "Louga": 546.7187004089355,
+          "Saint-Louis": 538.0332641601562
+        },
+        "departments": {
+          "Oussouye": 99.34882164001465,
+          "Goudomp": 211.13157653808594,
+          "Bounkiling": 49.29110336303711,
+          "Kolda": 321.40223503112793,
+          "Médina Yoro Foulah": 247.96747970581055,
+          "Vélingara": 183.13113975524902,
+          "Salémata": 275.9300594329834,
+          "Kédougou": 128.4699764251709,
+          "Saraya": 270.4189205169678,
+          "Ziguinchor": 30.369831085205078,
+          "Sédhiou": 144.86127853393555,
+          "Tambacounda": 922.0499954223633,
+          "Bignona": 200.97829627990723,
+          "Goudiry": 1126.5249156951904,
+          "Nioro du Rip": 115.2215690612793,
+          "Foundiougne": 185.35330295562744,
+          "Kaffrine": 96.65987586975098,
+          "Malem-Hodar": 217.24043083190918,
+          "Koumpentoum": 193.03415489196777,
+          "Guinguinéo": 66.32906150817871,
+          "Koungheul": 268.7791862487793,
+          "Mbour": 21.175220489501953,
+          "Fatick": 21.246572494506836,
+          "Diourbel": 64.00812149047852,
+          "Mbacké": 117.19929885864258,
+          "Bakel": 161.33276748657227,
+          "Rufisque": 27.030393600463867,
+          "Thiès": 67.84588623046875,
+          "Bambey": 51.24293899536133,
+          "Birkelane": 33.27711772918701,
+          "Kanel": 733.7144689559937,
+          "Tivaouane": 86.11176109313965,
+          "Ranérou": 510.0260705947876,
+          "Kébémer": 109.2717342376709,
+          "Louga": 77.7503547668457,
+          "Linguère": 359.69661140441895,
+          "Saint-Louis": 310.3698081970215,
+          "Dagana": 208.38663291931152,
+          "Matam": 544.9061498641968,
+          "Podor": 19.276823043823242
+        },
+        "climate_zones": {
+          "Zone soudanienne": 2783.030508041382,
+          "Zone soudano-sahélienne": 4261.949069976807,
+          "Zone sahélienne": 1833.3823652267456
+        },
+        "total_coordinates": 393,
+        "valid_coordinates": 393
+      },
+      "intensity_density": 22.614201045574212,
+      "anomaly_severity": 3.9339448652042432,
+      "spatial_concentration": 0.15847429148635195
+    },
+    {
+      "rank": 3,
+      "date": "2000-10-16",
+      "source": "CHIRPS",
+      "total_area_km2": 264464.5625,
+      "num_pixels_affected": 353,
+      "coverage_percent": 78.44444444444444,
+      "average_pixel_area_km2": 749.19140625,
+      "centroid_lat": 14.23623261910637,
+      "centroid_lon": -14.037460768774988,
+      "centroid_region": "Tambacounda",
+      "centroid_department": "Koumpentoum",
+      "centroid_climate_zone": "Zone soudano-sahélienne",
+      "max_intensity_mm": 30.393627166748047,
+      "max_intensity_lat": 12.375,
+      "max_intensity_lon": -11.625,
+      "max_intensity_region": "Kédougou",
+      "max_intensity_department": "Saraya",
+      "lat_extent_deg": 4.25,
+      "lon_extent_deg": 5.75,
+      "lat_span_km": 473.10999999999996,
+      "lon_span_km": 619.310546875,
+      "aspect_ratio": 1.3090202808380127,
+      "intensity_stats": {
+        "mean_mm": 11.744859110532333,
+        "median_mm": 11.189492225646973,
+        "std_mm": 5.203939710239283,
+        "min_mm": 1.9914779663085938,
+        "max_mm": 30.393627166748047,
+        "p25_mm": 7.801856517791748,
+        "p75_mm": 14.942068099975586,
+        "p90_mm": 19.071123504638674,
+        "p95_mm": 21.423899078369136,
+        "p99_mm": 25.655822753906254,
+        "mean_anomaly": 5.802498657160925,
+        "max_anomaly": 15.633331138014398,
+        "extreme_pixels_pct": 89.80169971671388
+      },
+      "geometry_metrics": {
+        "lat_extent": 4.25,
+        "lon_extent": 5.75,
+        "lat_span_km": 473.10999999999996,
+        "lon_span_km": 619.310546875,
+        "aspect_ratio": 1.3090202808380127,
+        "diagonal_km": 779.344970703125
+      },
+      "shape_metrics": {
+        "total_area_km2": 264464.5625,
+        "equivalent_radius_km": 290.14080810546875,
+        "perimeter_approx_km": 1823.008544921875,
+        "compactness": 0.9999998211860657,
+        "elongation": 1.3070365190505981
+      },
+      "connectivity": {
+        "num_clusters": 1,
+        "cluster_sizes": [
+          353
+        ],
+        "largest_cluster_size": 353,
+        "largest_cluster_ratio": 1.0,
+        "fragmentation_index": 0.0028328611898017
+      },
+      "geographic_analysis": {
+        "regions": {
+          "Ziguinchor": 170.37486267089844,
+          "Sédhiou": 285.543155670166,
+          "Kédougou": 446.59742736816406,
+          "Kolda": 164.00095558166504,
+          "Tambacounda": 1072.0341610908508,
+          "Kaolack": 83.1546688079834,
+          "Kaffrine": 389.5135660171509,
+          "Fatick": 36.0815863609314,
+          "Thiès": 104.94537353515625,
+          "Diourbel": 119.37993812561035,
+          "Dakar": 11.673835754394531,
+          "Matam": 892.8366601467133,
+          "Louga": 217.60906767845154,
+          "Saint-Louis": 152.19000720977783
+        },
+        "departments": {
+          "Oussouye": 63.55009841918945,
+          "Goudomp": 158.97945880889893,
+          "Bounkiling": 44.29567337036133,
+          "Kédougou": 138.0903091430664,
+          "Saraya": 205.26446914672852,
+          "Ziguinchor": 19.442829132080078,
+          "Sédhiou": 82.26802349090576,
+          "Kolda": 134.76565837860107,
+          "Salémata": 103.24264907836914,
+          "Bignona": 87.3819351196289,
+          "Tambacounda": 277.41004848480225,
+          "Goudiry": 610.4981918334961,
+          "Nioro du Rip": 43.345550537109375,
+          "Vélingara": 29.235297203063965,
+          "Kaffrine": 53.172303199768066,
+          "Malem-Hodar": 152.72526454925537,
+          "Foundiougne": 29.577061653137207,
+          "Koumpentoum": 107.655517578125,
+          "Guinguinéo": 39.80911827087402,
+          "Koungheul": 163.77717399597168,
+          "Mbour": 5.912347793579102,
+          "Fatick": 6.5045247077941895,
+          "Diourbel": 41.27645778656006,
+          "Mbacké": 55.761393547058105,
+          "Bakel": 76.47040319442749,
+          "Rufisque": 11.673835754394531,
+          "Thiès": 42.56946659088135,
+          "Bambey": 22.342086791992188,
+          "Birkelane": 19.83882427215576,
+          "Kanel": 394.40122175216675,
+          "Tivaouane": 56.4635591506958,
+          "Ranérou": 260.0919234752655,
+          "Kébémer": 51.18308162689209,
+          "Louga": 28.145480632781982,
+          "Linguère": 138.28050541877747,
+          "Saint-Louis": 95.05227279663086,
+          "Dagana": 54.50336456298828,
+          "Matam": 238.343514919281,
+          "Podor": 2.6343698501586914
+        },
+        "climate_zones": {
+          "Zone soudanienne": 1243.385293006897,
+          "Zone soudano-sahélienne": 2220.0883235931396,
+          "Zone sahélienne": 682.4616494178772
+        },
+        "total_coordinates": 353,
+        "valid_coordinates": 353
+      },
+      "intensity_density": 11.766067690727875,
+      "anomaly_severity": 5.802498657160925,
+      "spatial_concentration": 0.24745838480358495
+    },
+    {
+      "rank": 4,
+      "date": "2022-05-27",
+      "source": "CHIRPS",
+      "total_area_km2": 255883.765625,
+      "num_pixels_affected": 341,
+      "coverage_percent": 75.77777777777777,
+      "average_pixel_area_km2": 750.3922729492188,
+      "centroid_lat": 13.593089321819056,
+      "centroid_lon": -13.498711192033525,
+      "centroid_region": "Tambacounda",
+      "centroid_department": "Tambacounda",
+      "centroid_climate_zone": "Zone soudano-sahélienne",
+      "max_intensity_mm": 37.51918411254883,
+      "max_intensity_lat": 12.625,
+      "max_intensity_lon": -12.875,
+      "max_intensity_region": "Kédougou",
+      "max_intensity_department": "Salémata",
+      "lat_extent_deg": 4.25,
+      "lon_extent_deg": 5.5,
+      "lat_span_km": 473.10999999999996,
+      "lon_span_km": 593.3257446289062,
+      "aspect_ratio": 1.2540968656539917,
+      "intensity_stats": {
+        "mean_mm": 11.892646142114991,
+        "median_mm": 8.187189102172852,
+        "std_mm": 10.029765354579498,
+        "min_mm": 0.3271494209766388,
+        "max_mm": 37.51918411254883,
+        "p25_mm": 3.071737766265869,
+        "p75_mm": 18.346710205078125,
+        "p90_mm": 27.193378448486328,
+        "p95_mm": 30.67117691040039,
+        "p99_mm": 35.50945816040041,
+        "mean_anomaly": 9.866616912475576,
+        "max_anomaly": 20.0,
+        "extreme_pixels_pct": 95.01466275659824
+      },
+      "geometry_metrics": {
+        "lat_extent": 4.25,
+        "lon_extent": 5.5,
+        "lat_span_km": 473.10999999999996,
+        "lon_span_km": 593.3257446289062,
+        "aspect_ratio": 1.2540968656539917,
+        "diagonal_km": 758.8599853515625
+      },
+      "shape_metrics": {
+        "total_area_km2": 255883.765625,
+        "equivalent_radius_km": 285.3950500488281,
+        "perimeter_approx_km": 1793.1900634765625,
+        "compactness": 0.9999999403953552,
+        "elongation": 1.2522958517074585
+      },
+      "connectivity": {
+        "num_clusters": 1,
+        "cluster_sizes": [
+          341
+        ],
+        "largest_cluster_size": 341,
+        "largest_cluster_ratio": 1.0,
+        "fragmentation_index": 0.002932551319648094
+      },
+      "geographic_analysis": {
+        "regions": {
+          "Ziguinchor": 88.00448441505432,
+          "Sédhiou": 217.8168249130249,
+          "Kolda": 515.4638509750366,
+          "Kédougou": 645.649628162384,
+          "Tambacounda": 1906.0398902893066,
+          "Kaolack": 33.10299229621887,
+          "Fatick": 10.605073094367981,
+          "Kaffrine": 164.78990602493286,
+          "Thiès": 3.1392807364463806,
+          "Diourbel": 8.451023429632187,
+          "Matam": 453.82113206386566,
+          "Louga": 8.508248060941696
+        },
+        "departments": {
+          "Oussouye": 20.345205783843994,
+          "Goudomp": 103.95706748962402,
+          "Bounkiling": 28.22432804107666,
+          "Kolda": 260.19140911102295,
+          "Médina Yoro Foulah": 152.42657947540283,
+          "Vélingara": 102.84586238861084,
+          "Salémata": 328.6782913208008,
+          "Kédougou": 179.43212699890137,
+          "Ziguinchor": 12.942914009094238,
+          "Sédhiou": 85.63542938232422,
+          "Tambacounda": 866.1544828414917,
+          "Saraya": 137.53920984268188,
+          "Bignona": 54.71636462211609,
+          "Goudiry": 882.4675168991089,
+          "Nioro du Rip": 25.302579641342163,
+          "Foundiougne": 9.786190330982208,
+          "Kaffrine": 17.178682327270508,
+          "Malem-Hodar": 91.25778722763062,
+          "Koumpentoum": 90.85030126571655,
+          "Guinguinéo": 7.800412654876709,
+          "Koungheul": 53.92715448141098,
+          "Mbour": 0.7109472155570984,
+          "Fatick": 0.8188827633857727,
+          "Diourbel": 3.123025357723236,
+          "Mbacké": 3.7498564422130585,
+          "Bakel": 66.5675892829895,
+          "Thiès": 1.5702840685844421,
+          "Bambey": 1.5781416296958923,
+          "Birkelane": 2.426281988620758,
+          "Kanel": 288.3595404624939,
+          "Tivaouane": 0.8580494523048401,
+          "Ranérou": 76.4262723326683,
+          "Kébémer": 1.0852186977863312,
+          "Louga": 0.9307620525360107,
+          "Linguère": 6.492267310619354,
+          "Matam": 89.03531926870346
+        },
+        "climate_zones": {
+          "Zone soudanienne": 2151.6618254184723,
+          "Zone soudano-sahélienne": 1715.0170603990555,
+          "Zone sahélienne": 188.7134486436844
+        },
+        "total_coordinates": 341,
+        "valid_coordinates": 341
+      },
+      "intensity_density": 11.929285493338428,
+      "anomaly_severity": 9.866616912475576,
+      "spatial_concentration": 0.46996021332409854
+    },
+    {
+      "rank": 5,
+      "date": "2022-10-24",
+      "source": "CHIRPS",
+      "total_area_km2": 252199.9375,
+      "num_pixels_affected": 336,
+      "coverage_percent": 74.66666666666667,
+      "average_pixel_area_km2": 750.5950317382812,
+      "centroid_lat": 13.517077886833732,
+      "centroid_lon": -14.38909506648451,
+      "centroid_region": "Tambacounda",
+      "centroid_department": "Tambacounda",
+      "centroid_climate_zone": "Zone soudano-sahélienne",
+      "max_intensity_mm": 51.16484069824219,
+      "max_intensity_lat": 12.375,
+      "max_intensity_lon": -15.625,
+      "max_intensity_region": "Sédhiou",
+      "max_intensity_department": "Goudomp",
+      "lat_extent_deg": 4.25,
+      "lon_extent_deg": 5.75,
+      "lat_span_km": 473.10999999999996,
+      "lon_span_km": 620.4625244140625,
+      "aspect_ratio": 1.3114551305770874,
+      "intensity_stats": {
+        "mean_mm": 13.084106622707276,
+        "median_mm": 11.241830825805664,
+        "std_mm": 9.958675360559575,
+        "min_mm": 1.0152736902236938,
+        "max_mm": 51.16484069824219,
+        "p25_mm": 4.933579325675964,
+        "p75_mm": 17.830261707305908,
+        "p90_mm": 24.233224868774414,
+        "p95_mm": 32.58363437652588,
+        "p99_mm": 48.280243492126424,
+        "mean_anomaly": 5.725114265718272,
+        "max_anomaly": 11.945029984097898,
+        "extreme_pixels_pct": 90.17857142857143
+      },
+      "geometry_metrics": {
+        "lat_extent": 4.25,
+        "lon_extent": 5.75,
+        "lat_span_km": 473.10999999999996,
+        "lon_span_km": 620.4625244140625,
+        "aspect_ratio": 1.3114551305770874,
+        "diagonal_km": 780.2607421875
+      },
+      "shape_metrics": {
+        "total_area_km2": 252199.9375,
+        "equivalent_radius_km": 283.333251953125,
+        "perimeter_approx_km": 1780.2353515625,
+        "compactness": 1.0,
+        "elongation": 1.3109935522079468
+      },
+      "connectivity": {
+        "num_clusters": 2,
+        "cluster_sizes": [
+          335,
+          1
+        ],
+        "largest_cluster_size": 335,
+        "largest_cluster_ratio": 0.9970238095238095,
+        "fragmentation_index": 0.005952380952380952
+      },
+      "geographic_analysis": {
+        "regions": {
+          "Ziguinchor": 306.54687309265137,
+          "Sédhiou": 564.2020969390869,
+          "Kolda": 767.9034938812256,
+          "Kédougou": 440.7396488189697,
+          "Tambacounda": 1254.5037796497345,
+          "Kaolack": 99.37485837936401,
+          "Fatick": 98.37896060943604,
+          "Kaffrine": 329.17807245254517,
+          "Thiès": 40.65913939476013,
+          "Diourbel": 38.15455913543701,
+          "Dakar": 5.305121421813965,
+          "Matam": 284.32479071617126,
+          "Louga": 40.340479373931885,
+          "Saint-Louis": 126.64795136451721
+        },
+        "departments": {
+          "Oussouye": 102.71615219116211,
+          "Goudomp": 308.81164169311523,
+          "Bounkiling": 95.83975982666016,
+          "Kolda": 369.6547088623047,
+          "Médina Yoro Foulah": 269.19584465026855,
+          "Vélingara": 129.05294036865234,
+          "Salémata": 176.3576021194458,
+          "Kédougou": 88.40281295776367,
+          "Saraya": 175.97923374176025,
+          "Ziguinchor": 40.12736129760742,
+          "Sédhiou": 159.55069541931152,
+          "Tambacounda": 627.9230842590332,
+          "Bignona": 163.70335960388184,
+          "Goudiry": 488.8987512588501,
+          "Nioro du Rip": 76.28150653839111,
+          "Foundiougne": 92.10157680511475,
+          "Kaffrine": 42.025883197784424,
+          "Malem-Hodar": 150.473539352417,
+          "Koumpentoum": 104.8616714477539,
+          "Guinguinéo": 23.0933518409729,
+          "Koungheul": 131.7832498550415,
+          "Mbour": 5.540490627288818,
+          "Fatick": 6.277383804321289,
+          "Diourbel": 20.120800971984863,
+          "Mbacké": 10.711957454681396,
+          "Bakel": 32.82027268409729,
+          "Rufisque": 5.305121421813965,
+          "Thiès": 17.244845390319824,
+          "Bambey": 7.321800708770752,
+          "Birkelane": 4.895400047302246,
+          "Tivaouane": 17.87380337715149,
+          "Ranérou": 101.44206714630127,
+          "Kanel": 130.7058471441269,
+          "Kébémer": 20.700570106506348,
+          "Louga": 12.353676795959473,
+          "Linguère": 7.2862324714660645,
+          "Saint-Louis": 102.59073400497437,
+          "Matam": 52.1768764257431,
+          "Dagana": 24.057217359542847
+        },
+        "climate_zones": {
+          "Zone soudanienne": 2483.424020767212,
+          "Zone soudano-sahélienne": 1680.235613822937,
+          "Zone sahélienne": 232.60019063949585
+        },
+        "total_coordinates": 336,
+        "valid_coordinates": 336
+      },
+      "intensity_density": 13.124821786938556,
+      "anomaly_severity": 5.725114265718272,
+      "spatial_concentration": 0.40308522050219797
+    },
+    {
+      "rank": 6,
+      "date": "2018-06-27",
+      "source": "CHIRPS",
+      "total_area_km2": 254586.453125,
+      "num_pixels_affected": 340,
+      "coverage_percent": 75.55555555555556,
+      "average_pixel_area_km2": 748.78369140625,
+      "centroid_lat": 14.549627684059427,
+      "centroid_lon": -13.523954486316743,
+      "centroid_region": "Tambacounda",
+      "centroid_department": "Tambacounda",
+      "centroid_climate_zone": "Zone soudano-sahélienne",
+      "max_intensity_mm": 37.518516540527344,
+      "max_intensity_lat": 14.125,
+      "max_intensity_lon": -12.875,
+      "max_intensity_region": "Tambacounda",
+      "max_intensity_department": "Goudiry",
+      "lat_extent_deg": 4.25,
+      "lon_extent_deg": 5.75,
+      "lat_span_km": 473.10999999999996,
+      "lon_span_km": 618.9588012695312,
+      "aspect_ratio": 1.3082767724990845,
+      "intensity_stats": {
+        "mean_mm": 19.90768534295699,
+        "median_mm": 19.717278480529785,
+        "std_mm": 6.693962275780107,
+        "min_mm": 1.590912103652954,
+        "max_mm": 37.518516540527344,
+        "p25_mm": 16.529174327850342,
+        "p75_mm": 24.593478679656982,
+        "p90_mm": 28.286651420593266,
+        "p95_mm": 30.7498405456543,
+        "p99_mm": 35.77973796844483,
+        "mean_anomaly": 4.740870910186111,
+        "max_anomaly": 10.90709087100438,
+        "extreme_pixels_pct": 85.58823529411765
+      },
+      "geometry_metrics": {
+        "lat_extent": 4.25,
+        "lon_extent": 5.75,
+        "lat_span_km": 473.10999999999996,
+        "lon_span_km": 618.9588012695312,
+        "aspect_ratio": 1.3082767724990845,
+        "diagonal_km": 779.0654907226562
+      },
+      "shape_metrics": {
+        "total_area_km2": 254586.453125,
+        "equivalent_radius_km": 284.670654296875,
+        "perimeter_approx_km": 1788.6385498046875,
+        "compactness": 1.0,
+        "elongation": 1.4131896495819092
+      },
+      "connectivity": {
+        "num_clusters": 2,
+        "cluster_sizes": [
+          339,
+          1
+        ],
+        "largest_cluster_size": 339,
+        "largest_cluster_ratio": 0.9970588235294118,
+        "fragmentation_index": 0.0058823529411764705
+      },
+      "geographic_analysis": {
+        "regions": {
+          "Sédhiou": 174.22221755981445,
+          "Kédougou": 773.7010478973389,
+          "Ziguinchor": 83.91695308685303,
+          "Tambacounda": 1965.0257635116577,
+          "Kaolack": 154.60458755493164,
+          "Fatick": 157.41628646850586,
+          "Kaffrine": 467.6883935928345,
+          "Thiès": 98.67162799835205,
+          "Diourbel": 147.02812004089355,
+          "Dakar": 11.15183162689209,
+          "Matam": 2259.793119430542,
+          "Louga": 306.11309814453125,
+          "Saint-Louis": 169.27996969223022
+        },
+        "departments": {
+          "Goudomp": 79.35129928588867,
+          "Salémata": 188.10465621948242,
+          "Kédougou": 175.1124973297119,
+          "Saraya": 410.48389434814453,
+          "Sédhiou": 94.87091827392578,
+          "Bignona": 83.91695308685303,
+          "Tambacounda": 543.0436792373657,
+          "Goudiry": 1092.9048347473145,
+          "Nioro du Rip": 100.24479293823242,
+          "Foundiougne": 139.35452461242676,
+          "Kaffrine": 75.01309776306152,
+          "Malem-Hodar": 133.84943771362305,
+          "Koumpentoum": 155.92803192138672,
+          "Guinguinéo": 54.35979461669922,
+          "Koungheul": 226.5023307800293,
+          "Mbour": 12.047048568725586,
+          "Fatick": 18.0617618560791,
+          "Diourbel": 48.79281139373779,
+          "Mbacké": 67.67928314208984,
+          "Bakel": 173.14921760559082,
+          "Rufisque": 11.15183162689209,
+          "Thiès": 39.52256965637207,
+          "Bambey": 30.556025505065918,
+          "Birkelane": 32.323527336120605,
+          "Kanel": 1010.6468524932861,
+          "Tivaouane": 47.102009773254395,
+          "Ranérou": 508.78912830352783,
+          "Kébémer": 44.32493305206299,
+          "Louga": 36.1513147354126,
+          "Linguère": 225.63685035705566,
+          "Saint-Louis": 99.57095289230347,
+          "Dagana": 63.684081077575684,
+          "Matam": 740.357138633728,
+          "Podor": 6.024935722351074
+        },
+        "climate_zones": {
+          "Zone soudanienne": 1365.0229787826538,
+          "Zone soudano-sahélienne": 3772.842935562134,
+          "Zone sahélienne": 1630.7471022605896
+        },
+        "total_coordinates": 340,
+        "valid_coordinates": 340
+      },
+      "intensity_density": 19.92671718518512,
+      "anomaly_severity": 4.740870910186111,
+      "spatial_concentration": 0.18889453064787398
+    },
+    {
+      "rank": 7,
+      "date": "2022-06-15",
+      "source": "CHIRPS",
+      "total_area_km2": 231789.859375,
+      "num_pixels_affected": 309,
+      "coverage_percent": 68.66666666666667,
+      "average_pixel_area_km2": 750.1289672851562,
+      "centroid_lat": 13.867305729309011,
+      "centroid_lon": -13.602444693753833,
+      "centroid_region": "Tambacounda",
+      "centroid_department": "Tambacounda",
+      "centroid_climate_zone": "Zone soudano-sahélienne",
+      "max_intensity_mm": 46.854888916015625,
+      "max_intensity_lat": 13.875,
+      "max_intensity_lon": -13.125,
+      "max_intensity_region": "Tambacounda",
+      "max_intensity_department": "Goudiry",
+      "lat_extent_deg": 4.25,
+      "lon_extent_deg": 5.5,
+      "lat_span_km": 473.10999999999996,
+      "lon_span_km": 593.1211547851562,
+      "aspect_ratio": 1.2536643743515015,
+      "intensity_stats": {
+        "mean_mm": 20.87554252707071,
+        "median_mm": 20.28733253479004,
+        "std_mm": 11.33296501376429,
+        "min_mm": 0.8063054084777832,
+        "max_mm": 46.854888916015625,
+        "p25_mm": 11.037484169006348,
+        "p75_mm": 30.8801326751709,
+        "p90_mm": 36.29389495849609,
+        "p95_mm": 38.26682205200195,
+        "p99_mm": 43.78519577026369,
+        "mean_anomaly": 4.809025868479853,
+        "max_anomaly": 9.579009542860367,
+        "extreme_pixels_pct": 86.08414239482201
+      },
+      "geometry_metrics": {
+        "lat_extent": 4.25,
+        "lon_extent": 5.5,
+        "lat_span_km": 473.10999999999996,
+        "lon_span_km": 593.1211547851562,
+        "aspect_ratio": 1.2536643743515015,
+        "diagonal_km": 758.7000732421875
+      },
+      "shape_metrics": {
+        "total_area_km2": 231789.859375,
+        "equivalent_radius_km": 271.6265869140625,
+        "perimeter_approx_km": 1706.68017578125,
+        "compactness": 1.0,
+        "elongation": 1.1217554807662964
+      },
+      "connectivity": {
+        "num_clusters": 7,
+        "cluster_sizes": [
+          2,
+          301,
+          1,
+          1,
+          1,
+          1,
+          2
+        ],
+        "largest_cluster_size": 301,
+        "largest_cluster_ratio": 0.9741100323624595,
+        "fragmentation_index": 0.022653721682847898
+      },
+      "geographic_analysis": {
+        "regions": {
+          "Sédhiou": 162.44349479675293,
+          "Kolda": 857.8868827819824,
+          "Kédougou": 755.1780090332031,
+          "Tambacounda": 2735.540641784668,
+          "Kaffrine": 627.0235595703125,
+          "Kaolack": 99.88114547729492,
+          "Fatick": 17.918039321899414,
+          "Thiès": 8.525264739990234,
+          "Diourbel": 70.6643180847168,
+          "Matam": 1043.0608160495758,
+          "Louga": 67.34550905227661,
+          "Saint-Louis": 5.074960172176361
+        },
+        "departments": {
+          "Goudomp": 36.05461311340332,
+          "Bounkiling": 48.67586326599121,
+          "Kolda": 422.46303939819336,
+          "Médina Yoro Foulah": 273.19173431396484,
+          "Vélingara": 162.23210906982422,
+          "Salémata": 335.5972213745117,
+          "Kédougou": 192.07225608825684,
+          "Tambacounda": 1217.6228981018066,
+          "Saraya": 227.50853157043457,
+          "Sédhiou": 77.7130184173584,
+          "Goudiry": 1153.7819147109985,
+          "Kaffrine": 79.38238525390625,
+          "Malem-Hodar": 268.1635799407959,
+          "Nioro du Rip": 43.085683822631836,
+          "Koumpentoum": 242.4814977645874,
+          "Foundiougne": 17.918039321899414,
+          "Guinguinéo": 56.795461654663086,
+          "Koungheul": 252.15464115142822,
+          "Mbour": 8.525264739990234,
+          "Diourbel": 21.16433048248291,
+          "Mbacké": 49.49998760223389,
+          "Bakel": 121.65433120727539,
+          "Birkelane": 27.32295322418213,
+          "Kanel": 514.2260756492615,
+          "Ranérou": 317.9547154903412,
+          "Linguère": 67.34550905227661,
+          "Saint-Louis": 3.9596826434135437,
+          "Matam": 210.88002490997314,
+          "Dagana": 1.1152775287628174
+        },
+        "climate_zones": {
+          "Zone soudanienne": 2544.728956222534,
+          "Zone soudano-sahélienne": 3465.2785630226135,
+          "Zone sahélienne": 440.5351216197014
+        },
+        "total_coordinates": 309,
+        "valid_coordinates": 309
+      },
+      "intensity_density": 20.92224629659657,
+      "anomaly_severity": 4.809025868479853,
+      "spatial_concentration": 0.3126264733172408
+    },
+    {
+      "rank": 8,
+      "date": "1992-06-08",
+      "source": "CHIRPS",
+      "total_area_km2": 227230.921875,
+      "num_pixels_affected": 303,
+      "coverage_percent": 67.33333333333333,
+      "average_pixel_area_km2": 749.93701171875,
+      "centroid_lat": 13.697306849648083,
+      "centroid_lon": -14.142430750640086,
+      "centroid_region": "Tambacounda",
+      "centroid_department": "Tambacounda",
+      "centroid_climate_zone": "Zone soudano-sahélienne",
+      "max_intensity_mm": 42.3782958984375,
+      "max_intensity_lat": 12.625,
+      "max_intensity_lon": -15.125,
+      "max_intensity_region": "Kolda",
+      "max_intensity_department": "Kolda",
+      "lat_extent_deg": 4.25,
+      "lon_extent_deg": 5.75,
+      "lat_span_km": 473.10999999999996,
+      "lon_span_km": 619.9283447265625,
+      "aspect_ratio": 1.310326099395752,
+      "intensity_stats": {
+        "mean_mm": 14.228678733700573,
+        "median_mm": 13.35359001159668,
+        "std_mm": 9.62710346170229,
+        "min_mm": 0.38204148411750793,
+        "max_mm": 42.3782958984375,
+        "p25_mm": 5.312295436859131,
+        "p75_mm": 21.11334800720215,
+        "p90_mm": 27.02662811279297,
+        "p95_mm": 32.05815277099606,
+        "p99_mm": 40.01245414733888,
+        "mean_anomaly": 4.099282261913572,
+        "max_anomaly": 10.756561409775042,
+        "extreme_pixels_pct": 68.31683168316832
+      },
+      "geometry_metrics": {
+        "lat_extent": 4.25,
+        "lon_extent": 5.75,
+        "lat_span_km": 473.10999999999996,
+        "lon_span_km": 619.9283447265625,
+        "aspect_ratio": 1.310326099395752,
+        "diagonal_km": 779.8360595703125
+      },
+      "shape_metrics": {
+        "total_area_km2": 227230.921875,
+        "equivalent_radius_km": 268.94207763671875,
+        "perimeter_approx_km": 1689.81298828125,
+        "compactness": 1.0,
+        "elongation": 1.2078603506088257
+      },
+      "connectivity": {
+        "num_clusters": 6,
+        "cluster_sizes": [
+          273,
+          8,
+          2,
+          16,
+          3,
+          1
+        ],
+        "largest_cluster_size": 273,
+        "largest_cluster_ratio": 0.900990099009901,
+        "fragmentation_index": 0.019801980198019802
+      },
+      "geographic_analysis": {
+        "regions": {
+          "Ziguinchor": 151.21950721740723,
+          "Sédhiou": 348.6841220855713,
+          "Kolda": 651.4755039215088,
+          "Kédougou": 666.6378688812256,
+          "Tambacounda": 1095.022315979004,
+          "Kaolack": 158.74050521850586,
+          "Fatick": 111.73930501937866,
+          "Kaffrine": 481.1577491760254,
+          "Diourbel": 73.94794654846191,
+          "Dakar": 2.3130364418029785,
+          "Thiès": 5.691323518753052,
+          "Matam": 459.1389526128769,
+          "Louga": 66.2835373878479,
+          "Saint-Louis": 39.23798230290413
+        },
+        "departments": {
+          "Oussouye": 25.15365219116211,
+          "Goudomp": 148.6497097015381,
+          "Bounkiling": 61.63534927368164,
+          "Kolda": 451.11329078674316,
+          "Médina Yoro Foulah": 156.57110214233398,
+          "Salémata": 295.9234256744385,
+          "Kédougou": 209.5559597015381,
+          "Saraya": 161.15848350524902,
+          "Ziguinchor": 15.977703094482422,
+          "Sédhiou": 138.39906311035156,
+          "Bignona": 110.0881519317627,
+          "Tambacounda": 326.5929927825928,
+          "Goudiry": 606.0400648117065,
+          "Nioro du Rip": 101.90552711486816,
+          "Vélingara": 43.79111099243164,
+          "Foundiougne": 104.92255878448486,
+          "Kaffrine": 86.02305221557617,
+          "Malem-Hodar": 225.09790992736816,
+          "Koumpentoum": 136.6870641708374,
+          "Guinguinéo": 56.834978103637695,
+          "Koungheul": 144.10804653167725,
+          "Fatick": 6.816746234893799,
+          "Diourbel": 26.59994125366211,
+          "Mbacké": 42.39035081863403,
+          "Rufisque": 2.3130364418029785,
+          "Bambey": 4.9576544761657715,
+          "Birkelane": 25.92874050140381,
+          "Bakel": 25.702194213867188,
+          "Thiès": 3.0000696182250977,
+          "Ranérou": 153.2734798192978,
+          "Kanel": 179.06688451766968,
+          "Tivaouane": 2.691253900527954,
+          "Louga": 3.203666925430298,
+          "Linguère": 59.81407165527344,
+          "Kébémer": 3.265798807144165,
+          "Saint-Louis": 28.316013365983963,
+          "Matam": 126.79858827590942,
+          "Dagana": 10.921968936920166
+        },
+        "climate_zones": {
+          "Zone soudanienne": 2081.022126197815,
+          "Zone soudano-sahélienne": 1905.3207805156708,
+          "Zone sahélienne": 324.94674959778786
+        },
+        "total_coordinates": 303,
+        "valid_coordinates": 303
+      },
+      "intensity_density": 14.274469237383416,
+      "anomaly_severity": 4.099282261913572,
+      "spatial_concentration": 0.3791787349478024
+    },
+    {
+      "rank": 9,
+      "date": "2022-07-24",
+      "source": "CHIRPS",
+      "total_area_km2": 252467.6875,
+      "num_pixels_affected": 337,
+      "coverage_percent": 74.88888888888889,
+      "average_pixel_area_km2": 749.1622924804688,
+      "centroid_lat": 14.435908667580076,
+      "centroid_lon": -14.030250783978566,
+      "centroid_region": "Tambacounda",
+      "centroid_department": "Koumpentoum",
+      "centroid_climate_zone": "Zone soudano-sahélienne",
+      "max_intensity_mm": 40.76875305175781,
+      "max_intensity_lat": 12.625,
+      "max_intensity_lon": -14.375,
+      "max_intensity_region": "Kolda",
+      "max_intensity_department": "Médina Yoro Foulah",
+      "lat_extent_deg": 4.25,
+      "lon_extent_deg": 5.75,
+      "lat_span_km": 473.10999999999996,
+      "lon_span_km": 619.2981567382812,
+      "aspect_ratio": 1.3089940547943115,
+      "intensity_stats": {
+        "mean_mm": 23.510525111982307,
+        "median_mm": 22.94470977783203,
+        "std_mm": 6.077466110964669,
+        "min_mm": 9.718354225158691,
+        "max_mm": 40.76875305175781,
+        "p25_mm": 18.967897415161133,
+        "p75_mm": 27.65311050415039,
+        "p90_mm": 31.45003089904786,
+        "p95_mm": 34.006282806396484,
+        "p99_mm": 38.44079452514648,
+        "mean_anomaly": 2.9689722933344616,
+        "max_anomaly": 6.406748649322619,
+        "extreme_pixels_pct": 47.774480712166174
+      },
+      "geometry_metrics": {
+        "lat_extent": 4.25,
+        "lon_extent": 5.75,
+        "lat_span_km": 473.10999999999996,
+        "lon_span_km": 619.2981567382812,
+        "aspect_ratio": 1.3089940547943115,
+        "diagonal_km": 779.3351440429688
+      },
+      "shape_metrics": {
+        "total_area_km2": 252467.6875,
+        "equivalent_radius_km": 283.4836120605469,
+        "perimeter_approx_km": 1781.18017578125,
+        "compactness": 0.9999999403953552,
+        "elongation": 1.1294710636138916
+      },
+      "connectivity": {
+        "num_clusters": 3,
+        "cluster_sizes": [
+          334,
+          2,
+          1
+        ],
+        "largest_cluster_size": 334,
+        "largest_cluster_ratio": 0.9910979228486647,
+        "fragmentation_index": 0.008902077151335312
+      },
+      "geographic_analysis": {
+        "regions": {
+          "Sédhiou": 323.1553535461426,
+          "Kolda": 808.0823345184326,
+          "Kédougou": 461.4968662261963,
+          "Ziguinchor": 143.53087043762207,
+          "Tambacounda": 2121.5346755981445,
+          "Kaolack": 87.84947776794434,
+          "Kaffrine": 544.9202423095703,
+          "Fatick": 42.38742256164551,
+          "Diourbel": 152.03983116149902,
+          "Thiès": 124.03866767883301,
+          "Matam": 2243.7435274124146,
+          "Louga": 547.5695686340332,
+          "Saint-Louis": 322.6981248855591
+        },
+        "departments": {
+          "Goudomp": 137.5749282836914,
+          "Bounkiling": 55.78804588317871,
+          "Kolda": 333.18713760375977,
+          "Médina Yoro Foulah": 292.9654197692871,
+          "Vélingara": 181.92977714538574,
+          "Salémata": 290.02520179748535,
+          "Kédougou": 151.60570907592773,
+          "Oussouye": 38.98963928222656,
+          "Sédhiou": 129.79237937927246,
+          "Tambacounda": 985.2564029693604,
+          "Bignona": 104.54123115539551,
+          "Goudiry": 729.7256393432617,
+          "Nioro du Rip": 71.57204818725586,
+          "Malem-Hodar": 153.2725772857666,
+          "Koumpentoum": 242.81392860412598,
+          "Foundiougne": 23.051795959472656,
+          "Kaffrine": 57.30638313293457,
+          "Koungheul": 298.0517349243164,
+          "Fatick": 19.33562660217285,
+          "Diourbel": 44.901540756225586,
+          "Mbacké": 61.700660705566406,
+          "Guinguinéo": 16.277429580688477,
+          "Bakel": 163.73870468139648,
+          "Saraya": 19.865955352783203,
+          "Thiès": 42.62634086608887,
+          "Bambey": 45.43762969970703,
+          "Birkelane": 36.289546966552734,
+          "Kanel": 872.2369022369385,
+          "Tivaouane": 81.41232681274414,
+          "Ranérou": 748.9052276611328,
+          "Kébémer": 90.02811050415039,
+          "Louga": 49.98158264160156,
+          "Linguère": 407.55987548828125,
+          "Saint-Louis": 163.6575059890747,
+          "Dagana": 139.45049858093262,
+          "Matam": 622.6013975143433,
+          "Podor": 19.590120315551758
+        },
+        "climate_zones": {
+          "Zone soudanienne": 2271.156578063965,
+          "Zone soudano-sahélienne": 3704.568537712097,
+          "Zone sahélienne": 1947.321846961975
+        },
+        "total_coordinates": 337,
+        "valid_coordinates": 337
+      },
+      "intensity_density": 23.5319547395945,
+      "anomaly_severity": 2.9689722933344616,
+      "spatial_concentration": 0.14666970553730496
+    },
+    {
+      "rank": 10,
+      "date": "2010-07-20",
+      "source": "CHIRPS",
+      "total_area_km2": 252611.78125,
+      "num_pixels_affected": 337,
+      "coverage_percent": 74.88888888888889,
+      "average_pixel_area_km2": 749.58984375,
+      "centroid_lat": 14.123056406885448,
+      "centroid_lon": -13.831085454023953,
+      "centroid_region": "Tambacounda",
+      "centroid_department": "Tambacounda",
+      "centroid_climate_zone": "Zone soudano-sahélienne",
+      "max_intensity_mm": 45.76051712036133,
+      "max_intensity_lat": 12.625,
+      "max_intensity_lon": -12.125,
+      "max_intensity_region": "Kédougou",
+      "max_intensity_department": "Kédougou",
+      "lat_extent_deg": 4.25,
+      "lon_extent_deg": 5.75,
+      "lat_span_km": 473.10999999999996,
+      "lon_span_km": 619.6549682617188,
+      "aspect_ratio": 1.3097482919692993,
+      "intensity_stats": {
+        "mean_mm": 21.556315928609152,
+        "median_mm": 20.565446853637695,
+        "std_mm": 7.841120306095672,
+        "min_mm": 5.096909046173096,
+        "max_mm": 45.76051712036133,
+        "p25_mm": 15.998950958251953,
+        "p75_mm": 24.94692039489746,
+        "p90_mm": 32.39942703247074,
+        "p95_mm": 38.76644744873047,
+        "p99_mm": 42.069408874511716,
+        "mean_anomaly": 2.630676230691301,
+        "max_anomaly": 4.491141417609606,
+        "extreme_pixels_pct": 21.068249258160236
+      },
+      "geometry_metrics": {
+        "lat_extent": 4.25,
+        "lon_extent": 5.75,
+        "lat_span_km": 473.10999999999996,
+        "lon_span_km": 619.6549682617188,
+        "aspect_ratio": 1.3097482919692993,
+        "diagonal_km": 779.6187133789062
+      },
+      "shape_metrics": {
+        "total_area_km2": 252611.78125,
+        "equivalent_radius_km": 283.56451416015625,
+        "perimeter_approx_km": 1781.6884765625,
+        "compactness": 0.9999998211860657,
+        "elongation": 1.1892377138137817
+      },
+      "connectivity": {
+        "num_clusters": 2,
+        "cluster_sizes": [
+          335,
+          2
+        ],
+        "largest_cluster_size": 335,
+        "largest_cluster_ratio": 0.9940652818991098,
+        "fragmentation_index": 0.005934718100890208
+      },
+      "geographic_analysis": {
+        "regions": {
+          "Ziguinchor": 115.02302360534668,
+          "Sédhiou": 452.0683002471924,
+          "Kolda": 712.8933582305908,
+          "Kédougou": 1058.911392211914,
+          "Tambacounda": 1779.257311820984,
+          "Kaolack": 107.28811454772949,
+          "Fatick": 113.2585220336914,
+          "Kaffrine": 426.0729341506958,
+          "Thiès": 78.27093505859375,
+          "Diourbel": 146.9825315475464,
+          "Dakar": 13.680620193481445,
+          "Matam": 1598.5352191925049,
+          "Louga": 385.2565155029297,
+          "Saint-Louis": 276.9796895980835
+        },
+        "departments": {
+          "Oussouye": 44.8070125579834,
+          "Goudomp": 205.80862426757812,
+          "Bounkiling": 80.85321044921875,
+          "Kolda": 351.68540382385254,
+          "Médina Yoro Foulah": 244.81101417541504,
+          "Vélingara": 116.39694023132324,
+          "Salémata": 334.71718978881836,
+          "Kédougou": 259.98753929138184,
+          "Saraya": 464.20666313171387,
+          "Ziguinchor": 22.393640518188477,
+          "Sédhiou": 165.4064655303955,
+          "Tambacounda": 480.1787929534912,
+          "Bignona": 47.822370529174805,
+          "Goudiry": 1074.0169658660889,
+          "Nioro du Rip": 49.572872161865234,
+          "Foundiougne": 93.33811950683594,
+          "Malem-Hodar": 64.19266700744629,
+          "Guinguinéo": 57.71524238586426,
+          "Kaffrine": 59.736467361450195,
+          "Koungheul": 265.59354305267334,
+          "Koumpentoum": 157.1074390411377,
+          "Mbour": 19.236595153808594,
+          "Fatick": 19.92040252685547,
+          "Diourbel": 58.13554763793945,
+          "Mbacké": 88.84698390960693,
+          "Bakel": 67.95411396026611,
+          "Rufisque": 13.680620193481445,
+          "Thiès": 46.79957103729248,
+          "Birkelane": 36.55025672912598,
+          "Ranérou": 560.5955038070679,
+          "Kanel": 635.5610589981079,
+          "Tivaouane": 12.234768867492676,
+          "Kébémer": 58.895286560058594,
+          "Louga": 41.593284606933594,
+          "Linguère": 284.7679443359375,
+          "Saint-Louis": 149.06770181655884,
+          "Dagana": 112.9307312965393,
+          "Matam": 402.3786563873291,
+          "Podor": 14.981256484985352
+        },
+        "climate_zones": {
+          "Zone soudanienne": 2809.5839824676514,
+          "Zone soudano-sahélienne": 3110.1911993026733,
+          "Zone sahélienne": 1344.7032861709595
+        },
+        "total_coordinates": 337,
+        "valid_coordinates": 337
+      },
+      "intensity_density": 21.593648763410567,
+      "anomaly_severity": 2.630676230691301,
+      "spatial_concentration": 0.19959523763436104
+    }
+  ],
+  "quality_assessment": {
+    "data_completeness": {
+      "required_columns": [
+        "date",
+        "centroid_lat",
+        "centroid_lon",
+        "total_area_km2",
+        "max_intensity_mm"
+      ],
+      "present_columns": [
+        "date",
+        "centroid_lat",
+        "centroid_lon",
+        "total_area_km2",
+        "max_intensity_mm"
+      ],
+      "completeness_ratio": 1.0,
+      "missing_columns": []
+    },
+    "coordinate_validation": {
+      "total_events": 1326,
+      "valid_coordinates": 1326,
+      "invalid_coordinates": 0,
+      "validity_ratio": 1.0
+    },
+    "physical_validation": {
+      "area_validation": {
+        "valid_areas": 1286,
+        "invalid_areas": 40,
+        "validity_ratio": 0.9698340874811463
+      },
+      "intensity_validation": {
+        "valid_intensities": 1326,
+        "invalid_intensities": 0,
+        "validity_ratio": 1.0
+      }
+    },
+    "overall_quality": {
+      "quality_score": 1.0,
+      "quality_level": "EXCELLENT"
+    }
+  },
+  "recommendations": {
+    "operational": [
+      "Infrastructure adaptée aux intensités extrêmes (jusqu'à 231 mm/jour)",
+      "Systèmes d'alerte précoce pour événements de grande envergure (>294599 km²)"
+    ],
+    "surveillance": [
+      "Surveillance prioritaire de la région Tambacounda",
+      "Monitoring renforcé des 6 hotspots identifiés"
+    ],
+    "scientific": [
+      "Études approfondies pendant la juillet-août - pic des précipitations"
+    ],
+    "improvements": [
+      "Intégration avec données pluviométriques in-situ pour validation",
+      "Développement de modèles prédictifs basés sur les patterns identifiés",
+      "Extension de l'analyse à d'autres pays sahéliens",
+      "Couplage avec indices climatiques (ENSO, IOD, AMO)"
+    ]
+  }
+}

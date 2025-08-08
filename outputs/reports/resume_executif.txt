@@ -1,0 +1,37 @@
+RÉSUMÉ EXÉCUTIF - ÉVÉNEMENTS EXTRÊMES SÉNÉGAL
+============================================================
+
+Projet: Analyse des précipitations extrêmes au Sénégal
+Date: 2025-08-03
+Version: 2.0.0
+
+RÉSULTATS CLÉS:
+--------------------
+• 1317 événements extrêmes détectés
+• Période: 1981-2023 (43 ans)
+• Fréquence: 30.6 événements/an
+• Précipitation maximale: 231.4 mm
+• Couverture maximale: 86.7%
+
+TOP 3 ÉVÉNEMENTS:
+--------------------
+1. 2012-09-28 - 86.7% - 44.3 mm
+2. 2000-10-16 - 78.4% - 30.4 mm
+3. 2022-05-27 - 75.8% - 37.5 mm
+
+QUALITÉ DES DONNÉES:
+-------------------------
+• Évaluation globale: EXCELLENT
+• Score de qualité: 100.0%
+• Validation: ✅ RÉUSSIE
+
+RECOMMANDATIONS PRINCIPALES:
+-----------------------------------
+1. Concentration élevée en pleine saison - surveillance renforcée juillet-août recommandée
+2. Région Tambacounda fortement affectée - attention particulière recommandée
+3. Faible corrélation précipitation-couverture - événements très localisés possibles
+
+CONTACT:
+----------
+Email: contact@recherche-climat.org
+Documentation: https://github.com/projet-senegal-climat

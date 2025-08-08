@@ -1,0 +1,38 @@
+{
+  "Phase_1_debut": {
+    "count": 294,
+    "percentage": 22.323462414578586,
+    "description": "Mai-Juin - Installation progressive des pluies",
+    "months": [
+      5,
+      6
+    ],
+    "avg_precipitation": 25.76243298880908,
+    "max_precipitation": 85.5930404663086,
+    "avg_coverage": 22.826152683295543
+  },
+  "Phase_2_pleine": {
+    "count": 528,
+    "percentage": 40.091116173120724,
+    "description": "Juillet-Août - Pic des précipitations",
+    "months": [
+      7,
+      8
+    ],
+    "avg_precipitation": 52.54984946684404,
+    "max_precipitation": 231.35137939453125,
+    "avg_coverage": 21.276094276094277
+  },
+  "Phase_3_fin": {
+    "count": 495,
+    "percentage": 37.58542141230068,
+    "description": "Septembre-Octobre - Diminution progressive",
+    "months": [
+      9,
+      10
+    ],
+    "avg_precipitation": 34.73599606138287,
+    "max_precipitation": 102.45309448242188,
+    "avg_coverage": 23.12951739618406
+  }
+}
