@@ -144,9 +144,9 @@ class ClimateIndicesLoader:
             
             print(f"   ✅ {len(clean_dates)} dates valides après conversion")
             
-            # Suppression des valeurs aberrantes (|z-score| > 4)
+            # Suppression des valeurs aberrantes (|z-score| > 3)
             z_scores = np.abs((clean_values - clean_values.mean()) / clean_values.std())
-            outlier_mask = z_scores <= 4
+            outlier_mask = z_scores <= 3
             
             final_dates = clean_dates[outlier_mask]
             final_values = clean_values[outlier_mask]
@@ -397,7 +397,7 @@ class ClimateIndicesLoader:
     
     def save_processed_data(self, output_dir: str = None):
         """
-        Sauvegarde les données traitées.
+        Sauvegarde les données traitées avec colonne Date explicite.
         
         Args:
             output_dir (str): Répertoire de sortie
@@ -413,16 +413,22 @@ class ClimateIndicesLoader:
         print(f"\n💾 SAUVEGARDE DES DONNÉES TRAITÉES")
         print("-" * 50)
         
-        # Sauvegarde du dataset combiné
+        # Sauvegarde du dataset combiné avec colonne Date
         if self.combined_data is not None:
             combined_file = output_dir / "climate_indices_combined.csv"
-            self.combined_data.to_csv(combined_file)
+            # Convertir l'index en colonne Date
+            combined_with_date = self.combined_data.reset_index()
+            combined_with_date.rename(columns={'index': 'Date'}, inplace=True)
+            combined_with_date.to_csv(combined_file, index=False)
             print(f"   ✅ Dataset combiné: {combined_file}")
         
-        # Sauvegarde des séries individuelles
+        # Sauvegarde des séries individuelles avec colonne Date
         for name, series in self.indices_data.items():
             series_file = output_dir / f"climate_index_{name.lower()}.csv"
-            series.to_csv(series_file, header=True)
+            # Convertir la série en DataFrame avec colonne Date
+            series_df = series.reset_index()
+            series_df.columns = ['Date', name]
+            series_df.to_csv(series_file, index=False)
             print(f"   ✅ Indice {name}: {series_file}")
         
         print("✅ Sauvegarde terminée avec succès")

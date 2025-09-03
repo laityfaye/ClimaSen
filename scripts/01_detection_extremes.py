@@ -162,7 +162,6 @@ except ImportError as e:
 # Import des visualisations avancées
 try:
     from src.visualization.detection_plots import EnhancedDetectionVisualizer
-    from src.visualization.geographic_plots import EnhancedSenegalMapVisualizer
     print("✅ Visualisations avancées importées")
     VISUALIZATION_ADVANCED = True
 except ImportError as e:
@@ -172,7 +171,6 @@ except ImportError as e:
 # Import des rapports avancés
 try:
     from src.reports.detection_report import EnhancedDetectionReportGenerator
-    from src.reports.spatial_report import EnhancedSpatialReportGenerator
     print("✅ Rapports avancés importés")
     REPORTS_ADVANCED = True
 except ImportError as e:
@@ -461,15 +459,12 @@ class AdvancedExtremeEventsAnalyzer:
         # Visualisations
         if VISUALIZATION_ADVANCED:
             self.detection_visualizer = EnhancedDetectionVisualizer()
-            self.geographic_visualizer = EnhancedSenegalMapVisualizer()
         else:
             self.detection_visualizer = None
-            self.geographic_visualizer = None
         
         # Rapports
         if REPORTS_ADVANCED:
             self.detection_reporter = EnhancedDetectionReportGenerator()
-            self.spatial_reporter = EnhancedSpatialReportGenerator()
         else:
             self.detection_reporter = None
             self.spatial_reporter = None
@@ -725,15 +720,6 @@ class AdvancedExtremeEventsAnalyzer:
                 )
                 generated_files.update(detection_files)
                 
-                # Visualisations géographiques
-                geographic_files = self.geographic_visualizer.create_all_geographic_visualizations(
-                    self.extreme_events_df
-                )
-                generated_files.update(geographic_files)
-                
-                print(f"✅ {len(generated_files)} visualisations avancées générées")
-                for viz_type, path in generated_files.items():
-                    print(f"   • {viz_type}: {Path(path).name}")
                 
             else:
                 print("⚠️ Génération des visualisations basiques...")
@@ -814,16 +800,6 @@ class AdvancedExtremeEventsAnalyzer:
                     self.extreme_events_df, validation_status
                 )
                 generated_reports.update(detection_files)
-                
-                # Rapport spatial si métriques disponibles
-                if self.spatial_metrics:
-                    spatial_files = self.spatial_reporter.generate_all_spatial_reports(
-                        self.spatial_metrics, 
-                        analysis_type="comprehensive_detection",
-                        title="Analyse Spatiale des Événements Extrêmes",
-                        df_events=self.extreme_events_df
-                    )
-                    generated_reports.update(spatial_files)
                 
                 print(f"✅ {len(generated_reports)} rapports avancés générés")
                 for report_type, path in generated_reports.items():
