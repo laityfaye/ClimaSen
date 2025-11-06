@@ -4,7 +4,7 @@ VERSION SCIENTIFIQUEMENT CORRIGÉE
 Liens entre indices climatiques et événements de précipitations extrêmes
 Région d'étude: Sénégal
 ====================================================================================================
-Date de génération: 02/09/2025 à 11:14
+Date de génération: 06/11/2025 à 14:41
 Analysé par: Module d'analyse des téléconnexions climatiques (version corrigée)
 Méthodologie: Standards climatologiques avec validation physique
 

@@ -2,7 +2,7 @@ RÉSUMÉ EXÉCUTIF - ÉVÉNEMENTS EXTRÊMES SÉNÉGAL
 ============================================================
 
 Projet: Analyse des précipitations extrêmes au Sénégal
-Date: 2025-08-20
+Date: 2025-11-06
 Version: 2.0.0
 
 RÉSULTATS CLÉS:
