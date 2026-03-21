@@ -1,0 +1,14 @@
+[server]
+port = 8501
+headless = true
+address = "0.0.0.0"
+enableCORS = false
+enableXsrfProtection = true
+
+[browser]
+gatherUsageStats = false
+serverAddress = "climatsen.innosft.com"
+serverPort = 443
+
+[theme]
+base = "dark"

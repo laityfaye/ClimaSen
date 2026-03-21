@@ -697,12 +697,13 @@ with st.sidebar:
     # Navigation
     page = st.radio(
         label="nav",
-        options=["Evenements", "Teleconnexions", "Indices SST", "Clustering"],
+        options=["Evenements", "Teleconnexions", "Indices SST", "Clustering", "Pipeline"],
         format_func=lambda x: {
             "Evenements":     "📊   Evenements",
             "Teleconnexions": "🔗   Teleconnexions",
             "Indices SST":    "🌊   Indices SST",
             "Clustering":     "🗂   Clustering",
+            "Pipeline":       "⚙️   Pipeline",
         }[x],
         label_visibility="collapsed",
     )
@@ -2340,3 +2341,1027 @@ elif page == "Clustering":
                         f"Image non disponible pour {PHASE_LABELS_PUB[ph_key]}. "
                         f"Executez le script 14 pour generer les cartes."
                     )
+
+
+# =============================================================================
+# PAGE PIPELINE
+# =============================================================================
+if page == "Pipeline":
+    import subprocess
+    import sys
+    import tempfile
+    import shutil
+    import requests as _req  # noqa: F401
+
+    SCRIPTS_DIR = BASE / "scripts"
+
+    # ── CSS pipeline ─────────────────────────────────────────────────────────
+    st.markdown(f"""
+    <style>
+    /* ─ Sections ─ */
+    .pip-section {{
+        background:{CARD};border:1px solid {BORDER};
+        border-radius:16px;padding:24px 28px;margin-bottom:16px;
+    }}
+    .pip-section-title {{
+        font-size:0.7rem;font-weight:700;color:{MUTED};
+        text-transform:uppercase;letter-spacing:1.2px;
+        margin:0 0 16px 0;display:flex;align-items:center;gap:8px;
+    }}
+    /* ─ Bbox visual ─ */
+    .bbox-vis {{
+        background:linear-gradient(135deg,{INDIGO}12,{BLUE}08);
+        border:1px solid {INDIGO}40;border-radius:12px;
+        padding:16px 20px;
+    }}
+    .bbox-pill {{
+        display:inline-flex;align-items:center;gap:6px;
+        background:{CARD};border:1px solid {BORDER};border-radius:8px;
+        padding:6px 12px;font-size:0.78rem;font-weight:600;
+        color:{TEXT};margin:3px;
+    }}
+    .bbox-pill span {{ color:{INDIGO};font-weight:700; }}
+    /* ─ Step card ─ */
+    .step-card {{
+        background:{CARD};border:1px solid {BORDER};
+        border-radius:14px;margin-bottom:10px;overflow:hidden;
+    }}
+    .step-card-top {{
+        display:flex;align-items:flex-start;gap:14px;
+        padding:16px 20px;
+    }}
+    .step-card-top:hover {{ background:#FAFBFF; }}
+    .step-num {{
+        width:34px;height:34px;border-radius:50%;flex-shrink:0;
+        display:flex;align-items:center;justify-content:center;
+        font-size:0.78rem;font-weight:800;color:#fff;margin-top:1px;
+    }}
+    .step-info {{ flex:1;min-width:0; }}
+    .step-label {{
+        font-size:0.86rem;font-weight:700;color:{TEXT};margin:0 0 3px 0;
+    }}
+    .step-desc {{
+        font-size:0.75rem;color:{MUTED};margin:0 0 8px 0;line-height:1.5;
+    }}
+    .step-badges {{ display:flex;gap:5px;flex-wrap:wrap; }}
+    .sbadge {{
+        font-size:0.63rem;font-weight:700;padding:3px 8px;border-radius:20px;
+        white-space:nowrap;letter-spacing:.5px;text-transform:uppercase;
+    }}
+    .sbadge-ok   {{ background:#D1FAE5;color:#065F46; }}
+    .sbadge-miss {{ background:#FEE2E2;color:#991B1B; }}
+    .sbadge-info {{ background:#EDE9FE;color:#5B21B6; }}
+    .sbadge-warn {{ background:#FEF3C7;color:#92400E; }}
+    /* ─ Export pills ─ */
+    .step-card-exports {{
+        border-top:1px solid {BORDER};background:#FAFBFF;
+        padding:10px 20px 12px 68px;
+    }}
+    .exp-label {{
+        font-size:0.65rem;font-weight:700;color:{MUTED};
+        text-transform:uppercase;letter-spacing:.8px;margin:0 0 8px 0;
+    }}
+    /* ─ Progress bar pipeline ─ */
+    .pip-progress-track {{
+        background:{BORDER};border-radius:99px;height:6px;
+        overflow:hidden;margin:8px 0 4px 0;
+    }}
+    .pip-progress-fill {{
+        height:100%;border-radius:99px;
+        background:linear-gradient(90deg,{INDIGO},{BLUE});
+        transition:width .4s ease;
+    }}
+    /* ─ Run hero ─ */
+    .run-hero {{
+        background:linear-gradient(135deg,{INDIGO} 0%,{BLUE} 100%);
+        border-radius:16px;padding:24px 28px;margin-bottom:4px;
+    }}
+    .run-hero h3 {{
+        color:#fff;font-size:1.1rem;font-weight:800;margin:0 0 4px 0;
+    }}
+    .run-hero p {{
+        color:rgba(255,255,255,.75);font-size:0.8rem;margin:0;
+    }}
+    /* ─ Category label ─ */
+    .cat-label {{
+        font-size:0.68rem;font-weight:800;letter-spacing:1.4px;
+        text-transform:uppercase;padding:0 0 8px 0;
+        border-bottom:2px solid currentColor;margin:20px 0 10px 0;
+        display:inline-block;
+    }}
+    /* ─ Size badges ─ */
+    .sz-ok   {{color:#065F46;background:#D1FAE5;padding:4px 10px;border-radius:20px;font-size:0.71rem;font-weight:700;display:inline-block;}}
+    .sz-warn {{color:#92400E;background:#FEF3C7;padding:4px 10px;border-radius:20px;font-size:0.71rem;font-weight:700;display:inline-block;}}
+    .sz-big  {{color:#991B1B;background:#FEE2E2;padding:4px 10px;border-radius:20px;font-size:0.71rem;font-weight:700;display:inline-block;}}
+    </style>
+    """, unsafe_allow_html=True)
+
+    # ── Header ───────────────────────────────────────────────────────────────
+    st.markdown(f"""
+    <div class="pg-hdr">
+      <div>
+        <p class="pg-bc">Dashboard &nbsp;/&nbsp; <b>Pipeline</b></p>
+        <h1 class="pg-ttl">Pipeline d\'Analyse</h1>
+        <p class="pg-sub">
+          Telechargement CHIRPS &nbsp;&middot;&nbsp;
+          Detection &nbsp;&middot;&nbsp;
+          Teleconnexions &nbsp;&middot;&nbsp;
+          Clustering &nbsp;&middot;&nbsp;
+          Export
+        </p>
+      </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # ── Onglets ───────────────────────────────────────────────────────────────
+    tab_chirps, tab_pipeline = st.tabs([
+        "  Donnees CHIRPS",
+        "  Pipeline d\'analyse",
+    ])
+
+    # =========================================================================
+    # ONGLET 1 — CHIRPS
+    # =========================================================================
+    with tab_chirps:
+
+        PRESETS = {
+            "Senegal":       dict(lat_min=12.0,  lat_max=17.0,  lon_min=-17.6, lon_max=-11.3,
+                                  flag="SN", desc="12-17 N / 17.6-11.3 W"),
+            "Afrique Ouest": dict(lat_min=4.0,   lat_max=24.0,  lon_min=-18.0, lon_max=16.0,
+                                  flag="WA", desc="4-24 N / 18 W-16 E"),
+            "Sahel":         dict(lat_min=10.0,  lat_max=20.0,  lon_min=-18.0, lon_max=40.0,
+                                  flag="SH", desc="10-20 N / 18 W-40 E"),
+            "Afrique":       dict(lat_min=-35.0, lat_max=37.5,  lon_min=-18.0, lon_max=52.0,
+                                  flag="AF", desc="35 S-37.5 N / 18 W-52 E"),
+        }
+
+        if "chirps_preset" not in st.session_state:
+            st.session_state.chirps_preset = "Afrique Ouest"
+            _p0 = PRESETS["Afrique Ouest"]
+            for _k, _v in [("bb_lat_min", _p0["lat_min"]), ("bb_lat_max", _p0["lat_max"]),
+                            ("bb_lon_min", _p0["lon_min"]), ("bb_lon_max", _p0["lon_max"])]:
+                st.session_state[_k] = float(_v)
+
+        # ── Zone geographique ─────────────────────────────────────────────────
+        st.markdown(
+            "<p class='pip-section-title'>Zone geographique</p>",
+            unsafe_allow_html=True,
+        )
+
+        preset_cols = st.columns(len(PRESETS))
+        for i, (pname, pvals) in enumerate(PRESETS.items()):
+            with preset_cols[i]:
+                is_active = st.session_state.chirps_preset == pname
+                flag_txt  = pvals["flag"]
+                desc_txt  = pvals["desc"]
+                if st.button(
+                    f"{flag_txt}  {pname}",
+                    key=f"preset_{pname}",
+                    use_container_width=True,
+                    type="primary" if is_active else "secondary",
+                    help=desc_txt,
+                ):
+                    st.session_state.chirps_preset = pname
+                    for _k, _fk in [("bb_lat_min","lat_min"),("bb_lat_max","lat_max"),
+                                     ("bb_lon_min","lon_min"),("bb_lon_max","lon_max")]:
+                        st.session_state[_k] = float(pvals[_fk])
+                    st.rerun()
+
+        st.markdown("<br>", unsafe_allow_html=True)
+
+        # 4 champs bbox — coin SW / coin NE
+        inp_c1, inp_c2, inp_c3, inp_c4 = st.columns(4)
+        with inp_c1:
+            bb_lat_min = st.number_input("Lat min (S)", min_value=-35.0, max_value=37.0,
+                                          step=0.25, key="bb_lat_min", format="%.2f")
+        with inp_c2:
+            bb_lat_max = st.number_input("Lat max (N)", min_value=-35.0, max_value=37.0,
+                                          step=0.25, key="bb_lat_max", format="%.2f")
+        with inp_c3:
+            bb_lon_min = st.number_input("Lon min (W)", min_value=-18.0, max_value=52.0,
+                                          step=0.25, key="bb_lon_min", format="%.2f")
+        with inp_c4:
+            bb_lon_max = st.number_input("Lon max (E)", min_value=-18.0, max_value=52.0,
+                                          step=0.25, key="bb_lon_max", format="%.2f")
+
+        # Résumé visuel bbox
+        dlat = max(0.0, bb_lat_max - bb_lat_min)
+        dlon = max(0.0, bb_lon_max - bb_lon_min)
+        nlat = max(0, int(round(dlat / 0.25)))
+        nlon = max(0, int(round(dlon / 0.25)))
+        n_pix = nlat * nlon
+        st.markdown(
+            f"<div class='bbox-vis'>"
+            f"<div style='display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-bottom:10px;'>"
+            f"  <span class='bbox-pill'>Lat <span>{bb_lat_min:.2f}&deg; &rarr; {bb_lat_max:.2f}&deg; N</span></span>"
+            f"  <span class='bbox-pill'>Lon <span>{bb_lon_min:.2f}&deg; &rarr; {bb_lon_max:.2f}&deg;</span></span>"
+            f"  <span class='bbox-pill'>Hauteur <span>{dlat:.2f}&deg; &bull; {nlat} px</span></span>"
+            f"  <span class='bbox-pill'>Largeur <span>{dlon:.2f}&deg; &bull; {nlon} px</span></span>"
+            f"  <span class='bbox-pill'>Grille <span>{nlat} x {nlon} = {n_pix:,} px/jour</span></span>"
+            f"</div>"
+            f"<div style='font-family:monospace;font-size:0.72rem;color:{MUTED};line-height:1.7;'>"
+            f"NW ({bb_lat_max:.2f}N, {bb_lon_min:.2f}) &mdash;&mdash;&mdash;"
+            f" NE ({bb_lat_max:.2f}N, {bb_lon_max:.2f})<br>"
+            f"SW ({bb_lat_min:.2f}N, {bb_lon_min:.2f}) &mdash;&mdash;&mdash;"
+            f" SE ({bb_lat_min:.2f}N, {bb_lon_max:.2f})"
+            f"</div>"
+            f"</div>",
+            unsafe_allow_html=True,
+        )
+
+        st.markdown("<br>", unsafe_allow_html=True)
+
+        # ── Periode + Fichier ─────────────────────────────────────────────────
+        st.markdown(
+            "<p class='pip-section-title'>Periode et fichier de sortie</p>",
+            unsafe_allow_html=True,
+        )
+
+        pr_c1, pr_c2, pr_c3 = st.columns([3, 3, 4])
+
+        with pr_c1:
+            yr_range = st.slider(
+                "Periode",
+                min_value=1981, max_value=2025,
+                value=(1981, 2023),
+                key="dl_yr_range",
+            )
+            dl_year_start, dl_year_end = yr_range
+            n_years_dl  = max(0, dl_year_end - dl_year_start + 1)
+            est_size_mb = n_years_dl * 120
+            sz_cls = "sz-ok" if est_size_mb < 500 else ("sz-warn" if est_size_mb < 2000 else "sz-big")
+            est_gb  = est_size_mb / 1024
+            st.markdown(
+                f"<div style='margin-top:4px;display:flex;gap:8px;align-items:center;'>"
+                f"<span style='font-weight:700;color:{TEXT};'>{dl_year_start} &ndash; {dl_year_end}</span>"
+                f"<span class='{sz_cls}'>{n_years_dl} ans &bull; ~{est_gb:.1f} GB</span>"
+                f"</div>",
+                unsafe_allow_html=True,
+            )
+
+        with pr_c2:
+            default_out_name = f"chirps_WA_{dl_year_start}_{dl_year_end}_dayly.mat"
+            dl_out_name = st.text_input(
+                "Nom du fichier .mat",
+                value=default_out_name,
+                key="dl_out_name",
+            )
+            out_path_preview = BASE / "data" / "raw" / dl_out_name
+            exists_already   = out_path_preview.exists()
+            ex_tag = (
+                "<span class='sbadge sbadge-warn'>Sera ecrase</span>"
+                if exists_already else
+                "<span class='sbadge sbadge-info'>Nouveau</span>"
+            )
+            st.markdown(
+                f"<p style='font-size:0.71rem;color:{MUTED};margin:4px 0 0 0;'>"
+                f"<code>data/raw/{dl_out_name}</code> {ex_tag}</p>",
+                unsafe_allow_html=True,
+            )
+
+        with pr_c3:
+            st.markdown(
+                "<p style='font-size:0.72rem;font-weight:700;color:" + MUTED +
+                ";text-transform:uppercase;letter-spacing:1px;margin:0 0 6px 0;'>"
+                "Fichiers .mat existants</p>",
+                unsafe_allow_html=True,
+            )
+            existing_mats = sorted((BASE / "data" / "raw").glob("*.mat"))
+            if existing_mats:
+                for mf in existing_mats:
+                    sz_mb = mf.stat().st_size / 1e6
+                    is_cur = mf.name == dl_out_name
+                    bullet = ">" if is_cur else "-"
+                    color  = INDIGO if is_cur else MUTED
+                    st.markdown(
+                        f"<p style='font-size:0.72rem;color:{color};margin:2px 0;"
+                        f"font-weight:{'700' if is_cur else '400'};'>"
+                        f"{bullet} <code>{mf.name}</code>"
+                        f"<span style='color:{EMERALD};margin-left:6px;'>{sz_mb:.0f} MB</span></p>",
+                        unsafe_allow_html=True,
+                    )
+            else:
+                st.caption("Aucun fichier .mat dans data/raw/")
+
+        # ── Bouton lancement ──────────────────────────────────────────────────
+        st.markdown("<br>", unsafe_allow_html=True)
+        btn_c1, btn_c2 = st.columns([2, 5])
+        with btn_c1:
+            launch_download = st.button(
+                "Telecharger les donnees CHIRPS",
+                key="btn_chirps_dl",
+                type="primary",
+                use_container_width=True,
+            )
+        with btn_c2:
+            st.markdown(
+                f"<p style='font-size:0.74rem;color:{MUTED};padding-top:10px;'>"
+                f"Source : CHC UCSB &mdash; CHIRPS v2.0 Africa Daily 0.25&deg;. "
+                f"Telechargement annee par annee en streaming, decoupage bbox automatique.</p>",
+                unsafe_allow_html=True,
+            )
+
+        # ── Logique de telechargement ─────────────────────────────────────────
+        if launch_download:
+            if dl_year_end < dl_year_start:
+                st.error("L\'annee de fin doit etre >= a l\'annee de debut.")
+            elif bb_lat_max <= bb_lat_min or bb_lon_max <= bb_lon_min:
+                st.error("Bounding box invalide (lat/lon min >= max).")
+            else:
+                try:
+                    import xarray as _xr
+                    import h5py as _h5py
+
+                    CHIRPS_URL = (
+                        "https://data.chc.ucsb.edu/products/CHIRPS-2.0/"
+                        "africa_daily/netcdf/p25/chirps-v2.0.{year}.days_p25.nc"
+                    )
+
+                    out_path   = BASE / "data" / "raw" / dl_out_name
+                    years      = list(range(dl_year_start, dl_year_end + 1))
+                    n_years    = len(years)
+                    all_precip = []
+                    lats_ref   = lons_ref = None
+                    log_lines  = []
+
+                    prog_bar   = st.progress(0, text="Initialisation...")
+                    status_box = st.empty()
+                    year_log   = st.empty()
+
+                    tmp_dir = Path(tempfile.mkdtemp(prefix="chirps_dl_"))
+                    try:
+                        for idx, year in enumerate(years):
+                            pct_base = int(idx / n_years * 88)
+                            url      = CHIRPS_URL.format(year=year)
+
+                            prog_bar.progress(
+                                pct_base,
+                                text=f"Telechargement {year}  ({idx+1}/{n_years})"
+                            )
+                            status_box.info(f"Connexion au serveur CHC UCSB : annee **{year}**")
+
+                            tmp_nc = tmp_dir / f"chirps_{year}.nc"
+                            try:
+                                resp = _req.get(url, stream=True, timeout=180)
+                                resp.raise_for_status()
+                                total_bytes = int(resp.headers.get("content-length", 0))
+                                downloaded  = 0
+                                with open(tmp_nc, "wb") as fh:
+                                    for chunk in resp.iter_content(chunk_size=2 * 1024 * 1024):
+                                        fh.write(chunk)
+                                        downloaded += len(chunk)
+                                        if total_bytes:
+                                            sub_pct = pct_base + int(
+                                                downloaded / total_bytes * (88 / n_years) * 0.75
+                                            )
+                                            prog_bar.progress(
+                                                min(sub_pct, 87),
+                                                text=(
+                                                    f"{year} : {downloaded/1e6:.0f} / "
+                                                    f"{total_bytes/1e6:.0f} MB "
+                                                    f"({100*downloaded/total_bytes:.0f}%)"
+                                                ),
+                                            )
+                            except Exception as e_dl:
+                                log_lines.append(f"[ERREUR] {year} : {e_dl}")
+                                st.warning(f"Annee {year} ignoree (erreur reseau : {e_dl})")
+                                continue
+
+                            # Decoupage bbox
+                            prog_bar.progress(
+                                min(pct_base + int(88 / n_years * 0.85), 87),
+                                text=f"Decoupage bbox pour {year}...",
+                            )
+                            try:
+                                ds = _xr.open_dataset(str(tmp_nc))
+                                ds_clip = ds.sel(
+                                    latitude=slice(bb_lat_min, bb_lat_max),
+                                    longitude=slice(bb_lon_min, bb_lon_max),
+                                )
+                                pr_arr = ds_clip["precip"].values
+                                pr_arr = np.where(pr_arr < -9000, np.nan, pr_arr)
+                                if lats_ref is None:
+                                    lats_ref = ds_clip["latitude"].values
+                                    lons_ref = ds_clip["longitude"].values
+                                all_precip.append(pr_arr)
+                                ds.close()
+                                log_lines.append(
+                                    f"[OK] {year} : {pr_arr.shape[0]} jours, "
+                                    f"grille {pr_arr.shape[1]}x{pr_arr.shape[2]}"
+                                )
+                                year_log.markdown(
+                                    f"<p style='font-size:0.75rem;color:{EMERALD};'>"
+                                    f"[OK] {year} — {pr_arr.shape[0]} jours, "
+                                    f"{pr_arr.shape[1]}x{pr_arr.shape[2]} pixels</p>",
+                                    unsafe_allow_html=True,
+                                )
+                            except Exception as e_xr:
+                                log_lines.append(f"[ERREUR decoupage] {year} : {e_xr}")
+                                st.warning(f"Erreur lecture NetCDF {year} : {e_xr}")
+
+                            try:
+                                tmp_nc.unlink()
+                            except Exception:
+                                pass
+
+                        # Concatenation
+                        if not all_precip:
+                            st.error(
+                                "Aucune donnee recuperee. "
+                                "Verifiez la connexion reseau et la plage d\'annees."
+                            )
+                        else:
+                            status_box.info("Concatenation de toutes les annees...")
+                            prog_bar.progress(90, text="Concatenation des annees...")
+                            precip_full = np.concatenate(all_precip, axis=0)
+                            log_lines.append(
+                                f"[CONCAT] {precip_full.shape[0]} jours total, "
+                                f"grille {lats_ref.shape[0]}x{lons_ref.shape[0]}"
+                            )
+
+                            prog_bar.progress(94, text=f"Sauvegarde HDF5 : {out_path.name}...")
+                            status_box.info(f"Ecriture du fichier : `{out_path.name}`")
+                            out_path.parent.mkdir(parents=True, exist_ok=True)
+                            with _h5py.File(str(out_path), "w") as hf:
+                                hf.create_dataset(
+                                    "precip",
+                                    data=precip_full.astype(np.float32),
+                                    compression="gzip",
+                                    compression_opts=4,
+                                    chunks=True,
+                                )
+                                hf.create_dataset("latitude",  data=lats_ref.astype(np.float64))
+                                hf.create_dataset("longitude", data=lons_ref.astype(np.float64))
+                                hf.attrs["source"]     = "CHIRPS v2.0 Africa Daily 0.25deg"
+                                hf.attrs["year_start"] = dl_year_start
+                                hf.attrs["year_end"]   = dl_year_end
+                                hf.attrs["lat_min"]    = float(bb_lat_min)
+                                hf.attrs["lat_max"]    = float(bb_lat_max)
+                                hf.attrs["lon_min"]    = float(bb_lon_min)
+                                hf.attrs["lon_max"]    = float(bb_lon_max)
+                                hf.attrs["n_days"]     = int(precip_full.shape[0])
+                                hf.attrs["created_by"] = "SenRain Dashboard"
+
+                            prog_bar.progress(100, text="Termine !")
+                            status_box.empty()
+                            year_log.empty()
+
+                            file_mb = out_path.stat().st_size / 1e6
+                            st.success(
+                                f"Fichier cree avec succes : **data/raw/{dl_out_name}**  "
+                                f"({precip_full.shape[0]} jours &bull; "
+                                f"{lats_ref.shape[0]}x{lons_ref.shape[0]} pixels &bull; "
+                                f"{file_mb:.0f} MB)"
+                            )
+                            st.balloons()
+
+                            st.info(
+                                f"Prochaine etape : dans `src/config/settings.py`, "
+                                f"mettez `CHIRPS_FILENAME = \"{dl_out_name}\"` "
+                                f"puis relancez le pipeline."
+                            )
+
+                            with st.expander("Journal complet du telechargement"):
+                                st.code("\n".join(log_lines), language="text")
+
+                    finally:
+                        shutil.rmtree(tmp_dir, ignore_errors=True)
+
+                except ImportError as e_imp:
+                    st.error(
+                        f"Dependance manquante : `{e_imp}`. "
+                        f"Installez avec : `pip install xarray h5py`"
+                    )
+
+    # =========================================================================
+    # ONGLET 2 — PIPELINE D'ANALYSE
+    # =========================================================================
+    with tab_pipeline:
+        import io as _io
+        import zipfile as _zf
+
+        _FMT_MIME = {
+            "csv":  "text/csv",
+            "png":  "image/png",
+            "txt":  "text/plain",
+            "json": "application/json",
+            "zip":  "application/zip",
+        }
+        _GRP_LABEL = {
+            "data":    ("Donnees",  "#0EA5E9"),   # BLUE
+            "figure":  ("Figures",  "#10B981"),   # EMERALD
+            "report":  ("Rapports", "#F59E0B"),   # AMBER
+        }
+
+        def _make_zip(paths):
+            """Cree un ZIP en memoire a partir d\'une liste de Path."""
+            buf = _io.BytesIO()
+            with _zf.ZipFile(buf, "w", _zf.ZIP_DEFLATED) as zf:
+                for p in paths:
+                    zf.write(p, p.name)
+            buf.seek(0)
+            return buf.read()
+
+        # Chaque export a : path, label, fmt, group (data/figure/report)
+        # fmt special "zip_glob" : path = dossier, label = nom du zip
+        PIPELINE_STEPS = [
+            {
+                "id": "01", "num": 1,
+                "label": "Detection des evenements extremes",
+                "script": "01_detection_extremes.py",
+                "desc": "Detection CHIRPS >2 sigma avec clustering spatio-temporel",
+                "category": "Detection", "color": BLUE,
+                "outputs": ["data/processed/extreme_events_phases_senegal.csv"],
+                "exports": {
+                    "data": [
+                        {"path": "data/processed/extreme_events_phases_senegal.csv",
+                         "label": "Evenements extremes + phases"},
+                        {"path": "data/processed/spatial_metrics_detailed.csv",
+                         "label": "Metriques spatiales detaillees"},
+                    ],
+                    "report": [
+                        {"path": "data/processed/phase_statistics_summary.json",
+                         "label": "Statistiques par phase", "fmt": "json"},
+                        {"path": "outputs/reports/detection_report.txt",
+                         "label": "Rapport de detection", "fmt": "txt"},
+                    ],
+                },
+            },
+            {
+                "id": "02", "num": 2,
+                "label": "Distribution annuelle",
+                "script": "02_distribution_annuelle.py",
+                "desc": "Visualisation de la distribution annuelle par phase",
+                "category": "Detection", "color": BLUE,
+                "outputs": [
+                    "outputs/visualizations/Distribution/02_distribution_annuelle_phases.png",
+                ],
+                "exports": {
+                    "figure": [
+                        {"path": "outputs/visualizations/Distribution/02_distribution_annuelle_phases.png",
+                         "label": "Distribution annuelle par phase"},
+                    ],
+                },
+            },
+            {
+                "id": "03", "num": 3,
+                "label": "Filtrage et export QGIS",
+                "script": "03_filter_events_for_qgis.py",
+                "desc": "Export des evenements filtres pour visualisation cartographique",
+                "category": "Export", "color": EMERALD,
+                "outputs": ["outputs/exports/extreme_events_comprehensive.csv"],
+                "exports": {
+                    "data": [
+                        {"path": "outputs/exports/extreme_events_comprehensive.csv",
+                         "label": "Evenements complets (tous champs)"},
+                        {"path": "outputs/specific_events_qgis/events_summary_statistics.csv",
+                         "label": "Statistiques de synthese"},
+                        {"path": "outputs/specific_events_qgis/events_centroids.csv",
+                         "label": "Centroides des evenements"},
+                        {"path": "outputs/specific_events_qgis/all_specific_events_pixels.csv",
+                         "label": "Pixels — evenements specifiques"},
+                    ],
+                    "report": [
+                        {"path": "outputs/specific_events_qgis/metadata.json",
+                         "label": "Metadonnees QGIS", "fmt": "json"},
+                    ],
+                },
+            },
+            {
+                "id": "03b", "num": 4,
+                "label": "Separation par phase de saison",
+                "script": "03b_split_events_by_phase.py",
+                "desc": "Split Debut (Mai-Juin) / Pleine (Jul-Aou) / Fin (Sep-Oct)",
+                "category": "Export", "color": EMERALD,
+                "outputs": ["outputs/exports/extreme_events_phase_1_debut.csv"],
+                "exports": {
+                    "data": [
+                        {"path": "outputs/exports/extreme_events_phase_1_debut.csv",
+                         "label": "Phase 1 — Debut (Mai-Juin)"},
+                        {"path": "outputs/exports/extreme_events_phase_2_pleine.csv",
+                         "label": "Phase 2 — Pleine (Jul-Aou)"},
+                        {"path": "outputs/exports/extreme_events_phase_3_fin.csv",
+                         "label": "Phase 3 — Fin (Sep-Oct)"},
+                    ],
+                },
+            },
+            {
+                "id": "sst", "num": 5,
+                "label": "Extraction des indices SST journaliers",
+                "script": "extract_daily_indices_from_sst.py",
+                "desc": "Nino12, Nino3, Nino34, Nino4, IOD, IOBM, TNA, TSA, ATL3, AMM, AMO",
+                "category": "SST", "color": INDIGO,
+                "outputs": ["data/raw/climate_indices/daily_indices_all.csv"],
+                "exports": {
+                    "data": [
+                        {"path": "data/raw/climate_indices/daily_indices_all.csv",
+                         "label": "Tous les indices (fichier unique)"},
+                        {"path": "data/raw/climate_indices/daily_Nino12.csv",  "label": "Nino 1+2"},
+                        {"path": "data/raw/climate_indices/daily_Nino3.csv",   "label": "Nino 3"},
+                        {"path": "data/raw/climate_indices/daily_Nino34.csv",  "label": "Nino 3.4"},
+                        {"path": "data/raw/climate_indices/daily_Nino4.csv",   "label": "Nino 4"},
+                        {"path": "data/raw/climate_indices/daily_IOD.csv",     "label": "IOD"},
+                        {"path": "data/raw/climate_indices/daily_IOBM.csv",    "label": "IOBM"},
+                        {"path": "data/raw/climate_indices/daily_TNA.csv",     "label": "TNA"},
+                        {"path": "data/raw/climate_indices/daily_TSA.csv",     "label": "TSA"},
+                        {"path": "data/raw/climate_indices/daily_ATL3.csv",    "label": "ATL3"},
+                        {"path": "data/raw/climate_indices/daily_AMM.csv",     "label": "AMM"},
+                        {"path": "data/raw/climate_indices/daily_AMO.csv",     "label": "AMO"},
+                    ],
+                },
+            },
+            {
+                "id": "04", "num": 6,
+                "label": "Teleconnexions (script principal)",
+                "script": "04_teleconnections_analysis.py",
+                "desc": "Correlations mensuelles SST x precipitations — detrend, AR1, FDR",
+                "category": "Teleconnexions", "color": ROSE,
+                "outputs": [
+                    "outputs/teleconnections/correlations_Phase_1_debut.csv",
+                    "outputs/teleconnections/correlations_Phase_2_pleine.csv",
+                    "outputs/teleconnections/correlations_Phase_3_fin.csv",
+                ],
+                "exports": {
+                    "data": [
+                        {"path": "outputs/teleconnections/correlations_Phase_1_debut.csv",
+                         "label": "Correlations — Phase 1 Debut"},
+                        {"path": "outputs/teleconnections/correlations_Phase_2_pleine.csv",
+                         "label": "Correlations — Phase 2 Pleine"},
+                        {"path": "outputs/teleconnections/correlations_Phase_3_fin.csv",
+                         "label": "Correlations — Phase 3 Fin"},
+                        {"path": "outputs/teleconnections/correlations_Toutes phases.csv",
+                         "label": "Correlations — Toutes phases"},
+                    ],
+                    "figure": [
+                        {"path": "outputs/teleconnections/visualizations/synthese_correlations.png",
+                         "label": "Synthese des correlations"},
+                        # ZIP de toutes les figures teleconnexions
+                        {"path": "outputs/teleconnections/visualizations",
+                         "label": "Toutes les figures (ZIP)",
+                         "fmt": "zip_glob", "glob": "*.png",
+                         "zip_name": "teleconnexions_figures.zip"},
+                    ],
+                    "report": [
+                        {"path": "outputs/teleconnections/rapport_teleconnections.txt",
+                         "label": "Rapport teleconnexions", "fmt": "txt"},
+                    ],
+                },
+            },
+            {
+                "id": "11", "num": 7,
+                "label": "Clustering KMeans SST",
+                "script": "11_kmeans_sst_analysis.py",
+                "desc": "KMeans sur les patterns SST globaux par phase de saison",
+                "category": "Clustering", "color": AMBER,
+                "outputs": [
+                    "outputs/clustering/Phase_1_debut/Phase_1_debut_cluster_characteristics.csv",
+                ],
+                "exports": {
+                    "data": [
+                        # Phase 1
+                        {"path": "outputs/clustering/Phase_1_debut/Phase_1_debut_cluster_characteristics.csv",
+                         "label": "Phase 1 — Caracteristiques clusters"},
+                        {"path": "outputs/clustering/Phase_1_debut/Phase_1_debut_events_with_clusters.csv",
+                         "label": "Phase 1 — Evenements + clusters"},
+                        {"path": "outputs/clustering/Phase_1_debut/Phase_1_debut_tableau_k_3_methodes.csv",
+                         "label": "Phase 1 — Tableau k=3"},
+                        {"path": "outputs/clustering/Phase_1_debut/Phase_1_debut_tableau_k_4_methodes.csv",
+                         "label": "Phase 1 — Tableau k=4"},
+                        # Phase 2
+                        {"path": "outputs/clustering/Phase_2_pleine/Phase_2_pleine_cluster_characteristics.csv",
+                         "label": "Phase 2 — Caracteristiques clusters"},
+                        {"path": "outputs/clustering/Phase_2_pleine/Phase_2_pleine_events_with_clusters.csv",
+                         "label": "Phase 2 — Evenements + clusters"},
+                        {"path": "outputs/clustering/Phase_2_pleine/Phase_2_pleine_tableau_k_3_methodes.csv",
+                         "label": "Phase 2 — Tableau k=3"},
+                        {"path": "outputs/clustering/Phase_2_pleine/Phase_2_pleine_tableau_k_4_methodes.csv",
+                         "label": "Phase 2 — Tableau k=4"},
+                        # Phase 3
+                        {"path": "outputs/clustering/Phase_3_fin/Phase_3_fin_cluster_characteristics.csv",
+                         "label": "Phase 3 — Caracteristiques clusters"},
+                        {"path": "outputs/clustering/Phase_3_fin/Phase_3_fin_events_with_clusters.csv",
+                         "label": "Phase 3 — Evenements + clusters"},
+                        {"path": "outputs/clustering/Phase_3_fin/Phase_3_fin_tableau_k_3_methodes.csv",
+                         "label": "Phase 3 — Tableau k=3"},
+                        {"path": "outputs/clustering/Phase_3_fin/Phase_3_fin_tableau_k_4_methodes.csv",
+                         "label": "Phase 3 — Tableau k=4"},
+                    ],
+                    "report": [
+                        {"path": "outputs/clustering/rapport_kmeans_sst.txt",
+                         "label": "Rapport KMeans SST global", "fmt": "txt"},
+                    ],
+                },
+            },
+            {
+                "id": "14", "num": 8,
+                "label": "Cartes SST — Cartopy",
+                "script": "14_sst_patterns_cartopy.py",
+                "desc": "Figures publication : anomalies SST globales par cluster",
+                "category": "Visualisation", "color": EMERALD,
+                "outputs": [
+                    "outputs/visualizations/clustering/sst_patterns/Phase_1_debut_sst_patterns_clusters.png",
+                ],
+                "exports": {
+                    "figure": [
+                        {"path": "outputs/visualizations/clustering/sst_patterns/Phase_1_debut_sst_patterns_clusters.png",
+                         "label": "Carte SST — Phase 1 Debut"},
+                        {"path": "outputs/visualizations/clustering/sst_patterns/Phase_2_pleine_sst_patterns_clusters.png",
+                         "label": "Carte SST — Phase 2 Pleine"},
+                        {"path": "outputs/visualizations/clustering/sst_patterns/Phase_3_fin_sst_patterns_clusters.png",
+                         "label": "Carte SST — Phase 3 Fin"},
+                        # ZIP des 3 figures publication
+                        {"path": "outputs/visualizations/clustering/sst_patterns",
+                         "label": "Toutes les cartes SST (ZIP)",
+                         "fmt": "zip_glob", "glob": "*.png",
+                         "zip_name": "cartes_sst_publication.zip"},
+                    ],
+                },
+            },
+        ]
+
+        def run_script(script_path):
+            result = subprocess.run(
+                [sys.executable, str(script_path)],
+                capture_output=True,
+                text=True,
+                cwd=str(BASE),
+                encoding="utf-8",
+                errors="replace",
+            )
+            combined = result.stdout + (
+                "\n" + result.stderr if result.stderr.strip() else ""
+            )
+            return result.returncode, combined.strip()
+
+        def output_status(step):
+            """Retourne (ok: bool, label: str) selon l\'existence des sorties."""
+            outs = step.get("outputs", [])
+            if not outs:
+                return None, "N/A"
+            all_ok = all((BASE / o).exists() for o in outs)
+            return all_ok, "Sorties presentes" if all_ok else "Non execute"
+
+        def render_exports(step):
+            """Affiche les boutons de telechargement groupes par type (data/figure/report)."""
+            exp_groups = step.get("exports", {})
+            if not exp_groups:
+                return
+            has_any = False
+            for grp_key in ("data", "figure", "report"):
+                if grp_key not in exp_groups:
+                    continue
+                grp_label, grp_color = _GRP_LABEL[grp_key]
+                avail = []
+                for e in exp_groups[grp_key]:
+                    ep = BASE / e["path"]
+                    if e.get("fmt") == "zip_glob":
+                        if ep.is_dir():
+                            matched = list(ep.glob(e.get("glob", "*")))
+                            if matched:
+                                avail.append((e, ep, matched))
+                    elif ep.exists():
+                        avail.append((e, ep, None))
+                if not avail:
+                    continue
+                if not has_any:
+                    st.markdown("<div class='step-card-exports'>", unsafe_allow_html=True)
+                    has_any = True
+                st.markdown(
+                    f"<p class='exp-grp-label' style='color:{grp_color};margin:6px 0 4px 0;"
+                    f"font-size:0.72rem;font-weight:700;letter-spacing:.06em;"
+                    f"text-transform:uppercase;'>&#9632; {grp_label}</p>",
+                    unsafe_allow_html=True,
+                )
+                cols_per_row = 3
+                for i in range(0, len(avail), cols_per_row):
+                    row = avail[i:i + cols_per_row]
+                    dl_cols = st.columns(cols_per_row)
+                    for col_idx, (col, (e, ep, matched)) in enumerate(zip(dl_cols, row)):
+                        with col:
+                            fmt = e.get("fmt", "csv")
+                            dl_key = f"dl_{step['id']}_{grp_key}_{i + col_idx}"
+                            if fmt == "zip_glob":
+                                zip_name = e.get("zip_name", "export.zip")
+                                zip_bytes = _make_zip(matched)
+                                zip_mb = len(zip_bytes) / 1e6
+                                st.download_button(
+                                    label=f"ZIP  {e['label']} ({zip_mb:.1f} MB)",
+                                    data=zip_bytes,
+                                    file_name=zip_name,
+                                    mime="application/zip",
+                                    key=dl_key,
+                                    use_container_width=True,
+                                )
+                            else:
+                                file_mb = ep.stat().st_size / 1e6
+                                mime = _FMT_MIME.get(fmt, "application/octet-stream")
+                                fmt_icon = _FMT_ICON.get(fmt, fmt.upper())
+                                with open(ep, "rb") as fh:
+                                    file_bytes_dl = fh.read()
+                                st.download_button(
+                                    label=f"{fmt_icon}  {e['label']} ({file_mb:.1f} MB)",
+                                    data=file_bytes_dl,
+                                    file_name=ep.name,
+                                    mime=mime,
+                                    key=dl_key,
+                                    use_container_width=True,
+                                )
+            if has_any:
+                st.markdown("</div>", unsafe_allow_html=True)
+
+
+        # ── Statistiques de progression ───────────────────────────────────────
+        _n_done = sum(
+            1 for s in PIPELINE_STEPS
+            if s.get("outputs") and all((BASE / o).exists() for o in s["outputs"])
+        )
+        _n_total = len(PIPELINE_STEPS)
+        _pct_done = int(_n_done / _n_total * 100) if _n_total else 0
+
+        # ── Bloc hero Run All ─────────────────────────────────────────────────
+        st.markdown(f"""
+        <div class="run-hero">
+          <div style='flex:1;'>
+            <h3>Executer le pipeline complet</h3>
+            <p>
+              {_n_total} etapes &nbsp;&middot;&nbsp;
+              Detection &rarr; SST &rarr; Teleconnexions &rarr; Clustering &rarr; Visualisation
+            </p>
+          </div>
+          <div style='text-align:right;margin-left:24px;flex-shrink:0;'>
+            <div style='font-size:1.6rem;font-weight:800;color:#fff;line-height:1;'>{_n_done}/{_n_total}</div>
+            <div style='font-size:0.72rem;color:rgba(255,255,255,.7);margin-top:2px;'>etapes executees</div>
+            <div style='background:rgba(255,255,255,.2);border-radius:99px;height:5px;margin-top:8px;width:90px;'>
+              <div style='background:#fff;border-radius:99px;height:5px;width:{_pct_done}%;'></div>
+            </div>
+          </div>
+          </div>
+        </div>
+        """, unsafe_allow_html=True)
+
+        run_all = st.button(
+            "Lancer le pipeline complet",
+            key="btn_run_all",
+            type="primary",
+            use_container_width=True,
+        )
+
+        if run_all:
+            overall_bar = st.progress(0, text="Demarrage...")
+            all_ok = True
+            results_container = st.container()
+            for i, step in enumerate(PIPELINE_STEPS):
+                script_path = SCRIPTS_DIR / step["script"]
+                overall_bar.progress(
+                    int(i / len(PIPELINE_STEPS) * 100),
+                    text=f"Etape {step['num']}/{len(PIPELINE_STEPS)} : {step['label']}",
+                )
+                if not script_path.exists():
+                    with results_container:
+                        st.warning(f"Script introuvable : `{step['script']}`")
+                    all_ok = False
+                    continue
+                with st.spinner(f"Etape {step['num']} — {step['label']}..."):
+                    rc, out = run_script(script_path)
+                with results_container:
+                    if rc == 0:
+                        st.success(f"Etape {step['num']} terminee : {step['label']}")
+                    else:
+                        st.error(f"Etape {step['num']} en echec : {step['label']} (code {rc})")
+                        with st.expander("Voir la sortie d\'erreur"):
+                            st.code(out or "(vide)", language="text")
+                        all_ok = False
+
+            overall_bar.progress(100, text="Pipeline termine")
+            if all_ok:
+                st.balloons()
+                st.success(
+                    "Pipeline complet execute avec succes ! "
+                    "Rechargez les autres pages pour voir les nouveaux resultats."
+                )
+            else:
+                st.warning(
+                    "Pipeline termine avec des erreurs. "
+                    "Verifiez les etapes marquees ci-dessus."
+                )
+            st.cache_data.clear()
+
+        st.markdown("<br>", unsafe_allow_html=True)
+
+        # ── Etapes individuelles ──────────────────────────────────────────────
+        _FMT_ICON = {"csv": "CSV", "png": "PNG", "txt": "TXT", "json": "JSON"}
+        CAT_META  = {
+            "Detection":      {"icon": "radar",        "color": BLUE},
+            "Export":         {"icon": "share",        "color": EMERALD},
+            "SST":            {"icon": "water",        "color": INDIGO},
+            "Teleconnexions": {"icon": "hub",          "color": ROSE},
+            "Clustering":     {"icon": "scatter_plot", "color": AMBER},
+            "Visualisation":  {"icon": "image",        "color": EMERALD},
+        }
+        CAT_ORDER = ["Detection", "Export", "SST", "Teleconnexions", "Clustering", "Visualisation"]
+        steps_by_cat = {}
+        for s in PIPELINE_STEPS:
+            steps_by_cat.setdefault(s["category"], []).append(s)
+
+        for cat in CAT_ORDER:
+            if cat not in steps_by_cat:
+                continue
+            cat_steps  = steps_by_cat[cat]
+            cat_color  = CAT_META.get(cat, {}).get("color", MUTED)
+            cat_done   = sum(1 for s in cat_steps if output_status(s)[0])
+            cat_total  = len(cat_steps)
+
+            st.markdown(
+                f"<div style='display:flex;align-items:center;gap:10px;margin:22px 0 10px 0;'>"
+                f"  <span class='cat-label' style='color:{cat_color};border-color:{cat_color};'>"
+                f"    {cat}"
+                f"  </span>"
+                f"  <span style='font-size:0.72rem;color:{MUTED};'>"
+                f"    {cat_done}/{cat_total} execute{'s' if cat_done>1 else ''}"
+                f"  </span>"
+                f"</div>",
+                unsafe_allow_html=True,
+            )
+
+            for step in cat_steps:
+                script_path = SCRIPTS_DIR / step["script"]
+                sc_exists   = script_path.exists()
+                out_ok, _   = output_status(step)
+                step_color  = step["color"]
+                step_num    = step["num"]
+                step_label  = step["label"]
+                step_desc   = step["desc"]
+
+                # Badges d'état
+                if out_ok is True:
+                    status_badge = "<span class='sbadge sbadge-ok'>Sorties presentes</span>"
+                elif out_ok is False:
+                    status_badge = "<span class='sbadge sbadge-miss'>Non execute</span>"
+                else:
+                    status_badge = ""
+
+                script_badge = (
+                    f"<span class='sbadge sbadge-info'>{step['script']}</span>"
+                    if sc_exists else
+                    "<span class='sbadge sbadge-miss'>Script introuvable</span>"
+                )
+
+                # Exports disponibles pour le badge (groupes par type)
+                _exp_groups_badge = step.get("exports", {})
+                n_exp = 0
+                for _grp_items in _exp_groups_badge.values():
+                    for _e in _grp_items:
+                        _ep = BASE / _e["path"]
+                        if _e.get("fmt") == "zip_glob":
+                            if _ep.is_dir() and list(_ep.glob(_e.get("glob", "*"))):
+                                n_exp += 1
+                        elif _ep.exists():
+                            n_exp += 1
+
+                            if _ep.is_dir() and list(_ep.glob(_e.get("glob", "*"))):
+                                n_exp += 1
+                        elif _ep.exists():
+                            n_exp += 1
+
+
+                # ── Card top (info) ───────────────────────────────────────────
+                left_col, btn_col = st.columns([7, 2])
+                with left_col:
+                    st.markdown(
+                        f"<div class='step-card-top'>"
+                        f"  <div class='step-num' style='background:{step_color};'>{step_num}</div>"
+                        f"  <div class='step-info'>"
+                        f"    <p class='step-label'>{step_label}</p>"
+                        f"    <p class='step-desc'>{step_desc}</p>"
+                        f"    <div class='step-badges'>"
+                        f"      {script_badge} {status_badge}"
+                        f"      {'<span class=\"sbadge sbadge-ok\">' + str(n_exp) + ' fichier' + ('s' if n_exp>1 else '') + ' exportable' + ('s' if n_exp>1 else '') + '</span>' if n_exp else ''}"
+                        f"    </div>"
+                        f"  </div>"
+                        f"</div>",
+                        unsafe_allow_html=True,
+                    )
+                with btn_col:
+                    btn_key = f"run_{step['id']}"
+                    st.markdown("<div style='padding:14px 0 0 0;'>", unsafe_allow_html=True)
+                    if sc_exists:
+                        if st.button("Executer", key=btn_key,
+                                     use_container_width=True, type="secondary"):
+                            with st.spinner(f"Execution de l\'etape {step_num}..."):
+                                rc, out = run_script(script_path)
+                            if rc == 0:
+                                st.success(f"Etape {step_num} — OK")
+                            else:
+                                st.error(f"Etape {step_num} — Echec (code {rc})")
+                            if out:
+                                with st.expander("Sortie"):
+                                    st.code(out, language="text")
+                            st.cache_data.clear()
+                    else:
+                        st.button("Introuvable", key=btn_key,
+                                  disabled=True, use_container_width=True)
+                    st.markdown("</div>", unsafe_allow_html=True)
+
+                # -- Section exports groupee par type --
+                render_exports(step)
+
