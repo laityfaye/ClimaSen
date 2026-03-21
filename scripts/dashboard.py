@@ -3412,7 +3412,14 @@ if page == "Pipeline":
                             unsafe_allow_html=True,
                         )
                     if out:
-                        with st.expander("Voir la sortie", expanded=rc != 0):
+                        toggle_key = f"show_out_{step['id']}"
+                        if toggle_key not in st.session_state:
+                            st.session_state[toggle_key] = True
+                        label_btn = "Masquer la sortie" if st.session_state[toggle_key] else "Voir la sortie"
+                        if st.button(label_btn, key=f"btn_out_{step['id']}"):
+                            st.session_state[toggle_key] = not st.session_state[toggle_key]
+                            st.rerun()
+                        if st.session_state[toggle_key]:
                             st.code(out, language="text")
                     st.cache_data.clear()
 
