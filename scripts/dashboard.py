@@ -3345,22 +3345,44 @@ if page == "Pipeline":
                     btn_key = f"run_{step['id']}"
                     st.markdown("<div style='padding:14px 0 0 0;'>", unsafe_allow_html=True)
                     if sc_exists:
-                        if st.button("Executer", key=btn_key,
-                                     use_container_width=True, type="secondary"):
-                            with st.spinner(f"Execution de l\'etape {step_num}..."):
-                                rc, out = run_script(script_path)
-                            if rc == 0:
-                                st.success(f"Etape {step_num} — OK")
-                            else:
-                                st.error(f"Etape {step_num} — Echec (code {rc})")
-                            if out:
-                                with st.expander("Sortie"):
-                                    st.code(out, language="text")
-                            st.cache_data.clear()
+                        clicked = st.button("Executer", key=btn_key,
+                                            use_container_width=True, type="secondary")
                     else:
+                        clicked = False
                         st.button("Introuvable", key=btn_key,
                                   disabled=True, use_container_width=True)
                     st.markdown("</div>", unsafe_allow_html=True)
+
+                # Execution et résultat en pleine largeur
+                if clicked:
+                    with st.spinner(f"Execution de l'etape {step_num}..."):
+                        rc, out = run_script(script_path)
+                    if rc == 0:
+                        st.markdown(
+                            f"<div style='background:#f0fdf4;border:1px solid #86efac;"
+                            f"border-radius:8px;padding:10px 16px;margin:8px 0;"
+                            f"display:flex;align-items:center;gap:10px;'>"
+                            f"  <span style='font-size:1.1rem;'>OK</span>"
+                            f"  <span style='color:#166534;font-weight:600;'>"
+                            f"    Etape {step_num} executee avec succes</span>"
+                            f"</div>",
+                            unsafe_allow_html=True,
+                        )
+                    else:
+                        st.markdown(
+                            f"<div style='background:#fef2f2;border:1px solid #fca5a5;"
+                            f"border-radius:8px;padding:10px 16px;margin:8px 0;"
+                            f"display:flex;align-items:center;gap:10px;'>"
+                            f"  <span style='font-size:1.1rem;'>Erreur</span>"
+                            f"  <span style='color:#991b1b;font-weight:600;'>"
+                            f"    Etape {step_num} — Echec (code {rc})</span>"
+                            f"</div>",
+                            unsafe_allow_html=True,
+                        )
+                    if out:
+                        with st.expander("Voir la sortie", expanded=rc != 0):
+                            st.code(out, language="text")
+                    st.cache_data.clear()
 
                 # -- Section exports groupee par type --
                 render_exports(step)
