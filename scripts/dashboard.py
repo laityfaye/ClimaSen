@@ -4,6 +4,7 @@ Dashboard Pro - Precipitations Extremes Senegal
 Usage: streamlit run scripts/dashboard.py
 """
 import io
+import os
 import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
@@ -682,22 +683,29 @@ section[data-testid="stSidebar"] [data-baseweb="tag"] span {{
 }}
 
 /* ── Expander : corrige icone Material affichee en texte brut ── */
-[data-testid="stExpander"] details summary {{
+[data-testid="stExpander"] summary {{
     display: flex !important;
     align-items: center !important;
-    gap: 8px !important;
     font-weight: 500 !important;
     font-size: 0.85rem !important;
     cursor: pointer !important;
+    gap: 6px !important;
 }}
-/* Cache UNIQUEMENT le texte brut de l'icone (span contenant arrow_down etc.)  */
-[data-testid="stExpanderToggleIcon"] {{
-    font-size: 0 !important;  /* masque le texte ligature */
+/* Masque tout texte brut dans l'icone toggle (arrow_down, expand_more...) */
+[data-testid="stExpanderToggleIcon"],
+[data-testid="stExpander"] summary > span:first-child {{
+    font-size: 0 !important;
     line-height: 0 !important;
+    color: transparent !important;
+    width: 20px !important;
+    height: 20px !important;
+    flex-shrink: 0 !important;
 }}
-[data-testid="stExpanderToggleIcon"] svg {{
-    width: 18px !important;
-    height: 18px !important;
+[data-testid="stExpanderToggleIcon"] svg,
+[data-testid="stExpander"] summary > span:first-child svg {{
+    width: 20px !important;
+    height: 20px !important;
+    color: #6B7280 !important;
     display: block !important;
 }}
 </style>
@@ -3100,6 +3108,9 @@ if page == "Pipeline":
         ]
 
         def run_script(script_path):
+            env = os.environ.copy()
+            env["PYTHONIOENCODING"] = "utf-8"
+            env["PYTHONUTF8"] = "1"
             result = subprocess.run(
                 [sys.executable, str(script_path)],
                 capture_output=True,
@@ -3107,6 +3118,7 @@ if page == "Pipeline":
                 cwd=str(BASE),
                 encoding="utf-8",
                 errors="replace",
+                env=env,
             )
             combined = result.stdout + (
                 "\n" + result.stderr if result.stderr.strip() else ""
@@ -3400,7 +3412,8 @@ if page == "Pipeline":
                             unsafe_allow_html=True,
                         )
                     if out:
-                        st.code(out, language="text")
+                        with st.expander("Voir la sortie", expanded=rc != 0):
+                            st.code(out, language="text")
                     st.cache_data.clear()
 
                 # -- Section exports groupee par type --
