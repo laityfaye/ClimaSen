@@ -3400,8 +3400,7 @@ if page == "Pipeline":
                             unsafe_allow_html=True,
                         )
                     if out:
-                        with st.expander("Voir la sortie", expanded=rc != 0):
-                            st.code(out, language="text")
+                        st.code(out, language="text")
                     st.cache_data.clear()
 
                 # -- Section exports groupee par type --
