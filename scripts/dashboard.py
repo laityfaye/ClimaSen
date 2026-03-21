@@ -2355,14 +2355,28 @@ elif page == "Clustering":
                             z_cent = cent_arr[ci] if ci < cent_arr.shape[0] else cent_arr[0]
                             vlim_c = max(abs(float(np.nanpercentile(z_cent, 2))), abs(float(np.nanpercentile(z_cent, 98))))
                             vlim_c = min(vlim_c, 3.0)
-                            # diff map
-                            diff = anom_ev - z_cent
+                            # diff map — resample z_cent onto anom_ev grid (nearest neighbour)
+                            if anom_ev is not None and z_cent.shape != anom_ev.shape:
+                                _lat_step = cent_lats[1] - cent_lats[0]
+                                _lon_step = cent_lons[1] - cent_lons[0]
+                                _lat_idx = np.clip(
+                                    np.round((lats_ev - cent_lats[0]) / _lat_step).astype(int),
+                                    0, len(cent_lats) - 1)
+                                _lon_idx = np.clip(
+                                    np.round((lons_ev - cent_lons[0]) / _lon_step).astype(int),
+                                    0, len(cent_lons) - 1)
+                                z_cent_rs = z_cent[np.ix_(_lat_idx, _lon_idx)]
+                            else:
+                                z_cent_rs = z_cent
+                            diff = anom_ev - z_cent_rs
                             vlim_d = max(abs(float(np.nanpercentile(diff, 5))), abs(float(np.nanpercentile(diff, 95))))
                             vlim_d = min(vlim_d, 2.5)
 
                             c1, c2 = st.columns(2)
                             _rg_cmp = _get_region_grid(
                                 tuple(cent_lats), tuple(cent_lons))
+                            _rg_diff = _get_region_grid(
+                                tuple(lats_ev), tuple(lons_ev))
 
                             def _small_sst_fig(z_data, rg, lats, lons,
                                                title, vlim, key, suffix):
@@ -2402,7 +2416,7 @@ elif page == "Clustering":
                                 )
                             with c2:
                                 _small_sst_fig(
-                                    diff, _rg_cmp, cent_lats, cent_lons,
+                                    diff, _rg_diff, lats_ev, lons_ev,
                                     "Difference (evt - centroide)", vlim_d,
                                     key="cl_diff_cmp", suffix="Difference",
                                 )
