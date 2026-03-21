@@ -148,8 +148,8 @@ def load_sst_centroid(phase: str):
     full_lons = np.linspace(-179.875, 179.875, 1440)
     centroids_2d = centroids.reshape(n_clust, 480, 1440)
     # downsample 4x
-    centroids_ds = centroids_2d[:, ::4, ::4]
-    return centroids_ds, full_lats[::4], full_lons[::4]
+    centroids_ds = centroids_2d[:, ::2, ::2]
+    return centroids_ds, full_lats[::2], full_lons[::2]
 
 @st.cache_data
 def load_clustering():
@@ -2142,7 +2142,7 @@ elif page == "Clustering":
                 fig_sst = go.Figure(go.Heatmap(
                     z=z, x=cent_lons, y=cent_lats,
                     colorscale="RdBu_r", zmin=-vlim, zmax=vlim,
-                    zsmooth="best",
+                    zsmooth=False,
                     customdata=_rg_cent,
                     colorbar=dict(
                         title=dict(text="Anomalie SST (degC)", side="right"),
