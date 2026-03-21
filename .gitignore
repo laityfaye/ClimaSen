@@ -13,7 +13,7 @@ data/raw/*.h5
 data/raw/**/*.h5
 
 # Centroids SST lourds (clustering numpy)
-outputs/clustering/**/*.npy
+# outputs/clustering/**/*.npy  # inclus dans git (46 MB)
 
 # Raccourcis et fichiers parasites Windows
 *.lnk
