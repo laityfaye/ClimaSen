@@ -137,7 +137,7 @@ def load_sst_day(year: int, doy: int):
 
 @st.cache_data(show_spinner=False)
 def load_sst_centroid(phase: str):
-    """Return (n_clusters, 480, 1440) centroid SST array + lat/lon arrays."""
+    """Return (n_clusters, 480, 1440) centroid SST array + lat/lon arrays (pleine resolution)."""
     npy_file = BASE / "outputs/clustering" / phase / f"{phase}_centroids_sst.npy"
     if not npy_file.exists():
         return None, None, None
@@ -147,9 +147,75 @@ def load_sst_centroid(phase: str):
     full_lats = np.linspace(-59.875, 59.875, 480)
     full_lons = np.linspace(-179.875, 179.875, 1440)
     centroids_2d = centroids.reshape(n_clust, 480, 1440)
-    # downsample 4x
-    centroids_ds = centroids_2d[:, ::2, ::2]
-    return centroids_ds, full_lats[::2], full_lons[::2]
+    return centroids_2d, full_lats, full_lons
+
+
+@st.cache_data(show_spinner=False)
+def _render_centroid_cartopy(z_bytes: bytes, lats_bytes: bytes, lons_bytes: bytes,
+                              title: str, vlim: float) -> bytes:
+    """
+    Rendu matplotlib/cartopy haute resolution d'une carte SST centroide.
+    Retourne un buffer PNG (bytes) pour st.image.
+    Les tableaux sont passes serialises (bytes) pour la compatibilite cache.
+    """
+    z    = np.frombuffer(z_bytes,    dtype=np.float64).reshape(480, 1440)
+    lats = np.frombuffer(lats_bytes, dtype=np.float64)
+    lons = np.frombuffer(lons_bytes, dtype=np.float64)
+
+    fig = plt.figure(figsize=(14, 5), dpi=150)
+    if HAS_CARTOPY:
+        ax = fig.add_subplot(1, 1, 1, projection=ccrs.PlateCarree())
+        ax.set_extent([-180, 180, -60, 60], crs=ccrs.PlateCarree())
+        im = ax.pcolormesh(
+            lons, lats, z,
+            cmap="RdBu_r", vmin=-vlim, vmax=vlim,
+            transform=ccrs.PlateCarree(),
+            rasterized=True,
+        )
+        ax.add_feature(cfeature.LAND,   facecolor="#D6D6D6", zorder=2)
+        ax.add_feature(cfeature.OCEAN,  facecolor="none",    zorder=1)
+        ax.add_feature(cfeature.COASTLINE, linewidth=0.5, edgecolor="#555555", zorder=3)
+        ax.add_feature(cfeature.BORDERS,   linewidth=0.3, edgecolor="#888888", zorder=3)
+        gl = ax.gridlines(draw_labels=True, linewidth=0.4, color="#AAAAAA",
+                          linestyle="--", zorder=4)
+        gl.top_labels   = False
+        gl.right_labels = False
+        gl.xlocator = mticker.FixedLocator(range(-180, 181, 30))
+        gl.ylocator = mticker.FixedLocator(range(-60, 61, 15))
+        gl.xlabel_style = {"size": 9}
+        gl.ylabel_style = {"size": 9}
+        # Etoile Senegal (Dakar)
+        ax.plot(-17.4, 14.7, marker="*", color=AMBER, markersize=12,
+                markeredgecolor="white", markeredgewidth=0.8,
+                transform=ccrs.PlateCarree(), zorder=5)
+        ax.text(-14.5, 15.5, "Dakar", fontsize=8, color=TEXT,
+                transform=ccrs.PlateCarree(), zorder=5)
+    else:
+        ax = fig.add_subplot(1, 1, 1)
+        im = ax.pcolormesh(lons, lats, z, cmap="RdBu_r", vmin=-vlim, vmax=vlim,
+                           rasterized=True)
+        ax.set_xlim(-180, 180)
+        ax.set_ylim(-60, 60)
+        ax.set_xlabel("Longitude", fontsize=9)
+        ax.set_ylabel("Latitude",  fontsize=9)
+        ax.plot(-17.4, 14.7, marker="*", color=AMBER, markersize=10,
+                markeredgecolor="white", markeredgewidth=0.8)
+
+    cbar = fig.colorbar(im, ax=ax, orientation="vertical", pad=0.02,
+                        fraction=0.025, aspect=30)
+    cbar.set_label("Anomalie SST (degC)", fontsize=9)
+    cbar.ax.tick_params(labelsize=8)
+
+    ax.set_title(title, fontsize=11, fontweight="bold", color=TEXT, pad=8)
+    fig.patch.set_facecolor(CARD)
+    ax.set_facecolor("#C8E6FA")
+
+    buf = io.BytesIO()
+    fig.savefig(buf, format="png", dpi=150, bbox_inches="tight",
+                facecolor=CARD, edgecolor="none")
+    plt.close(fig)
+    buf.seek(0)
+    return buf.read()
 
 @st.cache_data
 def load_clustering():
@@ -2134,13 +2200,19 @@ elif page == "Clustering":
 
             if cent_arr is not None:
                 clust_idx = cl_ids_sorted.index(sel_cl)
-                z = cent_arr[clust_idx] if clust_idx < cent_arr.shape[0] else cent_arr[0]
-                vlim = max(abs(float(np.nanpercentile(z, 2))), abs(float(np.nanpercentile(z, 98))))
+                z_full = cent_arr[clust_idx] if clust_idx < cent_arr.shape[0] else cent_arr[0]
+                vlim = max(abs(float(np.nanpercentile(z_full, 2))),
+                           abs(float(np.nanpercentile(z_full, 98))))
                 vlim = min(vlim, 3.0)
 
-                _rg_cent = _get_region_grid(tuple(cent_lats), tuple(cent_lons))
+                # Downsample 2x uniquement pour le rendu Plotly (performance browser)
+                z        = z_full[::2, ::2]
+                lats_ds  = cent_lats[::2]
+                lons_ds  = cent_lons[::2]
+
+                _rg_cent = _get_region_grid(tuple(lats_ds), tuple(lons_ds))
                 fig_sst = go.Figure(go.Heatmap(
-                    z=z, x=cent_lons, y=cent_lats,
+                    z=z, x=lons_ds, y=lats_ds,
                     colorscale="RdBu_r", zmin=-vlim, zmax=vlim,
                     zsmooth=False,
                     customdata=_rg_cent,
@@ -2178,7 +2250,6 @@ elif page == "Clustering":
                     margin=dict(l=10, r=10, t=48, b=10),
                     height=520,
                 )
-                
                 st.plotly_chart(fig_sst, use_container_width=True, key="cl_sst_cent_map",
                                 config={"toImageButtonOptions": {"scale": 3, "format": "png"}})
                 st.markdown("</div>", unsafe_allow_html=True)
