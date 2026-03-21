@@ -680,6 +680,26 @@ section[data-testid="stSidebar"] [data-baseweb="tag"] span {{
         gap: 8px !important;
     }}
 }}
+
+/* ── Expander : corrige icone Material affichee en texte brut ── */
+[data-testid="stExpander"] details summary {{
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    font-weight: 500 !important;
+    font-size: 0.85rem !important;
+    cursor: pointer !important;
+}}
+/* Cache UNIQUEMENT le texte brut de l'icone (span contenant arrow_down etc.)  */
+[data-testid="stExpanderToggleIcon"] {{
+    font-size: 0 !important;  /* masque le texte ligature */
+    line-height: 0 !important;
+}}
+[data-testid="stExpanderToggleIcon"] svg {{
+    width: 18px !important;
+    height: 18px !important;
+    display: block !important;
+}}
 </style>
 """, unsafe_allow_html=True)
 
