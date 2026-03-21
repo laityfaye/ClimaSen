@@ -69,9 +69,9 @@ class TeleconnectionsAnalyzer:
         
         # NOUVEAU : Configuration des lags physiquement justifiés
         self.physical_lags = {
-            'Nino34': {'min': 2, 'max': 12, 'optimal': [3, 4, 5, 6]},  # ENSO→Sahel via Walker circulation
-            'IOD': {'min': 1, 'max': 6, 'optimal': [1, 2, 3]},         # IOD→Sahel circulation régionale
-            'TNA': {'min': 0, 'max': 4, 'optimal': [0, 1, 2]}          # TNA→Sahel proximité géographique
+            'Nino34': {'min': 0, 'max': 12, 'optimal': [3, 4, 5, 6]},  # ENSO→Sahel via Walker circulation
+            'IOD': {'min': 0, 'max': 12, 'optimal': [1, 2, 3]},        # IOD→Sahel circulation régionale
+            'TNA': {'min': 0, 'max': 12, 'optimal': [0, 1, 2]}         # TNA→Sahel proximité géographique
         }
         
         # NOUVEAU : Métriques climatologiques
@@ -150,17 +150,17 @@ class TeleconnectionsAnalyzer:
                 'error': str(e)
             }
     
-    def _get_climatological_preprocessing_recommendation(self, adf_stationary: bool, 
-                                                       kpss_stationary: bool, 
+    def _get_climatological_preprocessing_recommendation(self, adf_stationary: bool,
+                                                       kpss_stationary: bool,
                                                        series_name: str) -> str:
         """
         NOUVEAU : Recommandation de préprocessing adaptée au contexte climatologique.
-        
+
         Args:
             adf_stationary (bool): Résultat test ADF
             kpss_stationary (bool): Résultat test KPSS
             series_name (str): Nom de la série (pour contexte)
-            
+
         Returns:
             str: Recommandation climatologiquement appropriée
         """
@@ -170,11 +170,11 @@ class TeleconnectionsAnalyzer:
             if 'Nino' in series_name or 'IOD' in series_name or 'TNA' in series_name:
                 return "Indice climatique non-stationnaire - Détrend UNIQUEMENT (préserver oscillations)"
             else:
-                return "Série non-stationnaire - Détrend ou différenciation conservative"
+                return "Série non-stationnaire - Différenciation d'ordre 1 recommandée"
         elif adf_stationary and not kpss_stationary:
             return "Tendance déterministe - Détrend linéaire UNIQUEMENT"
         else:  # not adf_stationary and kpss_stationary
-            return "Proche racine unitaire - Surveillance spéciale, analyse directe possible"
+            return "Proche racine unitaire - Différenciation d'ordre 1 par précaution"
     
     def preprocess_series_climatologically_safe(self, series: pd.Series, 
                                               is_climate_index: bool = True) -> Tuple[pd.Series, Dict]:
@@ -230,17 +230,42 @@ class TeleconnectionsAnalyzer:
                     metadata['final_stationarity'] = stationarity
                     
             else:
-                # Pour événements : traitement plus flexible
-                if 'différenciation' in recommendation.lower():
-                    print(f"   🔧 Application différenciation conservative...")
+                # Pour événements : traitement selon le diagnostic de stationnarité
+                if 'Différenciation' in recommendation or 'différenciation' in recommendation.lower():
+                    print(f"   🔧 Application différenciation d'ordre 1 (série d'événements)...")
                     processed_series = processed_series.diff().dropna()
                     metadata['transformations_applied'].append('differencing')
                 elif 'Détrend' in recommendation:
-                    print(f"   🔧 Application détrend...")
-                    detrended_values = detrend(processed_series.dropna().values)
-                    processed_series = pd.Series(detrended_values, 
-                                               index=processed_series.dropna().index)
+                    print(f"   🔧 Application détrend linéaire (série d'événements)...")
+                    clean_values = processed_series.dropna()
+                    detrended_values = detrend(clean_values.values)
+                    processed_series = pd.Series(detrended_values,
+                                               index=clean_values.index)
                     metadata['transformations_applied'].append('detrend')
+
+                # Re-test de stationnarité après transformation
+                if metadata['transformations_applied']:
+                    stationarity_after = self.test_stationarity(
+                        processed_series, "Après transformation (événements)"
+                    )
+                    metadata['final_stationarity'] = stationarity_after
+
+                    if not stationarity_after.get('is_stationary', False):
+                        print(f"   ⚠️  Série toujours non-stationnaire après transformation")
+                        # Appliquer différenciation en dernier recours si détrend insuffisant
+                        if 'detrend' in metadata['transformations_applied'] and \
+                           'differencing' not in metadata['transformations_applied']:
+                            print(f"   🔧 Application différenciation supplémentaire...")
+                            processed_series = processed_series.diff().dropna()
+                            metadata['transformations_applied'].append('differencing')
+                            stationarity_final = self.test_stationarity(
+                                processed_series, "Après détrend + différenciation"
+                            )
+                            metadata['final_stationarity'] = stationarity_final
+                    else:
+                        print(f"   ✅ Série rendue stationnaire après transformation")
+                else:
+                    metadata['final_stationarity'] = stationarity
         else:
             metadata['final_stationarity'] = stationarity
         

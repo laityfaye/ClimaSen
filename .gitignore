@@ -1,11 +1,23 @@
 # ============================================================================
-# FICHIER CHIRPS VOLUMINEUX - EXCLUSION OBLIGATOIRE
+# FICHIERS VOLUMINEUX - EXCLUSION OBLIGATOIRE
 # ============================================================================
 data/raw/chirps_WA_1981_2023_dayly.mat
 data/raw/*.mat
+data/raw/**/*.mat
 data/raw/*.nc
+data/raw/**/*.nc
+data/raw/SST/
 data/raw/*.hdf5
+data/raw/**/*.hdf5
 data/raw/*.h5
+data/raw/**/*.h5
+
+# Centroids SST lourds (clustering numpy)
+outputs/clustering/**/*.npy
+
+# Raccourcis et fichiers parasites Windows
+*.lnk
+nul
 
 # ============================================================================
 # PYTHON

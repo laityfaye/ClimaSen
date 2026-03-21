@@ -409,7 +409,7 @@ def create_output_directories():
     for directory in directories:
         directory.mkdir(parents=True, exist_ok=True)
     
-    print("✅ Tous les dossiers de sortie ont été créés")
+    print("[OK] Tous les dossiers de sortie ont ete crees")
     return directories
 
 def get_phase_from_month(month: int) -> str:

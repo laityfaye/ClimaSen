@@ -4,7 +4,7 @@ RAPPORT COMPLET D'ANALYSE DES ÉVÉNEMENTS EXTRÊMES
 Projet: Analyse des précipitations extrêmes au Sénégal
 Version: 2.0.0
 Auteur: Équipe de recherche climatologique
-Date de génération: 2025-11-06 14:39:00
+Date de génération: 2026-03-06 01:33:48
 Institution: Centre de recherche climatique
 
 1. MÉTHODOLOGIE ET INNOVATIONS
@@ -289,7 +289,7 @@ Fréquence moyenne: 30.6 événements/an
 10.5 Contact et support:
     • Email: contact@recherche-climat.org
     • Documentation: https://github.com/projet-senegal-climat
-    • Date de génération: 2025-11-06 14:39:00
+    • Date de génération: 2026-03-06 01:33:48
 
 ================================================================================
 FIN DU RAPPORT COMPLET

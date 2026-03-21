@@ -1,0 +1,21 @@
+Tableau des k - 3 methodes de selection du k optimal
+======================================================================
+
+ k     Inertie  Silhouette  Davies-Bouldin     Methode(s)
+ 2 201551936.0    0.077682        3.362577               
+ 3 193318304.0    0.070190        3.387540               
+ 4 187698528.0    0.066503        3.506575          coude
+ 5 183033440.0    0.074546        3.204382               
+ 6 179196064.0    0.075393        3.287243               
+ 7 174942016.0    0.085895        2.917218               
+ 8 171402016.0    0.087031        2.821820 Davies-Bouldin
+ 9 166986512.0    0.095342        3.060928               
+10 163753312.0    0.097826        2.942230     silhouette
+
+Resume des k optimaux par methode :
+  Coude :             k = 4
+  Silhouette :        k = 10
+  Davies-Bouldin :    k = 8
+
+  k optimal retenu (vote) : 4
+  Decision : vote -> k=10 (dernier k teste) ; parcimonie -> k_coude=4

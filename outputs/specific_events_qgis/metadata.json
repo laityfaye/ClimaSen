@@ -5,7 +5,7 @@
   "spatial_resolution": "0.25° (~25 km)",
   "temporal_resolution": "daily",
   "coordinate_system": "WGS84 (EPSG:4326)",
-  "created_at": "2025-11-06T14:40:36.588638",
+  "created_at": "2026-01-24T17:17:48.954350",
   "created_by": "SpecificEventsExtractor v1.0",
   "target_events": [
     "1985-08-06",

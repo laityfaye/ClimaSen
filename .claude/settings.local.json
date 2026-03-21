@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(PYTHONUTF8=1 python:*)",
+      "Bash(dir:*)",
+      "Bash(python:*)",
+      "Bash(powershell -Command:*)",
+      "Bash(ls:*)",
+      "Bash(PYTHONIOENCODING=utf-8 python:*)",
+      "Bash(python3:*)",
+      "Bash(where:*)",
+      "Bash(/c/Users/laity/AppData/Local/Programs/Python/Python313/python:*)",
+      "Bash(py -3 -m py_compile scripts/dashboard_teleconnexions.py)"
+    ]
+  }
+}
