@@ -1893,11 +1893,14 @@ elif page == "Clustering":
         metrics = cdata["metrics"]
 
         # ── Panneau : relancer le clustering avec K personnalise ─────────────
-        if "show_cluster_rerun" not in st.session_state:
-            st.session_state["show_cluster_rerun"] = False
+        for _k in ("show_cluster_rerun", "cluster_result", "cluster_stderr"):
+            if _k not in st.session_state:
+                st.session_state[_k] = False if _k == "show_cluster_rerun" else None
+
         btn_label = "Masquer le panneau" if st.session_state["show_cluster_rerun"] else "Relancer le clustering avec un K personnalise"
         if st.button(btn_label, key="btn_cluster_rerun"):
             st.session_state["show_cluster_rerun"] = not st.session_state["show_cluster_rerun"]
+            st.session_state["cluster_result"] = None
             st.rerun()
 
         if st.session_state["show_cluster_rerun"]:
@@ -1951,7 +1954,6 @@ elif page == "Clustering":
                     ["Toutes les phases + All_phases", "Par phase uniquement", "All_phases uniquement"],
                     horizontal=True, key="ck_mode",
                 )
-
             with col_btn:
                 st.markdown("<div style='height:28px'></div>", unsafe_allow_html=True)
                 run_clicked = st.button(
@@ -1959,27 +1961,31 @@ elif page == "Clustering":
                     type="primary", use_container_width=True, key="ck_run",
                 )
 
+            # Affichage du resultat persistant (survit aux reruns)
+            if st.session_state["cluster_result"] == "success":
+                st.success("Clustering termine avec succes !")
+                if st.button("Recharger les resultats", key="btn_reload_cl"):
+                    st.session_state["cluster_result"] = None
+                    st.cache_data.clear()
+                    st.rerun()
+            elif st.session_state["cluster_result"] == "error":
+                st.error("Le script a rencontre une erreur.")
+                st.code(st.session_state["cluster_stderr"] or "Pas de message d'erreur.")
+            elif st.session_state["cluster_result"] == "timeout":
+                st.error("Timeout depasse (30 min). Le calcul est peut-etre trop long.")
+
             if run_clicked:
                 script_path = BASE / "scripts" / "11_kmeans_sst_analysis.py"
                 cmd = [sys.executable, str(script_path)]
 
-                # Mode
                 if mode_opt == "Par phase uniquement":
                     cmd += ["--by-phase"]
                 elif mode_opt == "All_phases uniquement":
                     cmd += ["--global"]
-                # else: defaut = par phase + global
 
-                # K par phase
                 cmd += [f"--k-phase1={int(k_p1)}", f"--k-phase2={int(k_p2)}", f"--k-phase3={int(k_p3)}"]
                 if mode_opt != "Par phase uniquement":
                     cmd += [f"--k-all={int(k_all)}"]
-
-                st.markdown(
-                    f'<code style="font-size:0.7rem;color:{MUTED};">'
-                    + " ".join(cmd[1:]) + "</code>",
-                    unsafe_allow_html=True,
-                )
 
                 env = os.environ.copy()
                 env["PYTHONIOENCODING"] = "utf-8"
@@ -1995,16 +2001,16 @@ elif page == "Clustering":
                             cwd=str(BASE), timeout=1800,
                         )
                         if result.returncode == 0:
-                            st.success("Clustering termine avec succes !")
-                            st.cache_data.clear()
-                            st.rerun()
+                            st.session_state["cluster_result"] = "success"
                         else:
-                            st.error("Le script a rencontre une erreur.")
-                            st.code(result.stderr[-3000:] if result.stderr else "Pas de message d'erreur.")
+                            st.session_state["cluster_result"] = "error"
+                            st.session_state["cluster_stderr"] = result.stderr[-3000:] if result.stderr else ""
                     except subprocess.TimeoutExpired:
-                        st.error("Timeout depasse (30 min). Le calcul est peut-etre trop long.")
+                        st.session_state["cluster_result"] = "timeout"
                     except Exception as exc:
-                        st.error(f"Erreur lors du lancement : {exc}")
+                        st.session_state["cluster_result"] = "error"
+                        st.session_state["cluster_stderr"] = str(exc)
+                st.rerun()
 
         # ── KPI row  ─────────────────────────────────────────────────────────
         n_ev      = len(events)
