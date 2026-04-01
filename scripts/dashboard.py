@@ -1963,8 +1963,10 @@ elif page == "Clustering":
 
             # Affichage du resultat persistant (survit aux reruns)
             if st.session_state["cluster_result"] == "success":
-                st.success("Clustering termine avec succes !")
-                if st.button("Recharger les resultats", key="btn_reload_cl"):
+                st.success("Clustering termine avec succes ! Les resultats affiches sont mis a jour.")
+                with st.expander("Voir la sortie du script"):
+                    st.code(st.session_state.get("cluster_stdout") or "(pas de sortie)", language="text")
+                if st.button("Fermer ce message", key="btn_reload_cl"):
                     st.session_state["cluster_result"] = None
                     st.rerun()
             elif st.session_state["cluster_result"] == "error":
@@ -2000,11 +2002,12 @@ elif page == "Clustering":
                             cwd=str(BASE), timeout=1800,
                         )
                         if result.returncode == 0:
-                            st.cache_data.clear()
+                            load_clustering.clear()
                             st.session_state["cluster_result"] = "success"
+                            st.session_state["cluster_stdout"] = result.stdout[-2000:] if result.stdout else ""
                         else:
                             st.session_state["cluster_result"] = "error"
-                            st.session_state["cluster_stderr"] = result.stderr[-3000:] if result.stderr else ""
+                            st.session_state["cluster_stderr"] = (result.stderr or "") + "\n" + (result.stdout or "")
                     except subprocess.TimeoutExpired:
                         st.session_state["cluster_result"] = "timeout"
                     except Exception as exc:
