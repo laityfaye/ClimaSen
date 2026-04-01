@@ -1966,7 +1966,6 @@ elif page == "Clustering":
                 st.success("Clustering termine avec succes !")
                 if st.button("Recharger les resultats", key="btn_reload_cl"):
                     st.session_state["cluster_result"] = None
-                    st.cache_data.clear()
                     st.rerun()
             elif st.session_state["cluster_result"] == "error":
                 st.error("Le script a rencontre une erreur.")
@@ -2001,6 +2000,7 @@ elif page == "Clustering":
                             cwd=str(BASE), timeout=1800,
                         )
                         if result.returncode == 0:
+                            st.cache_data.clear()
                             st.session_state["cluster_result"] = "success"
                         else:
                             st.session_state["cluster_result"] = "error"
