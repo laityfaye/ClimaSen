@@ -5,6 +5,8 @@ Usage: streamlit run scripts/dashboard.py
 """
 import io
 import os
+import subprocess
+import sys
 import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
@@ -219,7 +221,7 @@ def _render_centroid_cartopy(z_bytes: bytes, lats_bytes: bytes, lons_bytes: byte
 
 @st.cache_data
 def load_clustering():
-    phases = ["Phase_1_debut", "Phase_2_pleine", "Phase_3_fin"]
+    phases = ["Phase_1_debut", "Phase_2_pleine", "Phase_3_fin", "All_phases"]
     out = {}
     for ph in phases:
         d = BASE / "outputs/clustering" / ph
@@ -757,7 +759,6 @@ section[data-testid="stSidebar"] [data-baseweb="tag"] span {{
     cursor: pointer !important;
     gap: 6px !important;
 }}
-/* Masque tout texte brut dans l'icone toggle (arrow_down, expand_more...) */
 [data-testid="stExpanderToggleIcon"],
 [data-testid="stExpander"] summary > span:first-child {{
     font-size: 0 !important;
@@ -1878,6 +1879,7 @@ elif page == "Clustering":
             "Phase_1_debut":  "Debut saison  (Mai-Jun)",
             "Phase_2_pleine": "Pleine saison (Jul-Aou)",
             "Phase_3_fin":    "Fin saison    (Sep-Oct)",
+            "All_phases":     "Toutes phases confondues",
         }
         sel_phase = st.selectbox(
             "Phase",
@@ -1889,6 +1891,120 @@ elif page == "Clustering":
         chars   = cdata["chars"]
         events  = cdata["events"]
         metrics = cdata["metrics"]
+
+        # ── Panneau : relancer le clustering avec K personnalise ─────────────
+        if "show_cluster_rerun" not in st.session_state:
+            st.session_state["show_cluster_rerun"] = False
+        btn_label = "Masquer le panneau" if st.session_state["show_cluster_rerun"] else "Relancer le clustering avec un K personnalise"
+        if st.button(btn_label, key="btn_cluster_rerun"):
+            st.session_state["show_cluster_rerun"] = not st.session_state["show_cluster_rerun"]
+            st.rerun()
+
+        if st.session_state["show_cluster_rerun"]:
+            st.markdown(
+                f'<p style="font-size:0.78rem;color:{MUTED};margin:0 0 12px 0;">'
+                "Definissez le nombre de clusters K pour chaque phase, puis lancez le script. "
+                "Les resultats seront recharges automatiquement.</p>",
+                unsafe_allow_html=True,
+            )
+
+            # Recuperer les k actuels par phase comme valeurs par defaut
+            def _current_k(ph):
+                d = clust_data.get(ph, {})
+                m = d.get("metrics", {})
+                return int(m.get("optimal_k", m.get("k_elbow", 6)) or 6)
+
+            col_k1, col_k2, col_k3, col_k4 = st.columns(4)
+            with col_k1:
+                k_p1 = st.number_input(
+                    "Phase 1 - Debut (Mai-Jun)",
+                    min_value=2, max_value=15,
+                    value=_current_k("Phase_1_debut"),
+                    step=1, key="ck_p1",
+                )
+            with col_k2:
+                k_p2 = st.number_input(
+                    "Phase 2 - Pleine (Jul-Aou)",
+                    min_value=2, max_value=15,
+                    value=_current_k("Phase_2_pleine"),
+                    step=1, key="ck_p2",
+                )
+            with col_k3:
+                k_p3 = st.number_input(
+                    "Phase 3 - Fin (Sep-Oct)",
+                    min_value=2, max_value=15,
+                    value=_current_k("Phase_3_fin"),
+                    step=1, key="ck_p3",
+                )
+            with col_k4:
+                k_all = st.number_input(
+                    "All phases",
+                    min_value=2, max_value=20,
+                    value=_current_k("All_phases"),
+                    step=1, key="ck_all",
+                )
+
+            col_opt, col_btn = st.columns([2, 1])
+            with col_opt:
+                mode_opt = st.radio(
+                    "Phases a relancer",
+                    ["Toutes les phases + All_phases", "Par phase uniquement", "All_phases uniquement"],
+                    horizontal=True, key="ck_mode",
+                )
+
+            with col_btn:
+                st.markdown("<div style='height:28px'></div>", unsafe_allow_html=True)
+                run_clicked = st.button(
+                    "Lancer le clustering",
+                    type="primary", use_container_width=True, key="ck_run",
+                )
+
+            if run_clicked:
+                script_path = BASE / "scripts" / "11_kmeans_sst_analysis.py"
+                cmd = [sys.executable, str(script_path)]
+
+                # Mode
+                if mode_opt == "Par phase uniquement":
+                    cmd += ["--by-phase"]
+                elif mode_opt == "All_phases uniquement":
+                    cmd += ["--global"]
+                # else: defaut = par phase + global
+
+                # K par phase
+                cmd += [f"--k-phase1={int(k_p1)}", f"--k-phase2={int(k_p2)}", f"--k-phase3={int(k_p3)}"]
+                if mode_opt != "Par phase uniquement":
+                    cmd += [f"--k-all={int(k_all)}"]
+
+                st.markdown(
+                    f'<code style="font-size:0.7rem;color:{MUTED};">'
+                    + " ".join(cmd[1:]) + "</code>",
+                    unsafe_allow_html=True,
+                )
+
+                with st.spinner("Clustering en cours... (peut prendre plusieurs minutes)"):
+                    try:
+                        result = subprocess.run(
+                            cmd,
+                            capture_output=True, text=True,
+                            cwd=str(BASE), timeout=1800,
+                        )
+                        if result.returncode == 0:
+                            st.success("Clustering termine avec succes !")
+                            st.cache_data.clear()
+                            st.rerun()
+                        else:
+                            st.error("Le script a rencontre une erreur.")
+                            if "show_cluster_logs" not in st.session_state:
+                                st.session_state["show_cluster_logs"] = True
+                            if st.button("Voir les logs d'erreur", key="btn_cluster_logs"):
+                                st.session_state["show_cluster_logs"] = not st.session_state["show_cluster_logs"]
+                                st.rerun()
+                            if st.session_state["show_cluster_logs"]:
+                                st.code(result.stderr[-3000:] if result.stderr else "Pas de message d'erreur.")
+                    except subprocess.TimeoutExpired:
+                        st.error("Timeout depasse (30 min). Le calcul est peut-etre trop long.")
+                    except Exception as exc:
+                        st.error(f"Erreur lors du lancement : {exc}")
 
         # ── KPI row  ─────────────────────────────────────────────────────────
         n_ev      = len(events)

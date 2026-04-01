@@ -47,6 +47,7 @@ PHASES = {
     'Phase_1_debut':  'Debut de saison (Mai-Juin)',
     'Phase_2_pleine': 'Pleine saison (Juillet-Aout)',
     'Phase_3_fin':    'Fin de saison (Septembre-Octobre)',
+    'All_phases':     'Toutes phases confondues (1317 evenements)',
 }
 
 # Grille OISST v2 : 480 lat x 1440 lon  (60N -> 60S, -180 -> 180)

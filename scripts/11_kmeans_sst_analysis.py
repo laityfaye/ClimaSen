@@ -1150,13 +1150,16 @@ class KMeansSSTAnalyzer:
         return True
 
 
-def run_analysis_by_phase(detrend_sst: bool = False):
+def run_analysis_by_phase(detrend_sst: bool = False, forced_k_dict: dict = None):
     """
     Exécute l'analyse K-Means séparément pour chaque phase de saison.
 
     Args:
         detrend_sst (bool): Si True, retire la tendance lineaire SST par pixel
             avant PCA+KMeans (supprime le signal de rechauffement climatique).
+        forced_k_dict (dict, optional): Dictionnaire {phase_key: k} pour forcer
+            un k specifique par phase. Prend le dessus sur les valeurs par defaut.
+            Ex: {'Phase_1_debut': 4, 'Phase_2_pleine': 5, 'Phase_3_fin': 3}
     """
     print("\n" + "="*80)
     print("ANALYSE K-MEANS PAR PHASE DE SAISON")
@@ -1207,10 +1210,17 @@ def run_analysis_by_phase(detrend_sst: bool = False):
         print(f"TRAITEMENT DE LA PHASE: {phase_names[phase_key]}")
         print(f"{'='*80}")
         
+        # K effectif : priorite au dict externe, puis valeur par defaut
+        k_for_phase = None
+        if forced_k_dict and phase_key in forced_k_dict and forced_k_dict[phase_key] is not None:
+            k_for_phase = forced_k_dict[phase_key]
+        else:
+            k_for_phase = phase_forced_k[phase_key]
+
         success = analyzer.run_analysis_for_phase(
             phase_file=phase_file,
             phase_name=phase_key,
-            forced_k=phase_forced_k[phase_key],
+            forced_k=k_for_phase,
             detrend_sst=detrend_sst,
         )
         
@@ -1242,6 +1252,46 @@ def run_analysis_by_phase(detrend_sst: bool = False):
     return True
 
 
+def run_analysis_global(detrend_sst: bool = False, forced_k: int = None):
+    """
+    Execute l'analyse K-Means sur l'ensemble des evenements extremes (toutes phases confondues).
+
+    Args:
+        detrend_sst (bool): Si True, retire la tendance lineaire SST par pixel
+            avant PCA+KMeans.
+        forced_k (int, optional): Forcer un k specifique. Si None, k optimal automatique.
+    """
+    print("\n" + "="*80)
+    print("ANALYSE K-MEANS - TOUS EVENEMENTS EXTREMES (TOUTES PHASES)")
+    print("="*80)
+
+    create_output_directories()
+
+    events_file = PROCESSED_DATA_DIR / "extreme_events_phases_senegal.csv"
+    if not events_file.exists():
+        print(f"[ERREUR] Fichier introuvable: {events_file}")
+        return False
+
+    analyzer = KMeansSSTAnalyzer(n_clusters_range=(2, 15), random_state=42)
+
+    success = analyzer.run_analysis_for_phase(
+        phase_file=events_file,
+        phase_name="All_phases",
+        forced_k=forced_k,
+        detrend_sst=detrend_sst,
+    )
+
+    if success:
+        print("\n[OK] Analyse globale terminee")
+        print(f"   Nombre optimal de clusters: {analyzer.optimal_k}")
+        print(f"   Resultats: {OUTPUT_DIR / 'clustering' / 'All_phases'}")
+        print(f"   Visualisations: {VISUALIZATION_DIR / 'clustering' / 'All_phases'}")
+    else:
+        print("\n[ERREUR] L'analyse globale a echoue.")
+
+    return success
+
+
 def main():
     """Fonction principale."""
     import argparse
@@ -1252,7 +1302,13 @@ def main():
     parser.add_argument(
         '--by-phase',
         action='store_true',
-        help='Analyser séparément chaque phase de saison (recommandé)'
+        help='Analyser separement chaque phase de saison uniquement (sans global)'
+    )
+    parser.add_argument(
+        '--global',
+        dest='global_only',
+        action='store_true',
+        help='Analyser uniquement tous les evenements ensemble (sans separation par phase)'
     )
     parser.add_argument(
         '--phase-file',
@@ -1265,55 +1321,65 @@ def main():
         help='Nom de la phase (si --phase-file est utilisé)'
     )
     parser.add_argument(
-        '--detrend-sst',
-        action='store_true',
-        default=True,
-        help=(
-            'Retire la tendance lineaire inter-annuelle par pixel SST avant PCA+KMeans. '
-            'Recommande pour isoler les patterns de circulation du signal de '
-            'rechauffement climatique (defaut: True).'
-        )
+        '--k-phase1', type=int, default=None, metavar='K',
+        help='K force pour Phase_1_debut (defaut: 6)'
     )
-
+    parser.add_argument(
+        '--k-phase2', type=int, default=None, metavar='K',
+        help='K force pour Phase_2_pleine (defaut: 6)'
+    )
+    parser.add_argument(
+        '--k-phase3', type=int, default=None, metavar='K',
+        help='K force pour Phase_3_fin (defaut: 5)'
+    )
+    parser.add_argument(
+        '--k-all', type=int, default=None, metavar='K',
+        help='K force pour All_phases (defaut: automatique)'
+    )
     args = parser.parse_args()
 
     # Créer les dossiers de sortie
     create_output_directories()
 
-    # Mode par défaut: analyse par phase
-    if args.by_phase or (not args.phase_file):
-        print("\nMODE: Analyse par phase de saison")
-        if args.detrend_sst:
-            print("Option --detrend-sst activee : tendance SST retiree par pixel.")
-        success = run_analysis_by_phase(detrend_sst=args.detrend_sst)
-    elif args.phase_file:
-        # Analyse d'un fichier spécifique
+    print("Detrend SST actif : tendance lineaire inter-annuelle retiree par pixel.")
+
+    # Construire le dictionnaire de k forces par phase
+    forced_k_dict = {
+        'Phase_1_debut':  args.k_phase1,
+        'Phase_2_pleine': args.k_phase2,
+        'Phase_3_fin':    args.k_phase3,
+    }
+
+    if args.phase_file:
+        # Analyse d'un fichier specifique
         phase_file = Path(args.phase_file)
         phase_name = args.phase_name or phase_file.stem
-
         print(f"\nMODE: Analyse d'un fichier specifique")
         print(f"   Fichier: {phase_file}")
         print(f"   Phase: {phase_name}")
-
         analyzer = KMeansSSTAnalyzer(n_clusters_range=(2, 10), random_state=42)
         success = analyzer.run_analysis_for_phase(
-            phase_file, phase_name, detrend_sst=args.detrend_sst
+            phase_file, phase_name, detrend_sst=True
         )
+    elif args.global_only:
+        # Analyse globale uniquement
+        print("\nMODE: Analyse globale (tous evenements, toutes phases)")
+        if args.k_all:
+            print(f"   K force: {args.k_all}")
+        success = run_analysis_global(detrend_sst=True, forced_k=args.k_all)
+    elif args.by_phase:
+        # Analyse par phase uniquement
+        print("\nMODE: Analyse par phase de saison")
+        success = run_analysis_by_phase(detrend_sst=True, forced_k_dict=forced_k_dict)
     else:
-        # Analyse globale (tous événements ensemble)
-        print("\n[INFO] MODE: Analyse globale (tous événements)")
+        # Mode par defaut: par phase + global
+        print("\nMODE: Analyse par phase de saison + analyse globale (defaut)")
+        success_phases = run_analysis_by_phase(detrend_sst=True, forced_k_dict=forced_k_dict)
+        success_global = run_analysis_global(detrend_sst=True, forced_k=args.k_all)
+        success = success_phases and success_global
 
-        analyzer = KMeansSSTAnalyzer(n_clusters_range=(2, 10), random_state=42)
-        success = analyzer.run_complete_analysis()
-        
-        if success:
-            print("\n[OK] L'analyse de classification K-Means est terminée!")
-            print(f"   Nombre optimal de clusters: {analyzer.optimal_k}")
-            print(f"   Visualisations: {VISUALIZATION_DIR / 'clustering'}")
-            print(f"   Résultats: {OUTPUT_DIR / 'clustering'}")
-    
     if not success:
-        print("\n[ERREUR] L'analyse a échoué. Vérifiez les erreurs ci-dessus.")
+        print("\n[ERREUR] L'analyse a echoue. Verifiez les erreurs ci-dessus.")
 
 
 if __name__ == "__main__":

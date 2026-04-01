@@ -36,9 +36,10 @@ REGION_LON_MIN = -60.0
 REGION_LON_MAX =  20.0
 
 PHASES = {
-    "Phase_1_debut":  {"mois": [5, 6],  "label": "Debut (Mai-Jun)"},
-    "Phase_2_pleine": {"mois": [7, 8],  "label": "Pleine (Jul-Aou)"},
-    "Phase_3_fin":    {"mois": [9, 10], "label": "Fin (Sep-Oct)"},
+    "Phase_1_debut":  {"mois": [5, 6],         "label": "Debut (Mai-Jun)"},
+    "Phase_2_pleine": {"mois": [7, 8],         "label": "Pleine (Jul-Aou)"},
+    "Phase_3_fin":    {"mois": [9, 10],        "label": "Fin (Sep-Oct)"},
+    "All_phases":     {"mois": [5, 6, 7, 8, 9, 10], "label": "Toutes phases (Mai-Oct)"},
 }
 
 OUT_DIR = OUTPUT_DIR / "clustering" / "exports_pca"

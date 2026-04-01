@@ -54,6 +54,7 @@ PHASES = {
     "Phase_1_debut":  {"mois": [5, 6]},
     "Phase_2_pleine": {"mois": [7, 8]},
     "Phase_3_fin":    {"mois": [9, 10]},
+    "All_phases":     {"mois": [5, 6, 7, 8, 9, 10]},
 }
 
 OUT_DIR = OUTPUT_DIR / "clustering" / "exports_pca"
