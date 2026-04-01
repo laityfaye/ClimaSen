@@ -2587,9 +2587,8 @@ elif page == "Clustering":
 if page == "Pipeline":
     import subprocess
     import sys
-    import tempfile
+    import time
     import shutil
-    import requests as _req  # noqa: F401
 
     SCRIPTS_DIR = BASE / "scripts"
 
@@ -2712,9 +2711,10 @@ if page == "Pipeline":
     """, unsafe_allow_html=True)
 
     # ── Onglets ───────────────────────────────────────────────────────────────
-    tab_chirps, tab_pipeline = st.tabs([
+    tab_chirps, tab_pipeline, tab_sst = st.tabs([
         "  Donnees CHIRPS",
         "  Pipeline d\'analyse",
+        "  Donnees SST",
     ])
 
     # =========================================================================
@@ -2881,195 +2881,146 @@ if page == "Pipeline":
             else:
                 st.caption("Aucun fichier .mat dans data/raw/")
 
-        # ── Bouton lancement ──────────────────────────────────────────────────
-        st.markdown("<br>", unsafe_allow_html=True)
-        btn_c1, btn_c2 = st.columns([2, 5])
-        with btn_c1:
-            launch_download = st.button(
-                "Telecharger les donnees CHIRPS",
-                key="btn_chirps_dl",
-                type="primary",
-                use_container_width=True,
-            )
-        with btn_c2:
-            st.markdown(
-                f"<p style='font-size:0.74rem;color:{MUTED};padding-top:10px;'>"
-                f"Source : CHC UCSB &mdash; CHIRPS v2.0 Africa Daily 0.25&deg;. "
-                f"Telechargement annee par annee en streaming, decoupage bbox automatique.</p>",
-                unsafe_allow_html=True,
-            )
+        # ── Helpers statut CHIRPS ────────────────────────────────────────────
+        import json as _json_ch
+        CHIRPS_STATUS_FILE = BASE / "data" / "raw" / ".download_chirps_status.json"
+        CHIRPS_CANCEL_FILE = BASE / "data" / "raw" / ".cancel_chirps"
+        CHIRPS_DL_SCRIPT   = BASE / "scripts" / "download_chirps.py"
 
-        # ── Logique de telechargement ─────────────────────────────────────────
-        if launch_download:
-            if dl_year_end < dl_year_start:
-                st.error("L\'annee de fin doit etre >= a l\'annee de debut.")
-            elif bb_lat_max <= bb_lat_min or bb_lon_max <= bb_lon_min:
-                st.error("Bounding box invalide (lat/lon min >= max).")
+        def _read_chirps_status():
+            try:
+                return _json_ch.loads(CHIRPS_STATUS_FILE.read_text(encoding="utf-8"))
+            except Exception:
+                return None
+
+        def _chirps_running():
+            pid = st.session_state.get("chirps_dl_pid")
+            if not pid:
+                return False
+            try:
+                os.kill(pid, 0)
+                return True
+            except OSError:
+                return False
+
+        chirps_status = _read_chirps_status()
+        chirps_is_running = _chirps_running()
+
+        # ── Affichage progression ────────────────────────────────────────────
+        if chirps_status:
+            ch_state    = chirps_status.get("state", "")
+            ch_done     = chirps_status.get("done", 0)
+            ch_total    = chirps_status.get("total", 0)
+            ch_year     = chirps_status.get("current_year")
+            ch_pct      = chirps_status.get("current_pct", 0)
+            ch_phase    = chirps_status.get("phase", "")
+            ch_errors   = chirps_status.get("errors", [])
+            ch_output   = chirps_status.get("output", "")
+            overall_pct = int(ch_done / ch_total * 100) if ch_total > 0 else 100
+
+            if ch_state == "running":
+                st_html = f'<span style="color:#F59E0B;font-weight:700;">En cours</span>'
+            elif ch_state == "done":
+                st_html = f'<span style="color:#22C55E;font-weight:700;">Termine</span>'
+            elif ch_state == "cancelled":
+                st_html = f'<span style="color:#EF4444;font-weight:700;">Annule</span>'
+            elif ch_state == "error":
+                st_html = f'<span style="color:#EF4444;font-weight:700;">Erreur</span>'
             else:
-                try:
-                    import xarray as _xr
-                    import h5py as _h5py
+                st_html = f'<span style="color:{MUTED};">{ch_state}</span>'
 
-                    CHIRPS_URL = (
-                        "https://data.chc.ucsb.edu/products/CHIRPS-2.0/"
-                        "africa_daily/netcdf/p25/chirps-v2.0.{year}.days_p25.nc"
+            phase_label = {
+                "telechargement": "Telechargement",
+                "decoupage":      "Decoupage bbox",
+                "sauvegarde":     "Sauvegarde HDF5",
+            }.get(ch_phase, ch_phase)
+
+            st.markdown(f"""
+            <div style="background:{CARD};border:1px solid {BORDER};border-radius:12px;
+                        padding:16px 20px;margin-bottom:14px;">
+              <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
+                <span style="font-size:0.82rem;font-weight:600;color:{TEXT};">
+                  Statut : {st_html}
+                  {"&nbsp;<span style='color:" + MUTED + ";font-weight:400;font-size:0.75rem;'>" + phase_label + "</span>" if ch_year else ""}
+                </span>
+                <span style="font-size:0.78rem;color:{MUTED};">
+                  {ch_done}/{ch_total} annees &nbsp;|&nbsp; {ch_output}
+                </span>
+              </div>
+              <div style="background:{BORDER};border-radius:99px;height:7px;overflow:hidden;margin-bottom:8px;">
+                <div style="width:{overall_pct}%;height:100%;border-radius:99px;
+                            background:linear-gradient(90deg,{INDIGO},{BLUE});"></div>
+              </div>
+              {"<p style='font-size:0.75rem;color:" + MUTED + ";margin:0;'>Annee en cours : <b>" + str(ch_year) + "</b> — " + str(ch_pct) + "%</p>" if ch_year else ""}
+              {"<p style='font-size:0.72rem;color:#EF4444;margin:6px 0 0 0;'>" + str(len(ch_errors)) + " erreur(s) : " + ", ".join(str(e["year"]) for e in ch_errors) + "</p>" if ch_errors else ""}
+              <p style="font-size:0.68rem;color:{MUTED};margin:6px 0 0 0;">
+                Derniere mise a jour : {chirps_status.get("updated_at", "")}
+              </p>
+              {"<p style='font-size:0.78rem;color:#22C55E;margin:8px 0 0 0;font-weight:600;'>" + str(chirps_status.get('n_days','')) + " jours &bull; " + str(chirps_status.get('n_lat','')) + "x" + str(chirps_status.get('n_lon','')) + " pixels &bull; " + str(chirps_status.get('size_mb','')) + " Mo</p>" if ch_state == "done" else ""}
+            </div>
+            """, unsafe_allow_html=True)
+
+        # ── Bouton lancement / annulation ────────────────────────────────────
+        st.markdown("<br>", unsafe_allow_html=True)
+
+        if chirps_is_running:
+            col_ref, col_can = st.columns([1, 1])
+            with col_ref:
+                if st.button("Actualiser la progression", key="btn_chirps_refresh"):
+                    st.rerun()
+            with col_can:
+                if st.button("Annuler le telechargement", key="btn_chirps_cancel"):
+                    CHIRPS_CANCEL_FILE.touch()
+                    st.warning("Signal d'annulation envoye. Arret apres l'annee en cours.")
+                    st.rerun()
+            # Auto-refresh
+            time.sleep(3)
+            st.rerun()
+        else:
+            btn_c1, btn_c2 = st.columns([2, 5])
+            with btn_c1:
+                launch_download = st.button(
+                    "Telecharger les donnees CHIRPS",
+                    key="btn_chirps_dl",
+                    type="primary",
+                    use_container_width=True,
+                )
+            with btn_c2:
+                st.markdown(
+                    f"<p style='font-size:0.74rem;color:{MUTED};padding-top:10px;'>"
+                    f"Source : CHC UCSB &mdash; CHIRPS v2.0 Global Daily 0.25&deg;. "
+                    f"Telechargement annee par annee avec reprise automatique, "
+                    f"decoupage bbox et sauvegarde HDF5.</p>",
+                    unsafe_allow_html=True,
+                )
+
+            if launch_download:
+                if dl_year_end < dl_year_start:
+                    st.error("L\'annee de fin doit etre >= a l\'annee de debut.")
+                elif bb_lat_max <= bb_lat_min or bb_lon_max <= bb_lon_min:
+                    st.error("Bounding box invalide (lat/lon min >= max).")
+                else:
+                    CHIRPS_CANCEL_FILE.unlink(missing_ok=True)
+                    env = os.environ.copy()
+                    env["PYTHONIOENCODING"] = "utf-8"
+                    env["PYTHONUTF8"] = "1"
+                    proc = subprocess.Popen(
+                        [sys.executable, str(CHIRPS_DL_SCRIPT),
+                         f"--year-start={int(dl_year_start)}",
+                         f"--year-end={int(dl_year_end)}",
+                         f"--lat-min={bb_lat_min}",
+                         f"--lat-max={bb_lat_max}",
+                         f"--lon-min={bb_lon_min}",
+                         f"--lon-max={bb_lon_max}",
+                         f"--output={dl_out_name}"],
+                        cwd=str(BASE), env=env,
+                        stdout=subprocess.DEVNULL,
+                        stderr=subprocess.DEVNULL,
                     )
-
-                    out_path   = BASE / "data" / "raw" / dl_out_name
-                    years      = list(range(dl_year_start, dl_year_end + 1))
-                    n_years    = len(years)
-                    all_precip = []
-                    lats_ref   = lons_ref = None
-                    log_lines  = []
-
-                    prog_bar   = st.progress(0, text="Initialisation...")
-                    status_box = st.empty()
-                    year_log   = st.empty()
-
-                    tmp_dir = Path(tempfile.mkdtemp(prefix="chirps_dl_"))
-                    try:
-                        for idx, year in enumerate(years):
-                            pct_base = int(idx / n_years * 88)
-                            url      = CHIRPS_URL.format(year=year)
-
-                            prog_bar.progress(
-                                pct_base,
-                                text=f"Telechargement {year}  ({idx+1}/{n_years})"
-                            )
-                            status_box.info(f"Connexion au serveur CHC UCSB : annee **{year}**")
-
-                            tmp_nc = tmp_dir / f"chirps_{year}.nc"
-                            try:
-                                resp = _req.get(url, stream=True, timeout=180)
-                                resp.raise_for_status()
-                                total_bytes = int(resp.headers.get("content-length", 0))
-                                downloaded  = 0
-                                with open(tmp_nc, "wb") as fh:
-                                    for chunk in resp.iter_content(chunk_size=2 * 1024 * 1024):
-                                        fh.write(chunk)
-                                        downloaded += len(chunk)
-                                        if total_bytes:
-                                            sub_pct = pct_base + int(
-                                                downloaded / total_bytes * (88 / n_years) * 0.75
-                                            )
-                                            prog_bar.progress(
-                                                min(sub_pct, 87),
-                                                text=(
-                                                    f"{year} : {downloaded/1e6:.0f} / "
-                                                    f"{total_bytes/1e6:.0f} MB "
-                                                    f"({100*downloaded/total_bytes:.0f}%)"
-                                                ),
-                                            )
-                            except Exception as e_dl:
-                                log_lines.append(f"[ERREUR] {year} : {e_dl}")
-                                st.warning(f"Annee {year} ignoree (erreur reseau : {e_dl})")
-                                continue
-
-                            # Decoupage bbox
-                            prog_bar.progress(
-                                min(pct_base + int(88 / n_years * 0.85), 87),
-                                text=f"Decoupage bbox pour {year}...",
-                            )
-                            try:
-                                ds = _xr.open_dataset(str(tmp_nc))
-                                ds_clip = ds.sel(
-                                    latitude=slice(bb_lat_min, bb_lat_max),
-                                    longitude=slice(bb_lon_min, bb_lon_max),
-                                )
-                                pr_arr = ds_clip["precip"].values
-                                pr_arr = np.where(pr_arr < -9000, np.nan, pr_arr)
-                                if lats_ref is None:
-                                    lats_ref = ds_clip["latitude"].values
-                                    lons_ref = ds_clip["longitude"].values
-                                all_precip.append(pr_arr)
-                                ds.close()
-                                log_lines.append(
-                                    f"[OK] {year} : {pr_arr.shape[0]} jours, "
-                                    f"grille {pr_arr.shape[1]}x{pr_arr.shape[2]}"
-                                )
-                                year_log.markdown(
-                                    f"<p style='font-size:0.75rem;color:{EMERALD};'>"
-                                    f"[OK] {year} — {pr_arr.shape[0]} jours, "
-                                    f"{pr_arr.shape[1]}x{pr_arr.shape[2]} pixels</p>",
-                                    unsafe_allow_html=True,
-                                )
-                            except Exception as e_xr:
-                                log_lines.append(f"[ERREUR decoupage] {year} : {e_xr}")
-                                st.warning(f"Erreur lecture NetCDF {year} : {e_xr}")
-
-                            try:
-                                tmp_nc.unlink()
-                            except Exception:
-                                pass
-
-                        # Concatenation
-                        if not all_precip:
-                            st.error(
-                                "Aucune donnee recuperee. "
-                                "Verifiez la connexion reseau et la plage d\'annees."
-                            )
-                        else:
-                            status_box.info("Concatenation de toutes les annees...")
-                            prog_bar.progress(90, text="Concatenation des annees...")
-                            precip_full = np.concatenate(all_precip, axis=0)
-                            log_lines.append(
-                                f"[CONCAT] {precip_full.shape[0]} jours total, "
-                                f"grille {lats_ref.shape[0]}x{lons_ref.shape[0]}"
-                            )
-
-                            prog_bar.progress(94, text=f"Sauvegarde HDF5 : {out_path.name}...")
-                            status_box.info(f"Ecriture du fichier : `{out_path.name}`")
-                            out_path.parent.mkdir(parents=True, exist_ok=True)
-                            with _h5py.File(str(out_path), "w") as hf:
-                                hf.create_dataset(
-                                    "precip",
-                                    data=precip_full.astype(np.float32),
-                                    compression="gzip",
-                                    compression_opts=4,
-                                    chunks=True,
-                                )
-                                hf.create_dataset("latitude",  data=lats_ref.astype(np.float64))
-                                hf.create_dataset("longitude", data=lons_ref.astype(np.float64))
-                                hf.attrs["source"]     = "CHIRPS v2.0 Africa Daily 0.25deg"
-                                hf.attrs["year_start"] = dl_year_start
-                                hf.attrs["year_end"]   = dl_year_end
-                                hf.attrs["lat_min"]    = float(bb_lat_min)
-                                hf.attrs["lat_max"]    = float(bb_lat_max)
-                                hf.attrs["lon_min"]    = float(bb_lon_min)
-                                hf.attrs["lon_max"]    = float(bb_lon_max)
-                                hf.attrs["n_days"]     = int(precip_full.shape[0])
-                                hf.attrs["created_by"] = "SenRain Dashboard"
-
-                            prog_bar.progress(100, text="Termine !")
-                            status_box.empty()
-                            year_log.empty()
-
-                            file_mb = out_path.stat().st_size / 1e6
-                            st.success(
-                                f"Fichier cree avec succes : **data/raw/{dl_out_name}**  "
-                                f"({precip_full.shape[0]} jours &bull; "
-                                f"{lats_ref.shape[0]}x{lons_ref.shape[0]} pixels &bull; "
-                                f"{file_mb:.0f} MB)"
-                            )
-                            st.balloons()
-
-                            st.info(
-                                f"Prochaine etape : dans `src/config/settings.py`, "
-                                f"mettez `CHIRPS_FILENAME = \"{dl_out_name}\"` "
-                                f"puis relancez le pipeline."
-                            )
-
-                            with st.expander("Journal complet du telechargement"):
-                                st.code("\n".join(log_lines), language="text")
-
-                    finally:
-                        shutil.rmtree(tmp_dir, ignore_errors=True)
-
-                except ImportError as e_imp:
-                    st.error(
-                        f"Dependance manquante : `{e_imp}`. "
-                        f"Installez avec : `pip install xarray h5py`"
-                    )
+                    st.session_state["chirps_dl_pid"] = proc.pid
+                    st.info(f"Telechargement lance (PID {proc.pid}).")
+                    time.sleep(1)
+                    st.rerun()
 
     # =========================================================================
     # ONGLET 2 — PIPELINE D'ANALYSE
@@ -3636,3 +3587,244 @@ if page == "Pipeline":
                 # -- Section exports groupee par type --
                 render_exports(step)
 
+    # =========================================================================
+    # ONGLET 3 — DONNEES SST
+    # =========================================================================
+    with tab_sst:
+        import json as _json
+        import signal
+
+        SST_DIR     = BASE / "data" / "raw" / "SST"
+        STATUS_FILE = SST_DIR / ".download_status.json"
+        CANCEL_FILE = SST_DIR / ".cancel"
+        DL_SCRIPT   = BASE / "scripts" / "download_sst_noaa.py"
+        SST_DIR.mkdir(parents=True, exist_ok=True)
+
+        # ── Helpers ──────────────────────────────────────────────────────────
+        def _read_status():
+            try:
+                return _json.loads(STATUS_FILE.read_text(encoding="utf-8"))
+            except Exception:
+                return None
+
+        def _sst_files():
+            return sorted(f for f in SST_DIR.glob("*.nc") if not f.name.startswith("."))
+
+        def _dl_running():
+            pid = st.session_state.get("sst_dl_pid")
+            if not pid:
+                return False
+            try:
+                os.kill(pid, 0)
+                return True
+            except OSError:
+                return False
+
+        # ── Etat courant ─────────────────────────────────────────────────────
+        sst_files_present = _sst_files()
+        total_size_gb     = sum(f.stat().st_size for f in sst_files_present) / 1e9
+        dl_status         = _read_status()
+        is_running        = _dl_running()
+
+        # ── Header statut ─────────────────────────────────────────────────────
+        n_present = len(sst_files_present)
+        n_total   = 41
+        pct_ready = int(n_present / n_total * 100)
+        bar_color = "#22C55E" if n_present == n_total else INDIGO
+
+        st.markdown(f"""
+        <div style="background:{CARD};border:1px solid {BORDER};border-radius:14px;
+                    padding:20px 24px;margin-bottom:20px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+            <span style="font-size:0.85rem;font-weight:700;color:{TEXT};">
+              Fichiers SST (OISST v2 &nbsp;1983-2023)
+            </span>
+            <span style="font-size:0.82rem;color:{MUTED};">
+              {n_present} / {n_total} &nbsp;|&nbsp; {total_size_gb:.1f} Go
+            </span>
+          </div>
+          <div style="background:{BORDER};border-radius:99px;height:8px;overflow:hidden;">
+            <div style="width:{pct_ready}%;height:100%;border-radius:99px;
+                        background:{bar_color};transition:width .4s;"></div>
+          </div>
+          <p style="font-size:0.72rem;color:{MUTED};margin:6px 0 0 0;">
+            {pct_ready}% des fichiers presents
+          </p>
+        </div>
+        """, unsafe_allow_html=True)
+
+        # ── Section telechargement NOAA ───────────────────────────────────────
+        st.markdown(
+            "<p class='pip-section-title'>Telecharger depuis NOAA</p>",
+            unsafe_allow_html=True,
+        )
+        st.markdown(
+            f'<p style="font-size:0.78rem;color:{MUTED};margin:0 0 14px 0;">'
+            "Le serveur telecharge directement les donnees OISST v2 depuis <b>NOAA PSL</b>. "
+            "Le telechargement reprend automatiquement en cas de coupure. "
+            "Seuls les fichiers manquants sont telecharges.</p>",
+            unsafe_allow_html=True,
+        )
+
+        # Affichage de la progression si telechargement en cours ou termine
+        if dl_status:
+            state       = dl_status.get("state", "")
+            done        = dl_status.get("done", 0)
+            to_dl       = dl_status.get("to_download", 0)
+            cur_year    = dl_status.get("current_year")
+            cur_pct     = dl_status.get("current_pct", 0)
+            errors_dl   = dl_status.get("errors", [])
+            already     = dl_status.get("already", 0)
+
+            overall_pct = int(done / to_dl * 100) if to_dl > 0 else 100
+
+            if state == "running":
+                status_html = f'<span style="color:#F59E0B;font-weight:700;">En cours</span>'
+            elif state == "done":
+                status_html = f'<span style="color:#22C55E;font-weight:700;">Termine</span>'
+            elif state == "cancelled":
+                status_html = f'<span style="color:#EF4444;font-weight:700;">Annule</span>'
+            else:
+                status_html = f'<span style="color:{MUTED};">{state}</span>'
+
+            st.markdown(f"""
+            <div style="background:{CARD};border:1px solid {BORDER};border-radius:12px;
+                        padding:16px 20px;margin-bottom:14px;">
+              <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
+                <span style="font-size:0.82rem;font-weight:600;color:{TEXT};">
+                  Statut : {status_html}
+                </span>
+                <span style="font-size:0.78rem;color:{MUTED};">
+                  {done}/{to_dl} telecharges &nbsp;({already} deja presents)
+                </span>
+              </div>
+              <div style="background:{BORDER};border-radius:99px;height:7px;overflow:hidden;margin-bottom:8px;">
+                <div style="width:{overall_pct}%;height:100%;border-radius:99px;
+                            background:linear-gradient(90deg,{INDIGO},{BLUE});"></div>
+              </div>
+              {"<p style='font-size:0.75rem;color:" + MUTED + ";margin:0;'>Fichier en cours : <b>" + str(cur_year) + "</b> — " + str(cur_pct) + "%</p>" if cur_year else ""}
+              {"<p style='font-size:0.72rem;color:#EF4444;margin:6px 0 0 0;'>" + str(len(errors_dl)) + " erreur(s) : " + ", ".join(str(e["year"]) for e in errors_dl) + "</p>" if errors_dl else ""}
+              <p style="font-size:0.68rem;color:{MUTED};margin:6px 0 0 0;">
+                Derniere mise a jour : {dl_status.get("updated_at", "")}
+              </p>
+            </div>
+            """, unsafe_allow_html=True)
+
+        # Boutons selon l'etat
+        if is_running:
+            col_a, col_b = st.columns([1, 1])
+            with col_a:
+                if st.button("Actualiser la progression", key="btn_sst_refresh"):
+                    st.rerun()
+            with col_b:
+                if st.button("Annuler le telechargement", key="btn_sst_cancel"):
+                    CANCEL_FILE.touch()
+                    st.warning("Signal d'annulation envoye. Le telechargement s'arretera apres le fichier en cours.")
+                    st.rerun()
+        else:
+            col_yr1, col_yr2, col_dl = st.columns([1, 1, 2])
+            with col_yr1:
+                yr_start = st.number_input("Annee debut", min_value=1981, max_value=2023,
+                                           value=1983, step=1, key="sst_yr_start")
+            with col_yr2:
+                yr_end = st.number_input("Annee fin", min_value=1983, max_value=2023,
+                                         value=2023, step=1, key="sst_yr_end")
+            with col_dl:
+                st.markdown("<div style='height:28px'></div>", unsafe_allow_html=True)
+                if st.button("Telecharger depuis NOAA", type="primary",
+                             use_container_width=True, key="btn_sst_dl"):
+                    CANCEL_FILE.unlink(missing_ok=True)
+                    env = os.environ.copy()
+                    env["PYTHONIOENCODING"] = "utf-8"
+                    env["PYTHONUTF8"] = "1"
+                    proc = subprocess.Popen(
+                        [sys.executable, str(DL_SCRIPT),
+                         f"--year-start={int(yr_start)}",
+                         f"--year-end={int(yr_end)}"],
+                        cwd=str(BASE), env=env,
+                        stdout=subprocess.DEVNULL,
+                        stderr=subprocess.DEVNULL,
+                    )
+                    st.session_state["sst_dl_pid"] = proc.pid
+                    st.info(f"Telechargement lance (PID {proc.pid}). Actualisez pour suivre la progression.")
+                    time.sleep(1)
+                    st.rerun()
+
+        # Auto-refresh pendant le telechargement
+        if is_running:
+            time.sleep(3)
+            st.rerun()
+
+        # ── Liste des fichiers presents ───────────────────────────────────────
+        st.markdown(
+            "<p class='pip-section-title' style='margin-top:24px;'>Fichiers presents</p>",
+            unsafe_allow_html=True,
+        )
+
+        if sst_files_present:
+            rows_html = ""
+            for f in sst_files_present:
+                size_mb = f.stat().st_size / 1e6
+                is_tmp  = f.suffix == ".tmp"
+                color   = MUTED if is_tmp else TEXT
+                rows_html += (
+                    f"<div style='display:flex;justify-content:space-between;"
+                    f"padding:5px 12px;border-bottom:1px solid {BORDER};font-size:0.78rem;'>"
+                    f"<span style='color:{color};'>{f.name}</span>"
+                    f"<span style='color:{MUTED};'>{size_mb:.0f} Mo</span>"
+                    f"</div>"
+                )
+            st.markdown(
+                f"<div style='border:1px solid {BORDER};border-radius:10px;"
+                f"overflow:hidden;max-height:320px;overflow-y:auto;'>{rows_html}</div>",
+                unsafe_allow_html=True,
+            )
+        else:
+            st.info("Aucun fichier SST present.")
+
+        # ── Suppression ───────────────────────────────────────────────────────
+        if sst_files_present and not is_running:
+            st.markdown(
+                "<p class='pip-section-title' style='margin-top:24px;'>"
+                "Liberer l\'espace disque</p>",
+                unsafe_allow_html=True,
+            )
+            st.markdown(
+                f'<p style="font-size:0.78rem;color:{MUTED};margin:0 0 12px 0;">'
+                f"Supprimez les {n_present} fichiers SST ({total_size_gb:.1f} Go) "
+                "une fois le clustering termine.</p>",
+                unsafe_allow_html=True,
+            )
+            if "confirm_delete_sst" not in st.session_state:
+                st.session_state["confirm_delete_sst"] = False
+
+            if not st.session_state["confirm_delete_sst"]:
+                if st.button("Supprimer les fichiers SST", key="btn_del_sst_ask"):
+                    st.session_state["confirm_delete_sst"] = True
+                    st.rerun()
+            else:
+                st.warning(
+                    f"Supprimer {n_present} fichier(s) ({total_size_gb:.1f} Go) ? "
+                    "Cette action est irreversible."
+                )
+                col_yes, col_no = st.columns(2)
+                with col_yes:
+                    if st.button("Oui, supprimer", type="primary", key="btn_del_sst_confirm"):
+                        deleted, errs = 0, []
+                        for f in sst_files_present:
+                            try:
+                                f.unlink()
+                                deleted += 1
+                            except Exception as ex:
+                                errs.append(f"{f.name}: {ex}")
+                        STATUS_FILE.unlink(missing_ok=True)
+                        st.session_state["confirm_delete_sst"] = False
+                        if errs:
+                            st.error(f"{deleted} supprime(s), {len(errs)} erreur(s).")
+                        else:
+                            st.success(f"{deleted} fichier(s) supprimes. Espace libere.")
+                        st.rerun()
+                with col_no:
+                    if st.button("Annuler", key="btn_del_sst_cancel"):
+                        st.session_state["confirm_delete_sst"] = False
+                        st.rerun()
