@@ -1964,8 +1964,6 @@ elif page == "Clustering":
             # Affichage du resultat persistant (survit aux reruns)
             if st.session_state["cluster_result"] == "success":
                 st.success("Clustering termine avec succes ! Les resultats affiches sont mis a jour.")
-                with st.expander("Voir la sortie du script"):
-                    st.code(st.session_state.get("cluster_stdout") or "(pas de sortie)", language="text")
                 if st.button("Fermer ce message", key="btn_reload_cl"):
                     st.session_state["cluster_result"] = None
                     st.rerun()
@@ -2004,7 +2002,6 @@ elif page == "Clustering":
                         if result.returncode == 0:
                             load_clustering.clear()
                             st.session_state["cluster_result"] = "success"
-                            st.session_state["cluster_stdout"] = result.stdout[-2000:] if result.stdout else ""
                         else:
                             st.session_state["cluster_result"] = "error"
                             st.session_state["cluster_stderr"] = (result.stderr or "") + "\n" + (result.stdout or "")
