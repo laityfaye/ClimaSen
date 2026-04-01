@@ -1981,11 +1981,17 @@ elif page == "Clustering":
                     unsafe_allow_html=True,
                 )
 
+                env = os.environ.copy()
+                env["PYTHONIOENCODING"] = "utf-8"
+                env["PYTHONUTF8"] = "1"
+
                 with st.spinner("Clustering en cours... (peut prendre plusieurs minutes)"):
                     try:
                         result = subprocess.run(
                             cmd,
                             capture_output=True, text=True,
+                            encoding="utf-8", errors="replace",
+                            env=env,
                             cwd=str(BASE), timeout=1800,
                         )
                         if result.returncode == 0:
@@ -1994,13 +2000,7 @@ elif page == "Clustering":
                             st.rerun()
                         else:
                             st.error("Le script a rencontre une erreur.")
-                            if "show_cluster_logs" not in st.session_state:
-                                st.session_state["show_cluster_logs"] = True
-                            if st.button("Voir les logs d'erreur", key="btn_cluster_logs"):
-                                st.session_state["show_cluster_logs"] = not st.session_state["show_cluster_logs"]
-                                st.rerun()
-                            if st.session_state["show_cluster_logs"]:
-                                st.code(result.stderr[-3000:] if result.stderr else "Pas de message d'erreur.")
+                            st.code(result.stderr[-3000:] if result.stderr else "Pas de message d'erreur.")
                     except subprocess.TimeoutExpired:
                         st.error("Timeout depasse (30 min). Le calcul est peut-etre trop long.")
                     except Exception as exc:
