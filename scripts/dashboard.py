@@ -3841,7 +3841,7 @@ if page == "Pipeline":
         display:flex;align-items:flex-start;gap:14px;
         padding:16px 20px;
     }}
-    .step-card-top:hover {{ background:#FAFBFF; }}
+    .step-card-top:hover {{ background:{"rgba(255,255,255,0.05)" if st.session_state.dark_mode else "#FAFBFF"}; }}
     .step-num {{
         width:34px;height:34px;border-radius:50%;flex-shrink:0;
         display:flex;align-items:center;justify-content:center;
