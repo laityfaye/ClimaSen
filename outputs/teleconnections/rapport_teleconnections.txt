@@ -2,7 +2,7 @@
 RAPPORT -- TELECONNEXIONS (AGREGATION MENSUELLE + DETREND LINEAIRE)
 Precipitations extremes au Senegal x Indices SST mensuels
 ====================================================================================
-Genere le             : 2026-03-06 01:38:54
+Genere le             : 2026-04-12 16:21:21
 Evenements bruts      : 1317 (1983-2023)
 Mois de saison total  : 246 (n_events=0 inclus pour frequence)
 Lags testes (mois)    : [0, 1, 2, 3, 6, 9, 12]

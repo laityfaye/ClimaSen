@@ -34,10 +34,56 @@ from datetime import datetime, timedelta
 import warnings
 import json
 from typing import List, Dict, Tuple, Any
+from matplotlib.path import Path as MplPath
 
 # Configuration des warnings
 warnings.filterwarnings('ignore', category=RuntimeWarning)
 warnings.filterwarnings('ignore', category=UserWarning)
+
+
+# ─── Masque geometrique Senegal ───────────────────────────────────────────────
+
+def build_boundary_paths(boundary_geojson: dict) -> list:
+    """
+    Construit des objets matplotlib.path.Path depuis un GeoJSON MultiPolygon/Polygon.
+    Chaque path correspond a un sous-polygone (ile, enclave, etc.).
+    """
+    paths = []
+    for feature in boundary_geojson.get("features", []):
+        geom = feature.get("geometry", {})
+        gtype = geom.get("type", "")
+        coords = geom.get("coordinates", [])
+
+        if gtype == "MultiPolygon":
+            for polygon in coords:
+                if polygon and polygon[0]:
+                    ring = np.array(polygon[0])  # anneau exterieur [lon, lat]
+                    paths.append(MplPath(ring))
+        elif gtype == "Polygon":
+            if coords and coords[0]:
+                ring = np.array(coords[0])
+                paths.append(MplPath(ring))
+
+    return paths
+
+
+def filter_points_in_senegal(lons: np.ndarray, lats: np.ndarray,
+                              boundary_paths: list) -> np.ndarray:
+    """
+    Retourne un masque boolen : True si le point (lon, lat) est
+    a l'interieur du Senegal (union de tous les sous-polygones).
+    Utilise contains_points() vectorise pour la performance.
+    """
+    if not boundary_paths:
+        # Pas de geometrie disponible : on garde tous les points
+        return np.ones(len(lons), dtype=bool)
+
+    points = np.column_stack([lons, lats])  # shape (N, 2) en (lon, lat)
+    inside = np.zeros(len(lons), dtype=bool)
+    for path in boundary_paths:
+        inside |= path.contains_points(points)
+    return inside
+
 
 # Configuration des chemins
 def setup_project_paths():
@@ -86,14 +132,82 @@ except ImportError:
             else:
                 return "Zone soudanienne"
 
-# Configuration des événements cibles
-TARGET_EVENTS = [
-    '1985-08-06',  # Événement historique (pleine saison)
-    '2009-08-28',  # Événement récent (pleine saison)
-    '2012-09-28',  # Événement de fin de saison
-    '2000-10-16',  # Événement tardif
-    '2022-05-27'   # Événement précoce
-]
+# Labels des criteres de selection (date -> label)
+EVENT_LABELS = {}
+
+def select_target_events_from_catalog(catalog_path: str) -> tuple:
+    """
+    Selectionne automatiquement 6 evenements representatifs depuis le catalogue.
+
+    Criteres:
+    - Plus intense        : max_precip le plus eleve
+    - Moins intense       : max_precip le plus faible (>0)
+    - Plus grande couverture spatiale : coverage_percent max
+    - Plus petite couverture spatiale : coverage_percent min
+    - Plus grande anomalie : max_anomaly max
+    - Plus petite anomalie : max_anomaly min (>0)
+    """
+    try:
+        df_cat = pd.read_csv(catalog_path, encoding='utf-8')
+
+        # Filtrer les evenements avec precipitation > 0
+        df_valid = df_cat[df_cat['max_precip'] > 0].copy()
+
+        criteria = {
+            'plus_intense':           df_valid.loc[df_valid['max_precip'].idxmax(), 'date'],
+            'moins_intense':          df_valid.loc[df_valid['max_precip'].idxmin(), 'date'],
+            'plus_grande_couverture': df_valid.loc[df_valid['coverage_percent'].idxmax(), 'date'],
+            'plus_petite_couverture': df_valid.loc[df_valid['coverage_percent'].idxmin(), 'date'],
+            'plus_grande_anomalie':   df_valid.loc[df_valid['max_anomaly'].idxmax(), 'date'],
+            'plus_petite_anomalie':   df_valid.loc[df_valid['max_anomaly'].idxmin(), 'date'],
+        }
+
+        # Regrouper les criteres par date (un evenement peut satisfaire plusieurs criteres)
+        seen = {}
+        for criterion, date in criteria.items():
+            seen.setdefault(date, []).append(criterion)
+
+        labels = {date: ' + '.join(crits) for date, crits in seen.items()}
+
+        print("\nEVENEMENTS SELECTIONNES AUTOMATIQUEMENT DEPUIS LE CATALOGUE:")
+        print("-" * 60)
+        for criterion, date in criteria.items():
+            row = df_valid[df_valid['date'] == date].iloc[0]
+            print(f"  [{criterion}] {date}")
+            print(f"    max_precip={row['max_precip']:.1f}mm  "
+                  f"coverage={row['coverage_percent']:.1f}%  "
+                  f"max_anomaly={row['max_anomaly']:.2f}sigma  "
+                  f"phase={row['phase']}")
+
+        unique_dates = list(seen.keys())
+        print(f"\n  Total evenements uniques a extraire: {len(unique_dates)}")
+
+        return unique_dates, labels
+
+    except Exception as e:
+        print(f"ERREUR selection catalogue: {e}")
+        import traceback
+        traceback.print_exc()
+        # Fallback vers les evenements hardcodes
+        fallback = ['1985-08-06', '2009-08-28', '2012-09-28', '2000-10-16', '2022-05-27']
+        fallback_labels = {d: 'selection_manuelle' for d in fallback}
+        return fallback, fallback_labels
+
+
+# Chargement du catalogue et selection dynamique des evenements cibles
+_catalog_path = Path(__file__).parent.parent / "data" / "processed" / "extreme_events_phases_senegal.csv"
+TARGET_EVENTS, EVENT_LABELS = select_target_events_from_catalog(str(_catalog_path))
+
+# Chargement de la geometrie Senegal (masque point-dans-polygone)
+_boundary_path = Path(__file__).parent.parent / "data" / "geographic" / "senegal_boundaries.geojson"
+SENEGAL_BOUNDARY_PATHS = []
+if _boundary_path.exists():
+    with open(str(_boundary_path), "r", encoding="utf-8") as _f:
+        _boundary_geojson = json.load(_f)
+    SENEGAL_BOUNDARY_PATHS = build_boundary_paths(_boundary_geojson)
+    print(f"Geometrie Senegal chargee : {len(SENEGAL_BOUNDARY_PATHS)} sous-polygone(s)")
+else:
+    print("AVERTISSEMENT : senegal_boundaries.geojson non trouve, filtrage geometrique desactive")
 
 # Configuration géographique Sénégal
 SENEGAL_BOUNDS = {
@@ -135,6 +249,7 @@ class SpecificEventsExtractor:
         """
         self.chirps_file_path = Path(chirps_file_path)
         self.target_events = [datetime.strptime(date, '%Y-%m-%d') for date in TARGET_EVENTS]
+        self.event_labels = EVENT_LABELS
         self.geography = SenegalGeography()
         
         # Données chargées
@@ -357,10 +472,14 @@ class SpecificEventsExtractor:
                 phase = get_phase_from_month(date_obj.month)
                 phase_description = RAINFALL_PHASES[phase]['description']
                 
+                # Critere de selection de cet evenement
+                selection_criterion = self.event_labels.get(event_date, 'selection_manuelle')
+
                 # Créer la ligne de données
                 row = {
                     # Identifiants
                     'event_date': event_date,
+                    'selection_criterion': selection_criterion,
                     'pixel_id': f"{event_date}_{i:03d}_{j:03d}",
                     
                     # Coordonnées géographiques (QGIS)
@@ -403,9 +522,22 @@ class SpecificEventsExtractor:
                 }
                 
                 data_rows.append(row)
-        
+
         df = pd.DataFrame(data_rows)
-        
+
+        # ── Filtrage geometrique : garder uniquement les pixels dans le Senegal ──
+        if len(df) > 0 and SENEGAL_BOUNDARY_PATHS:
+            lons_arr = df["longitude"].values
+            lats_arr = df["latitude"].values
+            inside_mask = filter_points_in_senegal(lons_arr, lats_arr,
+                                                   SENEGAL_BOUNDARY_PATHS)
+            n_before = len(df)
+            df = df[inside_mask].reset_index(drop=True)
+            n_removed = n_before - len(df)
+            if n_removed > 0:
+                print(f"   Filtrage geometrique : {n_removed} pixels hors Senegal supprimes "
+                      f"({len(df)}/{n_before} conserves)")
+
         # Statistiques de l'événement
         if len(df) > 0:
             extreme_pixels = (df['anomaly_standardized'] > 2.0).sum()
@@ -633,14 +765,18 @@ class SpecificEventsExtractor:
             for event_date, df in all_events_data.items():
                 if df.empty:
                     continue
-                
-                filename = f"event_{event_date.replace('-', '')}_pixels.csv"
+
+                # Construire le nom de fichier avec le critere de selection
+                criterion_label = self.event_labels.get(event_date, 'selection_manuelle')
+                # Nettoyer le label pour le nom de fichier (pas d'espaces ni de '+')
+                criterion_slug = criterion_label.replace(' + ', '_').replace(' ', '_')
+                filename = f"event_{criterion_slug}_{event_date.replace('-', '')}_pixels.csv"
                 filepath = output_dir / filename
-                
+
                 # Réorganiser les colonnes pour QGIS
                 qgis_columns = [
                     'longitude', 'latitude',  # Coordonnées en premier pour QGIS
-                    'event_date', 'pixel_id',
+                    'event_date', 'selection_criterion', 'pixel_id',
                     'precipitation_mm', 'anomaly_standardized', 'climatology_mm',
                     'is_extreme', 'is_intense', 'intensity_category', 'anomaly_category',
                     'region', 'climate_zone', 'season_phase', 'phase_description',
@@ -661,7 +797,7 @@ class SpecificEventsExtractor:
                 
                 qgis_columns = [
                     'longitude', 'latitude',  # Coordonnées en premier
-                    'event_date', 'pixel_id',
+                    'event_date', 'selection_criterion', 'pixel_id',
                     'precipitation_mm', 'anomaly_standardized', 'climatology_mm',
                     'is_extreme', 'is_intense', 'intensity_category', 'anomaly_category',
                     'region', 'climate_zone', 'season_phase', 'phase_description',
@@ -703,7 +839,8 @@ class SpecificEventsExtractor:
             # 5. Métadonnées pour QGIS
             metadata = {
                 'title': 'Événements pluviométriques extrêmes spécifiques - Sénégal',
-                'description': 'Extraction CHIRPS des événements du 1985-08-06, 2009-08-28, 2012-09-28, 2000-10-16, 2022-05-27',
+                'description': 'Extraction CHIRPS des evenements selectionnes automatiquement: plus/moins intense, plus/petite couverture, plus/moins grande anomalie',
+                'selection_criteria': {k: v for k, v in EVENT_LABELS.items()},
                 'source': 'CHIRPS (Climate Hazards Group InfraRed Precipitation with Station data)',
                 'spatial_resolution': '0.25° (~25 km)',
                 'temporal_resolution': 'daily',
@@ -763,14 +900,15 @@ class SpecificEventsExtractor:
         Returns:
             bool: Succès de l'extraction
         """
-        print("🎯 EXTRACTION D'ÉVÉNEMENTS SPÉCIFIQUES POUR QGIS")
+        print("EXTRACTION D'EVENEMENTS SPECIFIQUES POUR QGIS")
         print("=" * 60)
-        print("Événements ciblés:")
+        print("Evenements cibles (selection automatique):")
         for i, event_date in enumerate(TARGET_EVENTS, 1):
             event_datetime = datetime.strptime(event_date, '%Y-%m-%d')
             phase = get_phase_from_month(event_datetime.month)
             phase_desc = RAINFALL_PHASES[phase]['description']
-            print(f"   {i}. {event_date} - {phase_desc}")
+            criterion = EVENT_LABELS.get(event_date, 'selection_manuelle')
+            print(f"   {i}. {event_date} [{criterion}] - {phase_desc}")
         
         try:
             # Étape 1: Chargement des données
@@ -840,8 +978,11 @@ class SpecificEventsExtractor:
         total_extreme = sum((df['anomaly_standardized'] > 2.0).sum() for df in all_events_data.values())
         total_intense = sum((df['precipitation_mm'] > 20.0).sum() for df in all_events_data.values())
         
-        print(f"📊 STATISTIQUES GLOBALES:")
-        print(f"   Événements extraits: {len(all_events_data)}/{len(TARGET_EVENTS)}")
+        print(f"STATISTIQUES GLOBALES:")
+        print(f"   Evenements extraits: {len(all_events_data)}/{len(TARGET_EVENTS)}")
+        print(f"   Criteres de selection:")
+        for date, label in EVENT_LABELS.items():
+            print(f"     {date} -> {label}")
         print(f"   Pixels totaux: {total_pixels:,}")
         print(f"   Pixels extrêmes (>2σ): {total_extreme:,} ({total_extreme/total_pixels*100:.1f}%)")
         print(f"   Pixels intenses (>20mm): {total_intense:,} ({total_intense/total_pixels*100:.1f}%)")

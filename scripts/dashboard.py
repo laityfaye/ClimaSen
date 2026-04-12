@@ -31,6 +31,29 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
+# ─── Anti-FOUC : applique le fond sombre immediatement depuis l'URL ──────────
+# Evite le flash blanc lors d'une navigation ou d'un rafraichissement en mode sombre.
+# Le script lit ?dm=1 dans l'URL et injecte la couleur de fond avant tout rendu.
+st.markdown("""
+<script>
+(function () {
+  try {
+    if (new URLSearchParams(window.location.search).get('dm') === '1') {
+      var s = document.createElement('style');
+      s.id = 'dm-preload';
+      s.textContent =
+        'html,body,[data-testid="stApp"],' +
+        '[data-testid="stAppViewContainer"],' +
+        '[data-testid="stAppViewContainer"]>.main,' +
+        '[data-testid="stMainBlockContainer"],' +
+        '.block-container{background:#0F172A!important;color:#F1F5F9!important}';
+      (document.head || document.documentElement).appendChild(s);
+    }
+  } catch (e) {}
+})();
+</script>
+""", unsafe_allow_html=True)
+
 # ─── Palette ─────────────────────────────────────────────────────────────────
 INDIGO  = "#4F46E5"
 BLUE    = "#0EA5E9"
@@ -46,6 +69,31 @@ SIDEBAR_BG = "#1D1864"
 
 PHASE_C = {"Phase_1_debut": BLUE, "Phase_2_pleine": INDIGO, "Phase_3_fin": AMBER}
 PHASE_L = {"Phase_1_debut": "Debut Mai-Jun", "Phase_2_pleine": "Pleine Jul-Aou", "Phase_3_fin": "Fin Sep-Oct"}
+
+# ─── Dark mode state ─────────────────────────────────────────────────────────
+# Priorite : session_state (navigation interne) > query_params (refresh/nouvel onglet)
+if "dark_mode" not in st.session_state:
+    st.session_state.dark_mode = (st.query_params.get("dm", "0") == "1")
+
+# ─── Page transition state ────────────────────────────────────────────────────
+if "prev_page" not in st.session_state:
+    st.session_state.prev_page = None
+if "page_loading" not in st.session_state:
+    st.session_state.page_loading = False
+
+# Palette dynamique (light / dark)
+if st.session_state.dark_mode:
+    BG    = "#0F172A"
+    CARD  = "#1E293B"
+    TEXT  = "#F1F5F9"
+    MUTED = "#94A3B8"
+    BORDER = "#334155"
+else:
+    BG    = "#F1F5F9"
+    CARD  = "#FFFFFF"
+    TEXT  = "#0F172A"
+    MUTED = "#64748B"
+    BORDER = "#E2E8F0"
 
 # ─── Data ────────────────────────────────────────────────────────────────────
 # BASE = chemin absolu local (dev) ou relatif au script (deploy)
@@ -77,6 +125,32 @@ def load_sst():
     )
     df["date"] = pd.to_datetime(df["date"])
     return df
+
+@st.cache_data
+def load_events_pixels():
+    """Charge les pixels des evenements specifiques pour cartographie."""
+    p = BASE / "outputs/specific_events_qgis/all_specific_events_pixels.csv"
+    if not p.exists():
+        return None
+    return pd.read_csv(p, encoding="utf-8")
+
+@st.cache_data
+def load_events_summary():
+    """Charge le resume statistique des evenements specifiques."""
+    p = BASE / "outputs/specific_events_qgis/events_summary_statistics.csv"
+    if not p.exists():
+        return None
+    return pd.read_csv(p, encoding="utf-8")
+
+@st.cache_data
+def load_dept_geojson():
+    """Charge le GeoJSON des departements du Senegal."""
+    import json
+    p = BASE / "data/geographic/senegal_departments.geojson"
+    if not p.exists():
+        return None
+    with open(str(p), "r", encoding="utf-8") as f:
+        return json.load(f)
 
 # ─── Short-path helper (handles accented Windows paths for NetCDF4) ───────────
 import ctypes as _ctypes
@@ -358,6 +432,8 @@ tc_data    = load_telecon()
 sst_raw    = load_sst()
 clust_data = load_clustering()
 
+# ─── Viewport : detectable uniquement via CSS (media queries deja en place) ───
+# Les colonnes Streamlit se stackent automatiquement via les regles CSS < 640px.
 is_mobile = False
 is_tablet = False
 
@@ -397,7 +473,7 @@ def plotly_base(fig, h=300):
         paper_bgcolor="rgba(0,0,0,0)",
         font=dict(family="Inter,sans-serif", size=11, color=MUTED),
         xaxis=dict(showgrid=False, zeroline=False, tickfont=dict(size=11, color=MUTED)),
-        yaxis=dict(showgrid=True, gridcolor="#F1F5F9", zeroline=False, tickfont=dict(size=11, color=MUTED)),
+        yaxis=dict(showgrid=True, gridcolor=BORDER, zeroline=False, tickfont=dict(size=11, color=MUTED)),
         hoverlabel=dict(bgcolor=TEXT, font_color="white", font_size=12, bordercolor=TEXT),
         legend=dict(orientation="h", y=-0.28, x=0.5, xanchor="center",
                     bgcolor="rgba(0,0,0,0)", borderwidth=0, font=dict(size=11)),
@@ -428,41 +504,46 @@ st.markdown(f"""
 [data-testid="stHeader"] {{
     display: none !important;
 }}
-/* Cacher header, decoration, menu, tous les boutons sidebar */
+/* Cacher header, decoration, menu */
 [data-testid="stDecoration"],
 [data-testid="stToolbar"],
-[data-testid="stSidebarCollapsedControl"],
-[data-testid="collapsedControl"],
-[data-testid="stSidebarCollapseButton"],
 button[kind="header"] {{
     display: none !important;
 }}
 #MainMenu {{ display: none !important; }}
 footer {{ display: none !important; }}
 
-/* Forcer la sidebar toujours ouverte (grand ecran) */
-@media (min-width: 769px) {{
-    section[data-testid="stSidebar"] {{
-        transform: none !important;
-        display: block !important;
-        visibility: visible !important;
-        left: 0 !important;
-        min-width: 260px !important;
-        max-width: 260px !important;
-        overflow: hidden !important;
-    }}
+/* Sidebar collapsable (grand ecran + mobile) */
+section[data-testid="stSidebar"] {{
+    min-width: 260px !important;
+    max-width: 260px !important;
 }}
-/* Sidebar collapsable sur mobile */
 @media (max-width: 768px) {{
     section[data-testid="stSidebar"] {{
         min-width: 200px !important;
         max-width: 80vw !important;
     }}
-    [data-testid="stSidebarCollapseButton"],
-    [data-testid="stSidebarCollapsedControl"],
-    [data-testid="collapsedControl"] {{
-        display: flex !important;
-    }}
+}}
+
+/* Bouton fermer/ouvrir sidebar : style adapte au fond sombre */
+[data-testid="stSidebarCollapseButton"] {{
+    background: rgba(255,255,255,0.08) !important;
+    border-radius: 8px !important;
+}}
+[data-testid="stSidebarCollapseButton"]:hover {{
+    background: rgba(255,255,255,0.15) !important;
+}}
+[data-testid="stSidebarCollapseButton"] svg {{
+    fill: #C4C9E8 !important;
+}}
+[data-testid="stSidebarCollapsedControl"],
+[data-testid="collapsedControl"] {{
+    background: {SIDEBAR_BG} !important;
+    border-radius: 0 8px 8px 0 !important;
+}}
+[data-testid="stSidebarCollapsedControl"] svg,
+[data-testid="collapsedControl"] svg {{
+    fill: #C4C9E8 !important;
 }}
 
 /* ════════════════════════════════
@@ -498,6 +579,22 @@ section[data-testid="stSidebar"] hr {{
     border: none !important;
     border-top: 1px solid rgba(255,255,255,0.08) !important;
     margin: 6px 0 !important;
+}}
+
+/* ── Bouton dark mode dans sidebar ── */
+section[data-testid="stSidebar"] [data-testid="stButton"] button {{
+    background: rgba(255,255,255,0.07) !important;
+    border: 1px solid rgba(255,255,255,0.12) !important;
+    border-radius: 8px !important;
+    color: #C4C9E8 !important;
+    font-size: 1rem !important;
+    padding: 2px 0 !important;
+    line-height: 1 !important;
+    min-height: 28px !important;
+    transition: background 0.15s !important;
+}}
+section[data-testid="stSidebar"] [data-testid="stButton"] button:hover {{
+    background: rgba(255,255,255,0.14) !important;
 }}
 
 /* ── Radio transforme en nav ── */
@@ -620,10 +717,10 @@ section[data-testid="stSidebar"] [data-baseweb="tag"] span {{
     padding: 3px 8px; border-radius: 99px;
     white-space: nowrap;
 }}
-.t-indigo {{ background:#EEF2FF; color:{INDIGO}; }}
-.t-blue   {{ background:#E0F2FE; color:#0284C7; }}
-.t-green  {{ background:#DCFCE7; color:#059669; }}
-.t-amber  {{ background:#FEF3C7; color:#D97706; }}
+.t-indigo {{ background: rgba(79,70,229,0.12);  color:{INDIGO}; }}
+.t-blue   {{ background: rgba(14,165,233,0.12); color:#0284C7; }}
+.t-green  {{ background: rgba(16,185,129,0.12); color:#059669; }}
+.t-amber  {{ background: rgba(245,158,11,0.12); color:#D97706; }}
 
 /* Remove Streamlit column container visual artifacts */
 [data-testid="stVerticalBlockBorderWrapper"] {{
@@ -712,19 +809,61 @@ section[data-testid="stSidebar"] [data-baseweb="tag"] span {{
     background: {CARD} !important;
 }}
 
-/* ══════════════════════════════
-   RESPONSIVE — typographie fluide
-   ══════════════════════════════ */
-.kpi-val  {{ font-size: clamp(1.1rem, 1.6vw, 1.7rem) !important; }}
-.pg-ttl   {{ font-size: clamp(0.9rem, 1.4vw, 1.3rem) !important; }}
-.kpi-lbl  {{ font-size: clamp(0.60rem, 0.65vw, 0.69rem) !important; }}
-.pnl-ttl  {{ font-size: clamp(0.78rem, 0.9vw, 0.88rem) !important; }}
-.pnl-sub  {{ font-size: clamp(0.63rem, 0.72vw, 0.71rem) !important; }}
-.chip     {{ font-size: clamp(0.62rem, 0.72vw, 0.71rem) !important; }}
+/* ══════════════════════════════════════════════════════════
+   RESPONSIVE — typographie fluide (WCAG AA : min 12px = 0.75rem)
+   ══════════════════════════════════════════════════════════ */
+.kpi-val  {{ font-size: clamp(1.1rem,  1.6vw, 1.7rem)  !important; }}
+.pg-ttl   {{ font-size: clamp(1.0rem,  1.4vw, 1.3rem)  !important; }}
+.kpi-lbl  {{ font-size: clamp(0.68rem, 0.78vw, 0.80rem) !important; }}
+.pnl-ttl  {{ font-size: clamp(0.80rem, 0.9vw,  0.88rem) !important; }}
+.pnl-sub  {{ font-size: clamp(0.70rem, 0.78vw, 0.78rem) !important; }}
+.chip     {{ font-size: clamp(0.68rem, 0.78vw, 0.78rem) !important; }}
 
-/* Padding principal adaptatif */
+/* ── Protection overflow horizontal (tous ecrans) ── */
+html, body {{
+    overflow-x: hidden !important;
+}}
+[data-testid="stApp"],
+[data-testid="stAppViewContainer"],
+[data-testid="stMainBlockContainer"],
+.block-container {{
+    max-width: 100% !important;
+    overflow-x: hidden !important;
+}}
+
+/* Toggle carte : style pill */
+[data-testid="stRadio"][key="map_mode_radio"] [data-baseweb="radio-group"] {{
+    gap: 0 !important;
+    background: {BG};
+    border: 1px solid {BORDER};
+    border-radius: 8px;
+    padding: 3px;
+    display: inline-flex;
+    flex-wrap: wrap;
+}}
+[data-testid="stRadio"][key="map_mode_radio"] label {{
+    border-radius: 6px !important;
+    padding: 5px 14px !important;
+    font-size: 0.78rem !important;
+    font-weight: 600 !important;
+    color: {MUTED} !important;
+    transition: background 0.15s !important;
+    margin: 0 !important;
+}}
+[data-testid="stRadio"][key="map_mode_radio"] label:has(input:checked) {{
+    background: {CARD} !important;
+    color: {INDIGO} !important;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08) !important;
+}}
+
+/* Padding principal adaptatif (clamp couvre mobile->desktop) */
 [data-testid="stAppViewContainer"] > .main {{
     padding: 0 clamp(8px, 2vw, 28px) 40px clamp(8px, 2vw, 28px) !important;
+}}
+
+/* Region row : supporte sparkline inline */
+.rg-row {{
+    gap: 6px !important;
 }}
 
 /* Transition de page — fade-in du contenu principal */
@@ -736,18 +875,118 @@ section[data-testid="stSidebar"] [data-baseweb="tag"] span {{
     animation: pgFadeIn 0.18s ease-out;
 }}
 
-/* KPI : masquer sparkline si peu de place */
-@media (max-width: 900px) {{
+/* ══════════════════════════════════════════════════════════
+   RESPONSIVE — Grand ecran (>1400px)
+   ══════════════════════════════════════════════════════════ */
+@media (min-width: 1400px) {{
+    [data-testid="stAppViewContainer"] > .main {{
+        padding: 0 40px 40px 40px !important;
+    }}
+}}
+
+/* ══════════════════════════════════════════════════════════
+   RESPONSIVE — Tablette (640px – 1024px)
+   ══════════════════════════════════════════════════════════ */
+@media (min-width: 640px) and (max-width: 1024px) {{
+    /* Sidebar un peu plus etroite */
+    section[data-testid="stSidebar"] {{
+        min-width: 220px !important;
+        max-width: 220px !important;
+    }}
+    /* KPI rows 4-col -> 2x2 */
+    [data-testid="stHorizontalBlock"]:has(.kpi) > [data-testid="stColumn"] {{
+        width: 50% !important;
+        min-width: 50% !important;
+        flex: 0 0 50% !important;
+    }}
+    /* Masquer sparkline sur tablette */
     .kpi-spark {{ display: none !important; }}
     .kpi {{ padding: 14px 15px !important; }}
-}}
-/* Header en colonne sur petit ecran */
-@media (max-width: 700px) {{
+    /* Header : passe en colonne sous 1024px */
     .pg-hdr {{
         flex-direction: column !important;
         align-items: flex-start !important;
         gap: 8px !important;
     }}
+    /* Graphiques Plotly : hauteur moderee */
+    [data-testid="stPlotlyChart"] > div {{
+        min-height: 0 !important;
+    }}
+}}
+
+/* ══════════════════════════════════════════════════════════
+   RESPONSIVE — Mobile (<640px)
+   ══════════════════════════════════════════════════════════ */
+@media (max-width: 640px) {{
+    /* Tout empiler verticalement */
+    [data-testid="stHorizontalBlock"] > [data-testid="stColumn"] {{
+        width: 100% !important;
+        flex: none !important;
+        min-width: 100% !important;
+    }}
+    /* KPI en grille 2x2 */
+    [data-testid="stHorizontalBlock"]:has(.kpi) > [data-testid="stColumn"] {{
+        width: 50% !important;
+        min-width: 50% !important;
+        flex: 0 0 50% !important;
+    }}
+    /* Mini-cartes evenements : 2 par ligne */
+    [data-testid="stHorizontalBlock"]:has(.mini-ev-card) > [data-testid="stColumn"] {{
+        width: 50% !important;
+        min-width: 50% !important;
+        flex: 0 0 50% !important;
+    }}
+    /* Sparklines masquees */
+    .kpi-spark {{ display: none !important; }}
+    .kpi {{ padding: 12px 13px !important; }}
+    /* Valeur KPI un peu plus petite */
+    .kpi-val {{ font-size: 1.15rem !important; }}
+    /* Header en colonne */
+    .pg-hdr {{
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        gap: 8px !important;
+    }}
+    /* Chips : taille reduite */
+    .chip {{ font-size: 0.68rem !important; padding: 3px 7px !important; }}
+    /* Reduire la hauteur des graphiques Plotly */
+    [data-testid="stPlotlyChart"] > div {{
+        min-height: 0 !important;
+    }}
+    /* Datatable : scroll horizontal interne autorise */
+    [data-testid="stDataFrame"] {{
+        overflow-x: auto !important;
+    }}
+    /* Cards : padding reduit */
+    .card {{ padding: 14px 15px !important; }}
+    /* Leg-row : retrait des colonnes de largeur fixe */
+    .rg-bg {{ width: 50px !important; }}
+}}
+
+/* ══════════════════════════════════════════════════════════
+   RESPONSIVE — Tres petit mobile (<420px)
+   ══════════════════════════════════════════════════════════ */
+@media (max-width: 420px) {{
+    /* KPI en 1 colonne sur tres petit ecran */
+    [data-testid="stHorizontalBlock"]:has(.kpi) > [data-testid="stColumn"] {{
+        width: 100% !important;
+        min-width: 100% !important;
+        flex: 0 0 100% !important;
+    }}
+    .kpi-val {{ font-size: 1.05rem !important; }}
+    .pg-ttl  {{ font-size: 0.95rem !important; }}
+    .pnl-ttl {{ font-size: 0.80rem !important; }}
+    /* Sidebar masquee par defaut sur tres petit mobile */
+    section[data-testid="stSidebar"] {{
+        min-width: 0 !important;
+        max-width: 75vw !important;
+    }}
+}}
+
+/* ── Masquer sparkline et reduire padding sous 900px ── */
+@media (max-width: 900px) {{
+    .kpi-spark {{ display: none !important; }}
+    .kpi {{ padding: 14px 15px !important; }}
 }}
 
 /* ── Expander : corrige icone Material affichee en texte brut ── */
@@ -778,21 +1017,242 @@ section[data-testid="stSidebar"] [data-baseweb="tag"] span {{
 </style>
 """, unsafe_allow_html=True)
 
+# ─── Dark mode CSS complet (elements natifs Streamlit) ───────────────────────
+if st.session_state.dark_mode:
+    st.markdown(f"""
+<style>
+/* ── Fond racine ── */
+[data-testid="stApp"],
+[data-testid="stAppViewContainer"],
+[data-testid="stAppViewContainer"] > .main,
+[data-testid="stMainBlockContainer"],
+.block-container {{
+    background: {BG} !important;
+}}
+
+/* ── Tout le texte principal ── */
+[data-testid="stApp"] p,
+[data-testid="stApp"] span:not([data-baseweb="tag"] span):not(section[data-testid="stSidebar"] span),
+[data-testid="stApp"] label,
+[data-testid="stApp"] h1,
+[data-testid="stApp"] h2,
+[data-testid="stApp"] h3,
+[data-testid="stApp"] h4,
+[data-testid="stApp"] h5,
+[data-testid="stApp"] div:not(section[data-testid="stSidebar"] div),
+[data-testid="stApp"] li {{
+    color: {TEXT} !important;
+}}
+
+/* ── Labels widgets (hors sidebar) ── */
+[data-testid="stMainBlockContainer"] [data-testid="stWidgetLabel"] p,
+[data-testid="stMainBlockContainer"] [data-testid="stWidgetLabel"] span,
+[data-testid="stMainBlockContainer"] label {{
+    color: {MUTED} !important;
+}}
+
+/* ── Inputs / Textareas ── */
+[data-testid="stMainBlockContainer"] [data-baseweb="input"] > div,
+[data-testid="stMainBlockContainer"] [data-baseweb="textarea"] > div,
+[data-testid="stMainBlockContainer"] [data-baseweb="base-input"] {{
+    background: {CARD} !important;
+    border-color: {BORDER} !important;
+    color: {TEXT} !important;
+}}
+[data-testid="stMainBlockContainer"] input,
+[data-testid="stMainBlockContainer"] textarea {{
+    background: {CARD} !important;
+    color: {TEXT} !important;
+}}
+
+/* ── Selectbox / Multiselect (contenu principal) ── */
+[data-testid="stMainBlockContainer"] [data-baseweb="select"] > div:first-child {{
+    background: {CARD} !important;
+    border-color: {BORDER} !important;
+    color: {TEXT} !important;
+}}
+[data-baseweb="popover"] [data-baseweb="menu"],
+[data-baseweb="popover"] ul {{
+    background: {CARD} !important;
+    border-color: {BORDER} !important;
+}}
+[data-baseweb="popover"] li {{
+    background: {CARD} !important;
+    color: {TEXT} !important;
+}}
+[data-baseweb="popover"] li:hover {{
+    background: rgba(79,70,229,0.15) !important;
+}}
+
+/* ── Slider ── */
+[data-testid="stMainBlockContainer"] [data-baseweb="slider"] [data-testid="stSliderTrack"] {{
+    background: {BORDER} !important;
+}}
+
+/* ── Expanders ── */
+[data-testid="stExpander"],
+[data-testid="stExpander"] summary,
+[data-testid="stExpander"] > div {{
+    background: {CARD} !important;
+    border-color: {BORDER} !important;
+    color: {TEXT} !important;
+}}
+
+/* ── Tabs ── */
+[data-testid="stTabs"] [data-baseweb="tab-list"] {{
+    background: {BG} !important;
+    border-bottom-color: {BORDER} !important;
+}}
+[data-testid="stTabs"] [data-baseweb="tab"] {{
+    background: transparent !important;
+    color: {MUTED} !important;
+}}
+[data-testid="stTabs"] [data-baseweb="tab"][aria-selected="true"] {{
+    color: {INDIGO} !important;
+}}
+[data-testid="stTabs"] [data-baseweb="tab-panel"] {{
+    background: {BG} !important;
+}}
+
+/* ── Dataframe / Table ── */
+[data-testid="stDataFrame"] iframe,
+.stDataFrame {{
+    background: {CARD} !important;
+    border-color: {BORDER} !important;
+}}
+
+/* ── Metrics ── */
+[data-testid="stMetric"] {{
+    background: {CARD} !important;
+    border: 1px solid {BORDER} !important;
+    border-radius: 12px !important;
+    padding: 12px 16px !important;
+}}
+[data-testid="stMetricValue"],
+[data-testid="stMetricLabel"] {{
+    color: {TEXT} !important;
+}}
+[data-testid="stMetricDelta"] {{
+    color: {MUTED} !important;
+}}
+
+/* ── Info / Warning / Error boxes ── */
+[data-testid="stInfo"],
+[data-testid="stWarning"],
+[data-testid="stError"],
+[data-testid="stSuccess"] {{
+    background: rgba(79,70,229,0.1) !important;
+    border-color: rgba(79,70,229,0.3) !important;
+    color: {TEXT} !important;
+}}
+
+/* ── Badges de tags (adaptes mode sombre) ── */
+.t-indigo {{ background: rgba(79,70,229,0.2) !important; color: #A5B4FC !important; }}
+.t-blue   {{ background: rgba(14,165,233,0.2) !important; color: #7DD3FC !important; }}
+.t-green  {{ background: rgba(16,185,129,0.2) !important; color: #6EE7B7 !important; }}
+.t-amber  {{ background: rgba(245,158,11,0.2) !important; color: #FCD34D !important; }}
+
+/* ── Plotly chart container ── */
+[data-testid="stPlotlyChart"] {{
+    background: {CARD} !important;
+    border-radius: 14px !important;
+    border: 1px solid {BORDER} !important;
+}}
+
+/* ── Boutons natifs (contenu principal) ── */
+[data-testid="stMainBlockContainer"] [data-testid="stButton"] button,
+[data-testid="stMainBlockContainer"] [data-baseweb="button"] {{
+    background: {CARD} !important;
+    border: 1px solid {BORDER} !important;
+    color: {TEXT} !important;
+}}
+[data-testid="stMainBlockContainer"] [data-testid="stButton"] button:hover,
+[data-testid="stMainBlockContainer"] [data-baseweb="button"]:hover {{
+    background: rgba(79,70,229,0.15) !important;
+    border-color: {INDIGO} !important;
+    color: {TEXT} !important;
+}}
+[data-testid="stMainBlockContainer"] [data-testid="stButton"] button:disabled,
+[data-testid="stMainBlockContainer"] [data-testid="stButton"] button[disabled] {{
+    background: rgba(255,255,255,0.04) !important;
+    border-color: {BORDER} !important;
+    color: {MUTED} !important;
+    opacity: 0.5 !important;
+}}
+
+/* ── Scrollbar ── */
+* {{
+    scrollbar-color: {BORDER} {BG} !important;
+}}
+::-webkit-scrollbar-track {{ background: {BG} !important; }}
+::-webkit-scrollbar-thumb {{ background: {BORDER} !important; border-radius: 4px !important; }}
+
+/* ── Page loading bar ── */
+#page-loader {{
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 3px;
+    z-index: 99999;
+    background: transparent;
+    pointer-events: none;
+}}
+#page-loader .bar {{
+    height: 3px;
+    width: 0%;
+    background: linear-gradient(90deg, {INDIGO}, {BLUE}, {EMERALD});
+    border-radius: 0 2px 2px 0;
+    box-shadow: 0 0 8px rgba(79, 70, 229, 0.6);
+    animation: loader-progress 0.9s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}}
+@keyframes loader-progress {{
+    0%   {{ width: 0%;   opacity: 1; }}
+    70%  {{ width: 85%;  opacity: 1; }}
+    100% {{ width: 100%; opacity: 0; }}
+}}
+#page-loader .pulse {{
+    position: fixed;
+    top: 6px;
+    right: 16px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: {INDIGO};
+    animation: loader-pulse 0.9s ease-out forwards;
+}}
+@keyframes loader-pulse {{
+    0%   {{ opacity: 1; transform: scale(1); }}
+    100% {{ opacity: 0; transform: scale(2); }}
+}}
+</style>
+""", unsafe_allow_html=True)
+
 # ─── SIDEBAR ─────────────────────────────────────────────────────────────────
 with st.sidebar:
 
-    # Section label
-    st.markdown(
-        '<p style="color:#FFFFFF;font-size:0.62rem;font-weight:700;'
-        'letter-spacing:1.3px;text-transform:uppercase;'
-        'padding:0 14px;margin:0 0 6px 0;">ClimatSen</p>',
-        unsafe_allow_html=True,
-    )
+    # Header : logo + bouton mode sombre
+    _moon = "🌙" if not st.session_state.dark_mode else "☀️"
+    _mode_lbl = "Mode clair" if st.session_state.dark_mode else "Mode sombre"
+    _hdr_cols = st.columns([3, 1])
+    with _hdr_cols[0]:
+        st.markdown(
+            '<p style="color:#FFFFFF;font-size:0.62rem;font-weight:700;'
+            'letter-spacing:1.3px;text-transform:uppercase;'
+            'padding:4px 0 0 2px;margin:0;">ClimatSen</p>',
+            unsafe_allow_html=True,
+        )
+    with _hdr_cols[1]:
+        if st.button(_moon, key="toggle_dark", help=_mode_lbl, use_container_width=True):
+            st.session_state.dark_mode = not st.session_state.dark_mode
+            # Persiste la preference dans l'URL pour survivre aux rafraichissements
+            st.query_params["dm"] = "1" if st.session_state.dark_mode else "0"
+            st.rerun()
 
     # Navigation
     page = st.radio(
         label="nav",
-        options=["Evenements", "Teleconnexions", "Indices SST", "Clustering", "Pipeline"],
+        options=["Evenements", "Indices SST", "Teleconnexions", "Clustering", "Pipeline"],
         format_func=lambda x: {
             "Evenements":     "📊   Evenements",
             "Teleconnexions": "🔗   Teleconnexions",
@@ -801,6 +1261,7 @@ with st.sidebar:
             "Pipeline":       "⚙️   Pipeline",
         }[x],
         label_visibility="collapsed",
+        key="nav_page",
     )
 
     st.markdown("---")
@@ -849,6 +1310,15 @@ with st.sidebar:
     </div>
     """, unsafe_allow_html=True)
 
+# ─── Indicateur de chargement lors du changement de page ─────────────────────
+_page_changed = (st.session_state.prev_page != page)
+if _page_changed:
+    st.session_state.prev_page = page
+    st.markdown(
+        '<div id="page-loader"><div class="bar"></div><div class="pulse"></div></div>',
+        unsafe_allow_html=True,
+    )
+
 # ─── Données filtrées ─────────────────────────────────────────────────────────
 active_phases = phases_sel if phases_sel else ["Phase_1_debut", "Phase_2_pleine", "Phase_3_fin"]
 dff = df[df["year"].between(*year_range) & df["phase"].isin(active_phases)].copy()
@@ -875,84 +1345,725 @@ if page == "Evenements":
     sp_anom = [yr_anom.get(y, np.nan)    for y in all_yrs]
 
     # ── Header ────────────────────────────────────────────────────────────────
+    _n_total_fmt = f"{n_total:,}".replace(",", "\u202f")  # espace fine fr
+
     hc1, hc2 = st.columns([5, 1])
     with hc1:
         st.markdown(f"""
         <div class="pg-hdr">
           <div>
             <p class="pg-bc">Dashboard &nbsp;/&nbsp; <b>Evenements</b></p>
-            <h1 class="pg-ttl">Evenements de Precipitation Extreme</h1>
+            <h1 class="pg-ttl">Ev&eacute;nements de Pr&eacute;cipitation Extr&ecirc;me</h1>
             <p class="pg-sub">
-              Detection CHIRPS &nbsp;&middot;&nbsp; Seuil &gt;2&sigma;
-              &nbsp;&middot;&nbsp; Senegal {year_range[0]}&ndash;{year_range[1]}
+              S&eacute;n&eacute;gal &nbsp;&middot;&nbsp; CHIRPS 0.05&deg;
+              &nbsp;&middot;&nbsp; {year_range[0]}&ndash;{year_range[1]}
             </p>
           </div>
-          <div style="display:flex;gap:6px;flex-wrap:wrap;padding-bottom:4px;">
-            <span style="font-size:0.69rem;font-weight:500;color:{MUTED};
-                         background:{CARD};border:1px solid {BORDER};
-                         border-radius:7px;padding:4px 10px;">📡 CHIRPS 0.05&deg;</span>
-            <span style="font-size:0.69rem;font-weight:500;color:{MUTED};
-                         background:{CARD};border:1px solid {BORDER};
-                         border-radius:7px;padding:4px 10px;">
-              🗓 {year_range[1]-year_range[0]+1} ans</span>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;padding-bottom:4px;margin-top:10px;">
+            <span style="font-size:0.70rem;font-weight:600;color:#7C3AED;
+                         background:rgba(124,58,237,0.13);border-radius:8px;padding:5px 12px;">
+              &#128208; Anomalie &gt; 2&#963;</span>
+            <span style="font-size:0.70rem;font-weight:600;color:#0284C7;
+                         background:rgba(2,132,199,0.13);border-radius:8px;padding:5px 12px;">
+              &#9726; 40&nbsp;pixels&nbsp;min.</span>
+            <span style="font-size:0.70rem;font-weight:600;color:#D97706;
+                         background:rgba(217,119,6,0.13);border-radius:8px;padding:5px 12px;">
+              &#127783; 5&nbsp;mm&nbsp;min.</span>
+            <span style="font-size:0.70rem;font-weight:600;color:{INDIGO};
+                         background:rgba(79,70,229,0.13);border-radius:8px;padding:5px 12px;">
+              &#128202; {_n_total_fmt}&nbsp;&eacute;v&eacute;nements</span>
           </div>
         </div>
         """, unsafe_allow_html=True)
     with hc2:
-        st.markdown("<div style='height:50px'></div>", unsafe_allow_html=True)
+        st.markdown("<div style='height:56px'></div>", unsafe_allow_html=True)
         st.download_button(
-            "⬇ Exporter CSV",
+            "Exporter CSV",
             data=dff.to_csv(index=False).encode("utf-8"),
             file_name="evenements_senegal.csv",
             mime="text/csv",
             use_container_width=True,
         )
 
-    # ── KPI Cards ─────────────────────────────────────────────────────────────
-    if is_mobile or is_tablet:
-        c1, c2 = st.columns(2, gap="small")
-        c3, c4 = st.columns(2, gap="small")
-    else:
-        c1, c2, c3, c4 = st.columns(4, gap="small")
-
-    _sm = is_mobile or is_tablet
-    kpi_data = [
-        (c1, "📊", f"background:#EEF2FF",
-         "Total" if _sm else "Total Evenements",
-         f"{n_total:,}", "t-indigo", "📅",
-         f"{year_range[0]}-{year_range[1]}",
-         sp_n, INDIGO),
-        (c2, "🗺️", "background:#E0F2FE",
-         "Couverture" if _sm else "Couverture Moyenne",
-         f"{avg_cov:.1f}%", "t-blue", "↑",
-         "Spatiale" if _sm else "Extension spatiale",
-         sp_cov, BLUE),
-        (c3, "⚡", "background:#FEF3C7",
-         "Precip." if _sm else "Precip. Moyenne",
-         f"{avg_prec:.1f} mm", "t-amber", "🌧",
-         "Intensite" if _sm else "Intensite extremes",
-         sp_prec, AMBER),
-        (c4, "📈", "background:#DCFCE7",
-         "Anomalie" if _sm else "Anomalie Moyenne",
-         f"{avg_anom:.1f}\u03c3", "t-green", "↑",
-         "Climatologie" if _sm else "vs climatologie",
-         sp_anom, EMERALD),
-    ]
-    for col, icon, icon_bg, lbl, val, tag_cls, t_icon, t_txt, spark, clr in kpi_data:
-        sp_html = svg_spark([x for x in spark if pd.notna(x)], color=clr)
-        col.markdown(f"""
-        <div class="kpi">
-          <div class="kpi-body">
-            <div class="kpi-icon" style="{icon_bg}">{icon}</div>
-            <p class="kpi-lbl">{lbl}</p>
-            <p class="kpi-val">{val}</p>
-            <span class="kpi-tag {tag_cls}">{t_icon} {t_txt}</span>
-          </div>
-          <div class="kpi-spark">{sp_html}</div>
-        </div>
-        """, unsafe_allow_html=True)
-
+    # ── Cartographie des evenements specifiques ───────────────────────────────
     st.markdown("<div style='height:20px'></div>", unsafe_allow_html=True)
+
+    st.markdown(f"""
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
+      <div style="height:2px;width:28px;
+                  background:linear-gradient(90deg,{INDIGO},{BLUE});
+                  border-radius:99px;flex-shrink:0;"></div>
+      <span style="font-size:0.70rem;font-weight:700;color:{MUTED};
+                   text-transform:uppercase;letter-spacing:0.08em;white-space:nowrap">
+        Analyse spatiale &mdash; Cartographie
+      </span>
+      <div style="height:1px;flex:1;background:{BORDER};"></div>
+      <span style="font-size:0.67rem;color:{MUTED};white-space:nowrap;">
+        6 ev&eacute;nements &middot; plus/moins intense, grande/petite couverture &amp; anomalie
+      </span>
+    </div>
+    """, unsafe_allow_html=True)
+
+    _ev_pixels  = load_events_pixels()
+    _ev_summary = load_events_summary()
+    _dept_geo   = load_dept_geojson()
+
+    if _ev_pixels is None or len(_ev_pixels) == 0:
+        st.info(
+            "Donnees cartographiques non disponibles. "
+            "Executer le script 03_filter_events_for_qgis.py pour generer les fichiers de pixels."
+        )
+    else:
+        _dates = sorted(_ev_pixels["event_date"].unique().tolist())
+        _crit_map = (
+            _ev_pixels.groupby("event_date")["selection_criterion"].first().to_dict()
+            if "selection_criterion" in _ev_pixels.columns
+            else {}
+        )
+
+        _CRIT_FR = {
+            "plus_intense":           "Plus intense",
+            "moins_intense":          "Moins intense",
+            "plus_grande_couverture": "Plus grande couverture",
+            "plus_petite_couverture": "Plus petite couverture",
+            "plus_grande_anomalie":   "Plus grande anomalie",
+            "plus_petite_anomalie":   "Plus petite anomalie",
+            "selection_manuelle":     "Selection manuelle",
+        }
+        _CRIT_COLORS = {
+            "plus_intense":           (ROSE,      "rgba(244,63,94,0.13)"),
+            "moins_intense":          (EMERALD,   "rgba(16,185,129,0.13)"),
+            "plus_grande_couverture": (INDIGO,    "rgba(79,70,229,0.13)"),
+            "plus_petite_couverture": (BLUE,      "rgba(14,165,233,0.13)"),
+            "plus_grande_anomalie":   (AMBER,     "rgba(245,158,11,0.13)"),
+            "plus_petite_anomalie":   ("#6B7280", "rgba(107,114,128,0.13)"),
+        }
+
+        def _fmt_event(d):
+            raw = _crit_map.get(d, "")
+            parts = [_CRIT_FR.get(c.strip(), c.strip()) for c in raw.split("+")]
+            label = " + ".join(parts) if parts and raw else ""
+            return f"{d}  [{label}]" if label else d
+
+        def _get_crit0(d):
+            raw = _crit_map.get(d, "")
+            return raw.split("+")[0].strip() if raw else ""
+
+        # ── Selecteur + navigation ────────────────────────────────────────────
+        # Etat de navigation separe du key du widget (evite StreamlitAPIException)
+        if "carto_nav_idx" not in st.session_state:
+            st.session_state["carto_nav_idx"] = 0
+        _idx_cur = min(st.session_state["carto_nav_idx"], len(_dates) - 1)
+
+        _sel_col, _prev_col, _ctr_col, _next_col = st.columns(
+            [7, 1, 1.2, 1], gap="small"
+        )
+        with _prev_col:
+            if st.button("\u2190", key="ev_prev", disabled=_idx_cur <= 0,
+                         use_container_width=True):
+                st.session_state["carto_nav_idx"] = max(0, _idx_cur - 1)
+                st.rerun()
+        with _sel_col:
+            _sel_date = st.selectbox(
+                "Evenement selectionne",
+                options=_dates,
+                index=_idx_cur,
+                format_func=_fmt_event,
+                label_visibility="collapsed",
+            )
+            # Synchroniser l'index si l'utilisateur change via le selectbox
+            _sel_idx = _dates.index(_sel_date) if _sel_date in _dates else _idx_cur
+            if _sel_idx != _idx_cur:
+                st.session_state["carto_nav_idx"] = _sel_idx
+                _idx_cur = _sel_idx
+        with _ctr_col:
+            st.markdown(
+                f'<div style="text-align:center;padding:8px 0;'
+                f'font-size:0.75rem;font-weight:700;color:{MUTED};">'
+                f'{_idx_cur + 1}&nbsp;/&nbsp;{len(_dates)}</div>',
+                unsafe_allow_html=True,
+            )
+        with _next_col:
+            if st.button("\u2192", key="ev_next",
+                         disabled=_idx_cur >= len(_dates) - 1,
+                         use_container_width=True):
+                st.session_state["carto_nav_idx"] = min(len(_dates) - 1, _idx_cur + 1)
+                st.rerun()
+
+        st.markdown("<div style='height:10px'></div>", unsafe_allow_html=True)
+
+        # ── Mini-cards apercu (6 evenements) ─────────────────────────────────
+        if _ev_summary is not None and len(_ev_summary) > 0 and len(_dates) > 0:
+            _ncols = min(6, len(_dates))
+            _mini_cols = st.columns(_ncols, gap="small")
+            for _col_m, _d in zip(_mini_cols, _dates):
+                _row_m = _ev_summary[_ev_summary["event_date"] == _d]
+                _c0 = _get_crit0(_d)
+                _fg, _bg = _CRIT_COLORS.get(_c0, (INDIGO, "rgba(79,70,229,0.13)"))
+                _ph = _row_m.iloc[0]["season_phase"] if not _row_m.empty else ""
+                _pmax = f"{_row_m.iloc[0]['precip_max']:.0f}" if not _row_m.empty else "-"
+                _amax = f"{_row_m.iloc[0]['anomaly_max']:.1f}" if not _row_m.empty else "-"
+                _is_sel = (_d == _sel_date)
+                _border = f"2px solid {INDIGO}" if _is_sel else f"1px solid {BORDER}"
+                _shadow = "box-shadow:0 3px 12px rgba(79,70,229,0.18);" if _is_sel else ""
+                _bg_card = "rgba(79,70,229,0.12)" if _is_sel else CARD
+                _ph_short = (
+                    "P1 Debut" if "debut" in _ph
+                    else "P2 Pleine" if "pleine" in _ph
+                    else "P3 Fin" if "fin" in _ph
+                    else _ph
+                )
+                _col_m.markdown(f"""
+                <div class="mini-ev-card" style="background:{_bg_card};border:{_border};border-radius:10px;
+                            padding:10px 10px 9px 10px;{_shadow}cursor:pointer;
+                            transition:box-shadow 0.15s;">
+                  <div style="background:{_bg};border-radius:5px;padding:2px 6px;
+                              margin-bottom:7px;display:inline-block;">
+                    <span style="font-size:0.69rem;font-weight:700;color:{_fg};
+                                 white-space:nowrap">{_CRIT_FR.get(_c0, _c0)}</span>
+                  </div>
+                  <p style="margin:0;font-size:0.77rem;font-weight:700;
+                            color:{TEXT};line-height:1.2">{_d}</p>
+                  <p style="margin:3px 0 0 0;font-size:0.72rem;color:{MUTED}">
+                    {_pmax} mm &nbsp;&middot;&nbsp; {_amax} &#963;
+                  </p>
+                  <p style="margin:4px 0 0 0;font-size:0.69rem;color:{MUTED}">{_ph_short}</p>
+                </div>
+                """, unsafe_allow_html=True)
+
+        st.markdown("<div style='height:14px'></div>", unsafe_allow_html=True)
+
+        _ev_sel = _ev_pixels[_ev_pixels["event_date"] == _sel_date].copy()
+
+        # -- Filtrage geometrique : pixels a l'interieur du Senegal uniquement --
+        if _dept_geo is not None and len(_ev_sel) > 0:
+            from matplotlib.path import Path as _MplPath
+
+            def _build_paths(geojson):
+                paths = []
+                for feat in geojson.get("features", []):
+                    geom = feat.get("geometry", {})
+                    gtype = geom.get("type", "")
+                    coords = geom.get("coordinates", [])
+                    if gtype == "MultiPolygon":
+                        for poly in coords:
+                            if poly and poly[0]:
+                                paths.append(_MplPath(np.array(poly[0])))
+                    elif gtype == "Polygon":
+                        if coords and coords[0]:
+                            paths.append(_MplPath(np.array(coords[0])))
+                return paths
+
+            _bounds_geo = load_dept_geojson()
+            _bounds_path = BASE / "data/geographic/senegal_boundaries.geojson"
+            if _bounds_path.exists():
+                import json as _json
+                with open(str(_bounds_path), "r", encoding="utf-8") as _bf:
+                    _bounds_geo = _json.load(_bf)
+
+            if _bounds_geo is not None:
+                _boundary_paths = _build_paths(_bounds_geo)
+                if _boundary_paths:
+                    _pts = np.column_stack([
+                        _ev_sel["longitude"].values,
+                        _ev_sel["latitude"].values,
+                    ])
+                    _inside = np.zeros(len(_pts), dtype=bool)
+                    for _bp in _boundary_paths:
+                        _inside |= _bp.contains_points(_pts)
+                    _ev_sel = _ev_sel[_inside].reset_index(drop=True)
+
+        st.markdown("<div style='height:12px'></div>", unsafe_allow_html=True)
+
+        # -- Infrastructure cartes ------------------------------------------------
+        # Approche Densitymapbox : interpolation par noyau gaussien
+        # => surface lisse sans rectangles visibles (comme une carte SIG professionnelle)
+        _map_base = dict(
+            style="open-street-map",
+            center=dict(lat=14.5, lon=-14.5),
+            zoom=5,
+        )
+        _margin = dict(l=0, r=0, t=28, b=0)
+
+        # Contours des departements en trace Scattermapbox (au-dessus de la heatmap)
+        def _make_boundary_trace(geojson, width=1.4, color="rgba(30,30,30,0.70)"):
+            lons_b, lats_b = [], []
+            for feat in geojson.get("features", []):
+                geom   = feat.get("geometry", {})
+                gtype  = geom.get("type", "")
+                coords = geom.get("coordinates", [])
+                rings  = []
+                if gtype == "Polygon":
+                    rings = coords
+                elif gtype == "MultiPolygon":
+                    for poly in coords:
+                        rings.extend(poly)
+                for ring in rings:
+                    for x, y in ring:
+                        lons_b.append(x)
+                        lats_b.append(y)
+                    lons_b.append(None)
+                    lats_b.append(None)
+            return go.Scattermapbox(
+                lat=lats_b, lon=lons_b,
+                mode="lines",
+                line=dict(width=width, color=color),
+                hoverinfo="none",
+                showlegend=False,
+            )
+
+        # Couche hover invisible : valeurs exactes au survol de chaque pixel
+        def _make_hover_trace(lats, lons, texts):
+            return go.Scattermapbox(
+                lat=lats, lon=lons,
+                mode="markers",
+                marker=dict(size=10, opacity=0, color="rgba(0,0,0,0)"),
+                text=texts,
+                hovertemplate="%{text}<extra></extra>",
+                showlegend=False,
+            )
+
+        _lats_ev  = _ev_sel["latitude"].tolist()
+        _lons_ev  = _ev_sel["longitude"].tolist()
+        _prec_ev  = _ev_sel["precipitation_mm"].tolist()
+        _anom_ev  = _ev_sel["anomaly_standardized"].tolist()
+
+        _hover_txt = [
+            f"<b>{r['precipitation_mm']:.1f} mm</b> &nbsp;|&nbsp; "
+            f"{r['anomaly_standardized']:.2f} \u03c3<br>"
+            f"Region : {r['region']}<br>"
+            f"Categorie : {r['intensity_category']}"
+            for _, r in _ev_sel.iterrows()
+        ]
+
+        # Centroide depuis summary, sinon moyenne des pixels
+        _ctr_lat = float(_ev_sel["latitude"].mean()) if len(_ev_sel) else 14.5
+        _ctr_lon = float(_ev_sel["longitude"].mean()) if len(_ev_sel) else -14.5
+        if _ev_summary is not None and len(_ev_summary) > 0:
+            _row_ctr = _ev_summary[_ev_summary["event_date"] == _sel_date]
+            if (not _row_ctr.empty
+                    and "centroid_lat" in _row_ctr.columns
+                    and "centroid_lon" in _row_ctr.columns):
+                _ctr_lat = float(_row_ctr.iloc[0]["centroid_lat"])
+                _ctr_lon = float(_row_ctr.iloc[0]["centroid_lon"])
+
+        _title_map = (
+            f"<b>{_sel_date}</b> \u00b7 "
+            f"{_fmt_event(_sel_date).split('[')[-1].replace(']','').strip()}"
+        )
+
+        # radius Densitymapbox : ~0.25 deg a zoom 5 ≈ 20 px
+        # Ajuste selon la plage des donnees pour une interpolation naturelle
+        _density_radius = 20
+
+        # -- Deux cartes scientifiques cote a cote + Fiche evenement ----------
+
+        # Grille CHIRPS exacte : chaque pixel = polygone 0.05 deg x 0.05 deg
+        _HALF_PX = 0.025
+        _pixel_geo = {
+            "type": "FeatureCollection",
+            "features": [
+                {
+                    "type": "Feature",
+                    "id": str(i),
+                    "geometry": {
+                        "type": "Polygon",
+                        "coordinates": [[
+                            [lo - _HALF_PX, la - _HALF_PX],
+                            [lo + _HALF_PX, la - _HALF_PX],
+                            [lo + _HALF_PX, la + _HALF_PX],
+                            [lo - _HALF_PX, la + _HALF_PX],
+                            [lo - _HALF_PX, la - _HALF_PX],
+                        ]]
+                    },
+                    "properties": {"id": i},
+                }
+                for i, (la, lo) in enumerate(zip(_lats_ev, _lons_ev))
+            ],
+        }
+        _ids_px  = [str(i) for i in range(len(_lats_ev))]
+        _regs_ev = _ev_sel["region"].tolist()
+        _cats_ev = _ev_sel["intensity_category"].tolist()
+
+        # customdata[0]=valeur_croisee, [1]=region, [2]=categorie, [3]=lat, [4]=lon
+        _cd_prec = [
+            [a, rg, ct, la, lo]
+            for a, rg, ct, la, lo
+            in zip(_anom_ev, _regs_ev, _cats_ev, _lats_ev, _lons_ev)
+        ]
+        _cd_anom = [
+            [p, rg, ct, la, lo]
+            for p, rg, ct, la, lo
+            in zip(_prec_ev, _regs_ev, _cats_ev, _lats_ev, _lons_ev)
+        ]
+
+        # Bornes adaptatives (robustesse aux outliers)
+        _p_max = float(np.percentile(_prec_ev, 99)) if _prec_ev else 50.0
+        _p_min = max(0.0, float(np.percentile(_prec_ev, 1)) if _prec_ev else 0.0)
+        _a_abs = max(
+            abs(float(np.percentile(_anom_ev, 2))) if _anom_ev else 3.0,
+            abs(float(np.percentile(_anom_ev, 98))) if _anom_ev else 3.0,
+            2.5,
+        )
+
+        # Colorscale precipitation : WMO Sahel
+        # blanc -> jaune pale -> jaune vif -> orange -> rouge -> violet -> indigo
+        _CS_PREC = [
+            [0.00, "#FFFFFF"], [0.04, "#FFF9C4"], [0.14, "#FFEB3B"],
+            [0.30, "#FF9800"], [0.55, "#F44336"], [0.80, "#9C27B0"],
+            [1.00, "#1A237E"],
+        ]
+
+        # Colorscale anomalie : RdBu_r IPCC, divergente centree sur 0
+        _CS_ANOM = [
+            [0.00, "#053061"], [0.12, "#2166AC"], [0.26, "#74ADD1"],
+            [0.42, "#D1E5F0"], [0.50, "#FFFFFF"],
+            [0.58, "#FDDBC7"], [0.74, "#F4A582"],
+            [0.88, "#D6604D"], [1.00, "#67001F"],
+        ]
+
+        # Basemap neutre scientifique
+        _bmap = dict(
+            style="carto-positron",
+            center=dict(lat=_ctr_lat, lon=_ctr_lon),
+            zoom=5.5,
+        )
+        _mgn = dict(l=0, r=0, t=36, b=0)
+
+        def _add_overlays(fig):
+            """Departements + centroide (cercle anneau)."""
+            if _dept_geo is not None:
+                fig.add_trace(_make_boundary_trace(
+                    _dept_geo, width=0.8, color="rgba(15,23,42,0.45)"
+                ))
+            # Centroide : deux marqueurs superposes (grand blanc + petit rose)
+            # pour simuler un anneau sans marker.line (non supporte Scattermapbox)
+            fig.add_trace(go.Scattermapbox(
+                lat=[_ctr_lat], lon=[_ctr_lon],
+                mode="markers",
+                marker=dict(size=18, color="white", opacity=0.9),
+                hoverinfo="skip", showlegend=False,
+            ))
+            fig.add_trace(go.Scattermapbox(
+                lat=[_ctr_lat], lon=[_ctr_lon],
+                mode="markers",
+                marker=dict(size=12, color=ROSE, opacity=0.95),
+                hovertemplate=(
+                    f"<b>Centroide</b><br>"
+                    f"{_ctr_lat:.3f}\u00b0N\u00a0"
+                    f"{abs(_ctr_lon):.3f}\u00b0W"
+                    "<extra></extra>"
+                ),
+                showlegend=False,
+            ))
+
+        _mmap1, _mmap2, _minfo = st.columns([5, 5, 4], gap="medium")
+
+        # ── Carte 1 : Precipitations (mm) — Choroplethmapbox CHIRPS 0.05 deg ──
+        with _mmap1:
+            st.markdown(
+                '<p class="pnl-ttl" style="margin-bottom:4px">'
+                '&#127783; Pr\u00e9cipitation (mm)</p>',
+                unsafe_allow_html=True,
+            )
+            _fig1 = go.Figure()
+            _fig1.add_trace(go.Choroplethmapbox(
+                geojson=_pixel_geo,
+                locations=_ids_px,
+                z=_prec_ev,
+                colorscale=_CS_PREC,
+                zmin=_p_min, zmax=_p_max,
+                marker=dict(
+                    opacity=0.87,
+                    line=dict(width=0.4, color="rgba(255,255,255,0.12)"),
+                ),
+                colorbar=dict(
+                    title=dict(text="mm", font=dict(size=11, color=MUTED)),
+                    thickness=12, len=0.82, x=1.01,
+                    tickfont=dict(size=10, color=MUTED),
+                    outlinewidth=0,
+                ),
+                customdata=_cd_prec,
+                hovertemplate=(
+                    "<b>%{z:.1f} mm</b>\u00a0|\u00a0%{customdata[0]:+.2f}\u03c3<br>"
+                    "<span style='color:#94A3B8;font-size:0.85em'>"
+                    "%{customdata[3]:.3f}\u00b0N\u00a0%{customdata[4]:.3f}\u00b0W"
+                    "</span><br>"
+                    "R\u00e9gion\u00a0: %{customdata[1]}<br>"
+                    "Cat\u00e9gorie\u00a0: <b>%{customdata[2]}</b>"
+                    "<extra></extra>"
+                ),
+            ))
+            _add_overlays(_fig1)
+            _fig1.update_layout(
+                mapbox=_bmap, margin=_mgn, height=430,
+                plot_bgcolor=CARD, paper_bgcolor=CARD,
+                title=dict(
+                    text=f"<b>{_sel_date}</b>\u00b7 Pr\u00e9cipitations",
+                    font=dict(size=10, color=MUTED), x=0, pad=dict(l=4),
+                ),
+            )
+            st.plotly_chart(
+                _fig1, use_container_width=True,
+                config={
+                    "displayModeBar": True,
+                    "modeBarButtonsToRemove": [
+                        "lasso2d", "select2d", "autoScale2d",
+                        "hoverClosestMapbox",
+                    ],
+                    "displaylogo": False,
+                    "toImageButtonOptions": {
+                        "format": "png",
+                        "filename": f"precip_{_sel_date}",
+                    },
+                },
+            )
+
+        # ── Carte 2 : Anomalie standardisee (σ) — RdBu_r IPCC divergente ───
+        with _mmap2:
+            st.markdown(
+                '<p class="pnl-ttl" style="margin-bottom:4px">'
+                '&#9889; Anomalie standardis\u00e9e (\u03c3)</p>',
+                unsafe_allow_html=True,
+            )
+            _fig2 = go.Figure()
+            _fig2.add_trace(go.Choroplethmapbox(
+                geojson=_pixel_geo,
+                locations=_ids_px,
+                z=_anom_ev,
+                colorscale=_CS_ANOM,
+                zmin=-_a_abs, zmax=_a_abs,
+                zmid=0,
+                marker=dict(
+                    opacity=0.87,
+                    line=dict(width=0.4, color="rgba(255,255,255,0.12)"),
+                ),
+                colorbar=dict(
+                    title=dict(text="\u03c3", font=dict(size=11, color=MUTED)),
+                    thickness=12, len=0.82, x=1.01,
+                    tickvals=[-3, -2, -1, 0, 1, 2, 3],
+                    ticktext=[
+                        "-3\u03c3", "-2\u03c3", "-1\u03c3", "0",
+                        "+1\u03c3", "+2\u03c3", "+3\u03c3",
+                    ],
+                    tickfont=dict(size=10, color=MUTED),
+                    outlinewidth=0,
+                ),
+                customdata=_cd_anom,
+                hovertemplate=(
+                    "<b>%{z:+.2f}\u03c3</b>\u00a0|\u00a0%{customdata[0]:.1f} mm<br>"
+                    "<span style='color:#94A3B8;font-size:0.85em'>"
+                    "%{customdata[3]:.3f}\u00b0N\u00a0%{customdata[4]:.3f}\u00b0W"
+                    "</span><br>"
+                    "R\u00e9gion\u00a0: %{customdata[1]}<br>"
+                    "Cat\u00e9gorie\u00a0: <b>%{customdata[2]}</b>"
+                    "<extra></extra>"
+                ),
+            ))
+            # Halo blanc : marque le seuil de detection 2sigma (contour visuel)
+            _mask_2s = [a >= 2.0 for a in _anom_ev]
+            _lats_2s = [la for la, m in zip(_lats_ev, _mask_2s) if m]
+            _lons_2s = [lo for lo, m in zip(_lons_ev, _mask_2s) if m]
+            if _lats_2s:
+                # Halo 2sigma : petit point blanc semi-transparent
+                # (marker.line non supporte dans Scattermapbox)
+                _fig2.add_trace(go.Scattermapbox(
+                    lat=_lats_2s, lon=_lons_2s,
+                    mode="markers",
+                    marker=dict(size=6, color="white", opacity=0.55),
+                    hoverinfo="skip",
+                    showlegend=False,
+                ))
+            _add_overlays(_fig2)
+            _fig2.update_layout(
+                mapbox=_bmap, margin=_mgn, height=430,
+                plot_bgcolor=CARD, paper_bgcolor=CARD,
+                title=dict(
+                    text=f"<b>{_sel_date}</b>\u00b7 Anomalie standardis\u00e9e",
+                    font=dict(size=10, color=MUTED), x=0, pad=dict(l=4),
+                ),
+            )
+            st.plotly_chart(
+                _fig2, use_container_width=True,
+                config={
+                    "displayModeBar": True,
+                    "modeBarButtonsToRemove": [
+                        "lasso2d", "select2d", "autoScale2d",
+                        "hoverClosestMapbox",
+                    ],
+                    "displaylogo": False,
+                    "toImageButtonOptions": {
+                        "format": "png",
+                        "filename": f"anomalie_{_sel_date}",
+                    },
+                },
+            )
+
+        # ── Panneau d'information de l'evenement ──────────────────────────────
+        with _minfo:
+            st.markdown(
+                '<p class="pnl-ttl" style="margin-bottom:8px">'
+                '&#128203; Fiche evenement</p>',
+                unsafe_allow_html=True,
+            )
+
+            # Calcul region la plus intense depuis les pixels
+            if len(_ev_sel) > 0:
+                _reg_stats = (
+                    _ev_sel.groupby("region")["precipitation_mm"]
+                    .agg(max_p="max", mean_p="mean", n="count")
+                    .sort_values("max_p", ascending=False)
+                )
+                _top_reg      = _reg_stats.index[0] if len(_reg_stats) else "-"
+                _top_reg_max  = float(_reg_stats.iloc[0]["max_p"]) if len(_reg_stats) else 0
+                _top_reg_mean = float(_reg_stats.iloc[0]["mean_p"]) if len(_reg_stats) else 0
+            else:
+                _top_reg, _top_reg_max, _top_reg_mean = "-", 0, 0
+
+            # Extraction des stats depuis summary
+            if _ev_summary is not None:
+                _row_inf = _ev_summary[_ev_summary["event_date"] == _sel_date]
+                _ri = _row_inf.iloc[0] if not _row_inf.empty else None
+            else:
+                _ri = None
+
+            def _sv(key, fmt=None, default="-"):
+                if _ri is None:
+                    return default
+                v = _ri.get(key, None)
+                if v is None or (isinstance(v, float) and pd.isna(v)):
+                    return default
+                return fmt.format(v) if fmt else str(v)
+
+            _pmax_v    = _sv("precip_max",    "{:.1f}")
+            _pmoy_v    = _sv("precip_mean",   "{:.1f}")
+            _amax_v    = _sv("anomaly_max",   "{:.2f}")
+            _amoy_v    = _sv("anomaly_mean",  "{:.2f}")
+            _ext_pct_v = float(_sv("extreme_percentage", "{}", "0"))
+            _mregion_v = _sv("main_region")
+            _etype_v   = _sv("event_type")
+            _extent_v  = _sv("spatial_extent")
+            _ilevel_v  = _sv("intensity_level")
+            _ph_raw    = _sv("season_phase", default="")
+            _PHASE_FR2 = {
+                "Phase_1_debut":  "Phase 1 &mdash; D&eacute;but (Mai-Juin)",
+                "Phase_2_pleine": "Phase 2 &mdash; Pleine (Juil-Ao&ucirc;t)",
+                "Phase_3_fin":    "Phase 3 &mdash; Fin (Sep-Oct)",
+            }
+            _ph_lbl  = _PHASE_FR2.get(_ph_raw, _ph_raw)
+            _ph_clr  = PHASE_C.get(_ph_raw, MUTED)
+            _c0_inf  = _get_crit0(_sel_date)
+            _cr_fg2, _cr_bg2 = _CRIT_COLORS.get(_c0_inf, (INDIGO, "rgba(79,70,229,0.13)"))
+            _cr_lbl2 = _CRIT_FR.get(_c0_inf, _c0_inf)
+
+            # Barres de progression inline
+            def _pbar(pct, color, bg=BORDER):
+                w = min(max(float(pct), 0), 100)
+                return (
+                    f'<div style="height:6px;background:{bg};border-radius:99px;'
+                    f'margin-top:4px;overflow:hidden;">'
+                    f'<div style="width:{w:.1f}%;height:100%;background:{color};'
+                    f'border-radius:99px;"></div></div>'
+                )
+
+            # Ligne metrique compacte (fonts WCAG AA : min 0.75rem)
+            def _mrow(label, value, unit="", color=TEXT):
+                return (
+                    f'<div style="display:flex;justify-content:space-between;'
+                    f'align-items:baseline;padding:6px 0;'
+                    f'border-bottom:1px solid {BORDER};">'
+                    f'<span style="font-size:0.75rem;color:{MUTED}">{label}</span>'
+                    f'<span style="font-size:0.85rem;font-weight:700;color:{color}">'
+                    f'{value}'
+                    f'<span style="font-size:0.72rem;font-weight:500;color:{MUTED};'
+                    f'margin-left:2px">{unit}</span></span></div>'
+                )
+
+            def _section(title, icon, color):
+                return (
+                    f'<div style="display:flex;align-items:center;gap:7px;'
+                    f'margin:14px 0 6px 0;">'
+                    f'<div style="width:3px;height:14px;background:{color};'
+                    f'border-radius:2px;flex-shrink:0"></div>'
+                    f'<span style="font-size:0.72rem;font-weight:700;color:{MUTED};'
+                    f'text-transform:uppercase;letter-spacing:0.06em">'
+                    f'{icon}&nbsp;{title}</span></div>'
+                )
+
+            # Header de la carte : accent couleur du critere, pas de gradient lourd
+            _html_header = (
+                f'<div style="border-bottom:3px solid {_cr_fg2};'
+                f'padding:14px 16px 12px 16px;background:{_cr_bg2};">'
+                f'<div style="display:flex;align-items:flex-start;'
+                f'justify-content:space-between;gap:8px;">'
+                f'<div>'
+                f'<p style="margin:0 0 2px 0;font-size:0.72rem;font-weight:700;'
+                f'color:{_cr_fg2};text-transform:uppercase;letter-spacing:0.07em">'
+                f'{_cr_lbl2}</p>'
+                f'<p style="margin:0 0 6px 0;font-size:1.05rem;font-weight:800;'
+                f'color:{TEXT};line-height:1.2">{_sel_date}</p>'
+                f'</div>'
+                f'<span style="background:{CARD};color:{MUTED};font-size:0.72rem;'
+                f'font-weight:600;border-radius:6px;padding:3px 9px;'
+                f'white-space:nowrap;border:1px solid {BORDER}">{_etype_v}</span>'
+                f'</div>'
+                f'<span style="background:{_ph_clr}22;color:{_ph_clr};font-size:0.72rem;'
+                f'font-weight:700;border-radius:6px;padding:3px 9px;display:inline-block">'
+                f'{_ph_lbl}</span>'
+                f'</div>'
+            )
+            _html_body = (
+                f'<div style="padding:8px 16px 16px 16px;">'
+                + _mrow("Pr&#233;cip. max", _pmax_v, "mm", BLUE)
+                + _mrow("Pr&#233;cip. moyenne", _pmoy_v, "mm")
+                + _mrow("Anomalie max", _amax_v, "&#963;", "#7C3AED")
+                + _mrow("Anomalie moyenne", _amoy_v, "&#963;")
+                + f'<div style="padding:7px 0 4px 0;border-bottom:1px solid {BORDER};">'
+                + f'<div style="display:flex;justify-content:space-between;'
+                + f'align-items:baseline;margin-bottom:3px;">'
+                + f'<span style="font-size:0.75rem;color:{MUTED}">Couverture spatiale</span>'
+                + f'<span style="font-size:0.85rem;font-weight:700;color:{AMBER}">{_ext_pct_v:.1f}%</span>'
+                + f'</div>' + _pbar(_ext_pct_v, AMBER) + f'</div>'
+                + _mrow("R&#233;gion principale", _mregion_v)
+                + f'<div style="padding:5px 0;border-bottom:1px solid {BORDER};">'
+                + f'<div style="display:flex;justify-content:space-between;'
+                + f'align-items:baseline;margin-bottom:3px;">'
+                + f'<span style="font-size:0.75rem;color:{MUTED}">R&#233;gion la plus intense</span>'
+                + f'<span style="font-size:0.85rem;font-weight:700;color:{ROSE}">{_top_reg}</span>'
+                + f'</div>'
+                + f'<div style="font-size:0.72rem;color:{MUTED};">'
+                + f'max {_top_reg_max:.1f} mm &nbsp;&#183;&nbsp; moy. {_top_reg_mean:.1f} mm</div>'
+                + f'</div>'
+                + _section("Classification", "&#127981;", EMERALD)
+                + f'<div style="margin-top:4px;display:flex;flex-wrap:wrap;gap:5px;">'
+                + f'<span style="background:{BG};color:{MUTED};font-size:0.72rem;'
+                + f'font-weight:600;border-radius:6px;padding:3px 9px;'
+                + f'border:1px solid {BORDER}">{_extent_v}</span>'
+                + f'<span style="background:{BG};color:{MUTED};font-size:0.72rem;'
+                + f'font-weight:600;border-radius:6px;padding:3px 9px;'
+                + f'border:1px solid {BORDER}">{_ilevel_v}</span>'
+                + f'</div>'
+                + f'</div>'
+            )
+            _html_card = (
+                f'<div style="background:{CARD};border:1px solid {BORDER};'
+                f'border-radius:14px;overflow:hidden;'
+                f'box-shadow:0 1px 3px rgba(0,0,0,0.04),0 4px 16px rgba(0,0,0,0.05);">'
+                + _html_header + _html_body +
+                f'</div>'
+            )
+            st.html(_html_card)
+
+    # ── Separateur section analyses ───────────────────────────────────────────
+    st.markdown(f"""
+    <div style="display:flex;align-items:center;gap:12px;margin:28px 0 18px 0;">
+      <div style="height:2px;width:28px;background:linear-gradient(90deg,{INDIGO},{BLUE});
+                  border-radius:99px;flex-shrink:0;"></div>
+      <span style="font-size:0.70rem;font-weight:700;color:{MUTED};text-transform:uppercase;
+                   letter-spacing:0.08em;white-space:nowrap">Analyse temporelle &amp; distribution</span>
+      <div style="height:1px;flex:1;background:{BORDER};"></div>
+    </div>
+    """, unsafe_allow_html=True)
 
     # ── Graphique principal + Donut ───────────────────────────────────────────
     if is_mobile:
@@ -1090,19 +2201,27 @@ if page == "Evenements":
     with bc1:
         st.markdown(
             '<p class="pnl-ttl">Distribution mensuelle</p>'
-            '<p class="pnl-sub">Evenements par mois · toutes annees confondues</p>',
+            '<p class="pnl-sub">Evenements par mois &middot; phases color&eacute;es</p>',
             unsafe_allow_html=True,
         )
         MNAMES = {1:"Jan",2:"Fev",3:"Mar",4:"Avr",5:"Mai",6:"Jun",
                   7:"Jul",8:"Aou",9:"Sep",10:"Oct",11:"Nov",12:"Dec"}
+        # Couleur par mois selon la phase (Mai-Jun=P1, Jul-Aou=P2, Sep-Oct=P3)
+        _MONTH_PHASE_CLR = {
+            1: MUTED,  2: MUTED,  3: MUTED,  4: MUTED,
+            5: BLUE,   6: BLUE,
+            7: INDIGO, 8: INDIGO,
+            9: AMBER,  10: AMBER,
+            11: MUTED, 12: MUTED,
+        }
         by_m = dff.groupby("month").size().reset_index(name="n")
-        by_m["mois"] = by_m["month"].map(MNAMES)
+        by_m["mois"]  = by_m["month"].map(MNAMES)
+        by_m["color"] = by_m["month"].map(_MONTH_PHASE_CLR)
 
         fig_m = go.Figure(go.Bar(
             x=by_m["mois"], y=by_m["n"],
             marker=dict(
-                color=by_m["n"],
-                colorscale=[[0,"#C7D2FE"],[0.5,INDIGO],[1,"#3730A3"]],
+                color=by_m["color"],
                 line=dict(width=0),
             ),
             hovertemplate="<b>%{x}</b> : %{y} evenements<extra></extra>",
@@ -1114,15 +2233,30 @@ if page == "Evenements":
             annotation_font=dict(size=10, color=ROSE),
             annotation_position="top right",
         )
-        plotly_base(fig_m, h=200 if is_mobile else 235)
-        fig_m.update_layout(showlegend=False, bargap=0.28)
+        # Annotations de phases en bas du graphique
+        _ph_annots = [
+            ("P1", "Mai-Jun",  5.0,  BLUE),
+            ("P2", "Jul-Aou",  7.0,  INDIGO),
+            ("P3", "Sep-Oct",  9.0,  AMBER),
+        ]
+        for _pa_code, _, _pa_x, _pa_clr in _ph_annots:
+            fig_m.add_annotation(
+                x=MNAMES[int(_pa_x)], y=0,
+                text=f"<b>{_pa_code}</b>",
+                font=dict(size=9, color=_pa_clr),
+                showarrow=False, yref="paper", yanchor="top",
+                yshift=-14,
+            )
+        plotly_base(fig_m, h=200 if is_mobile else 245)
+        fig_m.update_layout(showlegend=False, bargap=0.28,
+                            margin=dict(l=2, r=2, t=10, b=28))
         st.plotly_chart(fig_m, use_container_width=True, config={"displayModeBar": False})
 
     with bc2:
-       
         st.markdown(
-            '<p class="pnl-ttl">Top Regions Touchees</p>'
-            '<p class="pnl-sub">Classement des 8 premieres regions par frequence</p>',
+            '<p class="pnl-ttl">Top R&eacute;gions Touch&eacute;es</p>'
+            '<p class="pnl-sub">Classement des 8 premi&egrave;res r&eacute;gions'
+            ' &middot; sparkline tendance</p>',
             unsafe_allow_html=True,
         )
         top = (dff["centroid_region"]
@@ -1133,14 +2267,32 @@ if page == "Evenements":
         GRAD  = ["#4F46E5","#6366F1","#818CF8","#A5B4FC",
                  "#C7D2FE","#DDE3FD","#EEF2FF","#F5F3FF"]
 
+        # Sparkline par region : n evenements par annee (derniers 10 ans)
+        _rg_yr = (
+            dff.groupby(["centroid_region", "year"])
+            .size()
+            .reset_index(name="n_yr")
+        )
+        _rg_allyrs = list(range(max(year_range[0], year_range[1] - 9),
+                                year_range[1] + 1))
+
         for i, row in top.iterrows():
             bar_w = 100 * row["n"] / max_n
             pct   = 100 * row["n"] / n_total
+            # sparkline tendance (10 dernieres annees)
+            _rg_sub = _rg_yr[_rg_yr["centroid_region"] == row["region"]]
+            _rg_sp  = [
+                int(_rg_sub[_rg_sub["year"] == y]["n_yr"].values[0])
+                if y in _rg_sub["year"].values else 0
+                for y in _rg_allyrs
+            ]
+            _sp_svg = svg_spark(_rg_sp, w=60, h=22, color=GRAD[min(i, 7)])
             st.markdown(f"""
-            <div class="rg-row">
+            <div class="rg-row" style="align-items:center;">
               <span class="rg-rk">#{i+1}</span>
               <span class="rg-nm">{row['region']}</span>
-              <div class="rg-bg">
+              <div style="flex-shrink:0;width:60px;opacity:0.85">{_sp_svg}</div>
+              <div class="rg-bg" style="margin-left:6px;">
                 <div class="rg-bar"
                      style="width:{bar_w:.0f}%;background:{GRAD[min(i,7)]}"></div>
               </div>
@@ -1212,6 +2364,7 @@ elif page == "Teleconnexions":
 
     r_col   = "pearson_r"   if tc_type == "Pearson" else "spearman_r"
     sig_col = "sig_pearson" if tc_type == "Pearson" else "sig_spearman"
+    p_neff_col = "pearson_p_neff" if tc_type == "Pearson" else "spearman_p_neff"
 
     df_tc = tc_data.get(tc_phase, pd.DataFrame())
     if df_tc.empty:
@@ -1228,57 +2381,69 @@ elif page == "Teleconnexions":
     with hm_col:
         st.markdown(
             '<p class="pnl-ttl">Heatmap des correlations par indice et lag</p>'
-            '<p class="pnl-sub">Couleur = coefficient r · etoile = sig. nominale (p&lt;0.05) · '
-            'double etoile = sig. apres correction FDR</p>',
+            '<p class="pnl-sub">'
+            'Couleur = coefficient r &nbsp;&middot;&nbsp; '
+            '<b style="color:#F59E0B;">*</b> p_neff &lt; 0.05 &nbsp;&middot;&nbsp; '
+            '<b style="color:#F59E0B;">**</b> p_neff &lt; 0.01 (correction AR1)'
+            '</p>',
             unsafe_allow_html=True,
         )
 
-        # Construire matrice : indices (y) x lags (x)
-        all_indices = [idx for grp in IDX_GROUP.values() for idx in grp]
+        all_indices = [i for grp in IDX_GROUP.values() for i in grp]
         lags_shown  = LAGS_ALL
 
-        z_mat  = []
-        text_m = []
-        for idx in all_indices:
-            row_z, row_t = [], []
+        # Construire matrices r et p_neff
+        z_mat, p_mat = [], []
+        for hm_idx in all_indices:
+            row_z, row_p = [], []
             for lag in lags_shown:
-                sub = df_m[(df_m["index"] == idx) & (df_m["lag_months"] == lag)]
+                sub = df_m[(df_m["index"] == hm_idx) & (df_m["lag_months"] == lag)]
                 if sub.empty:
                     row_z.append(None)
-                    row_t.append("")
+                    row_p.append(None)
                 else:
-                    r = sub[r_col].values[0]
-                    s = sub[sig_col].values[0] if sig_col in sub.columns else ""
-                    row_z.append(r)
-                    if pd.notna(s) and str(s).strip() in ("*", "**"):
-                        row_t.append(str(s).strip())
-                    else:
-                        row_t.append("")
+                    row_z.append(float(sub[r_col].values[0]))
+                    pv = sub[p_neff_col].values[0] if p_neff_col in sub.columns else None
+                    row_p.append(float(pv) if pv is not None and pd.notna(pv) else None)
             z_mat.append(row_z)
-            text_m.append(row_t)
+            p_mat.append(row_p)
+
+        # Valeur r dans chaque cellule (blanc)
+        cell_text = []
+        for ri in range(len(all_indices)):
+            row_t = []
+            for ci in range(len(lags_shown)):
+                r_v = z_mat[ri][ci]
+                row_t.append(f"{r_v:+.2f}" if r_v is not None else "")
+            cell_text.append(row_t)
+
+        x_labels = [f"Lag {l}m" for l in lags_shown]
 
         fig_hm = go.Figure(go.Heatmap(
             z=z_mat,
-            x=[f"Lag {l}m" for l in lags_shown],
+            x=x_labels,
             y=all_indices,
-            text=text_m,
+            text=cell_text,
             texttemplate="%{text}",
-            textfont=dict(size=13, color="white"),
+            textfont=dict(size=10, color="white"),
             colorscale=[
-                [0.0,  "#C2410C"],
-                [0.25, "#FB923C"],
-                [0.45, "#FEF3C7"],
+                [0.0,  "#7F1D1D"],
+                [0.2,  "#C2410C"],
+                [0.4,  "#FB923C"],
+                [0.48, "#FED7AA"],
                 [0.5,  "#F8FAFC"],
-                [0.55, "#BAE6FD"],
-                [0.75, "#0EA5E9"],
+                [0.52, "#BAE6FD"],
+                [0.6,  "#0EA5E9"],
+                [0.8,  "#1D4ED8"],
                 [1.0,  "#1E3A8A"],
             ],
             zmid=0,
             zmin=-0.5, zmax=0.5,
             colorbar=dict(
-                title=dict(text="r", side="right"),
-                thickness=12,
-                len=0.9,
+                title=dict(text="r", side="right", font=dict(size=11, color=MUTED)),
+                thickness=12, len=0.85,
+                tickvals=[-0.4, -0.2, 0, 0.2, 0.4],
+                ticktext=["-0.4", "-0.2", "0", "0.2", "0.4"],
                 tickfont=dict(size=10, color=MUTED),
                 outlinewidth=0,
             ),
@@ -1288,16 +2453,38 @@ elif page == "Teleconnexions":
             ),
         ))
 
+        # Annotations etoiles (noir, grande taille) sur cellules significatives
+        annotations = []
+        for ri, hm_idx in enumerate(all_indices):
+            for ci, lag in enumerate(lags_shown):
+                p_v = p_mat[ri][ci]
+                if p_v is not None and p_v < 0.01:
+                    star_txt = "**"
+                elif p_v is not None and p_v < 0.05:
+                    star_txt = "*"
+                else:
+                    continue
+                annotations.append(dict(
+                    x=x_labels[ci],
+                    y=hm_idx,
+                    text=f"<b>{star_txt}</b>",
+                    showarrow=False,
+                    xanchor="right",
+                    yanchor="bottom",
+                    xshift=18,
+                    yshift=-2,
+                    font=dict(size=15, color="#000000", family="Inter,sans-serif"),
+                ))
+
         # Lignes de separation des groupes
-        group_sep = [4, 6, 10]  # apres Nino4, IOBM, AMM
-        for sep in group_sep:
+        for sep in [4, 6, 10]:
             fig_hm.add_hline(
                 y=sep - 0.5,
                 line=dict(color=BORDER, width=1.5, dash="dot"),
             )
 
         fig_hm.update_layout(
-            height=340,
+            height=380,
             margin=dict(l=0, r=0, t=4, b=0),
             plot_bgcolor="rgba(0,0,0,0)",
             paper_bgcolor="rgba(0,0,0,0)",
@@ -1312,6 +2499,7 @@ elif page == "Teleconnexions":
                 showgrid=False, zeroline=False,
                 autorange="reversed",
             ),
+            annotations=annotations,
         )
         st.plotly_chart(fig_hm, use_container_width=True, config={"displayModeBar": False})
 
@@ -1349,8 +2537,8 @@ elif page == "Teleconnexions":
                 sig_badge = ""
                 if pd.notna(sv) and str(sv).strip() in ("*", "**"):
                     sig_badge = (
-                        '<span style="font-size:0.63rem;background:#FEF3C7;'
-                        'color:#92400E;border-radius:4px;padding:1px 5px;'
+                        '<span style="font-size:0.63rem;background:rgba(245,158,11,0.18);'
+                        'color:#D97706;border-radius:4px;padding:1px 5px;'
                         f'font-weight:700;">{str(sv).strip()}</span>'
                     )
                 st.markdown(
@@ -1376,7 +2564,8 @@ elif page == "Teleconnexions":
     with lc2:
         st.markdown(
             '<p class="pnl-ttl">Profil de correlation par indice (r vs lag)</p>'
-            '<p class="pnl-sub">Evolution du coefficient r en fonction du decalage temporel</p>',
+            '<p class="pnl-sub">Evolution du coefficient r en fonction du decalage temporel'
+            ' &nbsp;&middot;&nbsp; <span style="color:#F59E0B;">&#9733;</span> = significatif (p&lt;0.05)</p>',
             unsafe_allow_html=True,
         )
 
@@ -1392,18 +2581,46 @@ elif page == "Teleconnexions":
                        "#8B5CF6", "#EC4899", "#14B8A6", "#F97316", "#64748B", "#84CC16"]
 
         for ci, idx in enumerate(sel_indices):
-            sub_idx = df_m[df_m["index"] == idx].sort_values("lag_months")
+            sub_idx = df_m[df_m["index"] == idx].sort_values("lag_months").reset_index(drop=True)
             if sub_idx.empty:
                 continue
             clr = COLORS_LINE[ci % len(COLORS_LINE)]
+
+            # Symbole et taille par point selon significativite p_neff
+            symbols, sizes, texts, hover_extra = [], [], [], []
+            for _, row in sub_idx.iterrows():
+                p = row.get(p_neff_col, float("nan"))
+                if pd.notna(p) and p < 0.01:
+                    symbols.append("star"); sizes.append(16)
+                    texts.append("**"); hover_extra.append(f"** p={p:.4f}")
+                elif pd.notna(p) and p < 0.05:
+                    symbols.append("star"); sizes.append(14)
+                    texts.append("*"); hover_extra.append(f"* p={p:.4f}")
+                else:
+                    symbols.append("circle"); sizes.append(6)
+                    texts.append(""); hover_extra.append("")
+
+            has_sig = any(s == "star" for s in symbols)
             fig_line.add_trace(go.Scatter(
-                x=sub_idx["lag_months"],
-                y=sub_idx[r_col],
-                mode="lines+markers",
+                x=sub_idx["lag_months"].tolist(),
+                y=sub_idx[r_col].tolist(),
+                mode="lines+markers+text" if has_sig else "lines+markers",
                 name=idx,
                 line=dict(color=clr, width=2),
-                marker=dict(size=6, color=clr, symbol="circle"),
-                hovertemplate=f"<b>{idx}</b> · lag %{{x}}m : r=%{{y:.3f}}<extra></extra>",
+                marker=dict(
+                    size=sizes,
+                    color=clr,
+                    symbol=symbols,
+                    line=dict(color="white", width=1),
+                ),
+                text=texts if has_sig else None,
+                textposition="top center",
+                textfont=dict(size=10, color=AMBER, family="Inter,sans-serif"),
+                customdata=hover_extra,
+                hovertemplate=(
+                    f"<b>{idx}</b> · lag %{{x}}m<br>"
+                    "r = %{y:.3f}%{customdata}<extra></extra>"
+                ),
             ))
 
         fig_line.add_hline(y=0, line=dict(color=MUTED, width=1, dash="dot"))
@@ -1512,13 +2729,13 @@ elif page == "Teleconnexions":
 
     mk1, mk2, mk3, mk4 = st.columns(4, gap="small")
     kpi_tc = [
-        (mk1, "background:#EEF2FF", "Tests totaux", f"{n_tests}", "t-indigo",
+        (mk1, f"background:rgba(79,70,229,0.13)", "Tests totaux", f"{n_tests}", "t-indigo",
          f"{len(all_indices)} indices x {len(LAGS_ALL)} lags"),
-        (mk2, "background:#DCFCE7", "Sig. nominale", f"{int(n_sig_nom)}", "t-green",
+        (mk2, f"background:rgba(16,185,129,0.13)", "Sig. nominale", f"{int(n_sig_nom)}", "t-green",
          "p < 0.05 sans correction"),
-        (mk3, "background:#FEF3C7", "Sig. FDR", f"{int(n_sig_fdr)}", "t-amber",
+        (mk3, f"background:rgba(245,158,11,0.13)", "Sig. FDR", f"{int(n_sig_fdr)}", "t-amber",
          "Apres Benjamini-Hochberg"),
-        (mk4, "background:#E0F2FE", "r max |.| ", f"{abs(best_r):.3f}", "t-blue",
+        (mk4, f"background:rgba(14,165,233,0.13)", "r max |.| ", f"{abs(best_r):.3f}", "t-blue",
          f"{best_row['index']} lag {int(best_row['lag_months'])}m" if best_row is not None else ""),
     ]
     for col, icon_bg, lbl, val, tag_cls, sub in kpi_tc:
@@ -1608,15 +2825,15 @@ elif page == "Indices SST":
 
     k1, k2, k3, k4 = st.columns(4, gap="small")
     kpi_sst = [
-        (k1, "background:#EEF2FF", primary, f"{pv_last:+.3f}", "t-indigo",
+        (k1, f"background:rgba(79,70,229,0.13)", primary, f"{pv_last:+.3f}", "t-indigo",
          "Derniere valeur", svg_spark(pv.values[-60:].tolist(), color=INDIGO)),
-        (k2, "background:#E0F2FE", "Moyenne", f"{pv_mean:+.3f}", "t-blue",
+        (k2, f"background:rgba(14,165,233,0.13)", "Moyenne", f"{pv_mean:+.3f}", "t-blue",
          f"std = {pv_std:.3f}", svg_spark(
              sst.set_index("date")[primary].resample("YS").mean().values.tolist(),
              color=BLUE)),
-        (k3, "background:#DCFCE7", "Phase +", f"{pct_pos:.0f}%", "t-green",
+        (k3, f"background:rgba(16,185,129,0.13)", "Phase +", f"{pct_pos:.0f}%", "t-green",
          "Temps en phase positive", None),
-        (k4, "background:#FEF3C7", "Phase -", f"{100-pct_pos:.0f}%", "t-amber",
+        (k4, f"background:rgba(245,158,11,0.13)", "Phase -", f"{100-pct_pos:.0f}%", "t-amber",
          "Temps en phase negative", None),
     ]
     for col, icon_bg, lbl, val, tag_cls, sub, sp in kpi_sst:
@@ -2070,8 +3287,8 @@ elif page == "Clustering":
                 )
             fig_el.update_layout(
                 title=dict(text="Courbe d'inertie (methode du coude)", font=dict(size=13, color=TEXT), x=0, pad=dict(l=0)),
-                xaxis=dict(title="k (nb clusters)", gridcolor="#F1F5F9", tickmode="linear"),
-                yaxis=dict(title="Inertie", gridcolor="#F1F5F9"),
+                xaxis=dict(title="k (nb clusters)", gridcolor=BORDER, tickmode="linear"),
+                yaxis=dict(title="Inertie", gridcolor=BORDER),
                 plot_bgcolor=CARD, paper_bgcolor=CARD,
                 font=dict(color=TEXT, size=11),
                 margin=dict(l=10, r=10, t=44, b=10),
@@ -2098,8 +3315,8 @@ elif page == "Clustering":
             ))
             fig_si.update_layout(
                 title=dict(text="Silhouette et Davies-Bouldin vs k", font=dict(size=13, color=TEXT), x=0, pad=dict(l=0)),
-                xaxis=dict(title="k", gridcolor="#F1F5F9", tickmode="linear"),
-                yaxis=dict(title=dict(text="Silhouette", font=dict(color=EMERALD)), gridcolor="#F1F5F9"),
+                xaxis=dict(title="k", gridcolor=BORDER, tickmode="linear"),
+                yaxis=dict(title=dict(text="Silhouette", font=dict(color=EMERALD)), gridcolor=BORDER),
                 yaxis2=dict(title=dict(text="Davies-Bouldin", font=dict(color=AMBER)), overlaying="y", side="right", showgrid=False),
                 legend=dict(orientation="h", y=1.08, x=0),
                 plot_bgcolor=CARD, paper_bgcolor=CARD,
@@ -2151,8 +3368,8 @@ elif page == "Clustering":
                 ))
             fig_bar.update_layout(
                 title=dict(text=sel_metric + " par cluster", font=dict(size=13, color=TEXT), x=0, pad=dict(l=0)),
-                xaxis=dict(title="Cluster", gridcolor="#F1F5F9"),
-                yaxis=dict(title=sel_metric, gridcolor="#F1F5F9"),
+                xaxis=dict(title="Cluster", gridcolor=BORDER),
+                yaxis=dict(title=sel_metric, gridcolor=BORDER),
                 plot_bgcolor=CARD, paper_bgcolor=CARD,
                 font=dict(color=TEXT, size=11),
                 showlegend=False,
@@ -2186,8 +3403,8 @@ elif page == "Clustering":
                 ))
             fig_sc.update_layout(
                 title=dict(text="Couverture vs Intensite (taille = nb evt)", font=dict(size=13, color=TEXT), x=0, pad=dict(l=0)),
-                xaxis=dict(title="Couverture moyenne (%)", gridcolor="#F1F5F9"),
-                yaxis=dict(title="Precip max moyenne (mm)", gridcolor="#F1F5F9"),
+                xaxis=dict(title="Couverture moyenne (%)", gridcolor=BORDER),
+                yaxis=dict(title="Precip max moyenne (mm)", gridcolor=BORDER),
                 plot_bgcolor=CARD, paper_bgcolor=CARD,
                 font=dict(color=TEXT, size=11),
                 legend=dict(orientation="h", y=-0.15, x=0),
@@ -2220,8 +3437,8 @@ elif page == "Clustering":
             fig_yr.update_layout(
                 barmode="stack",
                 title=dict(text="Evenements par annee et cluster", font=dict(size=13, color=TEXT), x=0, pad=dict(l=0)),
-                xaxis=dict(title="Annee", gridcolor="#F1F5F9", dtick=5),
-                yaxis=dict(title="Nb evenements", gridcolor="#F1F5F9"),
+                xaxis=dict(title="Annee", gridcolor=BORDER, dtick=5),
+                yaxis=dict(title="Nb evenements", gridcolor=BORDER),
                 legend=dict(orientation="h", y=1.08, x=0),
                 plot_bgcolor=CARD, paper_bgcolor=CARD,
                 font=dict(color=TEXT, size=11),
@@ -2247,8 +3464,8 @@ elif page == "Clustering":
             fig_mo.update_layout(
                 barmode="group",
                 title=dict(text="Evenements par mois et cluster", font=dict(size=13, color=TEXT), x=0, pad=dict(l=0)),
-                xaxis=dict(title="Mois", gridcolor="#F1F5F9"),
-                yaxis=dict(title="Nb evenements", gridcolor="#F1F5F9"),
+                xaxis=dict(title="Mois", gridcolor=BORDER),
+                yaxis=dict(title="Nb evenements", gridcolor=BORDER),
                 legend=dict(orientation="h", y=1.08, x=0),
                 plot_bgcolor=CARD, paper_bgcolor=CARD,
                 font=dict(color=TEXT, size=11),
@@ -2362,9 +3579,9 @@ elif page == "Clustering":
                               f"  |  Cluster {sel_cl}"),
                         font=dict(size=13, color=TEXT), x=0, pad=dict(l=0),
                     ),
-                    xaxis=dict(title="Longitude", gridcolor="#F1F5F9", dtick=30,
+                    xaxis=dict(title="Longitude", gridcolor=BORDER, dtick=30,
                                range=[-180, 180]),
-                    yaxis=dict(title="Latitude", gridcolor="#F1F5F9", dtick=15,
+                    yaxis=dict(title="Latitude", gridcolor=BORDER, dtick=15,
                                range=[-60, 60]),
                     plot_bgcolor=CARD, paper_bgcolor=CARD,
                     font=dict(color=TEXT, size=11),
@@ -2449,9 +3666,9 @@ elif page == "Clustering":
                             ),
                             font=dict(size=12, color=TEXT), x=0, pad=dict(l=0),
                         ),
-                        xaxis=dict(title="Longitude", gridcolor="#F1F5F9", dtick=30,
+                        xaxis=dict(title="Longitude", gridcolor=BORDER, dtick=30,
                                    range=[-180, 180]),
-                        yaxis=dict(title="Latitude", gridcolor="#F1F5F9", dtick=15,
+                        yaxis=dict(title="Latitude", gridcolor=BORDER, dtick=15,
                                    range=[-60, 60]),
                         plot_bgcolor=CARD, paper_bgcolor=CARD,
                         font=dict(color=TEXT, size=11),
@@ -2642,13 +3859,13 @@ if page == "Pipeline":
         font-size:0.63rem;font-weight:700;padding:3px 8px;border-radius:20px;
         white-space:nowrap;letter-spacing:.5px;text-transform:uppercase;
     }}
-    .sbadge-ok   {{ background:#D1FAE5;color:#065F46; }}
-    .sbadge-miss {{ background:#FEE2E2;color:#991B1B; }}
-    .sbadge-info {{ background:#EDE9FE;color:#5B21B6; }}
-    .sbadge-warn {{ background:#FEF3C7;color:#92400E; }}
+    .sbadge-ok   {{ background:rgba(16,185,129,0.15);color:#059669; }}
+    .sbadge-miss {{ background:rgba(239,68,68,0.15);color:#DC2626; }}
+    .sbadge-info {{ background:rgba(124,58,237,0.15);color:#7C3AED; }}
+    .sbadge-warn {{ background:rgba(245,158,11,0.15);color:#D97706; }}
     /* ─ Export pills ─ */
     .step-card-exports {{
-        border-top:1px solid {BORDER};background:#FAFBFF;
+        border-top:1px solid {BORDER};background:{BG};
         padding:10px 20px 12px 68px;
     }}
     .exp-label {{
@@ -2684,9 +3901,9 @@ if page == "Pipeline":
         display:inline-block;
     }}
     /* ─ Size badges ─ */
-    .sz-ok   {{color:#065F46;background:#D1FAE5;padding:4px 10px;border-radius:20px;font-size:0.71rem;font-weight:700;display:inline-block;}}
-    .sz-warn {{color:#92400E;background:#FEF3C7;padding:4px 10px;border-radius:20px;font-size:0.71rem;font-weight:700;display:inline-block;}}
-    .sz-big  {{color:#991B1B;background:#FEE2E2;padding:4px 10px;border-radius:20px;font-size:0.71rem;font-weight:700;display:inline-block;}}
+    .sz-ok   {{color:#059669;background:rgba(16,185,129,0.15);padding:4px 10px;border-radius:20px;font-size:0.71rem;font-weight:700;display:inline-block;}}
+    .sz-warn {{color:#D97706;background:rgba(245,158,11,0.15);padding:4px 10px;border-radius:20px;font-size:0.71rem;font-weight:700;display:inline-block;}}
+    .sz-big  {{color:#DC2626;background:rgba(239,68,68,0.15);padding:4px 10px;border-radius:20px;font-size:0.71rem;font-weight:700;display:inline-block;}}
     </style>
     """, unsafe_allow_html=True)
 

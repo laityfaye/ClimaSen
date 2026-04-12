@@ -1,18 +1,27 @@
 {
   "title": "Événements pluviométriques extrêmes spécifiques - Sénégal",
-  "description": "Extraction CHIRPS des événements du 1985-08-06, 2009-08-28, 2012-09-28, 2000-10-16, 2022-05-27",
+  "description": "Extraction CHIRPS des evenements selectionnes automatiquement: plus/moins intense, plus/petite couverture, plus/moins grande anomalie",
+  "selection_criteria": {
+    "1985-08-06": "plus_intense",
+    "2005-10-30": "moins_intense",
+    "2012-09-28": "plus_grande_couverture",
+    "1984-07-04": "plus_petite_couverture",
+    "2022-05-27": "plus_grande_anomalie",
+    "1990-08-04": "plus_petite_anomalie"
+  },
   "source": "CHIRPS (Climate Hazards Group InfraRed Precipitation with Station data)",
   "spatial_resolution": "0.25° (~25 km)",
   "temporal_resolution": "daily",
   "coordinate_system": "WGS84 (EPSG:4326)",
-  "created_at": "2026-01-24T17:17:48.954350",
+  "created_at": "2026-04-11T22:20:34.063131",
   "created_by": "SpecificEventsExtractor v1.0",
   "target_events": [
     "1985-08-06",
-    "2009-08-28",
+    "2005-10-30",
     "2012-09-28",
-    "2000-10-16",
-    "2022-05-27"
+    "1984-07-04",
+    "2022-05-27",
+    "1990-08-04"
   ],
   "geographic_bounds": {
     "lat_min": 12.3,
@@ -78,10 +87,11 @@
   ],
   "files_generated": [
     "event_1985-08-06",
-    "event_2009-08-28",
+    "event_2005-10-30",
     "event_2012-09-28",
-    "event_2000-10-16",
+    "event_1984-07-04",
     "event_2022-05-27",
+    "event_1990-08-04",
     "all_events_combined",
     "summary_statistics",
     "centroids"
