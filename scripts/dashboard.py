@@ -447,10 +447,11 @@ def _apply_geo_traces(fig):
         ))
 
 
-df         = load_events()
-tc_data    = load_telecon()
-sst_raw    = load_sst()
-clust_data = load_clustering()
+with st.spinner("Chargement des donnees en cours..."):
+    df         = load_events()
+    tc_data    = load_telecon()
+    sst_raw    = load_sst()
+    clust_data = load_clustering()
 
 # ─── Viewport : detectable uniquement via CSS (media queries deja en place) ───
 # Les colonnes Streamlit se stackent automatiquement via les regles CSS < 640px.
@@ -1484,9 +1485,10 @@ if page == "Evenements":
     </div>
     """, unsafe_allow_html=True)
 
-    _ev_pixels  = load_events_pixels()
-    _ev_summary = load_events_summary()
-    _dept_geo   = load_dept_geojson()
+    with st.spinner("Chargement des cartes..."):
+        _ev_pixels  = load_events_pixels()
+        _ev_summary = load_events_summary()
+        _dept_geo   = load_dept_geojson()
 
     if _ev_pixels is None or len(_ev_pixels) == 0:
         st.info(
