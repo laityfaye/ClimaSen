@@ -14,7 +14,7 @@ Methodologie :
   - Correlations Pearson et Spearman
   - Correction autocorrelation : degres de liberte effectifs n_eff (Chelton 1983)
   - P-values corrigees AR1 : t = r*sqrt((n_eff-2)/(1-r^2)) ~ Student(n_eff-2)
-  - Correction tests multiples : FDR Benjamini-Hochberg sur p_neff (par phase)
+  - Significativite (etoiles) : seuils sur p_neff uniquement (pas de correction FDR)
   - Analyse par phase de saison (Debut / Pleine saison / Fin)
 
 Usage :
@@ -32,7 +32,6 @@ import numpy as np
 import pandas as pd
 from scipy.stats import pearsonr, spearmanr, t as t_dist
 from scipy.signal import detrend as scipy_detrend
-from statsmodels.stats.multitest import multipletests
 
 try:
     import matplotlib
@@ -391,21 +390,13 @@ def compute_correlations(events_m: pd.DataFrame,
 
     df = pd.DataFrame(rows)
     if df.empty:
-        df["pearson_p_fdr"]  = pd.Series(dtype=float)
-        df["spearman_p_fdr"] = pd.Series(dtype=float)
-        df["sig_pearson"]    = pd.Series(dtype=str)
-        df["sig_spearman"]   = pd.Series(dtype=str)
+        df["sig_pearson"]  = pd.Series(dtype=str)
+        df["sig_spearman"] = pd.Series(dtype=str)
         return df
 
-    # FDR Benjamini-Hochberg applique sur p_neff (par phase, tous lags+metriques)
-    # Corrige pour les tests multiples : 11 indices x 5 metriques x 7 lags
-    _, p_fdr_p, _, _ = multipletests(df["pearson_p_neff"].values,  method="fdr_bh")
-    _, p_fdr_s, _, _ = multipletests(df["spearman_p_neff"].values, method="fdr_bh")
-    df["pearson_p_fdr"]  = np.round(p_fdr_p, 4)
-    df["spearman_p_fdr"] = np.round(p_fdr_s, 4)
-    # Etoiles finales basees sur p_fdr (correction AR1 + tests multiples)
-    df["sig_pearson"]  = df["pearson_p_fdr"].apply(_sig)
-    df["sig_spearman"] = df["spearman_p_fdr"].apply(_sig)
+    # Etoiles basees sur p_neff seulement (correction AR1, sans FDR)
+    df["sig_pearson"]  = df["pearson_p_neff"].apply(_sig)
+    df["sig_spearman"] = df["spearman_p_neff"].apply(_sig)
     return df
 
 
@@ -429,8 +420,8 @@ def plot_heatmap_lag0(corr_df: pd.DataFrame, phase_name: str, out_dir: Path):
     )
 
     for ax, r_col, p_col, title in [
-        (axes[0], "pearson_r",  "pearson_p_fdr",  "Pearson r"),
-        (axes[1], "spearman_r", "spearman_p_fdr", "Spearman rho"),
+        (axes[0], "pearson_r",  "pearson_p_neff",  "Pearson r"),
+        (axes[1], "spearman_r", "spearman_p_neff", "Spearman rho"),
     ]:
         try:
             pivot   = df0.pivot(index="metric_label", columns="index", values=r_col)
@@ -499,8 +490,8 @@ def plot_lag_curves(corr_df: pd.DataFrame, metric: str,
     )
 
     for ax, r_col, p_col, title in [
-        (axes[0], "pearson_r",  "pearson_p_fdr",  "Pearson r"),
-        (axes[1], "spearman_r", "spearman_p_fdr", "Spearman rho"),
+        (axes[0], "pearson_r",  "pearson_p_neff",  "Pearson r"),
+        (axes[1], "spearman_r", "spearman_p_neff", "Spearman rho"),
     ]:
         for idx, color in zip(avail_idx, colors):
             s = sub_metric[sub_metric["index"] == idx].sort_values("lag_months")
@@ -539,7 +530,7 @@ def plot_lag_heatmap(corr_df: pd.DataFrame, metric: str,
 
     try:
         pivot   = sub.pivot(index="index", columns="lag_months", values="pearson_r")
-        pivot_p = sub.pivot(index="index", columns="lag_months", values="pearson_p_fdr")
+        pivot_p = sub.pivot(index="index", columns="lag_months", values="pearson_p_neff")
         rows_ord = [c for c in ALL_INDICES if c in pivot.index]
         pivot    = pivot.loc[rows_ord]
         pivot_p  = pivot_p.loc[rows_ord]
@@ -637,7 +628,7 @@ def plot_summary(all_corrs: dict, out_dir: Path):
 
             for bar, (_, row_s) in zip(bars, sub.iterrows()):
                 r     = row_s["pearson_r"]
-                stars = _sig(row_s["pearson_p_fdr"])
+                stars = _sig(row_s["pearson_p_neff"])
                 ha    = "left"  if r >= 0 else "right"
                 off   = 0.03   if r >= 0 else -0.03
                 ax.text(r + off, bar.get_y() + bar.get_height() / 2,
@@ -689,10 +680,8 @@ def generate_report(all_corrs: dict, n_events_raw: int, n_months: int,
         "     n_eff < n indique une autocorrelation positive (significativite surestimee)",
         "  6. P-values corrigees AR1 : t = r*sqrt((n_eff-2)/(1-r^2)) ~ Student(n_eff-2)",
         "     p_neff : p-value recalculee avec n_eff degres de liberte.",
-        "  7. Correction tests multiples : FDR Benjamini-Hochberg (Benjamini & Hochberg 1995)",
-        "     Appliquee sur p_neff par phase (11 indices x 5 metriques x 7 lags = 385 tests).",
-        "     Les etoiles (*/**/***) sont basees sur p_fdr, la p-value la plus conservative.",
-        "     p_neff et p_nom conservees en colonnes pour reference.",
+        "     Les etoiles (*/**/***) sont basees sur p_neff (pas de correction FDR pour tests multiples).",
+        "     p_nom : p-value brute (n independant) conservee pour reference.",
         "Source SST : NOAA OISST v2 High-Resolution 0.25deg (journalier -> mensuel)",
         "",
     ]
@@ -712,11 +701,11 @@ def generate_report(all_corrs: dict, n_events_raw: int, n_months: int,
 
             lines.append(f"\n  -- Lag = {lag} mois --")
             hdr = (f"  {'Metrique':<32} {'Indice':<8}"
-                   f" {'Pearson r':>10} {'sig':>4} {'p_fdr':>8} {'p_neff':>8} {'p_nom':>8}"
-                   f"  {'Spearman':>10} {'sig':>4} {'p_fdr':>8} {'p_neff':>8} {'p_nom':>8}"
+                   f" {'Pearson r':>10} {'sig':>4} {'p_neff':>8} {'p_nom':>8}"
+                   f"  {'Spearman':>10} {'sig':>4} {'p_neff':>8} {'p_nom':>8}"
                    f"  {'n':>5}  {'n_eff':>6}")
             lines.append(hdr)
-            lines.append("  " + "-" * 132)
+            lines.append("  " + "-" * 118)
 
             for metric in METRICS:
                 sub = df_lag[df_lag["metric"] == metric].sort_values("index")
@@ -724,14 +713,12 @@ def generate_report(all_corrs: dict, n_events_raw: int, n_months: int,
                     n_eff_val   = int(row["n_eff"]) if "n_eff" in row and pd.notna(row["n_eff"]) else int(row["n"])
                     pp_neff_val = row["pearson_p_neff"]  if "pearson_p_neff"  in row else row["pearson_p"]
                     sp_neff_val = row["spearman_p_neff"] if "spearman_p_neff" in row else row["spearman_p"]
-                    pp_fdr_val  = row["pearson_p_fdr"]   if "pearson_p_fdr"   in row else pp_neff_val
-                    sp_fdr_val  = row["spearman_p_fdr"]  if "spearman_p_fdr"  in row else sp_neff_val
                     lines.append(
                         f"  {row['metric_label']:<32} {row['index']:<8}"
                         f" {row['pearson_r']:>+10.4f} {row['sig_pearson']:>4}"
-                        f" {pp_fdr_val:>8.4f} {pp_neff_val:>8.4f} {row['pearson_p']:>8.4f}"
+                        f" {pp_neff_val:>8.4f} {row['pearson_p']:>8.4f}"
                         f"  {row['spearman_r']:>+10.4f} {row['sig_spearman']:>4}"
-                        f" {sp_fdr_val:>8.4f} {sp_neff_val:>8.4f} {row['spearman_p']:>8.4f}"
+                        f" {sp_neff_val:>8.4f} {row['spearman_p']:>8.4f}"
                         f"  {int(row['n']):>5}  {n_eff_val:>6}"
                     )
                 lines.append("")
@@ -740,16 +727,13 @@ def generate_report(all_corrs: dict, n_events_raw: int, n_months: int,
         sep,
         "LEGENDE",
         sep,
-        "  * p<0.05  ** p<0.01  *** p<0.001   (seuils appliques sur p_fdr)",
+        "  * p<0.05  ** p<0.01  *** p<0.001   (seuils appliques sur p_neff)",
         "  n       : nombre d observations (mois) apres dropna",
         "  n_eff   : degres de liberte effectifs AR1 (Chelton 1983)",
         "            n_eff = n*(1-r1x*r1y)/(1+r1x*r1y)",
         "            Si n_eff << n -> autocorrelation elevee -> significativite surestimee",
         "  p_neff  : p-value recalculee avec n_eff (t = r*sqrt((n_eff-2)/(1-r^2)))",
-        "            Corrige l autocorrelation mais pas encore les tests multiples.",
-        "  p_fdr   : p-value ajustee FDR Benjamini-Hochberg sur p_neff (par phase)",
-        "            Corrige simultanement autocorrelation ET tests multiples.",
-        "            C est cette p-value qui determine les etoiles (*/**/***).",
+        "            Les etoiles (*/**/***) sont derivees de p_neff.",
         "  p_nom   : p-value nominale brute (utilise n, conservee pour reference)",
         "",
         "  Interpretation de |r| :",
@@ -892,12 +876,12 @@ def run(by_phase: bool = True,
                 row_str += "      n/a"
             else:
                 r = sub["pearson_r"].values[0]
-                p = sub["pearson_p_fdr"].values[0]
+                p = sub["pearson_p_neff"].values[0]
                 row_str += f" {r:+7.3f}{_sig(p):<1}"
         print(row_str)
 
     print()
-    print("  * p<0.05  ** p<0.01  *** p<0.001  (FDR Benjamini-Hochberg sur p_neff)")
+    print("  * p<0.05  ** p<0.01  *** p<0.001  (seuils sur p_neff, correction AR1)")
     print(f"\n  Resultats dans : {output_dir}")
     print("=" * 78)
     print()

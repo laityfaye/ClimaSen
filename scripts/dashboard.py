@@ -117,6 +117,26 @@ def load_telecon():
     }
     return {k: pd.read_csv(p, encoding="utf-8") for k, p in files.items() if p.exists()}
 
+
+def _sig_from_p_neff(p) -> str:
+    """Etoiles AR1 (memes seuils que _sig() dans 04_teleconnections_analysis)."""
+    try:
+        if p is None or pd.isna(p):
+            return ""
+        pv = float(p)
+    except (TypeError, ValueError):
+        return ""
+    if not np.isfinite(pv):
+        return ""
+    if pv < 0.001:
+        return "***"
+    if pv < 0.01:
+        return "**"
+    if pv < 0.05:
+        return "*"
+    return ""
+
+
 @st.cache_data
 def load_sst():
     df = pd.read_csv(
@@ -908,10 +928,70 @@ html, body {{
         align-items: flex-start !important;
         gap: 8px !important;
     }}
+    /* Titre et sous-titre page */
+    .pg-ttl {{ font-size: clamp(0.82rem, 1.1vw, 0.98rem) !important; }}
+    .pg-sub {{ font-size: 0.64rem !important; }}
+    /* Badges header evenements : taille reduite */
+    .evt-badge {{
+        font-size: 0.60rem !important;
+        padding: 3px 7px !important;
+    }}
+    /* Mini-cards evenements : padding et fonts reduits */
+    .mini-ev-card {{
+        padding: 6px 6px 5px 6px !important;
+    }}
+    /* Critere dans mini-card : taille reduite + retour a la ligne autorise */
+    .mini-ev-crit {{
+        font-size: 0.58rem !important;
+        white-space: normal !important;
+        overflow-wrap: break-word !important;
+        line-height: 1.3 !important;
+    }}
+    /* Sous-titre section divider : taille reduite + masque si debordement */
+    .sec-hdr-sub {{
+        font-size: 0.60rem !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+        max-width: 200px !important;
+    }}
     /* Graphiques Plotly : hauteur moderee */
     [data-testid="stPlotlyChart"] > div {{
         min-height: 0 !important;
     }}
+}}
+
+/* ══════════════════════════════════════════════════════════
+   RESPONSIVE — Petit ecran bureau (1024px – 1280px)
+   ══════════════════════════════════════════════════════════ */
+@media (min-width: 1024px) and (max-width: 1280px) {{
+    /* Titre et sous-titre page */
+    .pg-ttl {{ font-size: clamp(0.90rem, 1.2vw, 1.10rem) !important; }}
+    .pg-sub {{ font-size: 0.67rem !important; }}
+    /* Badges header evenements : taille legerement reduite */
+    .evt-badge {{
+        font-size: 0.64rem !important;
+        padding: 4px 9px !important;
+    }}
+    /* Mini-cards evenements : padding reduit */
+    .mini-ev-card {{
+        padding: 8px 8px 7px 8px !important;
+    }}
+    /* Critere dans mini-card : taille reduite + retour a la ligne autorise */
+    .mini-ev-crit {{
+        font-size: 0.61rem !important;
+        white-space: normal !important;
+        overflow-wrap: break-word !important;
+        line-height: 1.3 !important;
+    }}
+    /* Sous-titre section divider : taille reduite */
+    .sec-hdr-sub {{
+        font-size: 0.62rem !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+        max-width: 260px !important;
+    }}
+    /* Titres panneaux : legerement reduits */
+    .pnl-ttl {{ font-size: clamp(0.78rem, 0.85vw, 0.84rem) !important; }}
 }}
 
 /* ══════════════════════════════════════════════════════════
@@ -1360,16 +1440,16 @@ if page == "Evenements":
             </p>
           </div>
           <div style="display:flex;gap:6px;flex-wrap:wrap;padding-bottom:4px;margin-top:10px;">
-            <span style="font-size:0.70rem;font-weight:600;color:#7C3AED;
+            <span class="evt-badge" style="font-size:0.70rem;font-weight:600;color:#7C3AED;
                          background:rgba(124,58,237,0.13);border-radius:8px;padding:5px 12px;">
               &#128208; Anomalie &gt; 2&#963;</span>
-            <span style="font-size:0.70rem;font-weight:600;color:#0284C7;
+            <span class="evt-badge" style="font-size:0.70rem;font-weight:600;color:#0284C7;
                          background:rgba(2,132,199,0.13);border-radius:8px;padding:5px 12px;">
               &#9726; 40&nbsp;pixels&nbsp;min.</span>
-            <span style="font-size:0.70rem;font-weight:600;color:#D97706;
+            <span class="evt-badge" style="font-size:0.70rem;font-weight:600;color:#D97706;
                          background:rgba(217,119,6,0.13);border-radius:8px;padding:5px 12px;">
               &#127783; 5&nbsp;mm&nbsp;min.</span>
-            <span style="font-size:0.70rem;font-weight:600;color:{INDIGO};
+            <span class="evt-badge" style="font-size:0.70rem;font-weight:600;color:{INDIGO};
                          background:rgba(79,70,229,0.13);border-radius:8px;padding:5px 12px;">
               &#128202; {_n_total_fmt}&nbsp;&eacute;v&eacute;nements</span>
           </div>
@@ -1398,7 +1478,7 @@ if page == "Evenements":
         Analyse spatiale &mdash; Cartographie
       </span>
       <div style="height:1px;flex:1;background:{BORDER};"></div>
-      <span style="font-size:0.67rem;color:{MUTED};white-space:nowrap;">
+      <span class="sec-hdr-sub" style="font-size:0.67rem;color:{MUTED};white-space:nowrap;">
         6 ev&eacute;nements &middot; plus/moins intense, grande/petite couverture &amp; anomalie
       </span>
     </div>
@@ -1518,9 +1598,9 @@ if page == "Evenements":
                             padding:10px 10px 9px 10px;{_shadow}cursor:pointer;
                             transition:box-shadow 0.15s;">
                   <div style="background:{_bg};border-radius:5px;padding:2px 6px;
-                              margin-bottom:7px;display:inline-block;">
-                    <span style="font-size:0.69rem;font-weight:700;color:{_fg};
-                                 white-space:nowrap">{_CRIT_FR.get(_c0, _c0)}</span>
+                              margin-bottom:7px;display:inline-block;max-width:100%;">
+                    <span class="mini-ev-crit" style="font-size:0.69rem;font-weight:700;color:{_fg};
+                                 white-space:nowrap;display:block;">{_CRIT_FR.get(_c0, _c0)}</span>
                   </div>
                   <p style="margin:0;font-size:0.77rem;font-weight:700;
                             color:{TEXT};line-height:1.2">{_d}</p>
@@ -1572,6 +1652,32 @@ if page == "Evenements":
                     for _bp in _boundary_paths:
                         _inside |= _bp.contains_points(_pts)
                     _ev_sel = _ev_sel[_inside].reset_index(drop=True)
+
+        # -- Jointure spatiale : departement pour chaque pixel --------------------
+        _depts_ev = [""] * len(_ev_sel)
+        if _dept_geo is not None and len(_ev_sel) > 0:
+            from matplotlib.path import Path as _MplPath2
+            _pts_all = np.column_stack([
+                _ev_sel["longitude"].values,
+                _ev_sel["latitude"].values,
+            ])
+            for _feat in _dept_geo.get("features", []):
+                _dname = _feat.get("properties", {}).get("NAME_2", "")
+                _geom  = _feat.get("geometry", {})
+                _gtype = _geom.get("type", "")
+                _coords = _geom.get("coordinates", [])
+                _polys  = []
+                if _gtype == "MultiPolygon":
+                    for _poly in _coords:
+                        if _poly and _poly[0]:
+                            _polys.append(_MplPath2(np.array(_poly[0])))
+                elif _gtype == "Polygon":
+                    if _coords and _coords[0]:
+                        _polys.append(_MplPath2(np.array(_coords[0])))
+                for _pp in _polys:
+                    _mask = _pp.contains_points(_pts_all)
+                    for _idx in np.where(_mask)[0]:
+                        _depts_ev[_idx] = _dname
 
         st.markdown("<div style='height:12px'></div>", unsafe_allow_html=True)
 
@@ -1630,7 +1736,7 @@ if page == "Evenements":
 
         _hover_txt = [
             f"<b>{r['precipitation_mm']:.1f} mm</b> &nbsp;|&nbsp; "
-            f"{r['anomaly_standardized']:.2f} \u03c3<br>"
+            f"{r['anomaly_standardized']:.1f}<br>"
             f"Region : {r['region']}<br>"
             f"Categorie : {r['intensity_category']}"
             for _, r in _ev_sel.iterrows()
@@ -1685,16 +1791,18 @@ if page == "Evenements":
         _regs_ev = _ev_sel["region"].tolist()
         _cats_ev = _ev_sel["intensity_category"].tolist()
 
-        # customdata[0]=valeur_croisee, [1]=region, [2]=categorie, [3]=lat, [4]=lon
+        # customdata[0]=valeur_croisee (str formate), [1]=region, [2]=categorie,
+        # [3]=lat, [4]=lon, [5]=departement, [6]=valeur_principale (str formate)
+        # Valeurs pre-formatees en Python car Scattermapbox n'applique pas :.Nf sur customdata
         _cd_prec = [
-            [a, rg, ct, la, lo]
-            for a, rg, ct, la, lo
-            in zip(_anom_ev, _regs_ev, _cats_ev, _lats_ev, _lons_ev)
+            [f"{a:+.1f}", rg, ct, la, lo, dp, f"{p:.1f}"]
+            for a, rg, ct, la, lo, dp, p
+            in zip(_anom_ev, _regs_ev, _cats_ev, _lats_ev, _lons_ev, _depts_ev, _prec_ev)
         ]
         _cd_anom = [
-            [p, rg, ct, la, lo]
-            for p, rg, ct, la, lo
-            in zip(_prec_ev, _regs_ev, _cats_ev, _lats_ev, _lons_ev)
+            [f"{p:.1f}", rg, ct, la, lo, dp, f"{a:+.1f}"]
+            for p, rg, ct, la, lo, dp, a
+            in zip(_prec_ev, _regs_ev, _cats_ev, _lats_ev, _lons_ev, _depts_ev, _anom_ev)
         ]
 
         # Bornes adaptatives (robustesse aux outliers)
@@ -1750,8 +1858,8 @@ if page == "Evenements":
                 marker=dict(size=12, color=ROSE, opacity=0.95),
                 hovertemplate=(
                     f"<b>Centroide</b><br>"
-                    f"{_ctr_lat:.3f}\u00b0N\u00a0"
-                    f"{abs(_ctr_lon):.3f}\u00b0W"
+                    f"{_ctr_lat:.1f}\u00b0N\u00a0"
+                    f"{abs(_ctr_lon):.1f}\u00b0W"
                     "<extra></extra>"
                 ),
                 showlegend=False,
@@ -1783,16 +1891,22 @@ if page == "Evenements":
                     tickfont=dict(size=10, color=MUTED),
                     outlinewidth=0,
                 ),
+                hoverinfo="skip",
+            ))
+            # Couche points invisibles pour hover fluide (plus rapide que polygones)
+            _fig1.add_trace(go.Scattermapbox(
+                lat=_lats_ev, lon=_lons_ev,
+                mode="markers",
+                marker=dict(size=8, opacity=0, color="rgba(0,0,0,0)"),
                 customdata=_cd_prec,
                 hovertemplate=(
-                    "<b>%{z:.1f} mm</b>\u00a0|\u00a0%{customdata[0]:+.2f}\u03c3<br>"
-                    "<span style='color:#94A3B8;font-size:0.85em'>"
-                    "%{customdata[3]:.3f}\u00b0N\u00a0%{customdata[4]:.3f}\u00b0W"
-                    "</span><br>"
+                    "<b>%{customdata[6]} mm</b>\u00a0|\u00a0%{customdata[0]}<br>"
+                    "D\u00e9partement\u00a0: <b>%{customdata[5]}</b><br>"
                     "R\u00e9gion\u00a0: %{customdata[1]}<br>"
                     "Cat\u00e9gorie\u00a0: <b>%{customdata[2]}</b>"
                     "<extra></extra>"
                 ),
+                showlegend=False,
             ))
             _add_overlays(_fig1)
             _fig1.update_layout(
@@ -1849,16 +1963,22 @@ if page == "Evenements":
                     tickfont=dict(size=10, color=MUTED),
                     outlinewidth=0,
                 ),
+                hoverinfo="skip",
+            ))
+            # Couche points invisibles pour hover fluide (plus rapide que polygones)
+            _fig2.add_trace(go.Scattermapbox(
+                lat=_lats_ev, lon=_lons_ev,
+                mode="markers",
+                marker=dict(size=8, opacity=0, color="rgba(0,0,0,0)"),
                 customdata=_cd_anom,
                 hovertemplate=(
-                    "<b>%{z:+.2f}\u03c3</b>\u00a0|\u00a0%{customdata[0]:.1f} mm<br>"
-                    "<span style='color:#94A3B8;font-size:0.85em'>"
-                    "%{customdata[3]:.3f}\u00b0N\u00a0%{customdata[4]:.3f}\u00b0W"
-                    "</span><br>"
+                    "<b>%{customdata[6]}</b>\u00a0|\u00a0%{customdata[0]} mm<br>"
+                    "D\u00e9partement\u00a0: <b>%{customdata[5]}</b><br>"
                     "R\u00e9gion\u00a0: %{customdata[1]}<br>"
                     "Cat\u00e9gorie\u00a0: <b>%{customdata[2]}</b>"
                     "<extra></extra>"
                 ),
+                showlegend=False,
             ))
             # Halo blanc : marque le seuil de detection 2sigma (contour visuel)
             _mask_2s = [a >= 2.0 for a in _anom_ev]
@@ -1937,8 +2057,8 @@ if page == "Evenements":
 
             _pmax_v    = _sv("precip_max",    "{:.1f}")
             _pmoy_v    = _sv("precip_mean",   "{:.1f}")
-            _amax_v    = _sv("anomaly_max",   "{:.2f}")
-            _amoy_v    = _sv("anomaly_mean",  "{:.2f}")
+            _amax_v    = _sv("anomaly_max",   "{:.1f}")
+            _amoy_v    = _sv("anomaly_mean",  "{:.1f}")
             _ext_pct_v = float(_sv("extreme_percentage", "{}", "0"))
             _mregion_v = _sv("main_region")
             _etype_v   = _sv("event_type")
@@ -2336,7 +2456,7 @@ elif page == "Teleconnexions":
         <p class="pg-bc">Dashboard &nbsp;/&nbsp; <b>Teleconnexions</b></p>
         <h1 class="pg-ttl">Teleconnexions SST - Precipitations Extremes</h1>
         <p class="pg-sub">
-          Correlations Pearson &amp; Spearman · Correction AR1 + FDR
+          Correlations Pearson &amp; Spearman · Correction AR1 (p<sub>neff</sub>)
           &nbsp;&middot;&nbsp; Lags 0-12 mois · 11 indices SST
         </p>
       </div>
@@ -2362,9 +2482,10 @@ elif page == "Teleconnexions":
     with fd:
         show_sig = st.checkbox("Sig. seulement", value=False)
 
-    r_col   = "pearson_r"   if tc_type == "Pearson" else "spearman_r"
-    sig_col = "sig_pearson" if tc_type == "Pearson" else "sig_spearman"
-    p_neff_col = "pearson_p_neff" if tc_type == "Pearson" else "spearman_p_neff"
+    r_col       = "pearson_r"   if tc_type == "Pearson" else "spearman_r"
+    sig_col     = "sig_pearson" if tc_type == "Pearson" else "sig_spearman"
+    p_neff_col  = "pearson_p_neff" if tc_type == "Pearson" else "spearman_p_neff"
+    sig_nom_col = "sig_pearson_nom" if tc_type == "Pearson" else "sig_spearman_nom"
 
     df_tc = tc_data.get(tc_phase, pd.DataFrame())
     if df_tc.empty:
@@ -2382,9 +2503,10 @@ elif page == "Teleconnexions":
         st.markdown(
             '<p class="pnl-ttl">Heatmap des correlations par indice et lag</p>'
             '<p class="pnl-sub">'
-            'Couleur = coefficient r &nbsp;&middot;&nbsp; '
-            '<b style="color:#F59E0B;">*</b> p_neff &lt; 0.05 &nbsp;&middot;&nbsp; '
-            '<b style="color:#F59E0B;">**</b> p_neff &lt; 0.01 (correction AR1)'
+            'Couleur = coefficient r &nbsp;&middot;&nbsp; Etoiles = p<sub>neff</sub> (AR1) : '
+            '<b style="color:#F59E0B;">*</b> &lt;0,05 &nbsp; '
+            '<b style="color:#F59E0B;">**</b> &lt;0,01 &nbsp; '
+            '<b style="color:#F59E0B;">***</b> &lt;0,001'
             '</p>',
             unsafe_allow_html=True,
         )
@@ -2392,7 +2514,7 @@ elif page == "Teleconnexions":
         all_indices = [i for grp in IDX_GROUP.values() for i in grp]
         lags_shown  = LAGS_ALL
 
-        # Construire matrices r et p_neff
+        # Matrices r et p_neff (meme regle que sig_pearson / sig_spearman)
         z_mat, p_mat = [], []
         for hm_idx in all_indices:
             row_z, row_p = [], []
@@ -2453,14 +2575,18 @@ elif page == "Teleconnexions":
             ),
         ))
 
-        # Annotations etoiles (noir, grande taille) sur cellules significatives
+        # Annotations etoiles : memes seuils que _sig() sur p_neff (script 04)
         annotations = []
         for ri, hm_idx in enumerate(all_indices):
             for ci, lag in enumerate(lags_shown):
                 p_v = p_mat[ri][ci]
-                if p_v is not None and p_v < 0.01:
+                if p_v is None or pd.isna(p_v):
+                    continue
+                if p_v < 0.001:
+                    star_txt = "***"
+                elif p_v < 0.01:
                     star_txt = "**"
-                elif p_v is not None and p_v < 0.05:
+                elif p_v < 0.05:
                     star_txt = "*"
                 else:
                     continue
@@ -2507,13 +2633,17 @@ elif page == "Teleconnexions":
     with top_col:
         st.markdown(
             '<p class="pnl-ttl">Top 8 correlations</p>'
-            '<p class="pnl-sub">Valeurs absolues · tous lags</p>',
+            '<p class="pnl-sub">Valeurs absolues · tous lags · '
+            'etoiles = p<sub>neff</sub> sur chaque ligne (comme la heatmap)</p>',
             unsafe_allow_html=True,
         )
 
         df_top = df_m.copy()
         if show_sig:
-            df_top = df_top[df_top[sig_col].notna() & (df_top[sig_col] != "")]
+            if p_neff_col in df_top.columns:
+                df_top = df_top[df_top[p_neff_col].apply(_sig_from_p_neff).ne("")]
+            else:
+                df_top = df_top.iloc[0:0]
         df_top = df_top.assign(abs_r=df_top[r_col].abs()).nlargest(8, "abs_r")
 
         if df_top.empty:
@@ -2533,13 +2663,13 @@ elif page == "Teleconnexions":
                 bar_w    = int(abs(r_val) / 0.5 * 100)
                 r_clr    = "#1D4ED8" if is_pos else "#B91C1C"
                 r_str    = f"{r_val:+.3f}"
-                sv       = rec.get(sig_col, "")
+                badge    = _sig_from_p_neff(rec.get(p_neff_col))
                 sig_badge = ""
-                if pd.notna(sv) and str(sv).strip() in ("*", "**"):
+                if badge:
                     sig_badge = (
                         '<span style="font-size:0.63rem;background:rgba(245,158,11,0.18);'
                         'color:#D97706;border-radius:4px;padding:1px 5px;'
-                        f'font-weight:700;">{str(sv).strip()}</span>'
+                        f'font-weight:700;">{badge}</span>'
                     )
                 st.markdown(
                     f'<div style="padding:7px 0;border-bottom:1px solid {BORDER};">'
@@ -2565,7 +2695,8 @@ elif page == "Teleconnexions":
         st.markdown(
             '<p class="pnl-ttl">Profil de correlation par indice (r vs lag)</p>'
             '<p class="pnl-sub">Evolution du coefficient r en fonction du decalage temporel'
-            ' &nbsp;&middot;&nbsp; <span style="color:#F59E0B;">&#9733;</span> = significatif (p&lt;0.05)</p>',
+            ' &nbsp;&middot;&nbsp; <span style="color:#F59E0B;">&#9733;</span> = significatif '
+            '(p<sub>neff</sub> : 0,05 / 0,01 / 0,001)</p>',
             unsafe_allow_html=True,
         )
 
@@ -2586,16 +2717,19 @@ elif page == "Teleconnexions":
                 continue
             clr = COLORS_LINE[ci % len(COLORS_LINE)]
 
-            # Symbole et taille par point selon significativite p_neff
+            # Symbole et taille par point selon p_neff (aligne sur sig_*)
             symbols, sizes, texts, hover_extra = [], [], [], []
             for _, row in sub_idx.iterrows():
                 p = row.get(p_neff_col, float("nan"))
-                if pd.notna(p) and p < 0.01:
+                if pd.notna(p) and p < 0.001:
+                    symbols.append("star"); sizes.append(18)
+                    texts.append("***"); hover_extra.append(f"*** p_neff={p:.4f}")
+                elif pd.notna(p) and p < 0.01:
                     symbols.append("star"); sizes.append(16)
-                    texts.append("**"); hover_extra.append(f"** p={p:.4f}")
+                    texts.append("**"); hover_extra.append(f"** p_neff={p:.4f}")
                 elif pd.notna(p) and p < 0.05:
                     symbols.append("star"); sizes.append(14)
-                    texts.append("*"); hover_extra.append(f"* p={p:.4f}")
+                    texts.append("*"); hover_extra.append(f"* p_neff={p:.4f}")
                 else:
                     symbols.append("circle"); sizes.append(6)
                     texts.append(""); hover_extra.append("")
@@ -2645,7 +2779,8 @@ elif page == "Teleconnexions":
     with rc2:
         st.markdown(
             '<p class="pnl-ttl">Tableau de synthese</p>'
-            '<p class="pnl-sub">Meilleur lag par indice (|r| max)</p>',
+            '<p class="pnl-sub">Meilleur lag par indice (|r| max) · '
+            'Sig = p<sub>neff</sub> sur cette ligne (pas sur un autre lag)</p>',
             unsafe_allow_html=True,
         )
 
@@ -2658,8 +2793,8 @@ elif page == "Teleconnexions":
             best = sub_idx.loc[sub_idx[r_col].abs().idxmax()]
             r_val  = best[r_col]
             lag_v  = int(best["lag_months"])
-            sig_v  = best.get(sig_col, "")
-            rows_synth.append((idx, r_val, lag_v, sig_v))
+            pnb    = best[p_neff_col] if p_neff_col in best.index else float("nan")
+            rows_synth.append((idx, r_val, lag_v, pnb))
 
         rows_synth.sort(key=lambda x: abs(x[1]), reverse=True)
 
@@ -2675,14 +2810,15 @@ elif page == "Teleconnexions":
         </div>
         """, unsafe_allow_html=True)
 
-        for idx, r_val, lag_v, sig_v in rows_synth:
+        for idx, r_val, lag_v, p_neff_row in rows_synth:
             is_pos = r_val >= 0
             r_clr  = "#1D4ED8" if is_pos else "#B91C1C"
+            sig_disp = _sig_from_p_neff(p_neff_row)
             sig_html = ""
-            if pd.notna(sig_v) and str(sig_v).strip() in ("*", "**"):
+            if sig_disp:
                 sig_html = (
                     f'<span style="font-size:0.7rem;color:#92400E;'
-                    f'font-weight:700;">{str(sig_v).strip()}</span>'
+                    f'font-weight:700;">{sig_disp}</span>'
                 )
             bar_pct = int(abs(r_val) / 0.5 * 100)
             st.markdown(f"""
@@ -2709,10 +2845,10 @@ elif page == "Teleconnexions":
         <div style="margin-top:12px;padding:8px 10px;background:{BG};
                     border-radius:8px;font-size:0.68rem;color:{MUTED};
                     line-height:1.8;">
-          <b style="color:{TEXT};">Niveaux de significativite</b><br>
-          * &nbsp;= p &lt; 0.05 (nominale)<br>
-          ** = p &lt; 0.05 (FDR Benjamini-Hochberg)<br>
-          n_eff = correction AR1 (Chelton 1983)
+          <b style="color:{TEXT};">Significativite (correction AR1)</b><br>
+          p<sub>neff</sub> = p-value apres degres de liberte effectifs (Chelton 1983).<br>
+          * &lt; 0,05 &nbsp; ** &lt; 0,01 &nbsp; *** &lt; 0,001<br>
+          <i>Sig. nominale</i> : p brut (sans AR1), voir KPI ci-dessous.
         </div>
         """, unsafe_allow_html=True)
 
@@ -2720,10 +2856,16 @@ elif page == "Teleconnexions":
     st.markdown("<div style='height:20px'></div>", unsafe_allow_html=True)
     df_all_m = df_m.copy()
     n_tests   = len(df_all_m)
-    n_sig_nom = df_all_m[sig_col].notna().sum() if sig_col in df_all_m else 0
-    n_sig_fdr = df_all_m[
-        df_all_m[sig_col].isin(["**"])
-    ].shape[0] if sig_col in df_all_m.columns else 0
+    _s_nom = (
+        df_all_m[sig_nom_col].fillna("").astype(str).str.strip().ne("")
+        if sig_nom_col in df_all_m.columns
+        else pd.Series([False] * len(df_all_m))
+    )
+    n_sig_nom = int(_s_nom.sum())
+    if p_neff_col in df_all_m.columns and not df_all_m.empty:
+        n_sig_ar1 = int(df_all_m[p_neff_col].apply(_sig_from_p_neff).ne("").sum())
+    else:
+        n_sig_ar1 = 0
     best_row = df_all_m.loc[df_all_m[r_col].abs().idxmax()] if not df_all_m.empty else None
     best_r   = best_row[r_col] if best_row is not None else 0
 
@@ -2732,9 +2874,9 @@ elif page == "Teleconnexions":
         (mk1, f"background:rgba(79,70,229,0.13)", "Tests totaux", f"{n_tests}", "t-indigo",
          f"{len(all_indices)} indices x {len(LAGS_ALL)} lags"),
         (mk2, f"background:rgba(16,185,129,0.13)", "Sig. nominale", f"{int(n_sig_nom)}", "t-green",
-         "p < 0.05 sans correction"),
-        (mk3, f"background:rgba(245,158,11,0.13)", "Sig. FDR", f"{int(n_sig_fdr)}", "t-amber",
-         "Apres Benjamini-Hochberg"),
+         "p brut (Pearson/Spearman), sans FDR"),
+        (mk3, f"background:rgba(245,158,11,0.13)", "Sig. AR1 (p_neff)", f"{int(n_sig_ar1)}", "t-amber",
+         "Etoiles sur p_neff (Chelton 1983)"),
         (mk4, f"background:rgba(14,165,233,0.13)", "r max |.| ", f"{abs(best_r):.3f}", "t-blue",
          f"{best_row['index']} lag {int(best_row['lag_months'])}m" if best_row is not None else ""),
     ]
@@ -4377,7 +4519,7 @@ if page == "Pipeline":
                 "id": "04", "num": 6,
                 "label": "Teleconnexions (script principal)",
                 "script": "04_teleconnections_analysis.py",
-                "desc": "Correlations mensuelles SST x precipitations — detrend, AR1, FDR",
+                "desc": "Correlations mensuelles SST x precipitations — detrend, AR1 (p_neff)",
                 "category": "Teleconnexions", "color": ROSE,
                 "outputs": [
                     "outputs/teleconnections/correlations_Phase_1_debut.csv",
