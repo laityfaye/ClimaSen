@@ -448,10 +448,7 @@ def _apply_geo_traces(fig):
 
 
 with st.spinner("Chargement des donnees en cours..."):
-    df         = load_events()
-    tc_data    = load_telecon()
-    sst_raw    = load_sst()
-    clust_data = load_clustering()
+    df = load_events()
 
 # ─── Viewport : detectable uniquement via CSS (media queries deja en place) ───
 # Les colonnes Streamlit se stackent automatiquement via les regles CSS < 640px.
@@ -2343,6 +2340,9 @@ if page == "Evenements":
 # ═════════════════════════════════════════════════════════════════════════════
 elif page == "Teleconnexions":
 
+    with st.spinner("Chargement des teleconnexions..."):
+        tc_data = load_telecon()
+
     PHASE_TC_L = {
         "Phase_1_debut":  "Phase 1 - Debut (Mai-Jun)",
         "Phase_2_pleine": "Phase 2 - Pleine (Jul-Aou)",
@@ -2813,6 +2813,9 @@ elif page == "Teleconnexions":
 # ═════════════════════════════════════════════════════════════════════════════
 elif page == "Indices SST":
 
+    with st.spinner("Chargement des indices SST..."):
+        sst_raw = load_sst()
+
     SST_INDICES = ["Nino12", "Nino3", "Nino34", "Nino4",
                    "IOD", "IOBM", "TNA", "TSA", "ATL3", "AMM", "AMO"]
     SST_GROUPS = {
@@ -3136,6 +3139,10 @@ elif page == "Indices SST":
 # PAGE A VENIR — CLUSTERING
 # ═════════════════════════════════════════════════════════════════════════════
 elif page == "Clustering":
+
+    with st.spinner("Chargement des donnees de clustering..."):
+        clust_data = load_clustering()
+
     # ── header ──────────────────────────────────────────────────────────────
     st.markdown(f"""
     <div class="pg-hdr">
