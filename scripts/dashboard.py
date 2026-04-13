@@ -16,12 +16,8 @@ import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import matplotlib.ticker as mticker
-try:
-    import cartopy.crs as ccrs
-    import cartopy.feature as cfeature
-    HAS_CARTOPY = True
-except ImportError:
-    HAS_CARTOPY = False
+import importlib.util as _iutil
+HAS_CARTOPY = _iutil.find_spec("cartopy") is not None
 
 # ─── Config ──────────────────────────────────────────────────────────────────
 st.set_page_config(
@@ -257,6 +253,10 @@ def _render_centroid_cartopy(z_bytes: bytes, lats_bytes: bytes, lons_bytes: byte
     z    = np.frombuffer(z_bytes,    dtype=np.float64).reshape(480, 1440)
     lats = np.frombuffer(lats_bytes, dtype=np.float64)
     lons = np.frombuffer(lons_bytes, dtype=np.float64)
+
+    if HAS_CARTOPY:
+        import cartopy.crs as ccrs
+        import cartopy.feature as cfeature
 
     fig = plt.figure(figsize=(14, 5), dpi=150)
     if HAS_CARTOPY:
