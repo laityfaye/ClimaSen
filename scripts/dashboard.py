@@ -16,8 +16,12 @@ import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import matplotlib.ticker as mticker
-import importlib.util as _iutil
-HAS_CARTOPY = _iutil.find_spec("cartopy") is not None
+try:
+    import cartopy.crs as ccrs
+    import cartopy.feature as cfeature
+    HAS_CARTOPY = True
+except ImportError:
+    HAS_CARTOPY = False
 
 # ─── Config ──────────────────────────────────────────────────────────────────
 st.set_page_config(
@@ -254,10 +258,6 @@ def _render_centroid_cartopy(z_bytes: bytes, lats_bytes: bytes, lons_bytes: byte
     lats = np.frombuffer(lats_bytes, dtype=np.float64)
     lons = np.frombuffer(lons_bytes, dtype=np.float64)
 
-    if HAS_CARTOPY:
-        import cartopy.crs as ccrs
-        import cartopy.feature as cfeature
-
     fig = plt.figure(figsize=(14, 5), dpi=150)
     if HAS_CARTOPY:
         ax = fig.add_subplot(1, 1, 1, projection=ccrs.PlateCarree())
@@ -447,8 +447,10 @@ def _apply_geo_traces(fig):
         ))
 
 
-with st.spinner("Chargement des donnees en cours..."):
-    df = load_events()
+df         = load_events()
+tc_data    = load_telecon()
+sst_raw    = load_sst()
+clust_data = load_clustering()
 
 # ─── Viewport : detectable uniquement via CSS (media queries deja en place) ───
 # Les colonnes Streamlit se stackent automatiquement via les regles CSS < 640px.
@@ -1482,10 +1484,9 @@ if page == "Evenements":
     </div>
     """, unsafe_allow_html=True)
 
-    with st.spinner("Chargement des cartes..."):
-        _ev_pixels  = load_events_pixels()
-        _ev_summary = load_events_summary()
-        _dept_geo   = load_dept_geojson()
+    _ev_pixels  = load_events_pixels()
+    _ev_summary = load_events_summary()
+    _dept_geo   = load_dept_geojson()
 
     if _ev_pixels is None or len(_ev_pixels) == 0:
         st.info(
@@ -1864,7 +1865,7 @@ if page == "Evenements":
                 showlegend=False,
             ))
 
-        _mmap1, _minfo = st.columns([5, 4], gap="medium")
+        _mmap1, _mmap2, _minfo = st.columns([5, 5, 4], gap="medium")
 
         # ── Carte 1 : Precipitations (mm) — Choroplethmapbox CHIRPS 0.05 deg ──
         with _mmap1:
@@ -1928,6 +1929,92 @@ if page == "Evenements":
                     "toImageButtonOptions": {
                         "format": "png",
                         "filename": f"precip_{_sel_date}",
+                    },
+                },
+            )
+
+        # ── Carte 2 : Anomalie standardisee (σ) — RdBu_r IPCC divergente ───
+        with _mmap2:
+            st.markdown(
+                '<p class="pnl-ttl" style="margin-bottom:4px">'
+                '&#9889; Anomalie standardis\u00e9e (\u03c3)</p>',
+                unsafe_allow_html=True,
+            )
+            _fig2 = go.Figure()
+            _fig2.add_trace(go.Choroplethmapbox(
+                geojson=_pixel_geo,
+                locations=_ids_px,
+                z=_anom_ev,
+                colorscale=_CS_ANOM,
+                zmin=-_a_abs, zmax=_a_abs,
+                zmid=0,
+                marker=dict(
+                    opacity=0.87,
+                    line=dict(width=0.4, color="rgba(255,255,255,0.12)"),
+                ),
+                colorbar=dict(
+                    title=dict(text="\u03c3", font=dict(size=11, color=MUTED)),
+                    thickness=12, len=0.82, x=1.01,
+                    tickvals=[-3, -2, -1, 0, 1, 2, 3],
+                    ticktext=[
+                        "-3\u03c3", "-2\u03c3", "-1\u03c3", "0",
+                        "+1\u03c3", "+2\u03c3", "+3\u03c3",
+                    ],
+                    tickfont=dict(size=10, color=MUTED),
+                    outlinewidth=0,
+                ),
+                hoverinfo="skip",
+            ))
+            # Couche points invisibles pour hover fluide (plus rapide que polygones)
+            _fig2.add_trace(go.Scattermapbox(
+                lat=_lats_ev, lon=_lons_ev,
+                mode="markers",
+                marker=dict(size=8, opacity=0, color="rgba(0,0,0,0)"),
+                customdata=_cd_anom,
+                hovertemplate=(
+                    "<b>%{customdata[6]}</b>\u00a0|\u00a0%{customdata[0]} mm<br>"
+                    "D\u00e9partement\u00a0: <b>%{customdata[5]}</b><br>"
+                    "R\u00e9gion\u00a0: %{customdata[1]}<br>"
+                    "Cat\u00e9gorie\u00a0: <b>%{customdata[2]}</b>"
+                    "<extra></extra>"
+                ),
+                showlegend=False,
+            ))
+            # Halo blanc : marque le seuil de detection 2sigma (contour visuel)
+            _mask_2s = [a >= 2.0 for a in _anom_ev]
+            _lats_2s = [la for la, m in zip(_lats_ev, _mask_2s) if m]
+            _lons_2s = [lo for lo, m in zip(_lons_ev, _mask_2s) if m]
+            if _lats_2s:
+                # Halo 2sigma : petit point blanc semi-transparent
+                # (marker.line non supporte dans Scattermapbox)
+                _fig2.add_trace(go.Scattermapbox(
+                    lat=_lats_2s, lon=_lons_2s,
+                    mode="markers",
+                    marker=dict(size=6, color="white", opacity=0.55),
+                    hoverinfo="skip",
+                    showlegend=False,
+                ))
+            _add_overlays(_fig2)
+            _fig2.update_layout(
+                mapbox=_bmap, margin=_mgn, height=430,
+                plot_bgcolor=CARD, paper_bgcolor=CARD,
+                title=dict(
+                    text=f"<b>{_sel_date}</b>\u00b7 Anomalie standardis\u00e9e",
+                    font=dict(size=10, color=MUTED), x=0, pad=dict(l=4),
+                ),
+            )
+            st.plotly_chart(
+                _fig2, use_container_width=True,
+                config={
+                    "displayModeBar": True,
+                    "modeBarButtonsToRemove": [
+                        "lasso2d", "select2d", "autoScale2d",
+                        "hoverClosestMapbox",
+                    ],
+                    "displaylogo": False,
+                    "toImageButtonOptions": {
+                        "format": "png",
+                        "filename": f"anomalie_{_sel_date}",
                     },
                 },
             )
@@ -2339,9 +2426,6 @@ if page == "Evenements":
 # PAGE TELECONNEXIONS
 # ═════════════════════════════════════════════════════════════════════════════
 elif page == "Teleconnexions":
-
-    with st.spinner("Chargement des teleconnexions..."):
-        tc_data = load_telecon()
 
     PHASE_TC_L = {
         "Phase_1_debut":  "Phase 1 - Debut (Mai-Jun)",
@@ -2813,9 +2897,6 @@ elif page == "Teleconnexions":
 # ═════════════════════════════════════════════════════════════════════════════
 elif page == "Indices SST":
 
-    with st.spinner("Chargement des indices SST..."):
-        sst_raw = load_sst()
-
     SST_INDICES = ["Nino12", "Nino3", "Nino34", "Nino4",
                    "IOD", "IOBM", "TNA", "TSA", "ATL3", "AMM", "AMO"]
     SST_GROUPS = {
@@ -3139,10 +3220,6 @@ elif page == "Indices SST":
 # PAGE A VENIR — CLUSTERING
 # ═════════════════════════════════════════════════════════════════════════════
 elif page == "Clustering":
-
-    with st.spinner("Chargement des donnees de clustering..."):
-        clust_data = load_clustering()
-
     # ── header ──────────────────────────────────────────────────────────────
     st.markdown(f"""
     <div class="pg-hdr">
