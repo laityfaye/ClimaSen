@@ -1,21 +1,24 @@
 Tableau des k - 3 methodes de selection du k optimal
 ======================================================================
 
- k     Inertie  Silhouette  Davies-Bouldin     Methode(s)
- 2 213636480.0    0.058546        3.802484               
- 3 205937888.0    0.060328        3.708566               
- 4 199795296.0    0.068729        3.098089               
- 5 196283872.0    0.065531        3.347112               
- 6 189667568.0    0.078992        2.987503          coude
- 7 186818144.0    0.077076        3.357024               
- 8 181165440.0    0.093680        2.717712 Davies-Bouldin
- 9 178150016.0    0.093657        2.929745               
-10 173631344.0    0.099984        2.887113     silhouette
+ k     Inertie  Silhouette  Davies-Bouldin                  Methode(s)
+ 2 213636480.0      0.0585          3.8025                            
+ 3 205937888.0      0.0603          3.7086                            
+ 4 199795296.0      0.0687          3.0981                            
+ 5 196283872.0      0.0655          3.3471                            
+ 6 189667568.0      0.0790          2.9875                       coude
+ 7 186818144.0      0.0771          3.3570                            
+ 8 181165440.0      0.0937          2.7177                            
+ 9 178150016.0      0.0937          2.9297                            
+10 173631344.0      0.1000          2.8871                            
+11 170927552.0      0.1035          2.8656                            
+12 167550752.0      0.0833          2.6616                            
+13 163581952.0      0.1213          2.7689                            
+14 161590304.0      0.1203          2.6515                            
+15 156648384.0      0.1315          2.5148 silhouette | Davies-Bouldin
 
-Resume des k optimaux par methode :
-  Coude :             k = 6
-  Silhouette :        k = 10
-  Davies-Bouldin :    k = 8
+  Coude :          k = 6
+  Silhouette :     k = 15
+  Davies-Bouldin : k = 15
 
-  k optimal retenu (vote) : 6
-  Decision : vote -> k=10 (dernier k teste) ; parcimonie -> k_coude=6
+  k optimal retenu (force) : 6

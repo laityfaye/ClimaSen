@@ -66,20 +66,31 @@
   "k_elbow": 9,
   "k_silhouette": 15,
   "k_davies_bouldin": 15,
+  "optimal_k": 9,
   "best_silhouette_score": 0.07196512818336487,
-  "votes": {
-    "9": 1,
-    "15": 2
-  },
+  "decision": "k force a 9 via dashboard (auto=15)",
   "method_votes": {
+    "2": [],
+    "3": [],
+    "4": [],
+    "5": [],
+    "6": [],
+    "7": [],
+    "8": [],
     "9": [
       "coude"
     ],
+    "10": [],
+    "11": [],
+    "12": [],
+    "13": [],
+    "14": [],
     "15": [
       "silhouette",
       "Davies-Bouldin"
     ]
   },
-  "optimal_k": 9,
-  "decision": "vote -> k=15 (dernier k teste) ; parcimonie -> k_coude=9"
+  "n_samples": 1263,
+  "n_pca_components": 413,
+  "source": "fast_rerun_pca"
 }

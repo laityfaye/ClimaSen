@@ -3300,7 +3300,23 @@ elif page == "Clustering":
                 st.error("Timeout depasse (30 min). Le calcul est peut-etre trop long.")
 
             if run_clicked:
-                script_path = BASE / "scripts" / "11_kmeans_sst_analysis.py"
+                # Utilise 11b_kmeans_rerun_fast.py si les donnees PCA existent,
+                # sinon repli sur le script complet 11_kmeans_sst_analysis.py
+                fast_script  = BASE / "scripts" / "11b_kmeans_rerun_fast.py"
+                full_script  = BASE / "scripts" / "11_kmeans_sst_analysis.py"
+
+                def _pca_exists(ph):
+                    return (BASE / "outputs" / "clustering" / ph / f"{ph}_kmeans_input_pca.csv").exists()
+
+                phases_needed = []
+                if mode_opt != "All_phases uniquement":
+                    phases_needed += ["Phase_1_debut", "Phase_2_pleine", "Phase_3_fin"]
+                if mode_opt != "Par phase uniquement":
+                    phases_needed += ["All_phases"]
+
+                use_fast = all(_pca_exists(ph) for ph in phases_needed) and fast_script.exists()
+                script_path = fast_script if use_fast else full_script
+
                 cmd = [sys.executable, str(script_path)]
 
                 if mode_opt == "Par phase uniquement":
@@ -3316,7 +3332,12 @@ elif page == "Clustering":
                 env["PYTHONIOENCODING"] = "utf-8"
                 env["PYTHONUTF8"] = "1"
 
-                with st.spinner("Clustering en cours... (peut prendre plusieurs minutes)"):
+                spinner_msg = (
+                    "Clustering en cours... (mode rapide - quelques secondes)"
+                    if use_fast else
+                    "Clustering en cours... (mode complet - peut prendre plusieurs minutes)"
+                )
+                with st.spinner(spinner_msg):
                     try:
                         result = subprocess.run(
                             cmd,
@@ -4033,17 +4054,118 @@ if page == "Pipeline":
     </div>
     """, unsafe_allow_html=True)
 
-    # ── Onglets ───────────────────────────────────────────────────────────────
-    tab_chirps, tab_pipeline, tab_sst = st.tabs([
-        "  Donnees CHIRPS",
-        "  Pipeline d\'analyse",
-        "  Donnees SST",
-    ])
+    # ── Navigation onglets ────────────────────────────────────────────────────
+    if "pip_tab" not in st.session_state:
+        st.session_state.pip_tab = "Pipeline d'analyse"
+
+    TAB_ICONS = {
+        "Donnees CHIRPS":    "&#9729;",
+        "Pipeline d'analyse":"&#9654;",
+        "Donnees SST":       "&#127754;",
+    }
+    TAB_NAMES = ["Donnees CHIRPS", "Pipeline d'analyse", "Donnees SST"]
+
+    _cur_tab = st.session_state.pip_tab
+
+    # CSS injecte une seule fois : restyle les boutons de navigation
+    st.markdown(f"""
+    <style>
+    /* Barre de navigation Pipeline */
+    div[data-testid="stHorizontalBlock"] > div[data-testid="stColumn"] > div > div[data-testid="stVerticalBlockBorderWrapper"] {{
+        border: none !important;
+        background: transparent !important;
+        box-shadow: none !important;
+    }}
+    .pip-tab-bar {{
+        display: flex;
+        gap: 0;
+        background: {CARD};
+        border: 1.5px solid {BORDER};
+        border-radius: 14px;
+        padding: 5px;
+        margin-bottom: 24px;
+        box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+    }}
+    .pip-tab-item {{
+        flex: 1;
+        border-radius: 10px;
+        padding: 11px 8px;
+        text-align: center;
+        cursor: pointer;
+        transition: all .18s ease;
+        border: none;
+        background: transparent;
+        color: {MUTED};
+        text-decoration: none;
+    }}
+    .pip-tab-item.active {{
+        background: linear-gradient(135deg, {INDIGO} 0%, {BLUE} 100%);
+        color: #fff;
+        box-shadow: 0 3px 10px {INDIGO}55;
+    }}
+    .pip-tab-item:hover:not(.active) {{
+        background: {INDIGO}10;
+        color: {INDIGO};
+    }}
+    .pip-tab-icon {{
+        font-size: 1.15rem;
+        display: block;
+        margin-bottom: 3px;
+    }}
+    .pip-tab-label {{
+        font-size: 0.8rem;
+        font-weight: 700;
+        letter-spacing: .2px;
+        display: block;
+    }}
+    </style>
+    """, unsafe_allow_html=True)
+
+    nav_c1, nav_c2, nav_c3 = st.columns(3)
+    for col, name in zip([nav_c1, nav_c2, nav_c3], TAB_NAMES):
+        is_active = _cur_tab == name
+        with col:
+            # Label avec marqueur "ACTIF" visible
+            if is_active:
+                btn_label = f"{TAB_ICONS[name]}  {name}"
+            else:
+                btn_label = f"{TAB_ICONS[name]}  {name}"
+            if st.button(
+                btn_label,
+                key=f"pip_nav_{name}",
+                use_container_width=True,
+                type="primary" if is_active else "secondary",
+            ):
+                st.session_state.pip_tab = name
+                _cur_tab = name
+                st.rerun()
+            # Indicateur visuel sous le bouton actif
+            if is_active:
+                st.markdown(
+                    f"<div style='height:4px;background:linear-gradient(90deg,{INDIGO},{BLUE});"
+                    f"border-radius:2px;margin-top:-12px;margin-bottom:4px'></div>"
+                    f"<div style='text-align:center;font-size:0.65rem;font-weight:800;"
+                    f"color:{INDIGO};letter-spacing:1.2px;text-transform:uppercase;"
+                    f"margin-bottom:6px'>&#9650; actif</div>",
+                    unsafe_allow_html=True,
+                )
+            else:
+                st.markdown("<div style='height:26px'></div>", unsafe_allow_html=True)
+
+    st.markdown(
+        f"<div style='height:2px;background:linear-gradient(90deg,{INDIGO}40,{BLUE}40);"
+        f"border-radius:2px;margin-bottom:22px'></div>",
+        unsafe_allow_html=True,
+    )
+
+    _show_chirps   = (_cur_tab == "Donnees CHIRPS")
+    _show_pipeline = (_cur_tab == "Pipeline d'analyse")
+    _show_sst      = (_cur_tab == "Donnees SST")
 
     # =========================================================================
     # ONGLET 1 — CHIRPS
     # =========================================================================
-    with tab_chirps:
+    if _show_chirps:
 
         PRESETS = {
             "Senegal":       dict(lat_min=12.0,  lat_max=17.0,  lon_min=-17.6, lon_max=-11.3,
@@ -4348,7 +4470,7 @@ if page == "Pipeline":
     # =========================================================================
     # ONGLET 2 — PIPELINE D'ANALYSE
     # =========================================================================
-    with tab_pipeline:
+    if _show_pipeline:
         import io as _io
         import zipfile as _zf
 
@@ -4360,9 +4482,10 @@ if page == "Pipeline":
             "zip":  "application/zip",
         }
         _GRP_LABEL = {
-            "data":    ("Donnees",  "#0EA5E9"),   # BLUE
-            "figure":  ("Figures",  "#10B981"),   # EMERALD
-            "report":  ("Rapports", "#F59E0B"),   # AMBER
+            "input":   ("Donnees d'entree K-Means", "#8B5CF6"),  # VIOLET
+            "data":    ("Donnees de sortie",  "#0EA5E9"),         # BLUE
+            "figure":  ("Figures",  "#10B981"),                   # EMERALD
+            "report":  ("Rapports", "#F59E0B"),                   # AMBER
         }
 
         def _make_zip(paths):
@@ -4529,34 +4652,55 @@ if page == "Pipeline":
                     "outputs/clustering/Phase_1_debut/Phase_1_debut_cluster_characteristics.csv",
                 ],
                 "exports": {
+                    "input": [
+                        {"path": "outputs/clustering/Phase_1_debut/Phase_1_debut_kmeans_input_pca.csv",
+                         "label": "P1 · Matrice PCA"},
+                        {"path": "outputs/clustering/Phase_1_debut/Phase_1_debut_pca_explained_variance.csv",
+                         "label": "P1 · Variance PCA"},
+                        {"path": "outputs/clustering/Phase_2_pleine/Phase_2_pleine_kmeans_input_pca.csv",
+                         "label": "P2 · Matrice PCA"},
+                        {"path": "outputs/clustering/Phase_2_pleine/Phase_2_pleine_pca_explained_variance.csv",
+                         "label": "P2 · Variance PCA"},
+                        {"path": "outputs/clustering/Phase_3_fin/Phase_3_fin_kmeans_input_pca.csv",
+                         "label": "P3 · Matrice PCA"},
+                        {"path": "outputs/clustering/Phase_3_fin/Phase_3_fin_pca_explained_variance.csv",
+                         "label": "P3 · Variance PCA"},
+                        {"path": "outputs/clustering/All_phases/All_phases_kmeans_input_pca.csv",
+                         "label": "All · Matrice PCA"},
+                        {"path": "outputs/clustering/All_phases/All_phases_pca_explained_variance.csv",
+                         "label": "All · Variance PCA"},
+                    ],
                     "data": [
-                        # Phase 1
                         {"path": "outputs/clustering/Phase_1_debut/Phase_1_debut_cluster_characteristics.csv",
-                         "label": "Phase 1 — Caracteristiques clusters"},
+                         "label": "P1 · Caracteristiques"},
                         {"path": "outputs/clustering/Phase_1_debut/Phase_1_debut_events_with_clusters.csv",
-                         "label": "Phase 1 — Evenements + clusters"},
+                         "label": "P1 · Evenements"},
                         {"path": "outputs/clustering/Phase_1_debut/Phase_1_debut_tableau_k_3_methodes.csv",
-                         "label": "Phase 1 — Tableau k=3"},
+                         "label": "P1 · Tableau k (3 meth.)"},
                         {"path": "outputs/clustering/Phase_1_debut/Phase_1_debut_tableau_k_4_methodes.csv",
-                         "label": "Phase 1 — Tableau k=4"},
-                        # Phase 2
+                         "label": "P1 · Tableau k (4 meth.)"},
                         {"path": "outputs/clustering/Phase_2_pleine/Phase_2_pleine_cluster_characteristics.csv",
-                         "label": "Phase 2 — Caracteristiques clusters"},
+                         "label": "P2 · Caracteristiques"},
                         {"path": "outputs/clustering/Phase_2_pleine/Phase_2_pleine_events_with_clusters.csv",
-                         "label": "Phase 2 — Evenements + clusters"},
+                         "label": "P2 · Evenements"},
                         {"path": "outputs/clustering/Phase_2_pleine/Phase_2_pleine_tableau_k_3_methodes.csv",
-                         "label": "Phase 2 — Tableau k=3"},
+                         "label": "P2 · Tableau k (3 meth.)"},
                         {"path": "outputs/clustering/Phase_2_pleine/Phase_2_pleine_tableau_k_4_methodes.csv",
-                         "label": "Phase 2 — Tableau k=4"},
-                        # Phase 3
+                         "label": "P2 · Tableau k (4 meth.)"},
                         {"path": "outputs/clustering/Phase_3_fin/Phase_3_fin_cluster_characteristics.csv",
-                         "label": "Phase 3 — Caracteristiques clusters"},
+                         "label": "P3 · Caracteristiques"},
                         {"path": "outputs/clustering/Phase_3_fin/Phase_3_fin_events_with_clusters.csv",
-                         "label": "Phase 3 — Evenements + clusters"},
+                         "label": "P3 · Evenements"},
                         {"path": "outputs/clustering/Phase_3_fin/Phase_3_fin_tableau_k_3_methodes.csv",
-                         "label": "Phase 3 — Tableau k=3"},
+                         "label": "P3 · Tableau k (3 meth.)"},
                         {"path": "outputs/clustering/Phase_3_fin/Phase_3_fin_tableau_k_4_methodes.csv",
-                         "label": "Phase 3 — Tableau k=4"},
+                         "label": "P3 · Tableau k (4 meth.)"},
+                        {"path": "outputs/clustering/All_phases/All_phases_cluster_characteristics.csv",
+                         "label": "All · Caracteristiques"},
+                        {"path": "outputs/clustering/All_phases/All_phases_events_with_clusters.csv",
+                         "label": "All · Evenements"},
+                        {"path": "outputs/clustering/All_phases/All_phases_tableau_k_3_methodes.csv",
+                         "label": "All · Tableau k (3 meth.)"},
                     ],
                     "report": [
                         {"path": "outputs/clustering/rapport_kmeans_sst.txt",
@@ -4623,7 +4767,7 @@ if page == "Pipeline":
             if not exp_groups:
                 return
             has_any = False
-            for grp_key in ("data", "figure", "report"):
+            for grp_key in ("input", "data", "figure", "report"):
                 if grp_key not in exp_groups:
                     continue
                 grp_label, grp_color = _GRP_LABEL[grp_key]
@@ -4913,7 +5057,7 @@ if page == "Pipeline":
     # =========================================================================
     # ONGLET 3 — DONNEES SST
     # =========================================================================
-    with tab_sst:
+    if _show_sst:
         import json as _json
         import signal
 

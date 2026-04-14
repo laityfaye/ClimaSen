@@ -1018,7 +1018,49 @@ class KMeansSSTAnalyzer:
             cluster_characteristics.to_csv(characteristics_file, index=False)
             saved_files['cluster_characteristics'] = characteristics_file
             print(f"[OK] Caractéristiques des clusters sauvegardées: {characteristics_file.name}")
-        
+
+        # 6. Données d'entrée K-Means (matrice PCA) — pour reproductibilité externe
+        if self.sst_matrix_scaled is not None:
+            n_comp = self.sst_matrix_scaled.shape[1]
+            col_names = [f"PC{i+1}" for i in range(n_comp)]
+
+            # 6a. CSV : date + phase + composantes PCA (+ cluster si disponible)
+            pca_rows = {}
+            if self.dates is not None:
+                pca_rows['date'] = [str(d)[:10] for d in self.dates]
+            if self.events_df_loaded is not None and 'phase' in self.events_df_loaded.columns:
+                pca_rows['phase'] = self.events_df_loaded['phase'].values
+            for i, c in enumerate(col_names):
+                pca_rows[c] = self.sst_matrix_scaled[:, i]
+            if self.cluster_labels is not None:
+                pca_rows['cluster'] = self.cluster_labels
+
+            pca_df = pd.DataFrame(pca_rows)
+            pca_csv_file = output_dir / f"{prefix}kmeans_input_pca.csv"
+            pca_df.to_csv(pca_csv_file, index=False, encoding='utf-8-sig')
+            saved_files['kmeans_input_pca_csv'] = pca_csv_file
+            print(f"[OK] Donnees entree K-Means (CSV) sauvegardees: {pca_csv_file.name} "
+                  f"({pca_df.shape[0]} evenements x {n_comp} composantes PCA)")
+
+            # 6b. NPY : matrice brute float32 (chargement rapide)
+            pca_npy_file = output_dir / f"{prefix}kmeans_input_pca.npy"
+            np.save(pca_npy_file, self.sst_matrix_scaled)
+            saved_files['kmeans_input_pca_npy'] = pca_npy_file
+            print(f"[OK] Donnees entree K-Means (NPY) sauvegardees: {pca_npy_file.name}")
+
+            # 6c. CSV variance expliquee par composante PCA
+            if self.pca_model is not None:
+                ev = self.pca_model.explained_variance_ratio_[:n_comp]
+                pca_var_df = pd.DataFrame({
+                    'composante': col_names,
+                    'variance_expliquee': ev,
+                    'variance_cumulee': np.cumsum(ev),
+                })
+                pca_var_file = output_dir / f"{prefix}pca_explained_variance.csv"
+                pca_var_df.to_csv(pca_var_file, index=False, encoding='utf-8-sig')
+                saved_files['pca_explained_variance'] = pca_var_file
+                print(f"[OK] Variance PCA sauvegardee: {pca_var_file.name}")
+
         return saved_files
     
     def run_complete_analysis(self, events_file: Path = None,
