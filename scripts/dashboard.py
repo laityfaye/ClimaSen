@@ -2380,7 +2380,7 @@ elif page == "Teleconnexions":
     """, unsafe_allow_html=True)
 
     # ── Filtres inline ─────────────────────────────────────────────────────
-    fa, fb, fc, fd = st.columns([2, 2, 1.5, 1.5], gap="small")
+    fa, fb, fc, fd, fe = st.columns([2, 2, 1.5, 1.5, 2], gap="small")
     with fa:
         tc_phase = st.selectbox(
             "Phase saisonniere",
@@ -2397,10 +2397,15 @@ elif page == "Teleconnexions":
         tc_type = st.selectbox("Type", ["Pearson", "Spearman"])
     with fd:
         show_sig = st.checkbox("Sig. seulement", value=False)
+    with fe:
+        use_p_brute = st.checkbox("Etoiles p brute", value=False,
+                                  help="Coche : etoiles basees sur p_value brute (non corrigee AR1)\n"
+                                       "Decochez : etoiles basees sur p_neff (corrige autocorrelation AR1)")
 
     r_col       = "pearson_r"   if tc_type == "Pearson" else "spearman_r"
     sig_col     = "sig_pearson" if tc_type == "Pearson" else "sig_spearman"
     p_neff_col  = "pearson_p_neff" if tc_type == "Pearson" else "spearman_p_neff"
+    p_nom_col   = "pearson_p"      if tc_type == "Pearson" else "spearman_p"
     sig_nom_col = "sig_pearson_nom" if tc_type == "Pearson" else "sig_spearman_nom"
 
     df_tc = tc_data.get(tc_phase, pd.DataFrame())
@@ -2416,37 +2421,55 @@ elif page == "Teleconnexions":
     hm_col, top_col = st.columns([3, 1.3], gap="medium")
 
     with hm_col:
+        # Sous-titre dynamique selon le mode etoiles choisi
+        if use_p_brute:
+            star_label = 'p<sub>brute</sub> (non corrigee)'
+            star_color = "#60A5FA"
+        else:
+            star_label = 'p<sub>neff</sub> (AR1 Chelton)'
+            star_color = "#F59E0B"
         st.markdown(
             '<p class="pnl-ttl">Heatmap des correlations par indice et lag</p>'
-            '<p class="pnl-sub">'
-            'Couleur = coefficient r &nbsp;&middot;&nbsp; Etoiles = p<sub>neff</sub> (AR1) : '
-            '<b style="color:#F59E0B;">*</b> &lt;0,05 &nbsp; '
-            '<b style="color:#F59E0B;">**</b> &lt;0,01 &nbsp; '
-            '<b style="color:#F59E0B;">***</b> &lt;0,001'
-            '</p>',
+            f'<p class="pnl-sub">'
+            f'Couleur = coefficient r &nbsp;&middot;&nbsp; Etoiles = {star_label} : '
+            f'<b style="color:{star_color};">*</b> &lt;0,05 &nbsp; '
+            f'<b style="color:{star_color};">**</b> &lt;0,01 &nbsp; '
+            f'<b style="color:{star_color};">***</b> &lt;0,001'
+            f'</p>',
             unsafe_allow_html=True,
         )
 
         all_indices = [i for grp in IDX_GROUP.values() for i in grp]
         lags_shown  = LAGS_ALL
 
-        # Matrices r et p_neff (meme regle que sig_pearson / sig_spearman)
-        z_mat, p_mat = [], []
+        # Matrices r, p_nom (brute), p_neff (AR1) et n_eff
+        z_mat, p_nom_mat, p_mat, neff_mat = [], [], [], []
         for hm_idx in all_indices:
-            row_z, row_p = [], []
+            row_z, row_pnom, row_p, row_neff = [], [], [], []
             for lag in lags_shown:
                 sub = df_m[(df_m["index"] == hm_idx) & (df_m["lag_months"] == lag)]
                 if sub.empty:
                     row_z.append(None)
+                    row_pnom.append(None)
                     row_p.append(None)
+                    row_neff.append(None)
                 else:
                     row_z.append(float(sub[r_col].values[0]))
+                    pnom = sub[p_nom_col].values[0] if p_nom_col in sub.columns else None
+                    row_pnom.append(float(pnom) if pnom is not None and pd.notna(pnom) else None)
                     pv = sub[p_neff_col].values[0] if p_neff_col in sub.columns else None
                     row_p.append(float(pv) if pv is not None and pd.notna(pv) else None)
+                    ne = sub["n_eff"].values[0] if "n_eff" in sub.columns else None
+                    row_neff.append(float(ne) if ne is not None and pd.notna(ne) else None)
             z_mat.append(row_z)
+            p_nom_mat.append(row_pnom)
             p_mat.append(row_p)
+            neff_mat.append(row_neff)
 
-        # Valeur r dans chaque cellule (blanc)
+        # Matrice active pour les etoiles selon le checkbox
+        p_active_mat = p_nom_mat if use_p_brute else p_mat
+
+        # Valeur r dans chaque cellule
         cell_text = []
         for ri in range(len(all_indices)):
             row_t = []
@@ -2455,6 +2478,21 @@ elif page == "Teleconnexions":
                 row_t.append(f"{r_v:+.2f}" if r_v is not None else "")
             cell_text.append(row_t)
 
+        # Customdata : [p_nom, p_neff, n_eff] pour le hover
+        customdata_mat = []
+        for ri in range(len(all_indices)):
+            row_cd = []
+            for ci in range(len(lags_shown)):
+                pn  = p_nom_mat[ri][ci]
+                pe  = p_mat[ri][ci]
+                ne  = neff_mat[ri][ci]
+                row_cd.append([
+                    f"{pn:.4f}" if pn is not None else "N/A",
+                    f"{pe:.4f}" if pe is not None else "N/A",
+                    f"{int(ne)}" if ne is not None else "N/A",
+                ])
+            customdata_mat.append(row_cd)
+
         x_labels = [f"Lag {l}m" for l in lags_shown]
 
         fig_hm = go.Figure(go.Heatmap(
@@ -2462,6 +2500,7 @@ elif page == "Teleconnexions":
             x=x_labels,
             y=all_indices,
             text=cell_text,
+            customdata=customdata_mat,
             texttemplate="%{text}",
             textfont=dict(size=10, color="white"),
             colorscale=[
@@ -2487,15 +2526,19 @@ elif page == "Teleconnexions":
             ),
             hovertemplate=(
                 "<b>%{y}</b> · %{x}<br>"
-                "r = %{z:.3f}<extra></extra>"
+                "r = %{z:.3f}<br>"
+                "p brute = %{customdata[0]}<br>"
+                "p_neff (AR1) = %{customdata[1]}<br>"
+                "n_eff = %{customdata[2]}"
+                "<extra></extra>"
             ),
         ))
 
-        # Annotations etoiles : memes seuils que _sig() sur p_neff (script 04)
+        # Annotations etoiles basees sur la matrice active
         annotations = []
         for ri, hm_idx in enumerate(all_indices):
             for ci, lag in enumerate(lags_shown):
-                p_v = p_mat[ri][ci]
+                p_v = p_active_mat[ri][ci]
                 if p_v is None or pd.isna(p_v):
                     continue
                 if p_v < 0.001:
