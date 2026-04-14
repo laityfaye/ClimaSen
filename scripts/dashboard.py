@@ -1873,64 +1873,65 @@ if page == "Evenements":
                 '&#127783; Pr\u00e9cipitation (mm)</p>',
                 unsafe_allow_html=True,
             )
-            _fig1 = go.Figure()
-            _fig1.add_trace(go.Choroplethmapbox(
-                geojson=_pixel_geo,
-                locations=_ids_px,
-                z=_prec_ev,
-                colorscale=_CS_PREC,
-                zmin=_p_min, zmax=_p_max,
-                marker=dict(
-                    opacity=0.87,
-                    line=dict(width=0.4, color="rgba(255,255,255,0.12)"),
-                ),
-                colorbar=dict(
-                    title=dict(text="mm", font=dict(size=11, color=MUTED)),
-                    thickness=12, len=0.82, x=1.01,
-                    tickfont=dict(size=10, color=MUTED),
-                    outlinewidth=0,
-                ),
-                hoverinfo="skip",
-            ))
-            # Couche points invisibles pour hover fluide (plus rapide que polygones)
-            _fig1.add_trace(go.Scattermapbox(
-                lat=_lats_ev, lon=_lons_ev,
-                mode="markers",
-                marker=dict(size=8, opacity=0, color="rgba(0,0,0,0)"),
-                customdata=_cd_prec,
-                hovertemplate=(
-                    "<b>%{customdata[6]} mm</b>\u00a0|\u00a0%{customdata[0]}<br>"
-                    "D\u00e9partement\u00a0: <b>%{customdata[5]}</b><br>"
-                    "R\u00e9gion\u00a0: %{customdata[1]}<br>"
-                    "Cat\u00e9gorie\u00a0: <b>%{customdata[2]}</b>"
-                    "<extra></extra>"
-                ),
-                showlegend=False,
-            ))
-            _add_overlays(_fig1)
-            _fig1.update_layout(
-                mapbox=_bmap, margin=_mgn, height=430,
-                plot_bgcolor=CARD, paper_bgcolor=CARD,
-                title=dict(
-                    text=f"<b>{_sel_date}</b>\u00b7 Pr\u00e9cipitations",
-                    font=dict(size=10, color=MUTED), x=0, pad=dict(l=4),
-                ),
-            )
-            st.plotly_chart(
-                _fig1, use_container_width=True,
-                config={
-                    "displayModeBar": True,
-                    "modeBarButtonsToRemove": [
-                        "lasso2d", "select2d", "autoScale2d",
-                        "hoverClosestMapbox",
-                    ],
-                    "displaylogo": False,
-                    "toImageButtonOptions": {
-                        "format": "png",
-                        "filename": f"precip_{_sel_date}",
+            with st.spinner("Chargement de la carte des precipitations..."):
+                _fig1 = go.Figure()
+                _fig1.add_trace(go.Choroplethmapbox(
+                    geojson=_pixel_geo,
+                    locations=_ids_px,
+                    z=_prec_ev,
+                    colorscale=_CS_PREC,
+                    zmin=_p_min, zmax=_p_max,
+                    marker=dict(
+                        opacity=0.87,
+                        line=dict(width=0.4, color="rgba(255,255,255,0.12)"),
+                    ),
+                    colorbar=dict(
+                        title=dict(text="mm", font=dict(size=11, color=MUTED)),
+                        thickness=12, len=0.82, x=1.01,
+                        tickfont=dict(size=10, color=MUTED),
+                        outlinewidth=0,
+                    ),
+                    hoverinfo="skip",
+                ))
+                # Couche points invisibles pour hover fluide (plus rapide que polygones)
+                _fig1.add_trace(go.Scattermapbox(
+                    lat=_lats_ev, lon=_lons_ev,
+                    mode="markers",
+                    marker=dict(size=8, opacity=0, color="rgba(0,0,0,0)"),
+                    customdata=_cd_prec,
+                    hovertemplate=(
+                        "<b>%{customdata[6]} mm</b>\u00a0|\u00a0%{customdata[0]}<br>"
+                        "D\u00e9partement\u00a0: <b>%{customdata[5]}</b><br>"
+                        "R\u00e9gion\u00a0: %{customdata[1]}<br>"
+                        "Cat\u00e9gorie\u00a0: <b>%{customdata[2]}</b>"
+                        "<extra></extra>"
+                    ),
+                    showlegend=False,
+                ))
+                _add_overlays(_fig1)
+                _fig1.update_layout(
+                    mapbox=_bmap, margin=_mgn, height=430,
+                    plot_bgcolor=CARD, paper_bgcolor=CARD,
+                    title=dict(
+                        text=f"<b>{_sel_date}</b>\u00b7 Pr\u00e9cipitations",
+                        font=dict(size=10, color=MUTED), x=0, pad=dict(l=4),
+                    ),
+                )
+                st.plotly_chart(
+                    _fig1, use_container_width=True,
+                    config={
+                        "displayModeBar": True,
+                        "modeBarButtonsToRemove": [
+                            "lasso2d", "select2d", "autoScale2d",
+                            "hoverClosestMapbox",
+                        ],
+                        "displaylogo": False,
+                        "toImageButtonOptions": {
+                            "format": "png",
+                            "filename": f"precip_{_sel_date}",
+                        },
                     },
-                },
-            )
+                )
 
         # ── Panneau d'information de l'evenement ──────────────────────────────
         with _minfo:
