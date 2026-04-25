@@ -43,6 +43,10 @@ CLUSTERING_DIR = OUTPUT_DIR / "clustering"
 VIZ_OUT        = VISUALIZATION_DIR / "clustering" / "sst_patterns"
 VIZ_OUT.mkdir(parents=True, exist_ok=True)
 
+# Masque terrestre OISST (True = terre, NaN a appliquer avant tracé)
+_LAND_MASK_PATH = OUTPUT_DIR.parent / "data" / "processed" / "oisst_land_mask.npy"
+LAND_MASK = np.load(_LAND_MASK_PATH) if _LAND_MASK_PATH.exists() else None
+
 PHASES = {
     'Phase_1_debut':  'Debut de saison (Mai-Juin)',
     'Phase_2_pleine': 'Pleine saison (Juillet-Aout)',
@@ -55,8 +59,11 @@ NLAT, NLON = 480, 1440
 LATS = np.linspace(60, -60, NLAT)
 LONS = np.linspace(-180, 180, NLON, endpoint=False)
 
-# Couleurs des clusters (jusqu'a 6)
-CLUSTER_COLORS = ['#2196F3', '#FF5722', '#4CAF50', '#9C27B0', '#FF9800', '#00BCD4']
+# Couleurs des clusters (jusqu'a 9 pour couvrir All_phases)
+CLUSTER_COLORS = [
+    '#2196F3', '#FF5722', '#4CAF50', '#9C27B0', '#FF9800', '#00BCD4',
+    '#E91E63', '#795548', '#607D8B'
+]
 
 # ============================================================================
 # BOITES DES INDICES SST
@@ -113,7 +120,7 @@ def draw_index_box(ax, lon0, lon1, lat0, lat1, label, color,
         (lon0, lat0), lon1 - lon0, lat1 - lat0,
         boxstyle='square,pad=0',
         linewidth=1.4, edgecolor=color, facecolor='none',
-        transform=ccrs.PlateCarree(), zorder=8
+        transform=ccrs.PlateCarree(), zorder=9
     )
     ax.add_patch(rect)
 
@@ -130,22 +137,26 @@ def draw_index_box(ax, lon0, lon1, lat0, lat1, label, color,
     ax.text(cx, cy + 1.5, ann_text,
             ha='center', va='bottom',
             fontsize=fontsize, color=color, fontweight='bold',
-            transform=ccrs.PlateCarree(), zorder=9,
+            transform=ccrs.PlateCarree(), zorder=10,
             bbox=dict(facecolor='white', alpha=0.6, edgecolor='none',
                       boxstyle='round,pad=0.1'))
 
 
-def setup_ax(ax, extent, gridlines=True):
-    """Configure un axe cartopy (cotes, ocean, terre, grille)."""
-    ax.set_extent(extent, crs=ccrs.PlateCarree())
-    ax.add_feature(cfeature.OCEAN, facecolor='#e8f4f8', zorder=0)
-    ax.add_feature(cfeature.LAND,  facecolor='#d5d5d5', zorder=2)
-    ax.add_feature(cfeature.COASTLINE, linewidth=0.5, edgecolor='#333333', zorder=3)
+def add_land_overlay(ax):
+    """Ajoute LAND + cotes + frontieres APRES les SST pour garantir le masquage."""
+    ax.add_feature(cfeature.LAND, facecolor='#d5d5d5', zorder=7)
+    ax.add_feature(cfeature.COASTLINE, linewidth=0.5, edgecolor='#333333', zorder=8)
     ax.add_feature(
         cfeature.NaturalEarthFeature('cultural', 'admin_0_countries', '110m',
                                      edgecolor='#666666', facecolor='none'),
-        linewidth=0.2, zorder=3
+        linewidth=0.2, zorder=8
     )
+
+
+def setup_ax(ax, extent, gridlines=True):
+    """Configure extent, ocean de fond et grille (sans terre — ajoutee apres SST)."""
+    ax.set_extent(extent, crs=ccrs.PlateCarree())
+    ax.add_feature(cfeature.OCEAN, facecolor='#e8f4f8', zorder=0)
     if gridlines:
         gl = ax.gridlines(draw_labels=True, dms=False,
                           x_inline=False, y_inline=False,
@@ -179,10 +190,13 @@ def plot_phase(phase_key: str, phase_label: str):
     n_per_cluster = df['cluster'].value_counts().sort_index().to_dict()
 
     grids = [C[k].reshape(NLAT, NLON) for k in range(K)]
+    # Masquer les points terrestres (NaN apres reconstruction PCA)
+    if LAND_MASK is not None:
+        grids = [np.where(LAND_MASK, np.nan, g) for g in grids]
 
-    # Colorbar commune : percentile 97 valeurs absolues (robuste aux outliers)
+    # Colorbar commune : percentile 97 valeurs absolues (nanpercentile : ignore NaN terre)
     all_abs = np.concatenate([np.abs(g).ravel() for g in grids])
-    vmax = float(np.percentile(all_abs, 97))
+    vmax = float(np.nanpercentile(all_abs, 97))
     vmax = max(vmax, 0.15)
     levels = np.linspace(-vmax, vmax, 41)
 
@@ -251,11 +265,13 @@ def plot_phase(phase_key: str, phase_label: str):
 
             # --- Hachurage : anomalie robuste |anomalie| > 0.5 degC ---
             hatch_mask = np.abs(grid) > 0.5
-            # Utiliser contourf avec hatch sur les zones robustes
             ax.contourf(LONS, LATS, hatch_mask.astype(float),
                         levels=[0.5, 1.5],
                         colors='none', hatches=['..'],
                         transform=proj, zorder=6)
+
+            # --- Masque continental apres les SST/hachures ---
+            add_land_overlay(ax)
 
             # --- Boites des indices SST (seulement si dans le domaine) ---
             lon_min_d, lon_max_d, lat_min_d, lat_max_d = extent
@@ -278,7 +294,7 @@ def plot_phase(phase_key: str, phase_label: str):
 
             # --- Marqueur Senegal ---
             ax.plot(-14.5, 14.5, marker='*', color='gold', markersize=10,
-                    transform=proj, zorder=10,
+                    transform=proj, zorder=11,
                     markeredgecolor='black', markeredgewidth=0.7)
 
         # --- Titre de ligne (cluster) ---
