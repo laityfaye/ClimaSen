@@ -3651,16 +3651,8 @@ elif page == "Clustering":
           Cartes SST — Patterns spatiaux</h2>
         <p style="font-size:0.78rem;color:{MUTED};margin:0 0 16px 0;">
           Visualisation des anomalies SST globales (60S-60N) pour chaque cluster
-          (centroide) ou pour un evenement individuel.</p>
+          (centroide).</p>
         """, unsafe_allow_html=True)
-
-        sst_view = st.radio(
-            "Vue SST",
-            ["Centroide du cluster", "Evenement individuel"],
-            horizontal=True,
-            key="cl_sst_view",
-            label_visibility="collapsed",
-        )
 
         # ── Selecteur de cluster partage (SST Patterns + Cartographie) ─────────
         cl_ids_sorted = sorted(events["cluster"].unique())
@@ -3677,232 +3669,66 @@ elif page == "Clustering":
         # ── load centroids ───────────────────────────────────────────────────
         cent_arr, cent_lats, cent_lons = load_sst_centroid(sel_phase)
 
-        if sst_view == "Centroide du cluster":
-            sel_cl = sel_cl_shared
+        sel_cl = sel_cl_shared
 
-            if cent_arr is not None:
-                clust_idx = cl_ids_sorted.index(sel_cl)
-                z_full = cent_arr[clust_idx] if clust_idx < cent_arr.shape[0] else cent_arr[0]
-                vlim = max(abs(float(np.nanpercentile(z_full, 2))),
-                           abs(float(np.nanpercentile(z_full, 98))))
-                vlim = min(vlim, 3.0)
+        if cent_arr is not None:
+            clust_idx = cl_ids_sorted.index(sel_cl)
+            z_full = cent_arr[clust_idx] if clust_idx < cent_arr.shape[0] else cent_arr[0]
+            vlim = max(abs(float(np.nanpercentile(z_full, 2))),
+                       abs(float(np.nanpercentile(z_full, 98))))
+            vlim = min(vlim, 3.0)
 
-                # Downsample 2x uniquement pour le rendu Plotly (performance browser)
-                z        = z_full[::2, ::2]
-                lats_ds  = cent_lats[::2]
-                lons_ds  = cent_lons[::2]
+            # Downsample 2x uniquement pour le rendu Plotly (performance browser)
+            z        = z_full[::2, ::2]
+            lats_ds  = cent_lats[::2]
+            lons_ds  = cent_lons[::2]
 
-                _rg_cent = _get_region_grid(tuple(lats_ds), tuple(lons_ds))
-                fig_sst = go.Figure(go.Heatmap(
-                    z=z, x=lons_ds, y=lats_ds,
-                    colorscale="RdBu_r", zmin=-vlim, zmax=vlim,
-                    zsmooth=False,
-                    customdata=_rg_cent,
-                    colorbar=dict(
-                        title=dict(text="Anomalie SST (degC)", side="right"),
-                        len=0.75, thickness=14,
-                    ),
-                    hovertemplate=(
-                        "Lon: %{x:.2f}  Lat: %{y:.2f}<br>"
-                        "Anomalie SST: <b>%{z:.3f} degC</b><br>"
-                        "Region: %{customdata}<extra></extra>"
-                    ),
-                ))
-                _apply_geo_traces(fig_sst)
-                fig_sst.add_trace(go.Scatter(
-                    x=[-17.4], y=[14.7], mode="markers",
-                    marker=dict(symbol="star", size=14, color=AMBER,
-                                line=dict(width=1.5, color="white")),
-                    name="Senegal (Dakar)",
-                    hovertemplate="Dakar<br>17.4W  14.7N<extra></extra>",
-                ))
-                fig_sst.update_layout(
-                    title=dict(
-                        text=(f"Centroide SST  -  {PHASE_LABELS_CL.get(sel_phase, sel_phase)}"
-                              f"  |  Cluster {sel_cl}"),
-                        font=dict(size=13, color=TEXT), x=0, pad=dict(l=0),
-                    ),
-                    xaxis=dict(title="Longitude", gridcolor=BORDER, dtick=30,
-                               range=[-180, 180]),
-                    yaxis=dict(title="Latitude", gridcolor=BORDER, dtick=15,
-                               range=[-60, 60]),
-                    plot_bgcolor=CARD, paper_bgcolor=CARD,
-                    font=dict(color=TEXT, size=11),
-                    legend=dict(x=0.01, y=0.99, bgcolor="rgba(255,255,255,0.85)"),
-                    margin=dict(l=10, r=10, t=48, b=10),
-                    height=520,
-                )
-                st.plotly_chart(fig_sst, use_container_width=True, key="cl_sst_cent_map",
-                                config={"toImageButtonOptions": {"scale": 3, "format": "png"}})
-                st.markdown("</div>", unsafe_allow_html=True)
-            else:
-                st.warning("Fichier centroide non disponible pour cette phase.")
+            _rg_cent = _get_region_grid(tuple(lats_ds), tuple(lons_ds))
+            fig_sst = go.Figure(go.Heatmap(
+                z=z, x=lons_ds, y=lats_ds,
+                colorscale="RdBu_r", zmin=-vlim, zmax=vlim,
+                zsmooth=False,
+                customdata=_rg_cent,
+                colorbar=dict(
+                    title=dict(text="Anomalie SST (degC)", side="right"),
+                    len=0.75, thickness=14,
+                ),
+                hovertemplate=(
+                    "Lon: %{x:.2f}  Lat: %{y:.2f}<br>"
+                    "Anomalie SST: <b>%{z:.3f} degC</b><br>"
+                    "Region: %{customdata}<extra></extra>"
+                ),
+            ))
+            _apply_geo_traces(fig_sst)
+            fig_sst.add_trace(go.Scatter(
+                x=[-17.4], y=[14.7], mode="markers",
+                marker=dict(symbol="star", size=14, color=AMBER,
+                            line=dict(width=1.5, color="white")),
+                name="Senegal (Dakar)",
+                hovertemplate="Dakar<br>17.4W  14.7N<extra></extra>",
+            ))
+            fig_sst.update_layout(
+                title=dict(
+                    text=(f"Centroide SST  -  {PHASE_LABELS_CL.get(sel_phase, sel_phase)}"
+                          f"  |  Cluster {sel_cl}"),
+                    font=dict(size=13, color=TEXT), x=0, pad=dict(l=0),
+                ),
+                xaxis=dict(title="Longitude", gridcolor=BORDER, dtick=30,
+                           range=[-180, 180]),
+                yaxis=dict(title="Latitude", gridcolor=BORDER, dtick=15,
+                           range=[-60, 60]),
+                plot_bgcolor=CARD, paper_bgcolor=CARD,
+                font=dict(color=TEXT, size=11),
+                legend=dict(x=0.01, y=0.99, bgcolor="rgba(255,255,255,0.85)"),
+                margin=dict(l=10, r=10, t=48, b=10),
+                height=520,
+            )
+            st.plotly_chart(fig_sst, use_container_width=True, key="cl_sst_cent_map",
+                            config={"toImageButtonOptions": {"scale": 3, "format": "png"}})
+            st.markdown("</div>", unsafe_allow_html=True)
+        else:
+            st.warning("Fichier centroide non disponible pour cette phase.")
 
-        else:  # Evenement individuel — filtre par le cluster partage
-            ev_sub = events[events["cluster"] == sel_cl_shared].sort_values("date").reset_index(drop=True)
-
-            ev_options = ev_sub["date"].dt.strftime("%Y-%m-%d").tolist()
-            if not ev_options:
-                st.warning("Aucun evenement disponible pour ce filtre.")
-            else:
-                # Reset date si cluster ou phase a change (evite valeur hors-liste)
-                _ev_ctx = f"{sel_phase}_{sel_cl_shared}"
-                if st.session_state.get("cl_sst_ev_ctx") != _ev_ctx:
-                    st.session_state["cl_sst_ev_ctx"] = _ev_ctx
-                    st.session_state.pop("cl_sst_ev_date", None)
-
-                sel_ev_date = st.selectbox(
-                    "Evenement (date)",
-                    options=ev_options,
-                    key="cl_sst_ev_date",
-                )
-                ev_row = ev_sub[ev_sub["date"] == pd.Timestamp(sel_ev_date)].iloc[0]
-                ev_year = int(ev_row["year"])
-                ev_doy  = int(ev_row["day_of_year"])
-                ev_cl   = int(ev_row["cluster"])
-                ev_phase= str(ev_row.get("phase", sel_phase))
-
-                with st.spinner(f"Chargement SST {sel_ev_date}..."):
-                    lats_ev, lons_ev, anom_ev = load_sst_day(ev_year, ev_doy)
-
-                if anom_ev is not None:
-                    vlim_ev = max(abs(float(np.nanpercentile(anom_ev, 2))), abs(float(np.nanpercentile(anom_ev, 98))))
-                    vlim_ev = min(vlim_ev, 3.0)
-
-                    mp_val  = ev_row.get("max_precip", float("nan"))
-                    cov_val = ev_row.get("coverage_percent", float("nan"))
-                    mp_str  = f"{mp_val:.1f} mm" if not np.isnan(mp_val) else "-"
-                    cov_str = f"{cov_val:.1f}%" if not np.isnan(cov_val) else "-"
-
-                    _rg_ev = _get_region_grid(tuple(lats_ev), tuple(lons_ev))
-                    fig_ev = go.Figure(go.Heatmap(
-                        z=anom_ev, x=lons_ev, y=lats_ev,
-                        colorscale="RdBu_r", zmin=-vlim_ev, zmax=vlim_ev,
-                        zsmooth="best",
-                        customdata=_rg_ev,
-                        colorbar=dict(
-                            title=dict(text="Anomalie SST (degC)", side="right"),
-                            len=0.75, thickness=14,
-                        ),
-                        hovertemplate=(
-                            "Lon: %{x:.2f}  Lat: %{y:.2f}<br>"
-                            "Anomalie SST: <b>%{z:.3f} degC</b><br>"
-                            "Region: %{customdata}<extra></extra>"
-                        ),
-                    ))
-                    _apply_geo_traces(fig_ev)
-                    fig_ev.add_trace(go.Scatter(
-                        x=[-17.4], y=[14.7], mode="markers",
-                        marker=dict(symbol="star", size=14, color=AMBER,
-                                    line=dict(width=1.5, color="white")),
-                        name="Senegal (Dakar)",
-                        hovertemplate="Dakar<br>17.4W  14.7N<extra></extra>",
-                    ))
-                    fig_ev.update_layout(
-                        title=dict(
-                            text=(
-                                f"SST Anomalie  -  {sel_ev_date}"
-                                f"  |  Cluster {ev_cl}"
-                                f"  |  Precip max: {mp_str}"
-                                f"  |  Couverture: {cov_str}"
-                            ),
-                            font=dict(size=12, color=TEXT), x=0, pad=dict(l=0),
-                        ),
-                        xaxis=dict(title="Longitude", gridcolor=BORDER, dtick=30,
-                                   range=[-180, 180]),
-                        yaxis=dict(title="Latitude", gridcolor=BORDER, dtick=15,
-                                   range=[-60, 60]),
-                        plot_bgcolor=CARD, paper_bgcolor=CARD,
-                        font=dict(color=TEXT, size=11),
-                        legend=dict(x=0.01, y=0.99, bgcolor="rgba(255,255,255,0.85)"),
-                        margin=dict(l=10, r=10, t=48, b=10),
-                        height=520,
-                    )
-                    st.markdown(
-                        f'<div style="background:{CARD};border:1px solid {BORDER};'
-                        f'border-radius:14px;padding:16px 20px 8px 20px;'
-                        f'margin-bottom:16px;">',
-                        unsafe_allow_html=True,
-                    )
-                    st.plotly_chart(fig_ev, use_container_width=True, key="cl_sst_ev_map",
-                                    config={"toImageButtonOptions": {"scale": 3, "format": "png"}})
-                    st.markdown("</div>", unsafe_allow_html=True)
-
-                    # Comparison with centroid
-                    if cent_arr is not None:
-                        with st.expander("Comparer avec le centroide du cluster", expanded=False):
-                            cl_ids_all = sorted(events["cluster"].unique())
-                            ci = cl_ids_all.index(ev_cl) if ev_cl in cl_ids_all else 0
-                            z_cent = cent_arr[ci] if ci < cent_arr.shape[0] else cent_arr[0]
-                            vlim_c = max(abs(float(np.nanpercentile(z_cent, 2))), abs(float(np.nanpercentile(z_cent, 98))))
-                            vlim_c = min(vlim_c, 3.0)
-                            # diff map — resample z_cent onto anom_ev grid (nearest neighbour)
-                            if anom_ev is not None and z_cent.shape != anom_ev.shape:
-                                _lat_step = cent_lats[1] - cent_lats[0]
-                                _lon_step = cent_lons[1] - cent_lons[0]
-                                _lat_idx = np.clip(
-                                    np.round((lats_ev - cent_lats[0]) / _lat_step).astype(int),
-                                    0, len(cent_lats) - 1)
-                                _lon_idx = np.clip(
-                                    np.round((lons_ev - cent_lons[0]) / _lon_step).astype(int),
-                                    0, len(cent_lons) - 1)
-                                z_cent_rs = z_cent[np.ix_(_lat_idx, _lon_idx)]
-                            else:
-                                z_cent_rs = z_cent
-                            diff = anom_ev - z_cent_rs
-                            vlim_d = max(abs(float(np.nanpercentile(diff, 5))), abs(float(np.nanpercentile(diff, 95))))
-                            vlim_d = min(vlim_d, 2.5)
-
-                            c1, c2 = st.columns(2)
-                            _rg_cmp = _get_region_grid(
-                                tuple(cent_lats), tuple(cent_lons))
-                            _rg_diff = _get_region_grid(
-                                tuple(lats_ev), tuple(lons_ev))
-
-                            def _small_sst_fig(z_data, rg, lats, lons,
-                                               title, vlim, key, suffix):
-                                f = go.Figure(go.Heatmap(
-                                    z=z_data, x=lons, y=lats,
-                                    colorscale="RdBu_r", zmin=-vlim, zmax=vlim,
-                                    zsmooth="best",
-                                    customdata=rg,
-                                    colorbar=dict(
-                                        len=0.7, thickness=12,
-                                        title=dict(text="degC", side="right"),
-                                    ),
-                                    hovertemplate=(
-                                        "Lon: %{x:.2f}  Lat: %{y:.2f}<br>"
-                                        f"{suffix}: <b>%{{z:.3f}} degC</b><br>"
-                                        "Region: %{customdata}<extra></extra>"
-                                    ),
-                                ))
-                                _apply_geo_traces(f)
-                                f.update_layout(
-                                    title=dict(text=title,
-                                               font=dict(size=12, color=TEXT), x=0),
-                                    xaxis=dict(dtick=60, range=[-180, 180]),
-                                    yaxis=dict(dtick=30, range=[-60, 60]),
-                                    plot_bgcolor=CARD, paper_bgcolor=CARD,
-                                    font=dict(color=TEXT, size=10),
-                                    margin=dict(l=10, r=10, t=40, b=10),
-                                    height=310,
-                                )
-                                st.plotly_chart(f, use_container_width=True, key=key)
-
-                            with c1:
-                                _small_sst_fig(
-                                    z_cent, _rg_cmp, cent_lats, cent_lons,
-                                    f"Centroide cluster {ev_cl}", vlim_c,
-                                    key="cl_cent_cmp", suffix="Anomalie SST",
-                                )
-                            with c2:
-                                _small_sst_fig(
-                                    diff, _rg_diff, lats_ev, lons_ev,
-                                    "Difference (evt - centroide)", vlim_d,
-                                    key="cl_diff_cmp", suffix="Difference",
-                                )
-                else:
-                    st.warning(f"Fichier SST non disponible pour l'annee {ev_year}.")
 
         # ════════════════════════════════════════════════════════════════════
         # ANALYSE SPATIALE — CARTOGRAPHIE PAR CLUSTER
