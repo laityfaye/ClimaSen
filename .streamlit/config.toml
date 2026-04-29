@@ -12,7 +12,7 @@ serverPort = 443
 
 [theme]
 base = "light"
-primaryColor = "#1D1864"
+primaryColor = "#6366F1"
 backgroundColor = "#F1F5F9"
 secondaryBackgroundColor = "#FFFFFF"
 textColor = "#0F172A"
