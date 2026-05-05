@@ -611,13 +611,19 @@ section[data-testid="stSidebar"] > div:first-child > div > ul {{
    SIDEBAR — Redesign complet
    ═══════════════════════════════════════════ */
 
-/* Base */
+/* Base — sidebar toujours visible */
 section[data-testid="stSidebar"] {{
     background: {SIDEBAR_BG} !important;
     min-width: 272px !important;
     max-width: 272px !important;
+    width: 272px !important;
     border-right: 1px solid rgba(99,102,241,0.10) !important;
     overflow-x: hidden !important;
+    transform: none !important;
+    visibility: visible !important;
+    display: block !important;
+    margin-left: 0 !important;
+    left: 0 !important;
 }}
 section[data-testid="stSidebar"] > div:first-child {{
     background: {SIDEBAR_BG} !important;
@@ -652,22 +658,12 @@ section[data-testid="stSidebar"] hr {{
     margin: 2px 0 !important;
 }}
 
-/* Bouton collapse/open */
-[data-testid="stSidebarCollapseButton"] {{
-    background: rgba(255,255,255,0.07) !important;
-    border-radius: 8px !important;
-}}
-[data-testid="stSidebarCollapseButton"]:hover {{
-    background: rgba(255,255,255,0.13) !important;
-}}
-[data-testid="stSidebarCollapseButton"] svg {{ fill: #8892C8 !important; }}
+/* Sidebar fixe : tous les boutons collapse/expand caches */
+[data-testid="stSidebarCollapseButton"],
 [data-testid="stSidebarCollapsedControl"],
 [data-testid="collapsedControl"] {{
-    background: {SIDEBAR_BG} !important;
-    border-radius: 0 8px 8px 0 !important;
+    display: none !important;
 }}
-[data-testid="stSidebarCollapsedControl"] svg,
-[data-testid="collapsedControl"] svg {{ fill: #8892C8 !important; }}
 
 /* ── Icone dark-mode (dans stHorizontalBlock = colonnes) ── */
 section[data-testid="stSidebar"] [data-testid="stHorizontalBlock"]
@@ -765,7 +761,7 @@ section[data-testid="stSidebar"] [data-testid="stVerticalBlock"] > div
 /* ── Slider ── */
 section[data-testid="stSidebar"] [data-testid="stSlider"] label,
 section[data-testid="stSidebar"] [data-testid="stSlider"] p {{
-    color: #353B68 !important;
+    color: #FFFFFF !important;
     font-size: 0.61rem !important;
     font-weight: 700 !important;
     letter-spacing: 1.4px !important;
@@ -778,7 +774,7 @@ section[data-testid="stSidebar"] [data-baseweb="slider"] [role="slider"] {{
 
 /* ── Multiselect ── */
 section[data-testid="stSidebar"] [data-testid="stMultiSelect"] label {{
-    color: #353B68 !important;
+    color: #FFFFFF !important;
     font-size: 0.61rem !important;
     font-weight: 700 !important;
     letter-spacing: 1.4px !important;
