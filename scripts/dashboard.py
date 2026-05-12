@@ -560,7 +560,7 @@ def plotly_base(fig, h=300):
         font=dict(family="Inter,sans-serif", size=11, color=MUTED),
         xaxis=dict(showgrid=False, zeroline=False, tickfont=dict(size=11, color=MUTED)),
         yaxis=dict(showgrid=True, gridcolor=BORDER, zeroline=False, tickfont=dict(size=11, color=MUTED)),
-        hoverlabel=dict(bgcolor=TEXT, font_color="white", font_size=12, bordercolor=TEXT),
+        hoverlabel=dict(bgcolor=CARD, font_color=TEXT, font_size=12, bordercolor=BORDER),
         legend=dict(orientation="h", y=-0.28, x=0.5, xanchor="center",
                     bgcolor="rgba(0,0,0,0)", borderwidth=0, font=dict(size=11)),
     )
@@ -1199,6 +1199,39 @@ html, body {{
     .kpi {{ padding: 14px 15px !important; }}
 }}
 
+/* ── Filtres section Evenements ── */
+/* Labels slider + multiselect en uppercase compact */
+[data-testid="stMainBlockContainer"] [data-testid="stSlider"] label p,
+[data-testid="stMainBlockContainer"] [data-testid="stMultiSelect"] label p {{
+    font-size: 0.63rem !important;
+    font-weight: 700 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.09em !important;
+    color: {MUTED} !important;
+    margin-bottom: 4px !important;
+}}
+/* Bouton Reset : style discret, rouge quand actif */
+div[data-testid="stButton"]:has(button[data-testid*="evt_reset"]) button,
+button[key="evt_reset_btn"] {{
+    background: transparent !important;
+    border: 1px solid {BORDER} !important;
+    color: {MUTED} !important;
+    border-radius: 8px !important;
+    font-size: 0.74rem !important;
+    font-weight: 600 !important;
+    transition: background 0.15s, color 0.15s, border-color 0.15s !important;
+}}
+div[data-testid="stButton"]:has(button[data-testid*="evt_reset"]) button:not(:disabled):hover {{
+    background: rgba(244,63,94,0.08) !important;
+    border-color: {ROSE} !important;
+    color: {ROSE} !important;
+}}
+/* Tags phases dans multiselect : taille et espacement */
+[data-testid="stMainBlockContainer"] [data-baseweb="tag"] {{
+    border-radius: 6px !important;
+    font-size: 0.70rem !important;
+}}
+
 /* ── Expander : corrige icone Material affichee en texte brut ── */
 [data-testid="stExpander"] summary {{
     display: flex !important;
@@ -1280,6 +1313,17 @@ if st.session_state.dark_mode:
     background: {CARD} !important;
     border-color: {BORDER} !important;
     color: {TEXT} !important;
+}}
+/* Icones chevron / fleche d'ouverture en mode sombre */
+[data-testid="stMainBlockContainer"] [data-baseweb="select"] svg {{
+    fill: {TEXT} !important;
+    color: {TEXT} !important;
+    opacity: 0.85 !important;
+}}
+section[data-testid="stSidebar"] [data-baseweb="select"] svg {{
+    fill: #C4CFE8 !important;
+    color: #C4CFE8 !important;
+    opacity: 0.85 !important;
 }}
 [data-baseweb="popover"] [data-baseweb="menu"],
 [data-baseweb="popover"] ul {{
@@ -1503,34 +1547,38 @@ with st.sidebar:
 
     st.markdown("---")
 
-    # ── Filtres ───────────────────────────────────────────────────────────────
-    st.markdown('<span class="sb-sec-label">Filtres</span>', unsafe_allow_html=True)
+    # ── Equipe (bas de sidebar) ───────────────────────────────────────────────
+    st.markdown('<span class="sb-sec-label">Equipe</span>', unsafe_allow_html=True)
 
-    year_range = st.slider(
-        "Periode",
-        min_value=int(df["year"].min()),
-        max_value=int(df["year"].max()),
-        value=(1981, 2023),
-    )
-    phases_sel = st.multiselect(
-        "Phases",
-        options=["Phase_1_debut", "Phase_2_pleine", "Phase_3_fin"],
-        default=["Phase_1_debut", "Phase_2_pleine", "Phase_3_fin"],
-        format_func=lambda x: PHASE_L[x],
-    )
+    _TEAM = [
+        ("LF", "Laity FAYE",       "laity.faye@univ-thies.sn",       "#6366F1,#0EA5E9"),
+        ("FK", "François KALY",  "francois.kaly@univ-thies.sn",    "#10B981,#0EA5E9"),
+        ("MD", "Moussa DIAKHATE",  "moussa.diakhate@uam.edu.sn",     "#F59E0B,#F43F5E"),
+    ]
+    _team_html = ""
+    for _ini, _name, _mail, _grad in _TEAM:
+        _team_html += f"""
+        <div style="display:flex;align-items:center;gap:10px;
+                    padding:9px 12px;margin-bottom:5px;
+                    background:rgba(255,255,255,0.07);
+                    border:1px solid rgba(255,255,255,0.11);
+                    border-radius:11px;">
+          <div style="width:34px;height:34px;border-radius:50%;flex-shrink:0;
+                      background:linear-gradient(135deg,{_grad});
+                      display:flex;align-items:center;justify-content:center;
+                      font-size:0.76rem;font-weight:800;color:#FFFFFF;">{_ini}</div>
+          <div style="min-width:0;flex:1;">
+            <div style="color:#FFFFFF;font-size:0.80rem;font-weight:600;
+                        line-height:1.2;">{_name}</div>
+            <div style="color:#94A3B8;font-size:0.62rem;margin-top:2px;
+                        white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+              {_mail}</div>
+          </div>
+        </div>"""
+    st.markdown(_team_html, unsafe_allow_html=True)
 
-    st.markdown("---")
-
-    # ── Profil (bas de sidebar) ───────────────────────────────────────────────
-    st.markdown("""
-    <div class="sb-profile">
-      <div class="sb-avatar">LF</div>
-      <div>
-        <div class="sb-username">Laity FAYE</div>
-        <div class="sb-usersub">UIDT · 2026</div>
-      </div>
-    </div>
-    """, unsafe_allow_html=True)
+year_range = (int(df["year"].min()), int(df["year"].max()))
+phases_sel = ["Phase_1_debut", "Phase_2_pleine", "Phase_3_fin"]
 
 # ─── Indicateur de chargement lors du changement de page ─────────────────────
 _page_changed = (st.session_state.prev_page != page)

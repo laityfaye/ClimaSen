@@ -407,28 +407,72 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
         f'letter-spacing:.07em;margin:4px 0 10px 2px;">Resume par cluster</h3>',
         unsafe_allow_html=True,
     )
+    selected_cl = st.session_state.get("cl_shared_cluster")
     n_c = len(chars_s)
     card_cols = st.columns(min(n_c, 5))
     for i, row in enumerate(chars_s.itertuples()):
         with card_cols[i % len(card_cols)]:
-            cid   = row.cluster
-            color = cl_colors[i % len(cl_colors)]
-            pct   = f"{row.percentage:.1f}%"
-            mp    = f"{row.mean_max_precip:.1f} mm"
-            cov   = f"{row.mean_coverage_percent:.1f}%"
-            anom  = f"{row.mean_max_anomaly:.1f}"
-            st.markdown(
-                f'<div style="background:{CARD};border:2px solid {color};border-radius:14px;'
-                f'padding:16px 18px;margin-bottom:12px;">'
-                f'<p style="font-size:0.8rem;font-weight:800;color:{color};margin:0 0 8px 0;">'
-                f'Cluster {cid} &nbsp;<span style="font-weight:500;color:{MUTED};">({pct})</span></p>'
-                f'<p style="font-size:0.72rem;color:{MUTED};margin:0;">Evenements : <b style="color:{TEXT};">{row.n_events}</b></p>'
-                f'<p style="font-size:0.72rem;color:{MUTED};margin:2px 0;">Precip max : <b style="color:{TEXT};">{mp}</b></p>'
-                f'<p style="font-size:0.72rem;color:{MUTED};margin:2px 0;">Couverture : <b style="color:{TEXT};">{cov}</b></p>'
-                f'<p style="font-size:0.72rem;color:{MUTED};margin:2px 0;">Anomalie max : <b style="color:{TEXT};">{anom}</b></p>'
-                f'</div>',
-                unsafe_allow_html=True,
-            )
+            cid    = row.cluster
+            color  = cl_colors[i % len(cl_colors)]
+            pct    = f"{row.percentage:.1f}%"
+            mp     = f"{row.mean_max_precip:.1f} mm"
+            cov    = f"{row.mean_coverage_percent:.1f}%"
+            anom   = f"{row.mean_max_anomaly:.1f}"
+            is_sel = (selected_cl == cid)
+            b_w    = "3px" if is_sel else "2px"
+            bg     = (f"linear-gradient(135deg,{color}28 0%,{color}0d 100%)"
+                      if is_sel else CARD)
+            glow   = (f"0 0 0 2px {color},0 6px 28px {color}77"
+                      if is_sel else "none")
+            badge  = (f'<span style="position:absolute;top:10px;right:10px;'
+                      f'background:{color};color:#0d1117;font-size:0.58rem;'
+                      f'font-weight:800;padding:2px 8px;border-radius:20px;'
+                      f'letter-spacing:.06em;text-transform:uppercase;">Actif</span>'
+                      if is_sel else "")
+            with st.container():
+                st.markdown(
+                    f'<style>'
+                    f'[data-testid="stVerticalBlock"]:has(.mk-cl-{cid})'
+                    f':not(:has(>[data-testid="stVerticalBlock"]))'
+                    f'{{position:relative !important;z-index:1 !important;'
+                    f'cursor:pointer !important;}}'
+                    f'[data-testid="stVerticalBlock"]:has(.mk-cl-{cid})'
+                    f':not(:has(>[data-testid="stVerticalBlock"])):hover .cl-card-{cid}'
+                    f'{{transform:translateY(-2px) !important;'
+                    f'box-shadow:0 8px 24px rgba(0,0,0,.5) !important;}}'
+                    f'*:has(>[data-testid="stMarkdown"] .mk-cl-{cid})'
+                    f'+*:has([data-testid="stButton"])'
+                    f'{{position:absolute !important;'
+                    f'top:0 !important;left:0 !important;'
+                    f'right:0 !important;bottom:0 !important;'
+                    f'z-index:2 !important;}}'
+                    f'*:has(>[data-testid="stMarkdown"] .mk-cl-{cid})'
+                    f'+*:has([data-testid="stButton"]) button'
+                    f'{{position:absolute !important;'
+                    f'top:0 !important;left:0 !important;'
+                    f'right:0 !important;bottom:0 !important;'
+                    f'opacity:0 !important;cursor:pointer !important;}}'
+                    f'</style>'
+                    f'<span class="mk-cl-{cid}" style="display:none;"></span>'
+                    f'<div class="cl-card-{cid}" style="background:{bg};'
+                    f'border:{b_w} solid {color};border-radius:14px;'
+                    f'padding:16px 18px;margin-bottom:4px;position:relative;'
+                    f'transition:transform .13s ease,box-shadow .13s ease;'
+                    f'box-shadow:{glow};">'
+                    f'{badge}'
+                    f'<p style="font-size:0.8rem;font-weight:800;color:{color};margin:0 0 8px 0;">'
+                    f'Cluster {cid}&nbsp;'
+                    f'<span style="font-weight:500;color:{MUTED};">({pct})</span></p>'
+                    f'<p style="font-size:0.72rem;color:{MUTED};margin:0;">Evenements&nbsp;: <b style="color:{TEXT};">{row.n_events}</b></p>'
+                    f'<p style="font-size:0.72rem;color:{MUTED};margin:2px 0;">Precip moy.&nbsp;: <b style="color:{TEXT};">{mp}</b></p>'
+                    f'<p style="font-size:0.72rem;color:{MUTED};margin:2px 0;">Couverture moy.&nbsp;: <b style="color:{TEXT};">{cov}</b></p>'
+                    f'<p style="font-size:0.72rem;color:{MUTED};margin:2px 0;">Anomalie moy.&nbsp;: <b style="color:{TEXT};">{anom}</b></p>'
+                    f'</div>',
+                    unsafe_allow_html=True,
+                )
+                if st.button(" ", key=f"cl_card_{cid}", use_container_width=True):
+                    st.session_state["cl_shared_cluster"] = cid
+                    st.rerun()
 
     # ════════════════════════════════════════════════════════════════════
     # SST SPATIAL PATTERNS
@@ -509,25 +553,13 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
     # ════════════════════════════════════════════════════════════════════
     # ANALYSE SPATIALE — CARTOGRAPHIE PAR CLUSTER
     # ════════════════════════════════════════════════════════════════════
-    st.markdown(
-        f'<div style="border-top:2px solid {BORDER};margin:32px 0 18px 0;"></div>',
-        unsafe_allow_html=True,
-    )
     st.markdown(f"""
-    <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
-      <div style="height:2px;width:28px;
-                  background:linear-gradient(90deg,{INDIGO},{BLUE});
-                  border-radius:99px;flex-shrink:0;"></div>
-      <span style="font-size:0.70rem;font-weight:700;color:{MUTED};
-                   text-transform:uppercase;letter-spacing:0.08em;white-space:nowrap">
-        Analyse spatiale &mdash; Cartographie
-      </span>
-      <div style="height:1px;flex:1;background:{BORDER};"></div>
-      <span style="font-size:0.67rem;color:{MUTED};white-space:nowrap;">
-        4 &eacute;v&eacute;nements repr&eacute;sentatifs par cluster
-        &middot; plus/moins intense &middot; grande/petite couverture
-      </span>
-    </div>
+    <div style="border-top:2px solid {BORDER};margin:32px 0 18px 0;"></div>
+    <h2 style="font-size:1.05rem;font-weight:800;color:{TEXT};margin:0 0 6px 0;">
+      Analyse spatiale &mdash; Cartographie</h2>
+    <p style="font-size:0.78rem;color:{MUTED};margin:0 0 16px 0;">
+      Precipitation moyenne composite sur le Senegal (tous evenements representatifs
+      du cluster).</p>
     """, unsafe_allow_html=True)
 
     _cl_px_all = load_cluster_pixels()
@@ -547,132 +579,21 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
             )
         else:
             _cl_carto_sel = sel_cl_shared
-            _cl_nav_key = f"{sel_phase}_{_cl_carto_sel}"
-            if st.session_state.get("cl_carto_last_navkey") != _cl_nav_key:
-                st.session_state["cl_carto_last_navkey"] = _cl_nav_key
-                st.session_state["cl_carto_nav"] = 0
-                st.session_state["cl_carto_crit"] = None
-
             _cl_px_c = _cl_px_ph[_cl_px_ph["cluster"] == _cl_carto_sel].copy()
-
-            _CRIT_ORDER = ["plus_intense", "moins_intense",
-                           "plus_grande_couverture", "plus_petite_couverture"]
-            _cl_crit_avail = [c for c in _CRIT_ORDER if c in _cl_px_c["criterion"].unique()]
-            _cl_crit_avail += [c for c in _cl_px_c["criterion"].unique() if c not in _CRIT_ORDER]
-
-            _CRIT_FR_CL = {
-                "plus_intense":           "Plus intense",
-                "moins_intense":          "Moins intense",
-                "plus_grande_couverture": "Grande couverture",
-                "plus_petite_couverture": "Petite couverture",
-            }
-            _CRIT_CLR_CL = {
-                "plus_intense":           (ROSE,   "rgba(244,63,94,0.13)"),
-                "moins_intense":          (EMERALD, "rgba(16,185,129,0.13)"),
-                "plus_grande_couverture": (INDIGO,  "rgba(79,70,229,0.13)"),
-                "plus_petite_couverture": (BLUE,    "rgba(14,165,233,0.13)"),
-            }
-
-            if "cl_carto_nav" not in st.session_state:
-                st.session_state["cl_carto_nav"] = 0
-            _cl_nav = min(st.session_state["cl_carto_nav"], len(_cl_crit_avail) - 1)
-
-            if not st.session_state.get("cl_carto_crit") and _cl_crit_avail:
-                st.session_state["cl_carto_crit"] = _cl_crit_avail[_cl_nav]
-
-            _cl_scol, _cl_pcol, _cl_ccol, _cl_ncol = st.columns([7, 1, 1.2, 1], gap="small")
-            with _cl_pcol:
-                if st.button("←", key="cl_carto_prev",
-                             disabled=_cl_nav <= 0, use_container_width=True):
-                    _new_nav = max(0, _cl_nav - 1)
-                    st.session_state["cl_carto_nav"] = _new_nav
-                    st.session_state["cl_carto_crit"] = _cl_crit_avail[_new_nav]
-                    st.rerun()
-            with _cl_scol:
-                _cl_sel_crit = st.selectbox(
-                    "Critere", options=_cl_crit_avail,
-                    format_func=lambda c: _CRIT_FR_CL.get(c, c),
-                    label_visibility="collapsed", key="cl_carto_crit",
-                )
-                _cl_crit_idx = (
-                    _cl_crit_avail.index(_cl_sel_crit)
-                    if _cl_sel_crit in _cl_crit_avail else _cl_nav
-                )
-                if _cl_crit_idx != _cl_nav:
-                    st.session_state["cl_carto_nav"] = _cl_crit_idx
-                    _cl_nav = _cl_crit_idx
-            with _cl_ccol:
-                st.markdown(
-                    f'<div style="text-align:center;padding:8px 0;'
-                    f'font-size:0.75rem;font-weight:700;color:{MUTED};">'
-                    f'{_cl_nav + 1}&nbsp;/&nbsp;{len(_cl_crit_avail)}</div>',
-                    unsafe_allow_html=True,
-                )
-            with _cl_ncol:
-                if st.button("→", key="cl_carto_next",
-                             disabled=_cl_nav >= len(_cl_crit_avail) - 1,
-                             use_container_width=True):
-                    _new_nav = min(len(_cl_crit_avail) - 1, _cl_nav + 1)
-                    st.session_state["cl_carto_nav"] = _new_nav
-                    st.session_state["cl_carto_crit"] = _cl_crit_avail[_new_nav]
-                    st.rerun()
-
-            st.markdown("<div style='height:10px'></div>", unsafe_allow_html=True)
-
-            # ── Mini-cards (4 criteres) ────────────────────────────────
-            _cl_mc_cols = st.columns(min(4, len(_cl_crit_avail)), gap="small")
-            for _cl_mc, _cl_c in zip(_cl_mc_cols, _cl_crit_avail):
-                _cl_sub = _cl_px_c[_cl_px_c["criterion"] == _cl_c]
-                _cl_fg, _cl_bgc = _CRIT_CLR_CL.get(_cl_c, (INDIGO, "rgba(79,70,229,0.13)"))
-                _cl_d   = _cl_sub["event_date"].iloc[0] if len(_cl_sub) > 0 else "-"
-                _cl_mp  = f"{_cl_sub['precipitation_mm'].max():.0f}" if len(_cl_sub) > 0 else "-"
-                _cl_am  = f"{_cl_sub['anomaly_standardized'].max():.1f}" if len(_cl_sub) > 0 else "-"
-                _cl_phs = _cl_sub["season_phase"].iloc[0] if len(_cl_sub) > 0 else ""
-                _cl_phshort = (
-                    "P1 Debut"  if "debut"  in _cl_phs else
-                    "P2 Pleine" if "pleine" in _cl_phs else
-                    "P3 Fin"    if "fin"    in _cl_phs else _cl_phs
-                )
-                _cl_is_sel = (_cl_c == _cl_sel_crit)
-                _cl_mc.markdown(f"""
-                <div style="background:{'rgba(79,70,229,0.12)' if _cl_is_sel else CARD};
-                            border:{'2px solid ' + INDIGO if _cl_is_sel else '1px solid ' + BORDER};
-                            border-radius:10px;padding:10px 10px 9px 10px;
-                            {'box-shadow:0 3px 12px rgba(79,70,229,0.18);' if _cl_is_sel else ''}">
-                  <div style="background:{_cl_bgc};border-radius:5px;padding:2px 6px;
-                              margin-bottom:7px;display:inline-block;max-width:100%;">
-                    <span style="font-size:0.69rem;font-weight:700;color:{_cl_fg};
-                                 white-space:nowrap;display:block;">
-                      {_CRIT_FR_CL.get(_cl_c, _cl_c)}
-                    </span>
-                  </div>
-                  <p style="margin:0;font-size:0.77rem;font-weight:700;
-                            color:{TEXT};line-height:1.2">{_cl_d}</p>
-                  <p style="margin:3px 0 0 0;font-size:0.72rem;color:{MUTED}">
-                    {_cl_mp} mm &nbsp;&middot;&nbsp; {_cl_am} &#963;</p>
-                  <p style="margin:4px 0 0 0;font-size:0.69rem;color:{MUTED}">{_cl_phshort}</p>
-                </div>
-                """, unsafe_allow_html=True)
-
-            st.markdown("<div style='height:14px'></div>", unsafe_allow_html=True)
-
-            # ── Pixels du critere selectionne ──────────────────────────
-            _cl_ev      = _cl_px_c[_cl_px_c["criterion"] == _cl_sel_crit].copy()
-            _cl_date    = _cl_ev["event_date"].iloc[0] if len(_cl_ev) > 0 else ""
-            _cl_fg0, _cl_bgcrit = _CRIT_CLR_CL.get(_cl_sel_crit, (INDIGO, "rgba(79,70,229,0.13)"))
-            _cl_lbl     = _CRIT_FR_CL.get(_cl_sel_crit, _cl_sel_crit)
 
             _cl_dept_geo    = load_dept_geojson()
             _cl_bounds_path = BASE / "data/geographic/senegal_boundaries.geojson"
-            if _cl_bounds_path.exists() and len(_cl_ev) > 0:
+
+            # ── Filtrage frontiere Senegal ─────────────────────────────
+            if _cl_bounds_path.exists() and len(_cl_px_c) > 0:
                 import json as _json_cl
                 from matplotlib.path import Path as _MplPathCl
                 with open(str(_cl_bounds_path), "r", encoding="utf-8") as _bfcl:
                     _cl_bounds_geo = _json_cl.load(_bfcl)
                 _cl_bp_list = []
                 for _feat_cl in _cl_bounds_geo.get("features", []):
-                    _geom_cl  = _feat_cl.get("geometry", {})
-                    _gtype_cl = _geom_cl.get("type", "")
+                    _geom_cl   = _feat_cl.get("geometry", {})
+                    _gtype_cl  = _geom_cl.get("type", "")
                     _coords_cl = _geom_cl.get("coordinates", [])
                     if _gtype_cl == "MultiPolygon":
                         for _poly_cl in _coords_cl:
@@ -683,101 +604,85 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
                             _cl_bp_list.append(_MplPathCl(np.array(_coords_cl[0])))
                 if _cl_bp_list:
                     _cl_pts = np.column_stack([
-                        _cl_ev["longitude"].values, _cl_ev["latitude"].values
+                        _cl_px_c["longitude"].values, _cl_px_c["latitude"].values
                     ])
                     _cl_ins = np.zeros(len(_cl_pts), dtype=bool)
                     for _cl_bp in _cl_bp_list:
                         _cl_ins |= _cl_bp.contains_points(_cl_pts)
-                    _cl_ev = _cl_ev[_cl_ins].reset_index(drop=True)
+                    _cl_px_c = _cl_px_c[_cl_ins].reset_index(drop=True)
 
-            _cl_depts = [""] * len(_cl_ev)
-            if _cl_dept_geo is not None and len(_cl_ev) > 0:
-                from matplotlib.path import Path as _MplPathCl2
-                _cl_pts_all = np.column_stack([
-                    _cl_ev["longitude"].values, _cl_ev["latitude"].values
-                ])
-                for _feat_d in _cl_dept_geo.get("features", []):
-                    _dname   = _feat_d.get("properties", {}).get("NAME_2", "")
-                    _geom_d  = _feat_d.get("geometry", {})
-                    _gtype_d = _geom_d.get("type", "")
-                    _coords_d = _geom_d.get("coordinates", [])
-                    _polys_d  = []
-                    if _gtype_d == "MultiPolygon":
-                        for _poly_d in _coords_d:
-                            if _poly_d and _poly_d[0]:
-                                _polys_d.append(_MplPathCl2(np.array(_poly_d[0])))
-                    elif _gtype_d == "Polygon":
-                        if _coords_d and _coords_d[0]:
-                            _polys_d.append(_MplPathCl2(np.array(_coords_d[0])))
-                    for _pp_d in _polys_d:
-                        _mask_d = _pp_d.contains_points(_cl_pts_all)
-                        for _ix_d in np.where(_mask_d)[0]:
-                            _cl_depts[_ix_d] = _dname
+            _cl_px_c = _cl_px_c[_cl_px_c["precipitation_mm"] > 0].reset_index(drop=True)
 
-            if len(_cl_ev) == 0:
-                st.info("Aucun pixel disponible pour ce critere.")
+            if len(_cl_px_c) == 0:
+                st.info("Aucun pixel disponible pour ce cluster.")
             else:
-                _cl_lats = _cl_ev["latitude"].tolist()
-                _cl_lons = _cl_ev["longitude"].tolist()
-                _cl_prec = _cl_ev["precipitation_mm"].tolist()
-                _cl_anom = _cl_ev["anomaly_standardized"].tolist()
-                _cl_regs = _cl_ev["region"].tolist()
-                _cl_cats = _cl_ev["intensity_category"].tolist()
+                # ── Composite : moyenne par cellule lat/lon ────────────
+                _cl_comp = (
+                    _cl_px_c
+                    .groupby(["latitude", "longitude"], as_index=False)
+                    .agg(
+                        precipitation_mm=("precipitation_mm", "mean"),
+                        anomaly_standardized=("anomaly_standardized", "mean"),
+                        region=("region", "first"),
+                        intensity_category=("intensity_category", "first"),
+                    )
+                )
 
-                _cl_HALF = 0.025
-                _cl_px_geo = {
-                    "type": "FeatureCollection",
-                    "features": [
-                        {
-                            "type": "Feature", "id": str(i),
-                            "geometry": {
-                                "type": "Polygon",
-                                "coordinates": [[
-                                    [lo - _cl_HALF, la - _cl_HALF],
-                                    [lo + _cl_HALF, la - _cl_HALF],
-                                    [lo + _cl_HALF, la + _cl_HALF],
-                                    [lo - _cl_HALF, la + _cl_HALF],
-                                    [lo - _cl_HALF, la - _cl_HALF],
-                                ]]
-                            },
-                            "properties": {"id": i},
-                        }
-                        for i, (la, lo) in enumerate(zip(_cl_lats, _cl_lons))
-                    ],
-                }
-                _cl_ids_px = [str(i) for i in range(len(_cl_lats))]
-
-                _cl_cd_prec = [
-                    [f"{a:+.1f}", rg, ct, la, lo, dp, f"{p:.1f}"]
-                    for a, rg, ct, la, lo, dp, p
-                    in zip(_cl_anom, _cl_regs, _cl_cats,
-                           _cl_lats, _cl_lons, _cl_depts, _cl_prec)
-                ]
+                _cl_lats = _cl_comp["latitude"].tolist()
+                _cl_lons = _cl_comp["longitude"].tolist()
+                _cl_prec = _cl_comp["precipitation_mm"].tolist()
+                _cl_anom = _cl_comp["anomaly_standardized"].tolist()
+                _cl_regs = _cl_comp["region"].tolist()
 
                 _cl_p_max = float(np.percentile(_cl_prec, 99))
                 _cl_p_min = max(0.0, float(np.percentile(_cl_prec, 1)))
 
-                _cl_ctr_lat = float(_cl_ev["latitude"].mean())
-                _cl_ctr_lon = float(_cl_ev["longitude"].mean())
+                _w_ctr = _cl_comp["precipitation_mm"].values
+                _w_sum = float(_w_ctr.sum())
+                if _w_sum > 0:
+                    _cl_ctr_lat = float(np.average(_cl_comp["latitude"].values,  weights=_w_ctr))
+                    _cl_ctr_lon = float(np.average(_cl_comp["longitude"].values, weights=_w_ctr))
+                else:
+                    _cl_ctr_lat = float(_cl_comp["latitude"].mean())
+                    _cl_ctr_lon = float(_cl_comp["longitude"].mean())
 
-                _CS_PREC_CL = [
-                    [0.00, "#FFFFFF"], [0.04, "#FFF9C4"], [0.14, "#FFEB3B"],
-                    [0.30, "#FF9800"], [0.55, "#F44336"], [0.80, "#9C27B0"],
-                    [1.00, "#1A237E"],
+                # ── Statistiques regionales (depuis pixels bruts, pas le composite) ──
+                _cl_reg_stats = (
+                    _cl_px_c.groupby("region")["precipitation_mm"]
+                    .agg(max_p="max", mean_p="mean", n_px="count")
+                    .sort_values("mean_p", ascending=False)
+                    .head(6)
+                )
+                _cl_reg_top = _cl_reg_stats.index[0] if len(_cl_reg_stats) else "-"
+
+                _cl_cl_color   = cl_colors[
+                    cl_ids_sorted.index(_cl_carto_sel) % len(cl_colors)
+                    if _cl_carto_sel in cl_ids_sorted else 0
                 ]
 
-                _cl_bmap = dict(
-                    style="carto-positron",
-                    center=dict(lat=_cl_ctr_lat, lon=_cl_ctr_lon),
-                    zoom=5.5,
-                )
-                _cl_mgn = dict(l=0, r=0, t=36, b=0)
+                # ── Layout 2/3 carte  +  1/3 stats ────────────────────
+                _cl_col_map, _cl_col_stat = st.columns([2, 1], gap="medium")
 
-                def _cl_add_overlays(fig):
+                with _cl_col_map:
+                    _CS_PREC_CL = [
+                        [0.00, "#f0f9ff"], [0.06, "#bae6fd"], [0.18, "#38bdf8"],
+                        [0.35, "#0ea5e9"], [0.55, "#f97316"], [0.75, "#ef4444"],
+                        [0.90, "#7c3aed"], [1.00, "#1e1b4b"],
+                    ]
+
+                    _cl_bmap = dict(
+                        style="carto-positron",
+                        center=dict(lat=_cl_ctr_lat, lon=_cl_ctr_lon),
+                        zoom=6.2,
+                    )
+
+                    _cl_fig_comp = go.Figure()
+
+                    # Contours departements (fond, dessines avant les pixels)
                     if _cl_dept_geo is not None:
                         _lo_b, _la_b = [], []
                         for _fbt in _cl_dept_geo.get("features", []):
-                            _gbm  = _fbt.get("geometry", {})
+                            _gbm   = _fbt.get("geometry", {})
                             _rings = []
                             if _gbm.get("type") == "Polygon":
                                 _rings = _gbm.get("coordinates", [])
@@ -790,197 +695,150 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
                                     _la_b.append(_yb)
                                 _lo_b.append(None)
                                 _la_b.append(None)
-                        fig.add_trace(go.Scattermapbox(
+                        _cl_fig_comp.add_trace(go.Scattermapbox(
                             lat=_la_b, lon=_lo_b, mode="lines",
-                            line=dict(width=0.8, color="rgba(15,23,42,0.45)"),
+                            line=dict(width=1.1, color="rgba(30,27,75,0.35)"),
                             hoverinfo="none", showlegend=False,
                         ))
-                    fig.add_trace(go.Scattermapbox(
-                        lat=[_cl_ctr_lat], lon=[_cl_ctr_lon], mode="markers",
-                        marker=dict(size=18, color="white", opacity=0.9),
+
+                    # Pixels precipitation (halo blanc pour lisibilite)
+                    _cl_fig_comp.add_trace(go.Scattermapbox(
+                        lat=_cl_lats, lon=_cl_lons,
+                        mode="markers",
+                        marker=dict(size=11, color="white", opacity=0.30),
                         hoverinfo="skip", showlegend=False,
                     ))
-                    fig.add_trace(go.Scattermapbox(
-                        lat=[_cl_ctr_lat], lon=[_cl_ctr_lon], mode="markers",
-                        marker=dict(size=12, color=ROSE, opacity=0.95),
+                    _cl_fig_comp.add_trace(go.Scattermapbox(
+                        lat=_cl_lats, lon=_cl_lons,
+                        mode="markers",
+                        marker=dict(
+                            size=9,
+                            color=_cl_prec,
+                            colorscale=_CS_PREC_CL,
+                            cmin=_cl_p_min, cmax=_cl_p_max,
+                            opacity=0.92,
+                            colorbar=dict(
+                                title=dict(
+                                    text="mm moy.",
+                                    font=dict(size=10, color=MUTED),
+                                ),
+                                thickness=11, len=0.70,
+                                x=1.01, xanchor="left",
+                                y=0.5, yanchor="middle",
+                                tickfont=dict(size=9, color=MUTED),
+                                outlinewidth=0,
+                                bgcolor="rgba(255,255,255,0.0)",
+                            ),
+                        ),
+                        customdata=[[f"{a:+.1f}", rg, f"{p:.1f}"]
+                                    for a, rg, p in zip(_cl_anom, _cl_regs, _cl_prec)],
                         hovertemplate=(
-                            f"<b>Centroide</b><br>"
-                            f"{_cl_ctr_lat:.1f}N {abs(_cl_ctr_lon):.1f}W"
+                            "<b>%{customdata[2]} mm</b> moy. &nbsp;|&nbsp; %{customdata[0]}&sigma;<br>"
+                            "<span style='color:#64748b'>Region : %{customdata[1]}</span>"
                             "<extra></extra>"
                         ),
                         showlegend=False,
                     ))
 
-                _cl_map_col, _cl_info_col = st.columns([5, 4], gap="medium")
+                    # Centroide de precipitation
+                    _cl_fig_comp.add_trace(go.Scattermapbox(
+                        lat=[_cl_ctr_lat], lon=[_cl_ctr_lon], mode="markers",
+                        marker=dict(size=20, color="white", opacity=0.85),
+                        hoverinfo="skip", showlegend=False,
+                    ))
+                    _cl_fig_comp.add_trace(go.Scattermapbox(
+                        lat=[_cl_ctr_lat], lon=[_cl_ctr_lon], mode="markers",
+                        marker=dict(
+                            size=13, color=_cl_cl_color, opacity=1.0,
+                            symbol="circle",
+                        ),
+                        hovertemplate=(
+                            f"<b>Barycentre C{_cl_carto_sel}</b><br>"
+                            f"{_cl_ctr_lat:.2f}N  {abs(_cl_ctr_lon):.2f}W"
+                            "<extra></extra>"
+                        ),
+                        showlegend=False,
+                    ))
 
-                with _cl_map_col:
-                    st.markdown(
-                        '<p class="pnl-ttl" style="margin-bottom:4px">'
-                        '&#127783; Precipitation (mm)</p>',
-                        unsafe_allow_html=True,
+                    _cl_fig_comp.update_layout(
+                        mapbox=_cl_bmap,
+                        margin=dict(l=0, r=0, t=0, b=0),
+                        height=500,
+                        plot_bgcolor="rgba(0,0,0,0)",
+                        paper_bgcolor=CARD,
                     )
                     with st.spinner("Chargement de la carte..."):
-                        _cl_fig1 = go.Figure()
-                        _cl_fig1.add_trace(go.Choroplethmapbox(
-                            geojson=_cl_px_geo,
-                            locations=_cl_ids_px,
-                            z=_cl_prec,
-                            colorscale=_CS_PREC_CL,
-                            zmin=_cl_p_min, zmax=_cl_p_max,
-                            marker=dict(opacity=0.87,
-                                        line=dict(width=0.4, color="rgba(255,255,255,0.12)")),
-                            colorbar=dict(
-                                title=dict(text="mm", font=dict(size=11, color=MUTED)),
-                                thickness=12, len=0.82, x=1.01,
-                                tickfont=dict(size=10, color=MUTED), outlinewidth=0,
-                            ),
-                            hoverinfo="skip",
-                        ))
-                        _cl_fig1.add_trace(go.Scattermapbox(
-                            lat=_cl_lats, lon=_cl_lons, mode="markers",
-                            marker=dict(size=8, opacity=0, color="rgba(0,0,0,0)"),
-                            customdata=_cl_cd_prec,
-                            hovertemplate=(
-                                "<b>%{customdata[6]} mm</b> | %{customdata[0]}sigma<br>"
-                                "Departement : <b>%{customdata[5]}</b><br>"
-                                "Region : %{customdata[1]}<br>"
-                                "Categorie : <b>%{customdata[2]}</b>"
-                                "<extra></extra>"
-                            ),
-                            showlegend=False,
-                        ))
-                        _cl_add_overlays(_cl_fig1)
-                        _cl_fig1.update_layout(
-                            mapbox=_cl_bmap, margin=_cl_mgn, height=430,
-                            plot_bgcolor=CARD, paper_bgcolor=CARD,
-                            title=dict(
-                                text=(f"<b>{_cl_date}</b> · {_cl_lbl} · Cluster {_cl_carto_sel}"),
-                                font=dict(size=10, color=MUTED), x=0, pad=dict(l=4),
-                            ),
-                        )
                         st.plotly_chart(
-                            _cl_fig1, use_container_width=True, key="cl_carto_map1",
+                            _cl_fig_comp, use_container_width=True, key="cl_carto_composite",
                             config={
                                 "displayModeBar": True,
                                 "modeBarButtonsToRemove": [
-                                    "lasso2d", "select2d", "autoScale2d", "hoverClosestMapbox",
+                                    "lasso2d", "select2d", "autoScale2d",
+                                    "hoverClosestMapbox",
                                 ],
                                 "displaylogo": False,
                                 "toImageButtonOptions": {
                                     "format": "png",
-                                    "filename": f"cluster{_cl_carto_sel}_{_cl_sel_crit}_{_cl_date}",
+                                    "filename": f"cluster{_cl_carto_sel}_{sel_phase}_composite",
+                                    "scale": 3,
                                 },
                             },
                         )
 
-                with _cl_info_col:
-                    st.markdown(
-                        '<p class="pnl-ttl" style="margin-bottom:8px">'
-                        '&#128203; Fiche &eacute;v&eacute;nement</p>',
-                        unsafe_allow_html=True,
-                    )
-                    _cl_reg_stats = (
-                        _cl_ev.groupby("region")["precipitation_mm"]
-                        .agg(max_p="max", mean_p="mean")
-                        .sort_values("max_p", ascending=False)
-                    )
-                    _cl_top_reg = _cl_reg_stats.index[0] if len(_cl_reg_stats) else "-"
-                    _cl_top_max = float(_cl_reg_stats.iloc[0]["max_p"]) if len(_cl_reg_stats) else 0
-                    _cl_top_moy = float(_cl_reg_stats.iloc[0]["mean_p"]) if len(_cl_reg_stats) else 0
+                # ── Panneau statistiques (1/3) ─────────────────────────
+                with _cl_col_stat:
 
-                    _cl_pmax_v = f"{_cl_ev['precipitation_mm'].max():.1f}"
-                    _cl_pmoy_v = f"{_cl_ev['precipitation_mm'].mean():.1f}"
-                    _cl_amax_v = f"{_cl_ev['anomaly_standardized'].max():.1f}"
-                    _cl_amoy_v = f"{_cl_ev['anomaly_standardized'].mean():.1f}"
-                    _cl_ext_n  = int((_cl_ev["anomaly_standardized"] > 2.0).sum())
-                    _cl_ext_pct = _cl_ext_n / len(_cl_ev) * 100
-                    _cl_ph_raw  = _cl_ev["season_phase"].iloc[0] if len(_cl_ev) > 0 else ""
-                    _PHASE_FR_CL2 = {
-                        "Phase_1_debut":  "Phase 1 &mdash; D&eacute;but (Mai-Juin)",
-                        "Phase_2_pleine": "Phase 2 &mdash; Pleine (Juil-Ao&ucirc;t)",
-                        "Phase_3_fin":    "Phase 3 &mdash; Fin (Sep-Oct)",
-                    }
-                    _cl_ph_lbl = _PHASE_FR_CL2.get(_cl_ph_raw, _cl_ph_raw)
-                    _cl_ph_clr = PHASE_C.get(_cl_ph_raw, MUTED)
-
-                    def _cl_pbar(pct, color, bg=BORDER):
+                    def _sp_bar(pct, color):
                         w = min(max(float(pct), 0), 100)
                         return (
-                            f'<div style="height:6px;background:{bg};border-radius:99px;'
-                            f'margin-top:4px;overflow:hidden;">'
+                            f'<div style="height:6px;background:{BORDER};border-radius:99px;'
+                            f'margin-top:6px;overflow:hidden;">'
                             f'<div style="width:{w:.1f}%;height:100%;background:{color};'
                             f'border-radius:99px;"></div></div>'
                         )
 
-                    def _cl_mrow(label, value, unit="", color=TEXT):
-                        return (
-                            f'<div style="display:flex;justify-content:space-between;'
-                            f'align-items:baseline;padding:6px 0;'
-                            f'border-bottom:1px solid {BORDER};">'
-                            f'<span style="font-size:0.75rem;color:{MUTED}">{label}</span>'
-                            f'<span style="font-size:0.85rem;font-weight:700;color:{color}">'
-                            f'{value}'
-                            f'<span style="font-size:0.72rem;font-weight:500;color:{MUTED};'
-                            f'margin-left:2px">{unit}</span></span></div>'
-                        )
+                    # En-tete cluster
+                    st.markdown(
+                        f'<div style="background:{_cl_cl_color}18;border-left:3px solid '
+                        f'{_cl_cl_color};border-radius:0 10px 10px 0;padding:10px 14px;'
+                        f'margin-bottom:18px;">'
+                        f'<p style="margin:0;font-size:0.68rem;font-weight:700;color:{_cl_cl_color};'
+                        f'text-transform:uppercase;letter-spacing:.07em;">Cluster {_cl_carto_sel}</p>'
+                        f'<p style="margin:2px 0 0 0;font-size:0.78rem;color:{MUTED};">'
+                        f'{PHASE_LABELS_CL.get(sel_phase, sel_phase)}</p>'
+                        f'</div>',
+                        unsafe_allow_html=True,
+                    )
 
-                    _cl_html_hdr = (
-                        f'<div style="border-bottom:3px solid {_cl_fg0};'
-                        f'padding:14px 16px 12px 16px;background:{_cl_bgcrit};">'
-                        f'<div style="display:flex;align-items:flex-start;'
-                        f'justify-content:space-between;gap:8px;">'
-                        f'<div>'
-                        f'<p style="margin:0 0 2px 0;font-size:0.72rem;font-weight:700;'
-                        f'color:{_cl_fg0};text-transform:uppercase;letter-spacing:0.07em">'
-                        f'Cluster {_cl_carto_sel} &nbsp;&middot;&nbsp; {_cl_lbl}</p>'
-                        f'<p style="margin:0 0 6px 0;font-size:1.05rem;font-weight:800;'
-                        f'color:{TEXT};line-height:1.2">{_cl_date}</p>'
-                        f'</div></div>'
-                        f'<span style="background:{_cl_ph_clr}22;color:{_cl_ph_clr};'
-                        f'font-size:0.72rem;font-weight:700;border-radius:6px;'
-                        f'padding:3px 9px;display:inline-block">'
-                        f'{_cl_ph_lbl}</span>'
-                        f'</div>'
+                    # Top regions
+                    st.markdown(
+                        f'<p style="margin:0 0 10px 0;font-size:0.70rem;font-weight:700;'
+                        f'color:{MUTED};text-transform:uppercase;letter-spacing:.05em;">'
+                        f'Regions les plus arrosees &nbsp;'
+                        f'<span style="font-weight:400;text-transform:none;'
+                        f'letter-spacing:0;">(precip. moyenne)</span></p>',
+                        unsafe_allow_html=True,
                     )
-                    _cl_html_body = (
-                        f'<div style="padding:8px 16px 16px 16px;">'
-                        + _cl_mrow("Pr&#233;cip. max",     _cl_pmax_v, "mm", BLUE)
-                        + _cl_mrow("Pr&#233;cip. moyenne", _cl_pmoy_v, "mm")
-                        + _cl_mrow("Anomalie max",         _cl_amax_v, "&#963;", "#7C3AED")
-                        + _cl_mrow("Anomalie moyenne",     _cl_amoy_v, "&#963;")
-                        + f'<div style="padding:7px 0 4px 0;border-bottom:1px solid {BORDER};">'
-                        + f'<div style="display:flex;justify-content:space-between;'
-                        + f'align-items:baseline;margin-bottom:3px;">'
-                        + f'<span style="font-size:0.75rem;color:{MUTED}">'
-                        + f'Pixels extr&ecirc;mes (&gt;2&#963;)</span>'
-                        + f'<span style="font-size:0.85rem;font-weight:700;color:{AMBER}">'
-                        + f'{_cl_ext_pct:.1f}%&nbsp;({_cl_ext_n}&nbsp;px)</span>'
-                        + f'</div>' + _cl_pbar(_cl_ext_pct, AMBER) + f'</div>'
-                        + _cl_mrow("R&#233;gion principale", _cl_top_reg)
-                        + f'<div style="padding:5px 0;border-bottom:1px solid {BORDER};">'
-                        + f'<div style="display:flex;justify-content:space-between;'
-                        + f'align-items:baseline;margin-bottom:3px;">'
-                        + f'<span style="font-size:0.75rem;color:{MUTED}">'
-                        + f'R&#233;gion la plus intense</span>'
-                        + f'<span style="font-size:0.85rem;font-weight:700;color:{ROSE}">'
-                        + f'{_cl_top_reg}</span></div>'
-                        + f'<div style="font-size:0.72rem;color:{MUTED};">'
-                        + f'max {_cl_top_max:.1f}&nbsp;mm &nbsp;&#183;&nbsp;'
-                        + f' moy.&nbsp;{_cl_top_moy:.1f}&nbsp;mm</div>'
-                        + f'</div>'
-                        + f'<div style="padding:8px 0 0 0;">'
-                        + f'<span style="font-size:0.72rem;color:{MUTED};">'
-                        + f'Total pixels&nbsp;: {len(_cl_ev)}</span></div>'
-                        + f'</div>'
-                    )
-                    st.html(
-                        f'<div style="background:{CARD};border:1px solid {BORDER};'
-                        f'border-radius:14px;overflow:hidden;'
-                        f'box-shadow:0 1px 3px rgba(0,0,0,0.04),'
-                        f'0 4px 16px rgba(0,0,0,0.05);">'
-                        + _cl_html_hdr + _cl_html_body
-                        + f'</div>'
-                    )
+                    _cl_reg_ref = float(_cl_reg_stats["mean_p"].max()) if len(_cl_reg_stats) else 1.0
+                    for _rname, _rrow in _cl_reg_stats.iterrows():
+                        _rpct = float(_rrow["mean_p"]) / _cl_reg_ref * 100
+                        _is_top = (_rname == _cl_reg_top)
+                        st.markdown(
+                            f'<div style="margin-bottom:12px;">'
+                            f'<div style="display:flex;justify-content:space-between;'
+                            f'align-items:baseline;">'
+                            f'<span style="font-size:0.76rem;'
+                            f'font-weight:{"700" if _is_top else "400"};'
+                            f'color:{TEXT if _is_top else MUTED};'
+                            f'white-space:nowrap;overflow:hidden;'
+                            f'text-overflow:ellipsis;max-width:65%;">{_rname}</span>'
+                            f'<span style="font-size:0.74rem;font-weight:700;'
+                            f'color:{BLUE};">{_rrow["mean_p"]:.1f} mm</span>'
+                            f'</div>'
+                            + _sp_bar(_rpct, INDIGO if _is_top else BLUE)
+                            + f'</div>',
+                            unsafe_allow_html=True,
+                        )
 
     # ════════════════════════════════════════════════════════════════════
     # CARTES PUBLICATION QUALITE (cartopy)

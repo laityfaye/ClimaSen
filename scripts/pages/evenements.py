@@ -19,7 +19,7 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
         is_mobile=False, is_tablet=False, **kw):
 
     def plotly_base(fig, h=300):
-        return du.plotly_base(fig, h, muted=MUTED, border=BORDER, text=TEXT)
+        return du.plotly_base(fig, h, muted=MUTED, border=BORDER, text=TEXT, card=CARD)
 
     n_total  = len(dff)
     avg_cov  = dff["coverage_percent"].mean()
@@ -183,17 +183,95 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
 
         st.markdown("<div style='height:10px'></div>", unsafe_allow_html=True)
 
+        # -- Pre-filtrage boundary Senegal (une seule fois pour tous les events) -----
+        from matplotlib.path import Path as _MplPath
+
+        def _build_paths(geojson):
+            paths = []
+            for feat in geojson.get("features", []):
+                geom   = feat.get("geometry", {})
+                gtype  = geom.get("type", "")
+                coords = geom.get("coordinates", [])
+                if gtype == "MultiPolygon":
+                    for poly in coords:
+                        if poly and poly[0]:
+                            paths.append(_MplPath(np.array(poly[0])))
+                elif gtype == "Polygon":
+                    if coords and coords[0]:
+                        paths.append(_MplPath(np.array(coords[0])))
+            return paths
+
+        _bounds_geo = load_dept_geojson()
+        _bounds_path = BASE / "data/geographic/senegal_boundaries.geojson"
+        if _bounds_path.exists():
+            import json as _json
+            with open(str(_bounds_path), "r", encoding="utf-8") as _bf:
+                _bounds_geo = _json.load(_bf)
+
+        _ev_pixels_sn = _ev_pixels.copy()
+        _boundary_paths = []
+        if _bounds_geo is not None and len(_ev_pixels_sn) > 0:
+            _boundary_paths = _build_paths(_bounds_geo)
+            if _boundary_paths:
+                _pts_sn = np.column_stack([
+                    _ev_pixels_sn["longitude"].values,
+                    _ev_pixels_sn["latitude"].values,
+                ])
+                _inside_sn = np.zeros(len(_pts_sn), dtype=bool)
+                for _bp in _boundary_paths:
+                    _inside_sn |= _bp.contains_points(_pts_sn)
+                _ev_pixels_sn = _ev_pixels_sn[_inside_sn].reset_index(drop=True)
+
         # ── Mini-cards apercu (6 evenements) ─────────────────────────────────
         if _ev_summary is not None and len(_ev_summary) > 0 and len(_dates) > 0:
             _ncols = min(6, len(_dates))
             _mini_cols = st.columns(_ncols, gap="small")
-            for _col_m, _d in zip(_mini_cols, _dates):
+
+            # Precip/anomaly max : pixels filtres aux frontieres Senegal (coherent fiche)
+            _pmax_by_date = (
+                _ev_pixels_sn[_ev_pixels_sn["precipitation_mm"] > 0]
+                .groupby("event_date")["precipitation_mm"].max()
+                .to_dict()
+            )
+            _amax_by_date = (
+                _ev_pixels_sn.groupby("event_date")["anomaly_standardized"].max()
+                .to_dict()
+            )
+
+            # CSS : bouton invisible positionne par-dessus chaque card
+            st.markdown("""
+            <style>
+            div[data-testid="stVerticalBlock"]
+              .element-container:has(.mini-ev-card) + div {
+                margin-top: -108px !important;
+                height: 108px !important;
+            }
+            div[data-testid="stVerticalBlock"]
+              .element-container:has(.mini-ev-card) + div button {
+                width: 100% !important;
+                height: 108px !important;
+                opacity: 0 !important;
+                cursor: pointer !important;
+                border: none !important;
+                background: transparent !important;
+                padding: 0 !important;
+            }
+            </style>
+            """, unsafe_allow_html=True)
+
+            for _i_m, (_col_m, _d) in enumerate(zip(_mini_cols, _dates)):
                 _row_m = _ev_summary[_ev_summary["event_date"] == _d]
                 _c0 = _get_crit0(_d)
                 _fg, _bg = _CRIT_COLORS.get(_c0, (INDIGO, "rgba(79,70,229,0.13)"))
                 _ph = _row_m.iloc[0]["season_phase"] if not _row_m.empty else ""
-                _pmax = f"{_row_m.iloc[0]['precip_max']:.0f}" if not _row_m.empty else "-"
-                _amax = f"{_row_m.iloc[0]['anomaly_max']:.1f}" if not _row_m.empty else "-"
+                _pmax = (
+                    f"{_pmax_by_date[_d]:.0f}" if _d in _pmax_by_date
+                    else (f"{_row_m.iloc[0]['precip_max']:.0f}" if not _row_m.empty else "-")
+                )
+                _amax = (
+                    f"{_amax_by_date[_d]:.1f}" if _d in _amax_by_date
+                    else (f"{_row_m.iloc[0]['anomaly_max']:.1f}" if not _row_m.empty else "-")
+                )
                 _is_sel = (_d == _sel_date)
                 _border = f"2px solid {INDIGO}" if _is_sel else f"1px solid {BORDER}"
                 _shadow = "box-shadow:0 3px 12px rgba(79,70,229,0.18);" if _is_sel else ""
@@ -204,70 +282,38 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
                     else "P3 Fin" if "fin" in _ph
                     else _ph
                 )
-                _col_m.markdown(f"""
-                <div class="mini-ev-card" style="background:{_bg_card};border:{_border};border-radius:10px;
-                            padding:10px 10px 9px 10px;{_shadow}cursor:pointer;
-                            transition:box-shadow 0.15s;">
-                  <div style="background:{_bg};border-radius:5px;padding:2px 6px;
-                              margin-bottom:7px;display:inline-block;max-width:100%;">
-                    <span class="mini-ev-crit" style="font-size:0.69rem;font-weight:700;color:{_fg};
-                                 white-space:nowrap;display:block;">{_CRIT_FR.get(_c0, _c0)}</span>
-                  </div>
-                  <p style="margin:0;font-size:0.77rem;font-weight:700;
-                            color:{TEXT};line-height:1.2">{_d}</p>
-                  <p style="margin:3px 0 0 0;font-size:0.72rem;color:{MUTED}">
-                    {_pmax} mm &nbsp;&middot;&nbsp; {_amax} &#963;
-                  </p>
-                  <p style="margin:4px 0 0 0;font-size:0.69rem;color:{MUTED}">{_ph_short}</p>
-                </div>
-                """, unsafe_allow_html=True)
+                with _col_m:
+                    st.markdown(f"""
+                    <div class="mini-ev-card" style="background:{_bg_card};border:{_border};
+                                border-radius:10px;padding:10px 10px 9px 10px;{_shadow}
+                                cursor:pointer;transition:box-shadow 0.15s;">
+                      <div style="background:{_bg};border-radius:5px;padding:2px 6px;
+                                  margin-bottom:7px;display:inline-block;max-width:100%;">
+                        <span class="mini-ev-crit" style="font-size:0.69rem;font-weight:700;
+                                     color:{_fg};white-space:nowrap;display:block;">
+                          {_CRIT_FR.get(_c0, _c0)}</span>
+                      </div>
+                      <p style="margin:0;font-size:0.77rem;font-weight:700;
+                                color:{TEXT};line-height:1.2">{_d}</p>
+                      <p style="margin:3px 0 0 0;font-size:0.72rem;color:{MUTED}">
+                        {_pmax} mm &nbsp;&middot;&nbsp; {_amax} &#963;
+                      </p>
+                      <p style="margin:4px 0 0 0;font-size:0.69rem;color:{MUTED}">{_ph_short}</p>
+                    </div>
+                    """, unsafe_allow_html=True)
+                    if st.button("", key=f"ev_mini_{_i_m}", use_container_width=True):
+                        st.session_state["carto_nav_idx"] = _i_m
+                        st.rerun()
 
         st.markdown("<div style='height:14px'></div>", unsafe_allow_html=True)
 
-        _ev_sel = _ev_pixels[_ev_pixels["event_date"] == _sel_date].copy()
-
-        # -- Filtrage geometrique : pixels a l'interieur du Senegal uniquement --
-        if _dept_geo is not None and len(_ev_sel) > 0:
-            from matplotlib.path import Path as _MplPath
-
-            def _build_paths(geojson):
-                paths = []
-                for feat in geojson.get("features", []):
-                    geom = feat.get("geometry", {})
-                    gtype = geom.get("type", "")
-                    coords = geom.get("coordinates", [])
-                    if gtype == "MultiPolygon":
-                        for poly in coords:
-                            if poly and poly[0]:
-                                paths.append(_MplPath(np.array(poly[0])))
-                    elif gtype == "Polygon":
-                        if coords and coords[0]:
-                            paths.append(_MplPath(np.array(coords[0])))
-                return paths
-
-            _bounds_geo = load_dept_geojson()
-            _bounds_path = BASE / "data/geographic/senegal_boundaries.geojson"
-            if _bounds_path.exists():
-                import json as _json
-                with open(str(_bounds_path), "r", encoding="utf-8") as _bf:
-                    _bounds_geo = _json.load(_bf)
-
-            if _bounds_geo is not None:
-                _boundary_paths = _build_paths(_bounds_geo)
-                if _boundary_paths:
-                    _pts = np.column_stack([
-                        _ev_sel["longitude"].values,
-                        _ev_sel["latitude"].values,
-                    ])
-                    _inside = np.zeros(len(_pts), dtype=bool)
-                    for _bp in _boundary_paths:
-                        _inside |= _bp.contains_points(_pts)
-                    _ev_sel = _ev_sel[_inside].reset_index(drop=True)
+        # _ev_pixels_sn est deja filtre aux frontieres Senegal (pre-calcule plus haut)
+        _ev_sel = _ev_pixels_sn[_ev_pixels_sn["event_date"] == _sel_date].copy()
+        _ev_sel = _ev_sel[_ev_sel["precipitation_mm"] > 0].reset_index(drop=True)
 
         # -- Jointure spatiale : departement pour chaque pixel --------------------
         _depts_ev = [""] * len(_ev_sel)
         if _dept_geo is not None and len(_ev_sel) > 0:
-            from matplotlib.path import Path as _MplPath2
             _pts_all = np.column_stack([
                 _ev_sel["longitude"].values,
                 _ev_sel["latitude"].values,
@@ -281,10 +327,10 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
                 if _gtype == "MultiPolygon":
                     for _poly in _coords:
                         if _poly and _poly[0]:
-                            _polys.append(_MplPath2(np.array(_poly[0])))
+                            _polys.append(_MplPath(np.array(_poly[0])))
                 elif _gtype == "Polygon":
                     if _coords and _coords[0]:
-                        _polys.append(_MplPath2(np.array(_coords[0])))
+                        _polys.append(_MplPath(np.array(_coords[0])))
                 for _pp in _polys:
                     _mask = _pp.contains_points(_pts_all)
                     for _idx in np.where(_mask)[0]:
@@ -293,11 +339,6 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
         st.markdown("<div style='height:12px'></div>", unsafe_allow_html=True)
 
         # -- Infrastructure cartes ------------------------------------------------
-        _map_base = dict(
-            style="open-street-map",
-            center=dict(lat=14.5, lon=-14.5),
-            zoom=5,
-        )
         _margin = dict(l=0, r=0, t=28, b=0)
 
         def _make_boundary_trace(geojson, width=1.4, color="rgba(30,30,30,0.70)"):
@@ -349,15 +390,15 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
             for _, r in _ev_sel.iterrows()
         ]
 
-        _ctr_lat = float(_ev_sel["latitude"].mean()) if len(_ev_sel) else 14.5
-        _ctr_lon = float(_ev_sel["longitude"].mean()) if len(_ev_sel) else -14.5
-        if _ev_summary is not None and len(_ev_summary) > 0:
-            _row_ctr = _ev_summary[_ev_summary["event_date"] == _sel_date]
-            if (not _row_ctr.empty
-                    and "centroid_lat" in _row_ctr.columns
-                    and "centroid_lon" in _row_ctr.columns):
-                _ctr_lat = float(_row_ctr.iloc[0]["centroid_lat"])
-                _ctr_lon = float(_row_ctr.iloc[0]["centroid_lon"])
+        # Centroide pondere par precipitation depuis _ev_sel
+        # (pixels deja filtres aux frontieres Senegal + precip > 0 => coherent avec la carte)
+        _ctr_lat, _ctr_lon = 14.5, -14.5
+        if len(_ev_sel) > 0:
+            _w     = _ev_sel["precipitation_mm"].values
+            _w_sum = float(_w.sum())
+            if _w_sum > 0:
+                _ctr_lat = float(np.average(_ev_sel["latitude"].values,  weights=_w))
+                _ctr_lon = float(np.average(_ev_sel["longitude"].values, weights=_w))
 
         _title_map = (
             f"<b>{_sel_date}</b> · "
@@ -366,29 +407,6 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
 
         _density_radius = 20
 
-        _HALF_PX = 0.025
-        _pixel_geo = {
-            "type": "FeatureCollection",
-            "features": [
-                {
-                    "type": "Feature",
-                    "id": str(i),
-                    "geometry": {
-                        "type": "Polygon",
-                        "coordinates": [[
-                            [lo - _HALF_PX, la - _HALF_PX],
-                            [lo + _HALF_PX, la - _HALF_PX],
-                            [lo + _HALF_PX, la + _HALF_PX],
-                            [lo - _HALF_PX, la + _HALF_PX],
-                            [lo - _HALF_PX, la - _HALF_PX],
-                        ]]
-                    },
-                    "properties": {"id": i},
-                }
-                for i, (la, lo) in enumerate(zip(_lats_ev, _lons_ev))
-            ],
-        }
-        _ids_px  = [str(i) for i in range(len(_lats_ev))]
         _regs_ev = _ev_sel["region"].tolist()
         _cats_ev = _ev_sel["intensity_category"].tolist()
 
@@ -427,29 +445,71 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
         _bmap = dict(
             style="carto-positron",
             center=dict(lat=_ctr_lat, lon=_ctr_lon),
-            zoom=5.5,
+            zoom=6.2,
         )
-        _mgn = dict(l=0, r=0, t=36, b=0)
+        _mgn = dict(l=0, r=0, t=0, b=0)
+
+        # Pixel avec precipitation maximale
+        _mx_idx = int(np.argmax(_prec_ev)) if _prec_ev else None
+        _mx_lat = _lats_ev[_mx_idx] if _mx_idx is not None else None
+        _mx_lon = _lons_ev[_mx_idx] if _mx_idx is not None else None
+        _mx_val = _prec_ev[_mx_idx] if _mx_idx is not None else None
 
         def _add_overlays(fig):
+            # Frontieres departements (trait fin)
             if _dept_geo is not None:
                 fig.add_trace(_make_boundary_trace(
-                    _dept_geo, width=0.8, color="rgba(15,23,42,0.45)"
+                    _dept_geo, width=0.6, color="rgba(30,41,59,0.28)"
                 ))
+            # Contour national Senegal (trait epais)
+            if _bounds_geo is not None:
+                fig.add_trace(_make_boundary_trace(
+                    _bounds_geo, width=2.0, color="rgba(15,23,42,0.72)"
+                ))
+            # Marqueur pixel maximum : halo + point central
+            if _mx_lat is not None:
+                fig.add_trace(go.Scattermapbox(
+                    lat=[_mx_lat], lon=[_mx_lon], mode="markers",
+                    marker=dict(size=26, color="#F59E0B", opacity=0.18),
+                    hoverinfo="skip", showlegend=False,
+                ))
+                fig.add_trace(go.Scattermapbox(
+                    lat=[_mx_lat], lon=[_mx_lon], mode="markers",
+                    marker=dict(size=16, color="#FBBF24", opacity=0.85),
+                    hoverinfo="skip", showlegend=False,
+                ))
+                fig.add_trace(go.Scattermapbox(
+                    lat=[_mx_lat], lon=[_mx_lon], mode="markers",
+                    marker=dict(size=7, color="#FFFFFF", opacity=1.0),
+                    hovertemplate=(
+                        f"<b>Maximum : {_mx_val:.1f} mm</b><br>"
+                        f"{_mx_lat:.3f}N  {abs(_mx_lon):.3f}W"
+                        "<extra></extra>"
+                    ),
+                    showlegend=False,
+                ))
+            # Centroide : effet radar 3 anneaux
             fig.add_trace(go.Scattermapbox(
-                lat=[_ctr_lat], lon=[_ctr_lon],
-                mode="markers",
-                marker=dict(size=18, color="white", opacity=0.9),
+                lat=[_ctr_lat], lon=[_ctr_lon], mode="markers",
+                marker=dict(size=34, color=ROSE, opacity=0.10),
                 hoverinfo="skip", showlegend=False,
             ))
             fig.add_trace(go.Scattermapbox(
-                lat=[_ctr_lat], lon=[_ctr_lon],
-                mode="markers",
-                marker=dict(size=12, color=ROSE, opacity=0.95),
+                lat=[_ctr_lat], lon=[_ctr_lon], mode="markers",
+                marker=dict(size=22, color=ROSE, opacity=0.22),
+                hoverinfo="skip", showlegend=False,
+            ))
+            fig.add_trace(go.Scattermapbox(
+                lat=[_ctr_lat], lon=[_ctr_lon], mode="markers",
+                marker=dict(size=13, color="white", opacity=0.92),
+                hoverinfo="skip", showlegend=False,
+            ))
+            fig.add_trace(go.Scattermapbox(
+                lat=[_ctr_lat], lon=[_ctr_lon], mode="markers",
+                marker=dict(size=8, color=ROSE, opacity=1.0),
                 hovertemplate=(
-                    f"<b>Centroide</b><br>"
-                    f"{_ctr_lat:.1f}°N "
-                    f"{abs(_ctr_lon):.1f}°W"
+                    "<b>Centre de gravite</b><br>"
+                    f"{_ctr_lat:.3f}N  {abs(_ctr_lon):.3f}W"
                     "<extra></extra>"
                 ),
                 showlegend=False,
@@ -457,71 +517,190 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
 
         _mmap1, _minfo = st.columns([5, 4], gap="medium")
 
-        # ── Carte 1 : Precipitations (mm) ─────────────────────────────────────
+        # ── Cartes : Precipitations + Anomalie (tabs) ──────────────────────────
         with _mmap1:
-            st.markdown(
-                '<p class="pnl-ttl" style="margin-bottom:4px">'
-                '&#127783; Précipitation (mm)</p>',
-                unsafe_allow_html=True,
-            )
-            with st.spinner("Chargement de la carte des precipitations..."):
-                _fig1 = go.Figure()
-                _fig1.add_trace(go.Choroplethmapbox(
-                    geojson=_pixel_geo,
-                    locations=_ids_px,
-                    z=_prec_ev,
-                    colorscale=_CS_PREC,
-                    zmin=_p_min, zmax=_p_max,
-                    marker=dict(
-                        opacity=0.87,
-                        line=dict(width=0.4, color="rgba(255,255,255,0.12)"),
-                    ),
-                    colorbar=dict(
-                        title=dict(text="mm", font=dict(size=11, color=MUTED)),
-                        thickness=12, len=0.82, x=1.01,
-                        tickfont=dict(size=10, color=MUTED),
-                        outlinewidth=0,
-                    ),
-                    hoverinfo="skip",
-                ))
-                _fig1.add_trace(go.Scattermapbox(
-                    lat=_lats_ev, lon=_lons_ev,
-                    mode="markers",
-                    marker=dict(size=8, opacity=0, color="rgba(0,0,0,0)"),
-                    customdata=_cd_prec,
-                    hovertemplate=(
-                        "<b>%{customdata[6]} mm</b> | %{customdata[0]}<br>"
-                        "Département : <b>%{customdata[5]}</b><br>"
-                        "Région : %{customdata[1]}<br>"
-                        "Catégorie : <b>%{customdata[2]}</b>"
-                        "<extra></extra>"
-                    ),
-                    showlegend=False,
-                ))
-                _add_overlays(_fig1)
-                _fig1.update_layout(
-                    mapbox=_bmap, margin=_mgn, height=430,
-                    plot_bgcolor=CARD, paper_bgcolor=CARD,
-                    title=dict(
-                        text=f"<b>{_sel_date}</b>· Précipitations",
-                        font=dict(size=10, color=MUTED), x=0, pad=dict(l=4),
-                    ),
-                )
-                st.plotly_chart(
-                    _fig1, use_container_width=True,
-                    config={
-                        "displayModeBar": True,
-                        "modeBarButtonsToRemove": [
-                            "lasso2d", "select2d", "autoScale2d",
-                            "hoverClosestMapbox",
-                        ],
-                        "displaylogo": False,
-                        "toImageButtonOptions": {
-                            "format": "png",
-                            "filename": f"precip_{_sel_date}",
+            _c0_hdr = _get_crit0(_sel_date)
+            _fg_hdr, _ = _CRIT_COLORS.get(_c0_hdr, (INDIGO, ""))
+            _crit_hdr  = _CRIT_FR.get(_c0_hdr, "")
+            _mx_lbl = f"{_mx_val:.0f} mm" if _mx_val is not None else "-"
+
+            # Variable pixel sizes proportional to precipitation intensity
+            _szs = [
+                max(6, min(18, 6 + 12 * (p - _p_min) / max(_p_max - _p_min, 1.0)))
+                for p in _prec_ev
+            ]
+
+            _tab_p, _tab_a = st.tabs(["☁ Précipitations (mm)", "⚡ Anomalies (σ)"])
+
+            # --- Onglet 1 : Precipitations ---
+            with _tab_p:
+                st.markdown(f"""
+                <div style="display:flex;align-items:center;justify-content:space-between;
+                            margin-bottom:6px;flex-wrap:wrap;gap:6px;">
+                  <span class="pnl-ttl" style="margin:0">&#127783;&nbsp;
+                    Précipitation (mm) &mdash;
+                    <b style="color:{_fg_hdr}">{_sel_date}</b>
+                    <span style="font-weight:400;color:{MUTED};font-size:0.72rem">
+                      &nbsp;{_crit_hdr}</span></span>
+                  <span style="display:flex;gap:10px;font-size:0.68rem;color:{MUTED};
+                               align-items:center;flex-wrap:wrap;">
+                    <span>
+                      <span style="display:inline-block;width:10px;height:10px;
+                                   border-radius:50%;background:{ROSE};
+                                   vertical-align:middle;margin-right:3px;"></span>
+                      Centre de gravité</span>
+                    <span>
+                      <span style="display:inline-block;width:10px;height:10px;
+                                   border-radius:50%;background:#FBBF24;
+                                   vertical-align:middle;margin-right:3px;"></span>
+                      Maximum ({_mx_lbl})</span>
+                  </span>
+                </div>
+                """, unsafe_allow_html=True)
+
+                with st.spinner("Chargement..."):
+                    _fig1 = go.Figure()
+                    _fig1.add_trace(go.Densitymapbox(
+                        lat=_lats_ev, lon=_lons_ev,
+                        z=_prec_ev,
+                        radius=18,
+                        colorscale=_CS_PREC,
+                        zmin=_p_min, zmax=_p_max,
+                        opacity=0.22,
+                        showscale=False,
+                        hoverinfo="skip",
+                    ))
+                    _fig1.add_trace(go.Scattermapbox(
+                        lat=_lats_ev, lon=_lons_ev,
+                        mode="markers",
+                        marker=dict(
+                            size=_szs,
+                            color=_prec_ev,
+                            colorscale=_CS_PREC,
+                            cmin=_p_min, cmax=_p_max,
+                            opacity=0.88,
+                            colorbar=dict(
+                                title=dict(text="mm",
+                                           font=dict(size=11, color=MUTED)),
+                                thickness=14, len=0.72, x=1.01, y=0.5,
+                                tickfont=dict(size=10, color=MUTED),
+                                outlinewidth=0,
+                                bgcolor="rgba(255,255,255,0.80)",
+                                borderwidth=0, nticks=6,
+                            ),
+                        ),
+                        customdata=_cd_prec,
+                        hovertemplate=(
+                            "<b>%{customdata[6]} mm</b>"
+                            " | %{customdata[0]} σ<br>"
+                            "Département : <b>%{customdata[5]}</b><br>"
+                            "Région : %{customdata[1]}<br>"
+                            "Catégorie : <b>%{customdata[2]}</b>"
+                            "<extra></extra>"
+                        ),
+                        showlegend=False,
+                    ))
+                    _add_overlays(_fig1)
+                    _fig1.update_layout(
+                        mapbox=_bmap, margin=_mgn, height=440,
+                        plot_bgcolor="rgba(0,0,0,0)",
+                        paper_bgcolor="rgba(0,0,0,0)",
+                    )
+                    st.plotly_chart(
+                        _fig1, use_container_width=True,
+                        config={
+                            "displayModeBar": True,
+                            "modeBarButtonsToRemove": [
+                                "lasso2d", "select2d", "autoScale2d",
+                                "hoverClosestMapbox",
+                            ],
+                            "displaylogo": False,
+                            "toImageButtonOptions": {
+                                "format": "png",
+                                "filename": f"precip_{_sel_date}",
+                            },
                         },
-                    },
-                )
+                    )
+
+            # --- Onglet 2 : Anomalies ---
+            with _tab_a:
+                _anom_ext = max(
+                    abs(float(np.percentile(_anom_ev, 2))),
+                    abs(float(np.percentile(_anom_ev, 98))),
+                    2.5,
+                ) if _anom_ev else 3.0
+
+                _szs_a = [
+                    max(6, min(18, 6 + 12 * (abs(a) / max(_anom_ext, 0.1))))
+                    for a in _anom_ev
+                ]
+
+                st.markdown(f"""
+                <div style="display:flex;align-items:center;justify-content:space-between;
+                            margin-bottom:6px;flex-wrap:wrap;gap:6px;">
+                  <span class="pnl-ttl" style="margin:0">&#9889;&nbsp;
+                    Anomalie standardisée (&sigma;) &mdash;
+                    <b style="color:{_fg_hdr}">{_sel_date}</b>
+                    <span style="font-weight:400;color:{MUTED};font-size:0.72rem">
+                      &nbsp;{_crit_hdr}</span></span>
+                  <span style="font-size:0.68rem;color:{MUTED};">
+                    Écart à la normale climatologique</span>
+                </div>
+                """, unsafe_allow_html=True)
+
+                with st.spinner("Chargement..."):
+                    _fig2 = go.Figure()
+                    _fig2.add_trace(go.Scattermapbox(
+                        lat=_lats_ev, lon=_lons_ev,
+                        mode="markers",
+                        marker=dict(
+                            size=_szs_a,
+                            color=_anom_ev,
+                            colorscale=_CS_ANOM,
+                            cmin=-_anom_ext, cmax=_anom_ext,
+                            opacity=0.88,
+                            colorbar=dict(
+                                title=dict(text="σ",
+                                           font=dict(size=11, color=MUTED)),
+                                thickness=14, len=0.72, x=1.01, y=0.5,
+                                tickfont=dict(size=10, color=MUTED),
+                                outlinewidth=0,
+                                bgcolor="rgba(255,255,255,0.80)",
+                                borderwidth=0, nticks=6,
+                            ),
+                        ),
+                        customdata=_cd_anom,
+                        hovertemplate=(
+                            "<b>%{customdata[6]} σ</b>"
+                            " | %{customdata[0]} mm<br>"
+                            "Département : <b>%{customdata[5]}</b><br>"
+                            "Région : %{customdata[1]}<br>"
+                            "Catégorie : <b>%{customdata[2]}</b>"
+                            "<extra></extra>"
+                        ),
+                        showlegend=False,
+                    ))
+                    _add_overlays(_fig2)
+                    _fig2.update_layout(
+                        mapbox=_bmap, margin=_mgn, height=440,
+                        plot_bgcolor="rgba(0,0,0,0)",
+                        paper_bgcolor="rgba(0,0,0,0)",
+                    )
+                    st.plotly_chart(
+                        _fig2, use_container_width=True,
+                        config={
+                            "displayModeBar": True,
+                            "modeBarButtonsToRemove": [
+                                "lasso2d", "select2d", "autoScale2d",
+                                "hoverClosestMapbox",
+                            ],
+                            "displaylogo": False,
+                            "toImageButtonOptions": {
+                                "format": "png",
+                                "filename": f"anom_{_sel_date}",
+                            },
+                        },
+                    )
 
         # ── Panneau d'information de l'evenement ──────────────────────────────
         with _minfo:
@@ -557,12 +736,22 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
                     return default
                 return fmt.format(v) if fmt else str(v)
 
-            _pmax_v    = _sv("precip_max",    "{:.1f}")
-            _pmoy_v    = _sv("precip_mean",   "{:.1f}")
-            _amax_v    = _sv("anomaly_max",   "{:.1f}")
-            _amoy_v    = _sv("anomaly_mean",  "{:.1f}")
-            _ext_pct_v = float(_sv("extreme_percentage", "{}", "0"))
-            _mregion_v = _sv("main_region")
+            # Stats calculees sur _ev_sel (deja filtre aux frontieres Senegal)
+            # pour etre coherentes avec ce qui est affiche sur la carte
+            if len(_ev_sel) > 0:
+                _pmax_v    = f"{_ev_sel['precipitation_mm'].max():.1f}"
+                _pmoy_v    = f"{_ev_sel['precipitation_mm'].mean():.1f}"
+                _amax_v    = f"{_ev_sel['anomaly_standardized'].max():.1f}"
+                _amoy_v    = f"{_ev_sel['anomaly_standardized'].mean():.1f}"
+                _ext_n_v   = int((_ev_sel["anomaly_standardized"] > 2.0).sum())
+                _ext_pct_v = _ext_n_v / len(_ev_sel) * 100
+            else:
+                _pmax_v    = _sv("precip_max",    "{:.1f}")
+                _pmoy_v    = _sv("precip_mean",   "{:.1f}")
+                _amax_v    = _sv("anomaly_max",   "{:.1f}")
+                _amoy_v    = _sv("anomaly_mean",  "{:.1f}")
+                _ext_pct_v = float(_sv("extreme_percentage", "{}", "0"))
+            _mregion_v = _top_reg  # calculee depuis _ev_sel, coherent avec la carte
             _etype_v   = _sv("event_type")
             _extent_v  = _sv("spatial_extent")
             _ilevel_v  = _sv("intensity_level")
@@ -684,6 +873,96 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
     </div>
     """, unsafe_allow_html=True)
 
+    # ── Filtres ───────────────────────────────────────────────────────────────
+    _yr_min  = int(df["year"].min())
+    _yr_max  = int(df["year"].max())
+    _ph_dflt = ["Phase_1_debut", "Phase_2_pleine", "Phase_3_fin"]
+
+    # State pre-read: session state is updated before rerun, so badge is always current
+    _yr_cur = st.session_state.get("evt_yr_range",   (_yr_min, _yr_max))
+    _ph_cur = st.session_state.get("evt_phases_sel", _ph_dflt)
+    _ph_cur = _ph_cur if _ph_cur else _ph_dflt
+
+    _n_cur   = int(df[df["year"].between(*_yr_cur) & df["phase"].isin(_ph_cur)].shape[0])
+    _pct_c   = 100.0 * _n_cur / len(df) if len(df) else 100.0
+    _active  = (_yr_cur != (_yr_min, _yr_max)) or (set(_ph_cur) != set(_ph_dflt))
+    _bdg_clr = ROSE  if _active else INDIGO
+    _bdg_bg  = "rgba(244,63,94,0.10)"  if _active else "rgba(79,70,229,0.10)"
+    _bot_bdr = f"2px solid {ROSE}"     if _active else f"1px solid {BORDER}"
+    _pct_str = f"&nbsp;&middot;&nbsp;{_pct_c:.0f}%" if _active else ""
+
+    _pills = "".join(
+        f'<span style="font-size:0.67rem;font-weight:600;color:{PHASE_C.get(p, MUTED)};'
+        f'background:{PHASE_C.get(p, MUTED)}1A;border-radius:6px;'
+        f'padding:2px 8px;white-space:nowrap;">'
+        f'{PHASE_L.get(p, p)}</span>'
+        for p in _ph_cur
+    )
+
+    st.markdown(f"""
+    <div style="background:{CARD};border:1px solid {BORDER};border-bottom:{_bot_bdr};
+                border-radius:12px;padding:11px 16px 12px 16px;margin-bottom:3px;
+                box-shadow:0 1px 3px rgba(0,0,0,0.04),0 2px 8px rgba(0,0,0,0.03);
+                transition:border-bottom 0.2s;">
+      <div style="display:flex;align-items:center;gap:9px;flex-wrap:wrap;">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
+             stroke="{INDIGO}" stroke-width="2.5" stroke-linecap="round"
+             stroke-linejoin="round" style="flex-shrink:0;opacity:.9">
+          <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/>
+        </svg>
+        <span style="font-size:0.63rem;font-weight:700;color:{MUTED};
+                     text-transform:uppercase;letter-spacing:0.10em;">Filtres</span>
+        <div style="width:1px;height:14px;background:{BORDER};flex-shrink:0;"></div>
+        <span style="font-size:0.70rem;font-weight:500;color:{TEXT};white-space:nowrap;">
+          {_yr_cur[0]}&nbsp;&ndash;&nbsp;{_yr_cur[1]}
+        </span>
+        <div style="display:flex;gap:4px;flex-wrap:wrap;">{_pills}</div>
+        <div style="flex:1;min-width:16px;height:1px;background:{BORDER};"></div>
+        <span style="font-size:0.70rem;font-weight:600;color:{_bdg_clr};
+              background:{_bdg_bg};border-radius:20px;padding:3px 12px;white-space:nowrap;">
+          {_n_cur:,}&nbsp;&eacute;v&eacute;nements{_pct_str}
+        </span>
+      </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    _fc1, _fc2, _fc_rst = st.columns([5, 4, 1], gap="small")
+    with _fc1:
+        _yr = st.slider(
+            "Periode",
+            min_value=_yr_min,
+            max_value=_yr_max,
+            value=(_yr_min, _yr_max),
+            key="evt_yr_range",
+        )
+    with _fc2:
+        _ph_sel = st.multiselect(
+            "Phases",
+            options=_ph_dflt,
+            default=_ph_dflt,
+            format_func=lambda x: PHASE_L[x],
+            key="evt_phases_sel",
+        )
+    with _fc_rst:
+        st.markdown("<div style='height:24px'></div>", unsafe_allow_html=True)
+        if st.button(
+            "Reset",
+            key="evt_reset_btn",
+            help="Reinitialiser les filtres",
+            use_container_width=True,
+            disabled=not _active,
+        ):
+            st.session_state.pop("evt_yr_range",   None)
+            st.session_state.pop("evt_phases_sel", None)
+            st.rerun()
+
+    _ph_active = _ph_sel if _ph_sel else _ph_dflt
+    dff        = df[df["year"].between(*_yr) & df["phase"].isin(_ph_active)].copy()
+    n_total    = len(dff)
+    year_range = _yr
+
+    st.markdown("<div style='height:10px'></div>", unsafe_allow_html=True)
+
     # ── Graphique principal + Donut ───────────────────────────────────────────
     if is_mobile:
         lc, rc = st.container(), st.container()
@@ -731,12 +1010,6 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
                 hovertemplate="<b>%{x}</b> : %{y} evenements<extra></extra>",
                 showlegend=False,
             ))
-            z = np.polyfit(tot["year"], tot["n"], 1)
-            fig.add_trace(go.Scatter(
-                x=tot["year"], y=np.poly1d(z)(tot["year"]),
-                mode="lines", name="Tendance",
-                line=dict(color=ROSE, width=2, dash="dot"),
-            ))
         else:
             bmode = "stack" if view == "Empile" else "group"
             for ph in ["Phase_1_debut", "Phase_2_pleine", "Phase_3_fin"]:
@@ -748,17 +1021,22 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
                     hovertemplate=f"<b>{PHASE_L[ph]}</b> · %{{x}}: %{{y}} evt<extra></extra>",
                 ))
             fig.update_layout(barmode=bmode)
-            tot = by_yp.groupby("year")["n"].sum().reset_index()
-            z   = np.polyfit(tot["year"], tot["n"], 1)
-            fig.add_trace(go.Scatter(
-                x=tot["year"], y=np.poly1d(z)(tot["year"]),
-                mode="lines", name="Tendance",
-                line=dict(color=TEXT, width=1.6, dash="dot"),
-            ))
 
         plotly_base(fig, h=220 if is_mobile else (260 if is_tablet else 295))
-        fig.update_layout(bargap=0.2)
-        st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
+        fig.update_layout(
+            bargap=0.2,
+            legend=dict(font=dict(color=TEXT)),
+        )
+        _CHART_CFG = {
+            "displayModeBar": True,
+            "displaylogo": False,
+            "modeBarButtonsToRemove": ["lasso2d", "select2d", "autoScale2d",
+                                       "hoverCompareCartesian", "hoverClosestCartesian"],
+            "toImageButtonOptions": {"format": "png", "scale": 2},
+        }
+        st.plotly_chart(fig, use_container_width=True, config=dict(_CHART_CFG,
+            toImageButtonOptions={"format": "png", "scale": 2,
+                                  "filename": "evolution_annuelle"}))
 
     # ── Donut ─────────────────────────────────────────────────────────────────
     with rc:
@@ -795,7 +1073,9 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
             margin=dict(l=0, r=0, t=0, b=0),
             plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
         )
-        st.plotly_chart(fig_d, use_container_width=True, config={"displayModeBar": False})
+        st.plotly_chart(fig_d, use_container_width=True, config=dict(_CHART_CFG,
+            toImageButtonOptions={"format": "png", "scale": 2,
+                                  "filename": "repartition_phases"}))
 
         for ph in ph_order:
             n   = ph_cnt[ph]
@@ -820,54 +1100,54 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
     with bc1:
         st.markdown(
             '<p class="pnl-ttl">Distribution mensuelle</p>'
-            '<p class="pnl-sub">Evenements par mois &middot; phases color&eacute;es</p>',
+            '<p class="pnl-sub">Nombre d\'&eacute;v&eacute;nements par ann&eacute;e et par mois</p>',
             unsafe_allow_html=True,
         )
-        MNAMES = {1:"Jan",2:"Fev",3:"Mar",4:"Avr",5:"Mai",6:"Jun",
-                  7:"Jul",8:"Aou",9:"Sep",10:"Oct",11:"Nov",12:"Dec"}
-        _MONTH_PHASE_CLR = {
-            1: MUTED,  2: MUTED,  3: MUTED,  4: MUTED,
-            5: BLUE,   6: BLUE,
-            7: INDIGO, 8: INDIGO,
-            9: AMBER,  10: AMBER,
-            11: MUTED, 12: MUTED,
+        STUDIED_MONTHS = {5:"Mai", 6:"Jun", 7:"Jul", 8:"Aou", 9:"Sep", 10:"Oct"}
+        MONTH_COLORS = {
+            "Mai": "#7DD3FC", "Jun": "#0EA5E9",
+            "Jul": "#818CF8", "Aou": "#4F46E5",
+            "Sep": "#FCD34D", "Oct": "#F59E0B",
         }
-        by_m = dff.groupby("month").size().reset_index(name="n")
-        by_m["mois"]  = by_m["month"].map(MNAMES)
-        by_m["color"] = by_m["month"].map(_MONTH_PHASE_CLR)
 
-        fig_m = go.Figure(go.Bar(
-            x=by_m["mois"], y=by_m["n"],
-            marker=dict(
-                color=by_m["color"],
-                line=dict(width=0),
-            ),
-            hovertemplate="<b>%{x}</b> : %{y} evenements<extra></extra>",
-        ))
-        avg_m = by_m["n"].mean()
-        fig_m.add_hline(
-            y=avg_m, line=dict(color=ROSE, width=1.4, dash="dot"),
-            annotation_text=f"  moy {avg_m:.0f}",
-            annotation_font=dict(size=10, color=ROSE),
-            annotation_position="top right",
+        pivot_m = (
+            dff.groupby(["year", "month"]).size()
+            .reset_index(name="n")
+            .pivot(index="year", columns="month", values="n")
+            .reindex(columns=list(STUDIED_MONTHS.keys()))
+            .fillna(0)
+            .astype(int)
         )
-        _ph_annots = [
-            ("P1", "Mai-Jun",  5.0,  BLUE),
-            ("P2", "Jul-Aou",  7.0,  INDIGO),
-            ("P3", "Sep-Oct",  9.0,  AMBER),
-        ]
-        for _pa_code, _, _pa_x, _pa_clr in _ph_annots:
-            fig_m.add_annotation(
-                x=MNAMES[int(_pa_x)], y=0,
-                text=f"<b>{_pa_code}</b>",
-                font=dict(size=9, color=_pa_clr),
-                showarrow=False, yref="paper", yanchor="top",
-                yshift=-14,
-            )
-        plotly_base(fig_m, h=200 if is_mobile else 245)
-        fig_m.update_layout(showlegend=False, bargap=0.28,
-                            margin=dict(l=2, r=2, t=10, b=28))
-        st.plotly_chart(fig_m, use_container_width=True, config={"displayModeBar": False})
+        pivot_m.columns = [STUDIED_MONTHS[m] for m in pivot_m.columns]
+
+        fig_m = go.Figure()
+        for mname in pivot_m.columns:
+            fig_m.add_trace(go.Bar(
+                x=pivot_m.index.tolist(),
+                y=pivot_m[mname].tolist(),
+                name=mname,
+                marker_color=MONTH_COLORS[mname],
+                marker_line_width=0,
+                hovertemplate=f"<b>{mname}</b> · %{{x}} : %{{y}} evt<extra></extra>",
+            ))
+        plotly_base(fig_m, h=300 if is_mobile else 340)
+        fig_m.update_layout(
+            barmode="group",
+            bargap=0.15,
+            bargroupgap=0.05,
+            margin=dict(l=2, r=2, t=10, b=40),
+            legend=dict(
+                orientation="h", yanchor="bottom", y=1.01,
+                xanchor="left", x=0,
+                font=dict(size=10, color=TEXT),
+                itemwidth=30,
+            ),
+            xaxis=dict(tickfont=dict(size=10, color=TEXT), dtick=5, automargin=True),
+            yaxis=dict(tickfont=dict(size=10, color=MUTED)),
+        )
+        st.plotly_chart(fig_m, use_container_width=True, config=dict(_CHART_CFG,
+            toImageButtonOptions={"format": "png", "scale": 2,
+                                  "filename": "distribution_mensuelle"}))
 
     with bc2:
         st.markdown(

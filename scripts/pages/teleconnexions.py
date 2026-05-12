@@ -24,7 +24,7 @@ METRIC_L = {
     "coverage_percent": "Couverture spatiale (%)",
     "n_events":         "Nombre d'evenements",
 }
-LAGS_ALL = [0, 1, 2, 3, 6, 9, 12]
+LAGS_ALL = [0, 1, 2, 3, 4, 5]
 IDX_GROUP = {
     "ENSO":             ["Nino12", "Nino3", "Nino34", "Nino4"],
     "Ocean Indien":     ["IOD", "IOBM"],
@@ -37,7 +37,19 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
         is_mobile=False, is_tablet=False, **kw):
 
     def plotly_base(fig, h=300):
-        return du.plotly_base(fig, h, muted=MUTED, border=BORDER, text=TEXT)
+        return du.plotly_base(fig, h, muted=MUTED, border=BORDER, text=TEXT, card=CARD)
+
+    def _CHART_CFG(filename="chart"):
+        return {
+            "displayModeBar": "hover",
+            "displaylogo": False,
+            "modeBarButtonsToRemove": ["lasso2d", "select2d", "autoScale2d"],
+            "toImageButtonOptions": {
+                "format": "png",
+                "filename": filename,
+                "scale": 2,
+            },
+        }
 
     with st.spinner("Chargement des teleconnexions..."):
         tc_data = load_telecon()
@@ -50,7 +62,7 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
         <h1 class="pg-ttl">Teleconnexions SST - Precipitations Extremes</h1>
         <p class="pg-sub">
           Correlations Pearson &amp; Spearman · Correction AR1 (p<sub>neff</sub>)
-          &nbsp;&middot;&nbsp; Lags 0-12 mois · 11 indices SST
+          &nbsp;&middot;&nbsp; Lags 0-5 mois · 11 indices SST
         </p>
       </div>
     </div>
@@ -251,7 +263,7 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
             ),
             annotations=annotations,
         )
-        st.plotly_chart(fig_hm, use_container_width=True, config={"displayModeBar": False})
+        st.plotly_chart(fig_hm, use_container_width=True, config=_CHART_CFG("heatmap_correlations"))
 
     # ── Top correlations ───────────────────────────────────────────────────
     with top_col:
@@ -310,168 +322,273 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
                     unsafe_allow_html=True,
                 )
 
-    st.markdown("<div style='height:20px'></div>", unsafe_allow_html=True)
+    st.markdown("<div style='height:6px'></div>", unsafe_allow_html=True)
 
     # ── Profil de correlation par indice ────────────────────────────────────
-    lc2, rc2 = st.columns([1.8, 1], gap="medium")
+    # ── Profil de correlation par indice ────────────────────────────────────
+    st.markdown(
+        '<p class="pnl-ttl">Profil de correlation par indice (r vs lag)</p>'
+        '<p class="pnl-sub">Evolution du coefficient r en fonction du decalage temporel'
+        ' &nbsp;&middot;&nbsp; <span style="color:#F59E0B;">&#9733;</span> = significatif '
+        '(p<sub>neff</sub> : 0,05 / 0,01 / 0,001)</p>',
+        unsafe_allow_html=True,
+    )
 
-    with lc2:
-        st.markdown(
-            '<p class="pnl-ttl">Profil de correlation par indice (r vs lag)</p>'
-            '<p class="pnl-sub">Evolution du coefficient r en fonction du decalage temporel'
-            ' &nbsp;&middot;&nbsp; <span style="color:#F59E0B;">&#9733;</span> = significatif '
-            '(p<sub>neff</sub> : 0,05 / 0,01 / 0,001)</p>',
-            unsafe_allow_html=True,
-        )
+    sel_indices = st.multiselect(
+        "Indices a afficher",
+        options=all_indices,
+        default=["Nino34", "IOBM", "AMO", "TNA"],
+        label_visibility="collapsed",
+    )
 
-        sel_indices = st.multiselect(
-            "Indices a afficher",
-            options=all_indices,
-            default=["Nino34", "IOBM", "AMO", "TNA"],
-            label_visibility="collapsed",
-        )
+    fig_line = go.Figure()
+    COLORS_LINE = [INDIGO, BLUE, AMBER, EMERALD, ROSE,
+                   "#8B5CF6", "#EC4899", "#14B8A6", "#F97316", "#64748B", "#84CC16"]
 
-        fig_line = go.Figure()
-        COLORS_LINE = [INDIGO, BLUE, AMBER, EMERALD, ROSE,
-                       "#8B5CF6", "#EC4899", "#14B8A6", "#F97316", "#64748B", "#84CC16"]
+    for ci, idx in enumerate(sel_indices):
+        sub_idx = df_m[df_m["index"] == idx].sort_values("lag_months").reset_index(drop=True)
+        if sub_idx.empty:
+            continue
+        clr = COLORS_LINE[ci % len(COLORS_LINE)]
 
-        for ci, idx in enumerate(sel_indices):
-            sub_idx = df_m[df_m["index"] == idx].sort_values("lag_months").reset_index(drop=True)
-            if sub_idx.empty:
-                continue
-            clr = COLORS_LINE[ci % len(COLORS_LINE)]
+        symbols, sizes, texts, hover_extra = [], [], [], []
+        for _, row in sub_idx.iterrows():
+            p = row.get(p_neff_col, float("nan"))
+            if pd.notna(p) and p < 0.001:
+                symbols.append("star"); sizes.append(18)
+                texts.append("***"); hover_extra.append(f"*** p_neff={p:.4f}")
+            elif pd.notna(p) and p < 0.01:
+                symbols.append("star"); sizes.append(16)
+                texts.append("**"); hover_extra.append(f"** p_neff={p:.4f}")
+            elif pd.notna(p) and p < 0.05:
+                symbols.append("star"); sizes.append(14)
+                texts.append("*"); hover_extra.append(f"* p_neff={p:.4f}")
+            else:
+                symbols.append("circle"); sizes.append(6)
+                texts.append(""); hover_extra.append("")
 
-            symbols, sizes, texts, hover_extra = [], [], [], []
-            for _, row in sub_idx.iterrows():
-                p = row.get(p_neff_col, float("nan"))
-                if pd.notna(p) and p < 0.001:
-                    symbols.append("star"); sizes.append(18)
-                    texts.append("***"); hover_extra.append(f"*** p_neff={p:.4f}")
-                elif pd.notna(p) and p < 0.01:
-                    symbols.append("star"); sizes.append(16)
-                    texts.append("**"); hover_extra.append(f"** p_neff={p:.4f}")
-                elif pd.notna(p) and p < 0.05:
-                    symbols.append("star"); sizes.append(14)
-                    texts.append("*"); hover_extra.append(f"* p_neff={p:.4f}")
-                else:
-                    symbols.append("circle"); sizes.append(6)
-                    texts.append(""); hover_extra.append("")
-
-            has_sig = any(s == "star" for s in symbols)
-            fig_line.add_trace(go.Scatter(
-                x=sub_idx["lag_months"].tolist(),
-                y=sub_idx[r_col].tolist(),
-                mode="lines+markers+text" if has_sig else "lines+markers",
-                name=idx,
-                line=dict(color=clr, width=2),
-                marker=dict(
-                    size=sizes,
-                    color=clr,
-                    symbol=symbols,
-                    line=dict(color="white", width=1),
-                ),
-                text=texts if has_sig else None,
-                textposition="top center",
-                textfont=dict(size=10, color=AMBER, family="Inter,sans-serif"),
-                customdata=hover_extra,
-                hovertemplate=(
-                    f"<b>{idx}</b> · lag %{{x}}m<br>"
-                    "r = %{y:.3f}%{customdata}<extra></extra>"
-                ),
-            ))
-
-        fig_line.add_hline(y=0, line=dict(color=MUTED, width=1, dash="dot"))
-        fig_line.add_hrect(y0=-0.2, y1=0.2, fillcolor="rgba(100,116,139,0.05)",
-                           line_width=0)
-
-        plotly_base(fig_line, h=260)
-        fig_line.update_layout(
-            xaxis=dict(
-                tickvals=LAGS_ALL,
-                ticktext=[f"{l}m" for l in LAGS_ALL],
-                title=dict(text="Decalage (mois)", font=dict(size=11, color=MUTED)),
+        has_sig = any(s == "star" for s in symbols)
+        fig_line.add_trace(go.Scatter(
+            x=sub_idx["lag_months"].tolist(),
+            y=sub_idx[r_col].tolist(),
+            mode="lines+markers+text" if has_sig else "lines+markers",
+            name=idx,
+            line=dict(color=clr, width=2),
+            marker=dict(
+                size=sizes,
+                color=clr,
+                symbol=symbols,
+                line=dict(color="white", width=1),
             ),
-            yaxis=dict(
-                title=dict(text="r", font=dict(size=11, color=MUTED)),
-                zeroline=True, zerolinecolor=BORDER, zerolinewidth=1,
-                range=[-0.6, 0.6],
+            text=texts if has_sig else None,
+            textposition="top center",
+            textfont=dict(size=10, color=AMBER, family="Inter,sans-serif"),
+            customdata=hover_extra,
+            hovertemplate=(
+                f"<b>{idx}</b> · lag %{{x}}m<br>"
+                "r = %{y:.3f}%{customdata}<extra></extra>"
             ),
+        ))
+
+    fig_line.add_hline(y=0, line=dict(color=MUTED, width=1, dash="dot"))
+    fig_line.add_hrect(y0=-0.2, y1=0.2, fillcolor="rgba(100,116,139,0.05)",
+                       line_width=0)
+
+    plotly_base(fig_line, h=300)
+    fig_line.update_layout(
+        xaxis=dict(
+            tickvals=LAGS_ALL,
+            ticktext=[f"{l}m" for l in LAGS_ALL],
+            title=dict(text="Decalage (mois)", font=dict(size=11, color=MUTED)),
+        ),
+        yaxis=dict(
+            title=dict(text="r", font=dict(size=11, color=MUTED)),
+            zeroline=True, zerolinecolor=BORDER, zerolinewidth=1,
+            range=[-0.6, 0.6],
+        ),
+    )
+    st.plotly_chart(fig_line, use_container_width=True, config=_CHART_CFG("profil_correlation"))
+
+
+    # ── Serie temporelle SST + Distribution evenements (figure unique) ────
+
+    PHASE_MONTHS_MAP = {
+        "Phase_1_debut":  [5, 6],
+        "Phase_2_pleine": [7, 8],
+        "Phase_3_fin":    [9, 10],
+        "Toutes phases":  [5, 6, 7, 8, 9, 10],
+    }
+    phase_months_map = PHASE_MONTHS_MAP.get(tc_phase, [5, 6, 7, 8, 9, 10])
+
+    STUDIED_MONTHS_DIST = {5: "Mai", 6: "Jun", 7: "Jul", 8: "Aou", 9: "Sep", 10: "Oct"}
+    MONTH_CLR_TC = {"Mai": "#7DD3FC", "Jun": "#0EA5E9",
+                    "Jul": "#818CF8", "Aou": "#4F46E5",
+                    "Sep": "#FCD34D", "Oct": "#F59E0B"}
+
+    # ── Donnees SST (agregation annuelle sur les mois de la phase) ────────
+    sst_raw = du.load_sst().copy()
+    sst_raw["_month"] = sst_raw["date"].dt.month
+    sst_raw["_year"]  = sst_raw["date"].dt.year
+    sst_phase_data = sst_raw[sst_raw["_month"].isin(phase_months_map)]
+    avail_sst = [i for i in sel_indices if i in sst_phase_data.columns]
+
+    COLORS_TS = [INDIGO, BLUE, AMBER, EMERALD, ROSE,
+                 "#8B5CF6", "#EC4899", "#14B8A6", "#F97316", "#64748B", "#84CC16"]
+
+    sst_annual = pd.DataFrame()
+    if avail_sst:
+        sst_annual = (
+            sst_phase_data
+            .groupby("_year")[avail_sst]
+            .mean()
+            .reset_index()
+            .rename(columns={"_year": "year"})
+            .sort_values("year")
         )
-        st.plotly_chart(fig_line, use_container_width=True, config={"displayModeBar": False})
 
-    with rc2:
-        st.markdown(
-            '<p class="pnl-ttl">Tableau de synthese</p>'
-            '<p class="pnl-sub">Meilleur lag par indice (|r| max) · '
-            'Sig = p<sub>neff</sub> sur cette ligne (pas sur un autre lag)</p>',
-            unsafe_allow_html=True,
-        )
+    # ── Donnees distribution mensuelle (tous les 6 mois, plage d'annees) ──
+    evts_all = du.load_events()
+    evts_yr  = evts_all[
+        (evts_all["year"] >= year_range[0]) & (evts_all["year"] <= year_range[1])
+    ]
+    pivot_m = (
+        evts_yr.groupby(["year", "month"]).size()
+        .reset_index(name="n")
+        .pivot(index="year", columns="month", values="n")
+        .reindex(columns=list(STUDIED_MONTHS_DIST.keys()))
+        .fillna(0)
+        .astype(int)
+    )
+    pivot_m.columns = [STUDIED_MONTHS_DIST[m] for m in pivot_m.columns]
 
-        rows_synth = []
-        for idx in all_indices:
-            sub_idx = df_m[df_m["index"] == idx].copy()
-            if sub_idx.empty:
-                continue
-            best = sub_idx.loc[sub_idx[r_col].abs().idxmax()]
-            r_val = best[r_col]
-            lag_v = int(best["lag_months"])
-            pnb   = best[p_neff_col] if p_neff_col in best.index else float("nan")
-            rows_synth.append((idx, r_val, lag_v, pnb))
+    # ── Periode commune SST / evenements ──────────────────────────────────
+    sst_years  = set(sst_annual["year"].tolist()) if not sst_annual.empty else set()
+    evts_years = set(pivot_m.index.tolist())      if not pivot_m.empty   else set()
+    if sst_years and evts_years:
+        common_years = sorted(sst_years & evts_years)
+        if not sst_annual.empty:
+            sst_annual = sst_annual[sst_annual["year"].isin(common_years)]
+        if not pivot_m.empty:
+            pivot_m = pivot_m[pivot_m.index.isin(common_years)]
+    elif sst_years:
+        common_years = sorted(sst_years)
+    elif evts_years:
+        common_years = sorted(evts_years)
+    else:
+        common_years = []
 
-        rows_synth.sort(key=lambda x: abs(x[1]), reverse=True)
+    # ── Calibrage des plages pour aligner les deux zeros ──────────────────
+    import numpy as _np
+    if not sst_annual.empty and avail_sst:
+        _v = sst_annual[avail_sst].values.flatten()
+        sst_ylim = float(_np.nanmax(_np.abs(_v))) * 1.35 or 1.5
+    else:
+        sst_ylim = 1.5
 
-        st.markdown(f"""
-        <div style="background:{BG};border-radius:8px;padding:6px 10px;
-                    margin-bottom:10px;display:flex;font-size:0.67rem;
-                    font-weight:700;color:{MUTED};text-transform:uppercase;
-                    letter-spacing:0.6px;">
-          <span style="flex:1.2;">Indice</span>
-          <span style="width:50px;text-align:center;">Lag</span>
-          <span style="width:60px;text-align:right;">r max</span>
-          <span style="width:30px;text-align:center;">Sig</span>
-        </div>
-        """, unsafe_allow_html=True)
+    _max_evts = float(pivot_m.values.max()) if not pivot_m.empty else 15.0
+    # Barres contraintes a ~15 % de la demi-hauteur positive (x2 vs precedent)
+    # => echelle SST visuellement x2 superieure aux barres
+    evts_ylim = _max_evts / 0.15
 
-        for idx, r_val, lag_v, p_neff_row in rows_synth:
-            is_pos   = r_val >= 0
-            r_clr    = "#1D4ED8" if is_pos else "#B91C1C"
-            sig_disp = _sig_from_p_neff(p_neff_row)
-            sig_html = ""
-            if sig_disp:
-                sig_html = (
-                    f'<span style="font-size:0.7rem;color:#92400E;'
-                    f'font-weight:700;">{sig_disp}</span>'
-                )
-            bar_pct = int(abs(r_val) / 0.5 * 100)
-            st.markdown(f"""
-            <div style="padding:6px 0;border-bottom:1px solid {BORDER};">
-              <div style="display:flex;align-items:center;">
-                <span style="flex:1.2;font-size:0.78rem;font-weight:600;
-                             color:{TEXT};">{idx}</span>
-                <span style="width:50px;text-align:center;font-size:0.72rem;
-                             color:{MUTED};">lag {lag_v}m</span>
-                <span style="width:60px;text-align:right;font-size:0.8rem;
-                             font-weight:700;color:{r_clr};">{r_val:+.3f}</span>
-                <span style="width:30px;text-align:center;">{sig_html}</span>
-              </div>
-              <div style="background:{BG};border-radius:99px;height:3px;
-                          margin-top:4px;margin-left:0;">
-                <div style="width:{bar_pct}%;height:3px;border-radius:99px;
-                            background:{'#3B82F6' if is_pos else '#EF4444'};"></div>
-              </div>
-            </div>
-            """, unsafe_allow_html=True)
+    # Ticks seulement jusqu'au vrai max des evenements (pas jusqu'a evts_ylim)
+    _max_evts_int = max(1, int(_max_evts))
+    _step_t = max(1, round(_max_evts_int / 5))
+    _tvals  = list(range(0, _max_evts_int + 1, _step_t))
+    if _tvals[-1] != _max_evts_int:
+        _tvals.append(_max_evts_int)
+    _ttxt = [str(v) for v in _tvals]
 
-        st.markdown(f"""
-        <div style="margin-top:12px;padding:8px 10px;background:{BG};
-                    border-radius:8px;font-size:0.68rem;color:{MUTED};
-                    line-height:1.8;">
-          <b style="color:{TEXT};">Significativite (correction AR1)</b><br>
-          p<sub>neff</sub> = p-value apres degres de liberte effectifs (Chelton 1983).<br>
-          * &lt; 0,05 &nbsp; ** &lt; 0,01 &nbsp; *** &lt; 0,001<br>
-          <i>Sig. nominale</i> : p brut (sans AR1), voir KPI ci-dessous.
-        </div>
-        """, unsafe_allow_html=True)
+    # ── Figure unique, double axe Y superposes au meme zero ───────────────
+    fig_cb = go.Figure()
+
+    # Barres (yaxis2, range symetrique => zero au milieu => barres dans la moitie haute)
+    for mname in pivot_m.columns:
+        fig_cb.add_trace(go.Bar(
+            x=pivot_m.index.tolist(),
+            y=pivot_m[mname].tolist(),
+            name=mname,
+            yaxis="y2",
+            marker_color=MONTH_CLR_TC[mname],
+            marker_line_width=0,
+            opacity=0.70,
+            hovertemplate=f"<b>{mname}</b> · %{{x}} : %{{y}} evt<extra></extra>",
+        ))
+
+    # Lignes SST (yaxis gauche, range symetrique => zero au milieu)
+    for ci, idx in enumerate(avail_sst):
+        clr = COLORS_TS[ci % len(COLORS_TS)]
+        fig_cb.add_trace(go.Scatter(
+            x=sst_annual["year"],
+            y=sst_annual[idx],
+            mode="lines+markers",
+            name=idx,
+            yaxis="y",
+            line=dict(color=clr, width=2),
+            marker=dict(size=4, color=clr),
+            hovertemplate=(
+                f"<b>{idx}</b><br>%{{x}}<br>Anom moy. = %{{y:.3f}} degC<extra></extra>"
+            ),
+        ))
+
+    # Ligne zero commune (reference climatologique)
+    fig_cb.add_hline(y=0, yref="y",
+                     line=dict(color=MUTED, width=1.2, dash="dot"))
+
+    fig_cb.update_layout(
+        height=400,
+        barmode="group",
+        bargap=0.15,
+        bargroupgap=0.05,
+        margin=dict(l=4, r=60, t=28, b=40),
+        plot_bgcolor="rgba(0,0,0,0)",
+        paper_bgcolor="rgba(0,0,0,0)",
+        font=dict(family="Inter,sans-serif", size=11, color=MUTED),
+        hoverlabel=dict(bgcolor=CARD, font_color=TEXT, font_size=12, bordercolor=BORDER),
+        legend=dict(
+            orientation="h", yanchor="bottom", y=1.02,
+            xanchor="left", x=0,
+            bgcolor="rgba(0,0,0,0)", borderwidth=0,
+            font=dict(size=8, color=TEXT), itemwidth=30,
+            tracegroupgap=0,
+        ),
+        xaxis=dict(
+            showgrid=False,
+            tickfont=dict(size=10, color=TEXT),
+            dtick=5,
+            title=dict(text="Annee", font=dict(size=10, color=MUTED)),
+            automargin=True,
+        ),
+        # Axe SST : symetrique autour de 0 (gauche)
+        yaxis=dict(
+            title=dict(text="Anom. SST moy. (degC)", font=dict(size=10, color=MUTED)),
+            range=[-sst_ylim, sst_ylim],
+            zeroline=True, zerolinecolor=BORDER, zerolinewidth=1,
+            showgrid=True, gridcolor=BORDER,
+            tickfont=dict(size=10, color=MUTED),
+            side="left",
+        ),
+        # Axe evenements : symetrique autour de 0 => zero aligne avec SST (droite)
+        yaxis2=dict(
+            title=dict(text="N evenements", font=dict(size=10, color=MUTED)),
+            range=[-evts_ylim, evts_ylim],
+            zeroline=False,
+            showgrid=False,
+            tickvals=_tvals,
+            ticktext=_ttxt,
+            tickfont=dict(size=10, color=MUTED),
+            side="right",
+            overlaying="y",
+        ),
+    )
+    st.markdown(
+        '<p class="pnl-ttl">Anomalies SST annuelles &amp; Distribution mensuelle des evenements</p>'
+        '<p class="pnl-sub">'
+        'Lignes : moyenne annuelle des indices SST selectionnes (mois de la phase) &nbsp;&middot;&nbsp; '
+        'Barres : N evenements par mois &nbsp;&middot;&nbsp; '
+        'Zero commun aux deux axes</p>',
+        unsafe_allow_html=True,
+    )
+    st.plotly_chart(fig_cb, use_container_width=True, config=_CHART_CFG("anomalies_sst_evenements"))
 
     # ── Metriques KPI ──────────────────────────────────────────────────────
     st.markdown("<div style='height:20px'></div>", unsafe_allow_html=True)

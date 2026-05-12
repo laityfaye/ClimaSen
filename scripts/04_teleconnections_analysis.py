@@ -76,7 +76,7 @@ METRICS = {
 }
 
 # Lags en mois
-DEFAULT_LAGS = [0, 1, 2, 3, 6, 9, 12]
+DEFAULT_LAGS = [0, 1, 2, 3, 4, 5]
 
 PHASES = {
     "Phase_1_debut":  "Debut de saison (Mai-Jun)",

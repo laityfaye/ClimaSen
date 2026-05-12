@@ -180,8 +180,7 @@ def plot_phase(phase_key: str, phase_label: str):
     """
     Genere une figure multi-panneaux pour une phase :
       - 1 ligne par cluster
-      - Colonne gauche : tropiques globaux (-180/180, 35S/35N)
-      - Colonne droite : zoom Atlantique + Afrique Ouest (-60/30E, 20S/40N)
+      - 1 colonne : tropiques globaux (-180/180, 35S/35N)
     """
     print(f"\n  Phase : {phase_label}")
     C = load_centroids(phase_key)
@@ -203,26 +202,20 @@ def plot_phase(phase_key: str, phase_label: str):
     # Mise en page
     proj = ccrs.PlateCarree()
     nrows = K
-    ncols = 2
     h_per_row = 3.2   # hauteur en pouces par ligne
-    fig = plt.figure(figsize=(20, h_per_row * nrows + 1.5))
+    fig = plt.figure(figsize=(14, h_per_row * nrows + 1.5))
 
-    # Grille personnalisee : col 0 plus large que col 1
     from matplotlib.gridspec import GridSpec
-    gs = GridSpec(nrows, ncols, figure=fig,
-                  width_ratios=[3, 1.6],
-                  hspace=0.08, wspace=0.04,
+    gs = GridSpec(nrows, 1, figure=fig,
+                  hspace=0.08,
                   left=0.04, right=0.96,
                   top=0.94, bottom=0.10)
 
     axes_global = []
-    axes_atl    = []
 
     for k in range(K):
         ax_g = fig.add_subplot(gs[k, 0], projection=proj)
-        ax_a = fig.add_subplot(gs[k, 1], projection=proj)
         axes_global.append(ax_g)
-        axes_atl.append(ax_a)
 
     im_ref = None  # reference pour la colorbar
 
@@ -231,81 +224,71 @@ def plot_phase(phase_key: str, phase_label: str):
         n_ev = n_per_cluster.get(k, 0)
         color_k = CLUSTER_COLORS[k % len(CLUSTER_COLORS)]
 
-        for col_idx, (ax, extent) in enumerate(
-                zip([axes_global[k], axes_atl[k]],
-                    [DOMAIN_GLOBAL, DOMAIN_ATL])):
+        ax = axes_global[k]
+        gl = setup_ax(ax, DOMAIN_GLOBAL, gridlines=True)
 
-            gl = setup_ax(ax, extent, gridlines=True)
-            if col_idx > 0 and gl:
-                gl.left_labels = False
+        # --- Champ SST rempli ---
+        im = ax.contourf(
+            LONS, LATS, grid,
+            levels=levels,
+            cmap='RdBu_r', extend='both',
+            transform=proj, zorder=1
+        )
+        if im_ref is None:
+            im_ref = im
 
-            # --- Champ SST rempli ---
-            im = ax.contourf(
-                LONS, LATS, grid,
-                levels=levels,
-                cmap='RdBu_r', extend='both',
-                transform=proj, zorder=1
-            )
-            if im_ref is None:
-                im_ref = im
+        # --- Contours de mise en evidence (±0.5 et ±1.0 degC) ---
+        ax.contour(LONS, LATS, grid,
+                   levels=[-1.0, -0.5],
+                   colors=['#1565c0', '#90caf9'],
+                   linewidths=[0.9, 0.5],
+                   linestyles=['-', '--'],
+                   transform=proj, zorder=5)
+        ax.contour(LONS, LATS, grid,
+                   levels=[0.5, 1.0],
+                   colors=['#ef9a9a', '#b71c1c'],
+                   linewidths=[0.5, 0.9],
+                   linestyles=['--', '-'],
+                   transform=proj, zorder=5)
 
-            # --- Contours de mise en evidence (±0.5 et ±1.0 degC) ---
-            ax.contour(LONS, LATS, grid,
-                       levels=[-1.0, -0.5],
-                       colors=['#1565c0', '#90caf9'],
-                       linewidths=[0.9, 0.5],
-                       linestyles=['-', '--'],
-                       transform=proj, zorder=5)
-            ax.contour(LONS, LATS, grid,
-                       levels=[0.5, 1.0],
-                       colors=['#ef9a9a', '#b71c1c'],
-                       linewidths=[0.5, 0.9],
-                       linestyles=['--', '-'],
-                       transform=proj, zorder=5)
+        # --- Hachurage : anomalie robuste |anomalie| > 0.5 degC ---
+        hatch_mask = np.abs(grid) > 0.5
+        ax.contourf(LONS, LATS, hatch_mask.astype(float),
+                    levels=[0.5, 1.5],
+                    colors='none', hatches=['..'],
+                    transform=proj, zorder=6)
 
-            # --- Hachurage : anomalie robuste |anomalie| > 0.5 degC ---
-            hatch_mask = np.abs(grid) > 0.5
-            ax.contourf(LONS, LATS, hatch_mask.astype(float),
-                        levels=[0.5, 1.5],
-                        colors='none', hatches=['..'],
-                        transform=proj, zorder=6)
+        # --- Masque continental apres les SST/hachures ---
+        add_land_overlay(ax)
 
-            # --- Masque continental apres les SST/hachures ---
-            add_land_overlay(ax)
+        # --- Boites des indices SST ---
+        lon_min_d, lon_max_d, lat_min_d, lat_max_d = DOMAIN_GLOBAL
+        for idx_name, box in INDEX_BOXES.items():
+            lo0, lo1 = box['lon0'], box['lon1']
+            la0, la1 = box['lat0'], box['lat1']
+            lo0_clip = max(lo0, lon_min_d)
+            lo1_clip = min(lo1, lon_max_d)
+            la0_clip = max(la0, lat_min_d)
+            la1_clip = min(la1, lat_max_d)
+            overlap_lon = max(0, lo1_clip - lo0_clip) / (lo1 - lo0)
+            overlap_lat = max(0, la1_clip - la0_clip) / (la1 - la0)
+            if overlap_lon * overlap_lat < 0.3:
+                continue
+            val = box_mean(grid, lo0, lo1, la0, la1)
+            draw_index_box(ax, lo0, lo1, la0, la1,
+                           idx_name, box['color'],
+                           val=val, fontsize=6.5)
 
-            # --- Boites des indices SST (seulement si dans le domaine) ---
-            lon_min_d, lon_max_d, lat_min_d, lat_max_d = extent
-            for idx_name, box in INDEX_BOXES.items():
-                lo0, lo1 = box['lon0'], box['lon1']
-                la0, la1 = box['lat0'], box['lat1']
-                # Afficher la boite si elle a au moins 30% de surface dans le domaine
-                lo0_clip = max(lo0, lon_min_d)
-                lo1_clip = min(lo1, lon_max_d)
-                la0_clip = max(la0, lat_min_d)
-                la1_clip = min(la1, lat_max_d)
-                overlap_lon = max(0, lo1_clip - lo0_clip) / (lo1 - lo0)
-                overlap_lat = max(0, la1_clip - la0_clip) / (la1 - la0)
-                if overlap_lon * overlap_lat < 0.3:
-                    continue
-                val = box_mean(grid, lo0, lo1, la0, la1)
-                draw_index_box(ax, lo0, lo1, la0, la1,
-                               idx_name, box['color'],
-                               val=val, fontsize=6.5)
-
-            # --- Marqueur Senegal ---
-            ax.plot(-14.5, 14.5, marker='*', color='gold', markersize=10,
-                    transform=proj, zorder=11,
-                    markeredgecolor='black', markeredgewidth=0.7)
+        # --- Marqueur Senegal ---
+        ax.plot(-14.5, 14.5, marker='*', color='gold', markersize=10,
+                transform=proj, zorder=11,
+                markeredgecolor='black', markeredgewidth=0.7)
 
         # --- Titre de ligne (cluster) ---
         axes_global[k].set_title(
             f"Cluster {k}  (n={n_ev} evenements)",
             loc='left', fontsize=10, fontweight='bold',
             color=color_k, pad=3
-        )
-        axes_atl[k].set_title(
-            "Zoom Atl. / AO",
-            loc='right', fontsize=8, color='#555555', pad=3
         )
 
     # -------------------------------------------------------------------------

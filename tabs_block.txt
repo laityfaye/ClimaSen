@@ -1,0 +1,184 @@
+        # ── Cartes : Precipitations + Anomalie (tabs) ──────────────────────────
+        with _mmap1:
+            _c0_hdr = _get_crit0(_sel_date)
+            _fg_hdr, _ = _CRIT_COLORS.get(_c0_hdr, (INDIGO, ""))
+            _crit_hdr  = _CRIT_FR.get(_c0_hdr, "")
+            _mx_lbl = f"{_mx_val:.0f} mm" if _mx_val is not None else "-"
+
+            # Variable pixel sizes proportional to precipitation intensity
+            _szs = [
+                max(6, min(18, 6 + 12 * (p - _p_min) / max(_p_max - _p_min, 1.0)))
+                for p in _prec_ev
+            ]
+
+            _tab_p, _tab_a = st.tabs(["☁ Précipitations (mm)", "⚡ Anomalies (σ)"])
+
+            # --- Onglet 1 : Precipitations ---
+            with _tab_p:
+                st.markdown(f"""
+                <div style="display:flex;align-items:center;justify-content:space-between;
+                            margin-bottom:6px;flex-wrap:wrap;gap:6px;">
+                  <span class="pnl-ttl" style="margin:0">&#127783;&nbsp;
+                    Précipitation (mm) &mdash;
+                    <b style="color:{_fg_hdr}">{_sel_date}</b>
+                    <span style="font-weight:400;color:{MUTED};font-size:0.72rem">
+                      &nbsp;{_crit_hdr}</span></span>
+                  <span style="display:flex;gap:10px;font-size:0.68rem;color:{MUTED};
+                               align-items:center;flex-wrap:wrap;">
+                    <span>
+                      <span style="display:inline-block;width:10px;height:10px;
+                                   border-radius:50%;background:{ROSE};
+                                   vertical-align:middle;margin-right:3px;"></span>
+                      Centre de gravité</span>
+                    <span>
+                      <span style="display:inline-block;width:10px;height:10px;
+                                   border-radius:50%;background:#FBBF24;
+                                   vertical-align:middle;margin-right:3px;"></span>
+                      Maximum ({_mx_lbl})</span>
+                  </span>
+                </div>
+                """, unsafe_allow_html=True)
+
+                with st.spinner("Chargement..."):
+                    _fig1 = go.Figure()
+                    _fig1.add_trace(go.Densitymapbox(
+                        lat=_lats_ev, lon=_lons_ev,
+                        z=_prec_ev,
+                        radius=18,
+                        colorscale=_CS_PREC,
+                        zmin=_p_min, zmax=_p_max,
+                        opacity=0.22,
+                        showscale=False,
+                        hoverinfo="skip",
+                    ))
+                    _fig1.add_trace(go.Scattermapbox(
+                        lat=_lats_ev, lon=_lons_ev,
+                        mode="markers",
+                        marker=dict(
+                            size=_szs,
+                            color=_prec_ev,
+                            colorscale=_CS_PREC,
+                            cmin=_p_min, cmax=_p_max,
+                            opacity=0.88,
+                            colorbar=dict(
+                                title=dict(text="mm",
+                                           font=dict(size=11, color=MUTED)),
+                                thickness=14, len=0.72, x=1.01, y=0.5,
+                                tickfont=dict(size=10, color=MUTED),
+                                outlinewidth=0,
+                                bgcolor="rgba(255,255,255,0.80)",
+                                borderwidth=0, nticks=6,
+                            ),
+                        ),
+                        customdata=_cd_prec,
+                        hovertemplate=(
+                            "<b>%{customdata[6]} mm</b>"
+                            " | %{customdata[0]} σ<br>"
+                            "Département : <b>%{customdata[5]}</b><br>"
+                            "Région : %{customdata[1]}<br>"
+                            "Catégorie : <b>%{customdata[2]}</b>"
+                            "<extra></extra>"
+                        ),
+                        showlegend=False,
+                    ))
+                    _add_overlays(_fig1)
+                    _fig1.update_layout(
+                        mapbox=_bmap, margin=_mgn, height=440,
+                        plot_bgcolor="rgba(0,0,0,0)",
+                        paper_bgcolor="rgba(0,0,0,0)",
+                    )
+                    st.plotly_chart(
+                        _fig1, use_container_width=True,
+                        config={
+                            "displayModeBar": True,
+                            "modeBarButtonsToRemove": [
+                                "lasso2d", "select2d", "autoScale2d",
+                                "hoverClosestMapbox",
+                            ],
+                            "displaylogo": False,
+                            "toImageButtonOptions": {
+                                "format": "png",
+                                "filename": f"precip_{_sel_date}",
+                            },
+                        },
+                    )
+
+            # --- Onglet 2 : Anomalies ---
+            with _tab_a:
+                _anom_ext = max(
+                    abs(float(np.percentile(_anom_ev, 2))),
+                    abs(float(np.percentile(_anom_ev, 98))),
+                    2.5,
+                ) if _anom_ev else 3.0
+
+                _szs_a = [
+                    max(6, min(18, 6 + 12 * (abs(a) / max(_anom_ext, 0.1))))
+                    for a in _anom_ev
+                ]
+
+                st.markdown(f"""
+                <div style="display:flex;align-items:center;justify-content:space-between;
+                            margin-bottom:6px;flex-wrap:wrap;gap:6px;">
+                  <span class="pnl-ttl" style="margin:0">&#9889;&nbsp;
+                    Anomalie standardisée (&sigma;) &mdash;
+                    <b style="color:{_fg_hdr}">{_sel_date}</b>
+                    <span style="font-weight:400;color:{MUTED};font-size:0.72rem">
+                      &nbsp;{_crit_hdr}</span></span>
+                  <span style="font-size:0.68rem;color:{MUTED};">
+                    Écart à la normale climatologique</span>
+                </div>
+                """, unsafe_allow_html=True)
+
+                with st.spinner("Chargement..."):
+                    _fig2 = go.Figure()
+                    _fig2.add_trace(go.Scattermapbox(
+                        lat=_lats_ev, lon=_lons_ev,
+                        mode="markers",
+                        marker=dict(
+                            size=_szs_a,
+                            color=_anom_ev,
+                            colorscale=_CS_ANOM,
+                            cmin=-_anom_ext, cmax=_anom_ext,
+                            opacity=0.88,
+                            colorbar=dict(
+                                title=dict(text="σ",
+                                           font=dict(size=11, color=MUTED)),
+                                thickness=14, len=0.72, x=1.01, y=0.5,
+                                tickfont=dict(size=10, color=MUTED),
+                                outlinewidth=0,
+                                bgcolor="rgba(255,255,255,0.80)",
+                                borderwidth=0, nticks=6,
+                            ),
+                        ),
+                        customdata=_cd_anom,
+                        hovertemplate=(
+                            "<b>%{customdata[6]} σ</b>"
+                            " | %{customdata[0]} mm<br>"
+                            "Département : <b>%{customdata[5]}</b><br>"
+                            "Région : %{customdata[1]}<br>"
+                            "Catégorie : <b>%{customdata[2]}</b>"
+                            "<extra></extra>"
+                        ),
+                        showlegend=False,
+                    ))
+                    _add_overlays(_fig2)
+                    _fig2.update_layout(
+                        mapbox=_bmap, margin=_mgn, height=440,
+                        plot_bgcolor="rgba(0,0,0,0)",
+                        paper_bgcolor="rgba(0,0,0,0)",
+                    )
+                    st.plotly_chart(
+                        _fig2, use_container_width=True,
+                        config={
+                            "displayModeBar": True,
+                            "modeBarButtonsToRemove": [
+                                "lasso2d", "select2d", "autoScale2d",
+                                "hoverClosestMapbox",
+                            ],
+                            "displaylogo": False,
+                            "toImageButtonOptions": {
+                                "format": "png",
+                                "filename": f"anom_{_sel_date}",
+                            },
+                        },
+                    )

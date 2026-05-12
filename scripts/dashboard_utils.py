@@ -410,7 +410,7 @@ def svg_spark(vals, w=100, h=40, color=INDIGO):
     )
 
 
-def plotly_base(fig, h=300, muted="#64748B", border="#E2E8F0", text="#0F172A"):
+def plotly_base(fig, h=300, muted="#64748B", border="#E2E8F0", text="#0F172A", card="#FFFFFF"):
     fig.update_layout(
         height=h,
         autosize=True,
@@ -420,8 +420,8 @@ def plotly_base(fig, h=300, muted="#64748B", border="#E2E8F0", text="#0F172A"):
         font=dict(family="Inter,sans-serif", size=11, color=muted),
         xaxis=dict(showgrid=False, zeroline=False, tickfont=dict(size=11, color=muted)),
         yaxis=dict(showgrid=True, gridcolor=border, zeroline=False, tickfont=dict(size=11, color=muted)),
-        hoverlabel=dict(bgcolor=text, font_color="white", font_size=12, bordercolor=text),
+        hoverlabel=dict(bgcolor=card, font_color=text, font_size=12, bordercolor=border),
         legend=dict(orientation="h", y=-0.28, x=0.5, xanchor="center",
-                    bgcolor="rgba(0,0,0,0)", borderwidth=0, font=dict(size=11)),
+                    bgcolor="rgba(0,0,0,0)", borderwidth=0, font=dict(size=11, color=muted)),
     )
     return fig
