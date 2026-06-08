@@ -75,6 +75,7 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
             "Phase saisonniere",
             options=list(PHASE_TC_L.keys()),
             format_func=lambda x: PHASE_TC_L[x],
+            index=list(PHASE_TC_L.keys()).index("Toutes phases"),
         )
     with fb:
         tc_metric = st.selectbox(
@@ -87,14 +88,21 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
     with fd:
         show_sig = st.checkbox("Sig. seulement", value=False)
     with fe:
-        use_p_brute = st.checkbox("Etoiles p brute", value=False,
-                                  help="Coche : etoiles basees sur p_value brute (non corrigee AR1)\n"
-                                       "Decochez : etoiles basees sur p_neff (corrige autocorrelation AR1)")
+        p_mode = st.radio(
+            "Significativite",
+            options=["p brute", "p neff (AR1)"],
+            index=0,
+            horizontal=True,
+            help="p brute : p-value nominale sans correction (defaut)\n"
+                 "p neff (AR1) : corrigee pour l'autocorrelation (Chelton 1983)",
+        )
+        use_p_brute = (p_mode == "p brute")
 
     r_col       = "pearson_r"        if tc_type == "Pearson" else "spearman_r"
     p_neff_col  = "pearson_p_neff"   if tc_type == "Pearson" else "spearman_p_neff"
     p_nom_col   = "pearson_p"        if tc_type == "Pearson" else "spearman_p"
     sig_nom_col = "sig_pearson_nom"  if tc_type == "Pearson" else "sig_spearman_nom"
+    p_active_col = p_nom_col if use_p_brute else p_neff_col
 
     df_tc = tc_data.get(tc_phase, pd.DataFrame())
     if df_tc.empty:
@@ -267,17 +275,18 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
 
     # ── Top correlations ───────────────────────────────────────────────────
     with top_col:
+        _top_p_label = "p<sub>neff</sub> (AR1)" if not use_p_brute else "p<sub>brute</sub>"
         st.markdown(
             '<p class="pnl-ttl">Top 8 correlations</p>'
             '<p class="pnl-sub">Valeurs absolues · tous lags · '
-            'etoiles = p<sub>neff</sub> sur chaque ligne (comme la heatmap)</p>',
+            f'etoiles = {_top_p_label} sur chaque ligne (comme la heatmap)</p>',
             unsafe_allow_html=True,
         )
 
         df_top = df_m.copy()
         if show_sig:
-            if p_neff_col in df_top.columns:
-                df_top = df_top[df_top[p_neff_col].apply(_sig_from_p_neff).ne("")]
+            if p_active_col in df_top.columns:
+                df_top = df_top[df_top[p_active_col].apply(_sig_from_p_neff).ne("")]
             else:
                 df_top = df_top.iloc[0:0]
         df_top = df_top.assign(abs_r=df_top[r_col].abs()).nlargest(8, "abs_r")
@@ -299,12 +308,14 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
                 bar_w    = int(abs(r_val) / 0.5 * 100)
                 r_clr    = "#1D4ED8" if is_pos else "#B91C1C"
                 r_str    = f"{r_val:+.3f}"
-                badge    = _sig_from_p_neff(rec.get(p_neff_col))
+                badge    = _sig_from_p_neff(rec.get(p_active_col))
                 sig_badge = ""
                 if badge:
+                    _badge_bg  = "rgba(96,165,250,0.18)"  if use_p_brute else "rgba(245,158,11,0.18)"
+                    _badge_clr = "#2563EB"                if use_p_brute else "#D97706"
                     sig_badge = (
-                        '<span style="font-size:0.63rem;background:rgba(245,158,11,0.18);'
-                        'color:#D97706;border-radius:4px;padding:1px 5px;'
+                        f'<span style="font-size:0.63rem;background:{_badge_bg};'
+                        f'color:{_badge_clr};border-radius:4px;padding:1px 5px;'
                         f'font-weight:700;">{badge}</span>'
                     )
                 st.markdown(
@@ -326,11 +337,13 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
 
     # ── Profil de correlation par indice ────────────────────────────────────
     # ── Profil de correlation par indice ────────────────────────────────────
+    _profil_p_label = "p<sub>neff</sub> (AR1 Chelton)" if not use_p_brute else "p<sub>brute</sub>"
+    _profil_star_clr = "#F59E0B" if not use_p_brute else "#60A5FA"
     st.markdown(
         '<p class="pnl-ttl">Profil de correlation par indice (r vs lag)</p>'
         '<p class="pnl-sub">Evolution du coefficient r en fonction du decalage temporel'
-        ' &nbsp;&middot;&nbsp; <span style="color:#F59E0B;">&#9733;</span> = significatif '
-        '(p<sub>neff</sub> : 0,05 / 0,01 / 0,001)</p>',
+        f' &nbsp;&middot;&nbsp; <span style="color:{_profil_star_clr};">&#9733;</span> = significatif '
+        f'({_profil_p_label} : 0,05 / 0,01 / 0,001)</p>',
         unsafe_allow_html=True,
     )
 
@@ -352,17 +365,18 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
         clr = COLORS_LINE[ci % len(COLORS_LINE)]
 
         symbols, sizes, texts, hover_extra = [], [], [], []
+        _plbl = "p_neff" if not use_p_brute else "p_brute"
         for _, row in sub_idx.iterrows():
-            p = row.get(p_neff_col, float("nan"))
+            p = row.get(p_active_col, float("nan"))
             if pd.notna(p) and p < 0.001:
                 symbols.append("star"); sizes.append(18)
-                texts.append("***"); hover_extra.append(f"*** p_neff={p:.4f}")
+                texts.append("***"); hover_extra.append(f"*** {_plbl}={p:.4f}")
             elif pd.notna(p) and p < 0.01:
                 symbols.append("star"); sizes.append(16)
-                texts.append("**"); hover_extra.append(f"** p_neff={p:.4f}")
+                texts.append("**"); hover_extra.append(f"** {_plbl}={p:.4f}")
             elif pd.notna(p) and p < 0.05:
                 symbols.append("star"); sizes.append(14)
-                texts.append("*"); hover_extra.append(f"* p_neff={p:.4f}")
+                texts.append("*"); hover_extra.append(f"* {_plbl}={p:.4f}")
             else:
                 symbols.append("circle"); sizes.append(6)
                 texts.append(""); hover_extra.append("")
@@ -382,7 +396,7 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
             ),
             text=texts if has_sig else None,
             textposition="top center",
-            textfont=dict(size=10, color=AMBER, family="Inter,sans-serif"),
+            textfont=dict(size=10, color=BLUE if use_p_brute else AMBER, family="Inter,sans-serif"),
             customdata=hover_extra,
             hovertemplate=(
                 f"<b>{idx}</b> · lag %{{x}}m<br>"
