@@ -61,8 +61,10 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
         <p class="pg-bc">Dashboard &nbsp;/&nbsp; <b>Teleconnexions</b></p>
         <h1 class="pg-ttl">Teleconnexions SST - Precipitations Extremes</h1>
         <p class="pg-sub">
+          Series <b>annuelles</b> (interannuel) &nbsp;&middot;&nbsp;
           Correlations Pearson &amp; Spearman · Correction AR1 (p<sub>neff</sub>)
-          &nbsp;&middot;&nbsp; Lags 0-5 mois · 11 indices SST
+          &nbsp;&middot;&nbsp; Lags 0-5 mois &nbsp;&middot;&nbsp; 11 indices SST
+          &nbsp;&middot;&nbsp; ~41 ans (1983-2023)
         </p>
       </div>
     </div>
@@ -91,10 +93,10 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
         p_mode = st.radio(
             "Significativite",
             options=["p brute", "p neff (AR1)"],
-            index=0,
+            index=1,
             horizontal=True,
-            help="p brute : p-value nominale sans correction (defaut)\n"
-                 "p neff (AR1) : corrigee pour l'autocorrelation (Chelton 1983)",
+            help="p neff (AR1) : corrigee pour l'autocorrelation (Chelton 1983) -- recommandee\n"
+                 "p brute : p-value nominale sans correction",
         )
         use_p_brute = (p_mode == "p brute")
 
@@ -137,14 +139,14 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
             unsafe_allow_html=True,
         )
 
-        z_mat, p_nom_mat, p_mat, neff_mat = [], [], [], []
+        z_mat, p_nom_mat, p_mat, neff_mat, n_mat = [], [], [], [], []
         for hm_idx in all_indices:
-            row_z, row_pnom, row_p, row_neff = [], [], [], []
+            row_z, row_pnom, row_p, row_neff, row_n = [], [], [], [], []
             for lag in lags_shown:
                 sub = df_m[(df_m["index"] == hm_idx) & (df_m["lag_months"] == lag)]
                 if sub.empty:
                     row_z.append(None); row_pnom.append(None)
-                    row_p.append(None); row_neff.append(None)
+                    row_p.append(None); row_neff.append(None); row_n.append(None)
                 else:
                     row_z.append(float(sub[r_col].values[0]))
                     pnom = sub[p_nom_col].values[0] if p_nom_col in sub.columns else None
@@ -153,8 +155,10 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
                     row_p.append(float(pv) if pv is not None and pd.notna(pv) else None)
                     ne = sub["n_eff"].values[0] if "n_eff" in sub.columns else None
                     row_neff.append(float(ne) if ne is not None and pd.notna(ne) else None)
+                    nv = sub["n"].values[0] if "n" in sub.columns else None
+                    row_n.append(int(nv) if nv is not None and pd.notna(nv) else None)
             z_mat.append(row_z); p_nom_mat.append(row_pnom)
-            p_mat.append(row_p); neff_mat.append(row_neff)
+            p_mat.append(row_p); neff_mat.append(row_neff); n_mat.append(row_n)
 
         p_active_mat = p_nom_mat if use_p_brute else p_mat
 
@@ -173,10 +177,12 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
                 pn = p_nom_mat[ri][ci]
                 pe = p_mat[ri][ci]
                 ne = neff_mat[ri][ci]
+                nv = n_mat[ri][ci]
                 row_cd.append([
                     f"{pn:.4f}" if pn is not None else "N/A",
                     f"{pe:.4f}" if pe is not None else "N/A",
                     f"{int(ne)}" if ne is not None else "N/A",
+                    f"{int(nv)}" if nv is not None else "N/A",
                 ])
             customdata_mat.append(row_cd)
 
@@ -216,7 +222,7 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
                 "r = %{z:.3f}<br>"
                 "p brute = %{customdata[0]}<br>"
                 "p_neff (AR1) = %{customdata[1]}<br>"
-                "n_eff = %{customdata[2]}"
+                "n (annees) = %{customdata[3]} &nbsp; n_eff = %{customdata[2]}"
                 "<extra></extra>"
             ),
         ))
@@ -624,11 +630,11 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
     mk1, mk2, mk3, mk4 = st.columns(4, gap="small")
     kpi_tc = [
         (mk1, "background:rgba(79,70,229,0.13)", "Tests totaux", f"{n_tests}", "t-indigo",
-         f"{len(all_indices)} indices x {len(LAGS_ALL)} lags"),
+         f"{len(all_indices)} indices x {len(LAGS_ALL)} lags · ~41 pts/phase"),
         (mk2, "background:rgba(16,185,129,0.13)", "Sig. nominale", f"{int(n_sig_nom)}", "t-green",
-         "p brut (Pearson/Spearman), sans FDR"),
+         "p brute (Pearson/Spearman) sans correction"),
         (mk3, "background:rgba(245,158,11,0.13)", "Sig. AR1 (p_neff)", f"{int(n_sig_ar1)}", "t-amber",
-         "Etoiles sur p_neff (Chelton 1983)"),
+         "p_neff Chelton 1983 · recommande"),
         (mk4, "background:rgba(14,165,233,0.13)", "r max |.|", f"{abs(best_r):.3f}", "t-blue",
          f"{best_row['index']} lag {int(best_row['lag_months'])}m" if best_row is not None else ""),
     ]

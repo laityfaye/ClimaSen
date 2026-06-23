@@ -1,16 +1,18 @@
 #!/usr/bin/env python3
 # scripts/04_teleconnections_analysis.py
 """
-Analyse des teleconnexions climatiques - AGREGATION MENSUELLE + DETREND LINEAIRE.
+Analyse des teleconnexions climatiques - AGREGATION ANNUELLE (INTERANNUEL) + DETREND LINEAIRE.
 APPROCHE PRINCIPALE RETENUE pour la these.
 
 Methodologie :
-  - Agregation mensuelle des evenements extremes (par mois calendaire)
-  - Agregation mensuelle des indices SST (moyenne des valeurs journalieres)
-  - Detrend lineaire (scipy.signal.detrend) applique sur chaque serie
+  - Agregation ANNUELLE des evenements extremes par phase (une valeur par an, ~41 ans)
+    => variabilite INTERANNUELLE uniquement (pas de melange intra-saisonnier)
+  - Agregation annuelle des indices SST (moyenne des mois de phase decales de lag en arriere)
+  - Detrend lineaire (scipy.signal.detrend) applique sur chaque serie annuelle
     pour enlever les tendances a long terme avant le calcul des correlations
-  - Lags testes en MOIS : 0, 1, 2, 3, 6, 9, 12
-  - 5 metriques incluant le nombre d evenements par mois (n_events)
+  - Lags testes en MOIS : 0, 1, 2, 3, 4, 5
+    (lag=3, Phase 2 Jul-Aou => SST moyen sur Avr-Mai de la meme annee)
+  - 5 metriques incluant le nombre d evenements par an (n_events)
   - Correlations Pearson et Spearman
   - Correction autocorrelation : degres de liberte effectifs n_eff (Chelton 1983)
   - P-values corrigees AR1 : t = r*sqrt((n_eff-2)/(1-r^2)) ~ Student(n_eff-2)
@@ -285,27 +287,74 @@ def p_from_r_neff(r: float, n_eff: int) -> float:
 
 
 # ==============================================================================
-# 3. FUSION EVENEMENTS x INDICES AVEC LAG EN MOIS
+# 3. AGREGATION ANNUELLE + FUSION AVEC INDICES A LAG EN MOIS
 # ==============================================================================
 
-def merge_monthly_lag(events_m: pd.DataFrame,
-                      indices_m: pd.DataFrame,
-                      lag_months: int,
-                      idx_cols: list) -> pd.DataFrame:
+def merge_annual_lag(events_m: pd.DataFrame,
+                     indices_m: pd.DataFrame,
+                     phase_months: list,
+                     lag_months: int,
+                     idx_cols: list) -> pd.DataFrame:
     """
-    Pour chaque mois d evenement M, recupere les indices SST au mois (M - lag).
+    Approche INTERANNUELLE : produit une serie annuelle (~41 points, 1983-2023).
 
-    La date de l evenement est M ; le signal SST precurseur est a M - lag_months.
-    Exemple : lag=3 => si evenement en Juillet, on regarde l indice d Avril.
+    Pour chaque annee :
+      - Metriques evenements : agregation sur les mois de la phase
+          max_precip       = max sur les mois de la phase
+          mean_precip      = moyenne sur les mois de la phase
+          max_anomaly      = moyenne sur les mois de la phase
+          coverage_percent = moyenne sur les mois de la phase
+          n_events         = somme sur les mois de la phase
+      - Indices SST : moyenne sur les mois (phase_months - lag_months)
+          Exemple : Phase 2 (Jul-Aou), lag=3 => moyenne SST sur Avr-Mai
+          Si le mois cible bascule en annee precedente (ex: phase Mai, lag=6 => Nov n-1),
+          on utilise l annee n-1.
+
+    Retourne un DataFrame avec une ligne par annee.
     """
-    ev = events_m.copy()
-    ev["lookup_ord"] = ev["ym_ord"] - lag_months
+    # Agregation annuelle des metriques sur les mois de la phase
+    ev = events_m[events_m["month"].isin(phase_months)].copy()
+    ev_annual = ev.groupby("year").agg(
+        n_events         = ("n_events",          "sum"),
+        max_precip       = ("max_precip",         "max"),
+        mean_precip      = ("mean_precip",        "mean"),
+        max_anomaly      = ("max_anomaly",        "mean"),
+        coverage_percent = ("coverage_percent",   "mean"),
+    ).reset_index()
 
-    idx = indices_m[["ym_ord"] + idx_cols].rename(
-        columns={"ym_ord": "lookup_ord"}
-    )
+    # Inclure toutes les annees, meme celles sans evenements
+    all_years = pd.DataFrame({"year": range(1983, 2024)})
+    ev_annual = all_years.merge(ev_annual, on="year", how="left")
+    ev_annual["n_events"] = ev_annual["n_events"].fillna(0).astype(int)
 
-    merged = ev.merge(idx, on="lookup_ord", how="left")
+    # Agregation annuelle des indices SST sur les mois decales de lag_months
+    sst_records = []
+    for year in range(1983, 2024):
+        row = {"year": year}
+        for idx in idx_cols:
+            vals = []
+            for pm in phase_months:
+                # Mois SST cible = mois de la phase - lag
+                target_month = pm - lag_months
+                target_year  = year
+                while target_month <= 0:
+                    target_month += 12
+                    target_year  -= 1
+                sub = indices_m[
+                    (indices_m["year"]  == target_year) &
+                    (indices_m["month"] == target_month)
+                ]
+                if not sub.empty and idx in sub.columns:
+                    v = sub[idx].values[0]
+                    if pd.notna(v):
+                        vals.append(v)
+            row[idx] = float(np.mean(vals)) if vals else np.nan
+        sst_records.append(row)
+
+    sst_annual = pd.DataFrame(sst_records)
+
+    # Fusion sur l annee
+    merged = ev_annual.merge(sst_annual, on="year", how="inner")
     return merged
 
 
@@ -322,14 +371,18 @@ def _sig(p: float) -> str:
 
 def compute_correlations(events_m: pd.DataFrame,
                          indices_m: pd.DataFrame,
-                         phase_filter: str = None,
+                         phase_months: list,
                          lags: list = None) -> pd.DataFrame:
     """
-    Calcule Pearson et Spearman (apres detrend) pour chaque
-    combinaison (metrique, indice, lag en mois).
+    Calcule Pearson et Spearman sur des SERIES ANNUELLES (variabilite interannuelle).
 
-    Le detrend est applique separement sur les metriques et sur les indices
-    avant le calcul de chaque correlation.
+    Pour chaque lag et combinaison (metrique, indice) :
+      1. Agregation annuelle via merge_annual_lag => ~41 points (1983-2023)
+      2. Detrend lineaire sur les series annuelles (tendance a long terme retiree)
+      3. Correlation Pearson + Spearman
+      4. Correction n_eff AR1 (Chelton 1983) pour les series autocorrelees
+
+    n ~ 41 (nombre d annees) contre ~82 avec l agregation mensuelle.
     """
     if lags is None:
         lags = DEFAULT_LAGS
@@ -337,20 +390,13 @@ def compute_correlations(events_m: pd.DataFrame,
     avail_idx = [c for c in ALL_INDICES if c in indices_m.columns]
     avail_met = [m for m in METRICS     if m in events_m.columns]
 
-    # Filtrage par phase (sur les mois correspondants)
-    ev = events_m.copy()
-    if phase_filter and phase_filter in PHASE_MONTHS:
-        months_ok = PHASE_MONTHS[phase_filter]
-        ev = ev[ev["month"].isin(months_ok)]
-
     rows = []
 
     for lag in lags:
-        merged = merge_monthly_lag(ev, indices_m, lag, avail_idx)
+        merged = merge_annual_lag(events_m, indices_m, phase_months, lag, avail_idx)
 
         # Detrend lineaire sur les indices SST et les metriques d intensite.
-        # n_events est exclu : variable de comptage entier >= 0,
-        # le detrend genererait des valeurs negatives sans sens physique.
+        # n_events exclu : comptage entier >= 0, le detrend genererait des valeurs negatives.
         merged_dt = detrend_columns(merged, avail_idx)
         metrics_to_detrend = [m for m in avail_met if m != "n_events"]
         merged_dt = detrend_columns(merged_dt, metrics_to_detrend)
@@ -362,12 +408,11 @@ def compute_correlations(events_m: pd.DataFrame,
                 n = len(sub)
                 if n < MIN_OBS:
                     continue
-                xv    = sub[metric].values.astype(float)
-                yv    = sub[idx].values.astype(float)
+                xv     = sub[metric].values.astype(float)
+                yv     = sub[idx].values.astype(float)
                 pr, pp = pearsonr(xv, yv)
                 sr, sp = spearmanr(xv, yv)
                 n_eff  = compute_n_eff(xv, yv)
-                # P-values corrigees avec n_eff (Chelton 1983)
                 pp_neff = p_from_r_neff(pr, n_eff)
                 sp_neff = p_from_r_neff(sr, n_eff)
                 rows.append({
@@ -383,7 +428,6 @@ def compute_correlations(events_m: pd.DataFrame,
                     "spearman_p_neff":  round(sp_neff, 4),
                     "n":                n,
                     "n_eff":            n_eff,
-                    # Etoiles nominales conservees pour comparaison
                     "sig_pearson_nom":  _sig(pp),
                     "sig_spearman_nom": _sig(sp),
                 })
@@ -658,31 +702,36 @@ def generate_report(all_corrs: dict, n_events_raw: int, n_months: int,
 
     lines = [
         sep,
-        "RAPPORT -- TELECONNEXIONS (AGREGATION MENSUELLE + DETREND LINEAIRE)",
-        "Precipitations extremes au Senegal x Indices SST mensuels",
+        "RAPPORT -- TELECONNEXIONS (AGREGATION ANNUELLE INTERANNUELLE + DETREND LINEAIRE)",
+        "Precipitations extremes au Senegal x Indices SST -- Variabilite interannuelle",
         sep,
         f"Genere le             : {now}",
         f"Evenements bruts      : {n_events_raw} (1983-2023)",
-        f"Mois de saison total  : {n_months} (n_events=0 inclus pour frequence)",
+        f"Annees                : 41 (1983-2023) -- serie annuelle par phase",
         f"Lags testes (mois)    : {lags}",
         f"Indices               : {', '.join(ALL_INDICES)}",
         "",
-        "METHODE :",
-        "  1. Agregation mensuelle : calendrier complet mai-oct (1983-2023)",
-        "     n_events=0 pour les mois sans evenements (intensite : NaN)",
-        "     max_precip = maximum mensuel (pas moyenne) pour capter l evenement extreme",
-        "  2. Agregation mensuelle : moyenne des indices SST journaliers par mois",
-        "  3. Detrend lineaire (scipy.signal.detrend type=linear) sur indices SST",
-        "     et metriques d intensite -- n_events exclu (comptage, valeurs >= 0)",
+        "METHODE (INTERANNUELLE) :",
+        "  1. Agregation ANNUELLE des evenements par phase :",
+        "     => une valeur par annee (~41 pts) -- variabilite interannuelle pure",
+        "     max_precip = max sur les mois de la phase pour chaque annee",
+        "     n_events   = somme des evenements sur les mois de la phase par annee",
+        "     Annees sans evenements : n_events=0, metriques d intensite NaN",
+        "  2. Agregation annuelle des indices SST :",
+        "     => moyenne sur les mois (phase - lag) pour chaque annee",
+        "     Exemple : Phase 2 (Jul-Aou), lag=3 => SST moyen Avr-Mai de la meme annee",
+        "     Si le mois cible bascule en n-1 (ex: lag=6, phase Mai => Nov n-1) : annee n-1",
+        "  3. Detrend lineaire (scipy.signal.detrend type=linear) sur les series annuelles",
+        "     -- n_events exclu du detrend (comptage entier >= 0)",
         "  4. Correlation Pearson + Spearman a differents lags en mois",
         "  5. n_eff : degres de liberte effectifs (Chelton 1983, AR1)",
         "     n_eff = n*(1-r1x*r1y)/(1+r1x*r1y)  -- autocorrelation lag-1 des series",
         "     n_eff < n indique une autocorrelation positive (significativite surestimee)",
         "  6. P-values corrigees AR1 : t = r*sqrt((n_eff-2)/(1-r^2)) ~ Student(n_eff-2)",
         "     p_neff : p-value recalculee avec n_eff degres de liberte.",
-        "     Les etoiles (*/**/***) sont basees sur p_neff (pas de correction FDR pour tests multiples).",
+        "     Les etoiles (*/**/***) sont basees sur p_neff (pas de correction FDR).",
         "     p_nom : p-value brute (n independant) conservee pour reference.",
-        "Source SST : NOAA OISST v2 High-Resolution 0.25deg (journalier -> mensuel)",
+        "Source SST : NOAA OISST v2 High-Resolution 0.25deg (journalier -> mensuel -> annuel)",
         "",
     ]
 
@@ -767,11 +816,12 @@ def run(by_phase: bool = True,
 
     print()
     print("=" * 70)
-    print("  TELECONNEXIONS -- AGREGATION MENSUELLE + DETREND LINEAIRE")
+    print("  TELECONNEXIONS -- AGREGATION ANNUELLE (INTERANNUELLE) + DETREND")
     print("=" * 70)
     print(f"  Analyse par phase : {'Oui' if by_phase else 'Non'}")
     print(f"  Lags (mois)       : {lags}")
     print(f"  Indices           : {len(ALL_INDICES)}")
+    print(f"  Serie             : annuelle (~41 pts par phase, 1983-2023)")
     print(f"  Detrend           : scipy.signal.detrend (type=linear)")
 
     viz_dir = output_dir / "visualizations"
@@ -799,29 +849,34 @@ def run(by_phase: bool = True,
         phase_configs = {"Toutes phases": None}
 
     # ------------------------------------------------------------------
-    print("\n[2/5] Calcul des correlations (agregation mensuelle + detrend lineaire)")
+    print("\n[2/5] Calcul des correlations (agregation ANNUELLE interannuelle + detrend lineaire)")
     all_corrs = {}
+
+    # Mois de saison pour "Toutes phases" = union de toutes les phases
+    ALL_SEASON_MONTHS = sorted(set(
+        m for months in PHASE_MONTHS.values() for m in months
+    ))
 
     for phase_key, phase_filter in phase_configs.items():
         label = PHASES.get(phase_key, phase_key)
         print(f"\n  > {label}")
 
-        ev_phase = events_m.copy()
+        # Determiner les mois de la phase pour l agregation annuelle
         if phase_filter and phase_filter in PHASE_MONTHS:
-            months_ok = PHASE_MONTHS[phase_filter]
-            ev_phase  = ev_phase[ev_phase["month"].isin(months_ok)]
+            months_for_phase = PHASE_MONTHS[phase_filter]
+        else:
+            months_for_phase = ALL_SEASON_MONTHS
 
-        n_zero_phase = (ev_phase["n_events"] == 0).sum()
-        print(f"    {len(ev_phase)} mois de saison "
-              f"(dont {n_zero_phase} a zero pour n_events)")
-
-        if len(ev_phase) < MIN_OBS:
-            all_corrs[phase_key] = pd.DataFrame()
-            continue
+        # Apercu : nombre d annees avec evenements dans cette phase
+        ev_check = events_m[events_m["month"].isin(months_for_phase)]
+        n_years_with_ev = ev_check[ev_check["n_events"] > 0]["year"].nunique()
+        print(f"    Mois de la phase : {months_for_phase}")
+        print(f"    Annees avec evenements : {n_years_with_ev} / 41  "
+              f"(series annuelles, n ~ 41)")
 
         corr_df = compute_correlations(
-            ev_phase, indices_m,
-            phase_filter=phase_filter,
+            events_m, indices_m,
+            phase_months=months_for_phase,
             lags=lags
         )
         all_corrs[phase_key] = corr_df
@@ -854,7 +909,7 @@ def run(by_phase: bool = True,
     print("\n[5/5] Resume")
     print()
     print("=" * 78)
-    print("  CORRELATIONS PEARSON (lag=0, detrend, mensuel) -- max_precip")
+    print("  CORRELATIONS PEARSON (lag=0, detrend, ANNUEL interannuel) -- max_precip")
     print("=" * 78)
     hdr = f"  {'Phase':<28}"
     for idx in ALL_INDICES:
