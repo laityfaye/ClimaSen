@@ -70,6 +70,280 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
     </div>
     """, unsafe_allow_html=True)
 
+    all_indices = [i for grp in IDX_GROUP.values() for i in grp]
+
+    st.markdown("<div style='height:14px'></div>", unsafe_allow_html=True)
+
+    # ── Heatmaps lag 0 : tous indices x toutes metriques, par phase ─────────
+    st.markdown(
+        '<p class="pnl-ttl">Heatmaps des correlations au lag 0 - indices x metriques, par phase</p>',
+        unsafe_allow_html=True,
+    )
+
+    METRIC_SHORT = {
+        "max_precip":       "Precip max",
+        "mean_precip":      "Precip moy",
+        "max_anomaly":      "Anomalie max",
+        "coverage_percent": "Couverture %",
+        "n_events":         "N evenements",
+    }
+    metrics_order = list(METRIC_L.keys())
+    metrics_labels = [METRIC_SHORT[m] for m in metrics_order]
+    phase_keys_lag0 = list(PHASE_TC_L.keys())
+
+    la0a, la0b, la0c, la0d = st.columns([2, 1.5, 1.3, 2], gap="small")
+    with la0a:
+        lag0_phase_sel = st.selectbox(
+            "Phase saisonniere",
+            options=phase_keys_lag0,
+            format_func=lambda x: PHASE_TC_L[x],
+            index=phase_keys_lag0.index("Toutes phases"),
+            key="lag0_phase_sel",
+        )
+    with la0b:
+        lag0_type = st.selectbox("Type", ["Pearson", "Spearman"], key="lag0_type")
+    with la0c:
+        lag0_show_sig = st.checkbox("Sig. seulement", value=False, key="lag0_show_sig")
+    with la0d:
+        lag0_p_mode = st.radio(
+            "Significativite",
+            options=["p brute", "p neff (AR1)"],
+            index=1,
+            horizontal=True,
+            key="lag0_p_mode",
+            help="p neff (AR1) : corrigee pour l'autocorrelation (Chelton 1983) -- recommandee\n"
+                 "p brute : p-value nominale sans correction",
+        )
+        use_p_brute0 = (lag0_p_mode == "p brute")
+
+    r_col0        = "pearson_r"        if lag0_type == "Pearson" else "spearman_r"
+    p_neff_col0   = "pearson_p_neff"   if lag0_type == "Pearson" else "spearman_p_neff"
+    p_nom_col0    = "pearson_p"        if lag0_type == "Pearson" else "spearman_p"
+    p_active_col0 = p_nom_col0 if use_p_brute0 else p_neff_col0
+
+    if use_p_brute0:
+        star_label0 = 'p<sub>brute</sub> (non corrigee)'
+        star_color0 = "#60A5FA"
+    else:
+        star_label0 = 'p<sub>neff</sub> (AR1 Chelton)'
+        star_color0 = "#F59E0B"
+
+    st.markdown(
+        f'<p class="pnl-sub">'
+        f'Lag 0 uniquement &nbsp;&middot;&nbsp; Toutes les metriques &nbsp;&middot;&nbsp; '
+        f'Couleur = coefficient r ({lag0_type}) &nbsp;&middot;&nbsp; Etoiles = {star_label0} : '
+        f'<b style="color:{star_color0};">*</b> &lt;0,05 &nbsp; '
+        f'<b style="color:{star_color0};">**</b> &lt;0,01 &nbsp; '
+        f'<b style="color:{star_color0};">***</b> &lt;0,001'
+        f'</p>',
+        unsafe_allow_html=True,
+    )
+
+    def _build_lag0_metric_heatmap(phase_key):
+        df_ph = tc_data.get(phase_key, pd.DataFrame())
+        df_ph0 = df_ph[df_ph["lag_months"] == 0] if not df_ph.empty else pd.DataFrame()
+
+        z, pnom, p, neff, n = [], [], [], [], []
+        for hm_idx in all_indices:
+            row_z, row_pnom, row_p, row_neff, row_n = [], [], [], [], []
+            for met in metrics_order:
+                sub = df_ph0[(df_ph0["index"] == hm_idx) & (df_ph0["metric"] == met)] \
+                    if not df_ph0.empty else pd.DataFrame()
+                if sub.empty:
+                    row_z.append(None); row_pnom.append(None)
+                    row_p.append(None); row_neff.append(None); row_n.append(None)
+                else:
+                    row_z.append(float(sub[r_col0].values[0]))
+                    pnom_v = sub[p_nom_col0].values[0] if p_nom_col0 in sub.columns else None
+                    row_pnom.append(float(pnom_v) if pnom_v is not None and pd.notna(pnom_v) else None)
+                    pv = sub[p_neff_col0].values[0] if p_neff_col0 in sub.columns else None
+                    row_p.append(float(pv) if pv is not None and pd.notna(pv) else None)
+                    ne = sub["n_eff"].values[0] if "n_eff" in sub.columns else None
+                    row_neff.append(float(ne) if ne is not None and pd.notna(ne) else None)
+                    nv = sub["n"].values[0] if "n" in sub.columns else None
+                    row_n.append(int(nv) if nv is not None and pd.notna(nv) else None)
+            z.append(row_z); pnom.append(row_pnom)
+            p.append(row_p); neff.append(row_neff); n.append(row_n)
+
+        p_active = pnom if use_p_brute0 else p
+
+        cell_text = [
+            [f"{v:+.2f}" if v is not None else "" for v in row]
+            for row in z
+        ]
+        customdata = [
+            [
+                [
+                    f"{pnom[ri][ci]:.4f}" if pnom[ri][ci] is not None else "N/A",
+                    f"{p[ri][ci]:.4f}" if p[ri][ci] is not None else "N/A",
+                    f"{int(neff[ri][ci])}" if neff[ri][ci] is not None else "N/A",
+                    f"{int(n[ri][ci])}" if n[ri][ci] is not None else "N/A",
+                ]
+                for ci in range(len(metrics_order))
+            ]
+            for ri in range(len(all_indices))
+        ]
+
+        fig = go.Figure(go.Heatmap(
+            z=z,
+            x=metrics_labels,
+            y=all_indices,
+            text=cell_text,
+            customdata=customdata,
+            texttemplate="%{text}",
+            textfont=dict(size=10, color="white"),
+            colorscale=[
+                [0.0,  "#7F1D1D"],
+                [0.2,  "#C2410C"],
+                [0.4,  "#FB923C"],
+                [0.48, "#FED7AA"],
+                [0.5,  "#F8FAFC"],
+                [0.52, "#BAE6FD"],
+                [0.6,  "#0EA5E9"],
+                [0.8,  "#1D4ED8"],
+                [1.0,  "#1E3A8A"],
+            ],
+            zmid=0,
+            zmin=-0.5, zmax=0.5,
+            colorbar=dict(
+                title=dict(text="r", side="right", font=dict(size=11, color=MUTED)),
+                thickness=12, len=0.85,
+                tickvals=[-0.4, -0.2, 0, 0.2, 0.4],
+                ticktext=["-0.4", "-0.2", "0", "0.2", "0.4"],
+                tickfont=dict(size=10, color=MUTED),
+                outlinewidth=0,
+            ),
+            hovertemplate=(
+                "<b>%{y}</b> · %{x}<br>"
+                "r = %{z:.3f}<br>"
+                "p brute = %{customdata[0]}<br>"
+                "p_neff (AR1) = %{customdata[1]}<br>"
+                "n (annees) = %{customdata[3]} &nbsp; n_eff = %{customdata[2]}"
+                "<extra></extra>"
+            ),
+        ))
+
+        annotations = []
+        for ri, hm_idx in enumerate(all_indices):
+            for ci in range(len(metrics_order)):
+                p_v = p_active[ri][ci]
+                if p_v is None or pd.isna(p_v):
+                    continue
+                if p_v < 0.001:
+                    star_txt = "***"
+                elif p_v < 0.01:
+                    star_txt = "**"
+                elif p_v < 0.05:
+                    star_txt = "*"
+                else:
+                    continue
+                annotations.append(dict(
+                    x=metrics_labels[ci],
+                    y=hm_idx,
+                    text=f"<b>{star_txt}</b>",
+                    showarrow=False,
+                    xanchor="right",
+                    yanchor="bottom",
+                    xshift=18,
+                    yshift=-2,
+                    font=dict(size=15, color="#000000", family="Inter,sans-serif"),
+                ))
+
+        for sep in [4, 6, 10]:
+            fig.add_hline(y=sep - 0.5, line=dict(color=BORDER, width=1.5, dash="dot"))
+
+        fig.update_layout(
+            height=380,
+            margin=dict(l=0, r=0, t=4, b=0),
+            plot_bgcolor="rgba(0,0,0,0)",
+            paper_bgcolor="rgba(0,0,0,0)",
+            font=dict(family="Inter,sans-serif", size=11, color=MUTED),
+            xaxis=dict(
+                side="top",
+                tickfont=dict(size=11, color=MUTED),
+                showgrid=False, zeroline=False,
+            ),
+            yaxis=dict(
+                tickfont=dict(size=11, color=TEXT),
+                showgrid=False, zeroline=False,
+                autorange="reversed",
+            ),
+            annotations=annotations,
+        )
+        return fig
+
+    hm0_col, top0_col = st.columns([3, 1.3], gap="medium")
+
+    with hm0_col:
+        fig_lag0 = _build_lag0_metric_heatmap(lag0_phase_sel)
+        st.plotly_chart(
+            fig_lag0, use_container_width=True,
+            config=_CHART_CFG(f"heatmap_lag0_{lag0_phase_sel}"),
+        )
+
+    with top0_col:
+        _top0_p_label = "p<sub>neff</sub> (AR1)" if not use_p_brute0 else "p<sub>brute</sub>"
+        st.markdown(
+            '<p class="pnl-ttl">Top 8 correlations</p>'
+            f'<p class="pnl-sub">Lag 0 &nbsp;&middot;&nbsp; {PHASE_TC_L[lag0_phase_sel]} &nbsp;&middot;&nbsp; '
+            f'valeurs absolues · toutes metriques · etoiles = {_top0_p_label}</p>',
+            unsafe_allow_html=True,
+        )
+
+        df_ph0_top = tc_data.get(lag0_phase_sel, pd.DataFrame())
+        df_ph0_top = df_ph0_top[df_ph0_top["lag_months"] == 0].copy() if not df_ph0_top.empty else pd.DataFrame()
+        if lag0_show_sig and not df_ph0_top.empty:
+            if p_active_col0 in df_ph0_top.columns:
+                df_ph0_top = df_ph0_top[df_ph0_top[p_active_col0].apply(_sig_from_p_neff).ne("")]
+            else:
+                df_ph0_top = df_ph0_top.iloc[0:0]
+        if not df_ph0_top.empty:
+            df_ph0_top = df_ph0_top.assign(abs_r=df_ph0_top[r_col0].abs()).nlargest(8, "abs_r")
+
+        if df_ph0_top.empty:
+            st.markdown(
+                f'<p style="color:{MUTED};font-size:0.78rem;margin-top:12px;">'
+                'Aucun resultat.</p>', unsafe_allow_html=True
+            )
+        else:
+            GRAD_POS = ["#1E3A8A", "#1D4ED8", "#3B82F6", "#93C5FD"]
+            GRAD_NEG = ["#7F1D1D", "#B91C1C", "#EF4444", "#FCA5A5"]
+            for i, rec in enumerate(df_ph0_top.to_dict("records")):
+                idx_name = rec["index"]
+                met_lbl  = METRIC_SHORT.get(rec["metric"], rec["metric"])
+                r_val    = rec[r_col0]
+                is_pos   = r_val >= 0
+                bar_clr  = GRAD_POS[min(i, 3)] if is_pos else GRAD_NEG[min(i, 3)]
+                bar_w    = int(abs(r_val) / 0.5 * 100)
+                r_clr    = "#1D4ED8" if is_pos else "#B91C1C"
+                r_str    = f"{r_val:+.3f}"
+                badge    = _sig_from_p_neff(rec.get(p_active_col0))
+                sig_badge = ""
+                if badge:
+                    _badge_bg  = "rgba(96,165,250,0.18)"  if use_p_brute0 else "rgba(245,158,11,0.18)"
+                    _badge_clr = "#2563EB"                if use_p_brute0 else "#D97706"
+                    sig_badge = (
+                        f'<span style="font-size:0.63rem;background:{_badge_bg};'
+                        f'color:{_badge_clr};border-radius:4px;padding:1px 5px;'
+                        f'font-weight:700;">{badge}</span>'
+                    )
+                st.markdown(
+                    f'<div style="padding:7px 0;border-bottom:1px solid {BORDER};">'
+                    f'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">'
+                    f'<span style="font-size:0.75rem;font-weight:600;color:{TEXT};">'
+                    f'{idx_name} &nbsp;<span style="color:{MUTED};font-weight:400;">{met_lbl}</span></span>'
+                    f'<div style="display:flex;align-items:center;gap:4px;">'
+                    f'{sig_badge}'
+                    f'<span style="font-size:0.8rem;font-weight:700;color:{r_clr};">{r_str}</span>'
+                    f'</div></div>'
+                    f'<div style="background:{BG};border-radius:99px;height:4px;">'
+                    f'<div style="width:{bar_w}%;height:4px;border-radius:99px;background:{bar_clr};"></div>'
+                    f'</div></div>',
+                    unsafe_allow_html=True,
+                )
+
+    st.markdown("<div style='height:6px'></div>", unsafe_allow_html=True)
+
     # ── Filtres inline ─────────────────────────────────────────────────────
     fa, fb, fc, fd, fe = st.columns([2, 2, 1.5, 1.5, 2], gap="small")
     with fa:
@@ -112,22 +386,21 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
         st.stop()
 
     df_m = df_tc[df_tc["metric"] == tc_metric].copy()
+    lags_shown = LAGS_ALL
 
-    st.markdown("<div style='height:14px'></div>", unsafe_allow_html=True)
+    if use_p_brute:
+        star_label = 'p<sub>brute</sub> (non corrigee)'
+        star_color = "#60A5FA"
+    else:
+        star_label = 'p<sub>neff</sub> (AR1 Chelton)'
+        star_color = "#F59E0B"
 
-    all_indices = [i for grp in IDX_GROUP.values() for i in grp]
-    lags_shown  = LAGS_ALL
+    st.markdown("<div style='height:6px'></div>", unsafe_allow_html=True)
 
     # ── Heatmap + Top correlations ─────────────────────────────────────────
     hm_col, top_col = st.columns([3, 1.3], gap="medium")
 
     with hm_col:
-        if use_p_brute:
-            star_label = 'p<sub>brute</sub> (non corrigee)'
-            star_color = "#60A5FA"
-        else:
-            star_label = 'p<sub>neff</sub> (AR1 Chelton)'
-            star_color = "#F59E0B"
         st.markdown(
             '<p class="pnl-ttl">Heatmap des correlations par indice et lag</p>'
             f'<p class="pnl-sub">'

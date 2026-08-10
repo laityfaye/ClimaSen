@@ -137,6 +137,10 @@ if "prev_page" not in st.session_state:
 if "page_loading" not in st.session_state:
     st.session_state.page_loading = False
 
+# ─── Sidebar mobile (off-canvas, ferme par defaut sous 768px) ────────────────
+if "mobile_sidebar_open" not in st.session_state:
+    st.session_state.mobile_sidebar_open = False
+
 # Palette dynamique (light / dark)
 if st.session_state.dark_mode:
     BG    = "#0F172A"
@@ -665,6 +669,35 @@ section[data-testid="stSidebar"] hr {{
     display: none !important;
 }}
 
+/* ── Bouton hamburger (menu mobile) : cache sur desktop ── */
+button[key="mobile_menu_btn"] {{
+    display: none !important;
+}}
+@media (max-width: 768px) {{
+    button[key="mobile_menu_btn"] {{
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        position: fixed !important;
+        top: 12px !important;
+        left: 12px !important;
+        z-index: 100000 !important;
+        width: 40px !important;
+        height: 40px !important;
+        min-width: 40px !important;
+        border-radius: 10px !important;
+        background: {SIDEBAR_BG} !important;
+        color: #FFFFFF !important;
+        border: none !important;
+        font-size: 1.1rem !important;
+        line-height: 1 !important;
+        padding: 0 !important;
+        box-shadow: 0 2px 12px rgba(0,0,0,0.3) !important;
+        pointer-events: auto !important;
+        opacity: 1 !important;
+    }}
+}}
+
 /* ── Icone dark-mode (dans stHorizontalBlock = colonnes) ── */
 section[data-testid="stSidebar"] [data-testid="stHorizontalBlock"]
   [data-testid="stButton"] button {{
@@ -1010,6 +1043,12 @@ html, body {{
 [data-testid="stAppViewContainer"] > .main {{
     padding: 0 clamp(8px, 2vw, 28px) 40px clamp(8px, 2vw, 28px) !important;
 }}
+/* Espace reserve en haut pour ne pas chevaucher le bouton hamburger */
+@media (max-width: 768px) {{
+    [data-testid="stAppViewContainer"] > .main {{
+        padding-top: 56px !important;
+    }}
+}}
 
 /* Region row : supporte sparkline inline */
 .rg-row {{
@@ -1052,6 +1091,12 @@ html, body {{
     /* Masquer sparkline sur tablette */
     .kpi-spark {{ display: none !important; }}
     .kpi {{ padding: 14px 15px !important; }}
+    /* Mini-cartes evenements : 3 par ligne (evite les 6 cartes ecrasees) */
+    [data-testid="stHorizontalBlock"]:has(.mini-ev-card) > [data-testid="stColumn"] {{
+        width: 33.333% !important;
+        min-width: 33.333% !important;
+        flex: 0 0 33.333% !important;
+    }}
     /* Header : passe en colonne sous 1024px */
     .pg-hdr {{
         flex-direction: column !important;
@@ -1146,6 +1191,16 @@ html, body {{
         min-width: 50% !important;
         flex: 0 0 50% !important;
     }}
+    /* Mini-cartes evenements : badge/texte compacts + retour a la ligne autorise */
+    .mini-ev-card {{
+        padding: 8px 8px 7px 8px !important;
+    }}
+    .mini-ev-crit {{
+        font-size: 0.60rem !important;
+        white-space: normal !important;
+        overflow-wrap: break-word !important;
+        line-height: 1.25 !important;
+    }}
     /* Sparklines masquees */
     .kpi-spark {{ display: none !important; }}
     .kpi {{ padding: 12px 13px !important; }}
@@ -1186,6 +1241,12 @@ html, body {{
     .kpi-val {{ font-size: 1.05rem !important; }}
     .pg-ttl  {{ font-size: 0.95rem !important; }}
     .pnl-ttl {{ font-size: 0.80rem !important; }}
+    /* Mini-cartes evenements : 1 par ligne sur tres petit ecran */
+    [data-testid="stHorizontalBlock"]:has(.mini-ev-card) > [data-testid="stColumn"] {{
+        width: 100% !important;
+        min-width: 100% !important;
+        flex: 0 0 100% !important;
+    }}
     /* Sidebar masquee par defaut sur tres petit mobile */
     section[data-testid="stSidebar"] {{
         min-width: 0 !important;
@@ -1482,6 +1543,46 @@ section[data-testid="stSidebar"] [data-baseweb="select"] svg {{
 </style>
 """, unsafe_allow_html=True)
 
+# ─── Menu mobile (bouton hamburger + sidebar en tiroir) ───────────────────────
+_menu_icon = "✕" if st.session_state.mobile_sidebar_open else "☰"
+if st.button(_menu_icon, key="mobile_menu_btn", help="Menu"):
+    st.session_state.mobile_sidebar_open = not st.session_state.mobile_sidebar_open
+    st.rerun()
+
+if st.session_state.mobile_sidebar_open:
+    st.markdown("""
+    <style>
+    @media (max-width: 768px) {
+        section[data-testid="stSidebar"] {
+            position: fixed !important;
+            top: 0 !important;
+            left: 0 !important;
+            height: 100vh !important;
+            z-index: 99998 !important;
+            box-shadow: 6px 0 28px rgba(0,0,0,0.35) !important;
+        }
+        [data-testid="stAppViewContainer"] > .main {
+            pointer-events: none !important;
+            opacity: 0.35 !important;
+        }
+        button[key="mobile_menu_btn"] {
+            pointer-events: auto !important;
+            opacity: 1 !important;
+        }
+    }
+    </style>
+    """, unsafe_allow_html=True)
+else:
+    st.markdown("""
+    <style>
+    @media (max-width: 768px) {
+        section[data-testid="stSidebar"] {
+            display: none !important;
+        }
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
 # ─── SIDEBAR ─────────────────────────────────────────────────────────────────
 with st.sidebar:
 
@@ -1541,6 +1642,7 @@ with st.sidebar:
                 use_container_width=True,
             ):
                 st.session_state["nav_page"] = _pg_key
+                st.session_state.mobile_sidebar_open = False
                 st.rerun()
 
     page = st.session_state["nav_page"]

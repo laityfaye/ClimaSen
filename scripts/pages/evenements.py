@@ -256,6 +256,19 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
                 background: transparent !important;
                 padding: 0 !important;
             }
+            /* Sous 1024px le libelle du critere peut passer sur 2 lignes :
+               agrandit la zone cliquable invisible en consequence. */
+            @media (max-width: 1024px) {
+                div[data-testid="stVerticalBlock"]
+                  .element-container:has(.mini-ev-card) + div {
+                    margin-top: -132px !important;
+                    height: 132px !important;
+                }
+                div[data-testid="stVerticalBlock"]
+                  .element-container:has(.mini-ev-card) + div button {
+                    height: 132px !important;
+                }
+            }
             </style>
             """, unsafe_allow_html=True)
 
