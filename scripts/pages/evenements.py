@@ -455,11 +455,7 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
             [0.88, "#D6604D"], [1.00, "#67001F"],
         ]
 
-        _bmap = dict(
-            style="carto-positron",
-            center=dict(lat=_ctr_lat, lon=_ctr_lon),
-            zoom=6.2,
-        )
+        _bmap = du.basemap(_ctr_lat, _ctr_lon, 6.2)
         _mgn = dict(l=0, r=0, t=0, b=0)
 
         # Pixel avec precipitation maximale

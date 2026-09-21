@@ -27,6 +27,41 @@ PHASE_C = {"Phase_1_debut": BLUE, "Phase_2_pleine": INDIGO, "Phase_3_fin": AMBER
 PHASE_L = {"Phase_1_debut": "Debut Mai-Jun", "Phase_2_pleine": "Pleine Jul-Aou", "Phase_3_fin": "Fin Sep-Oct"}
 
 
+# --- Fond de carte (sans cle API) --------------------------------------------
+# "carto-positron" passe par les tuiles CARTO, qui exigent desormais une cle API
+# et renvoient sinon des tuiles filigranees "API KEY REQUIRED".
+# Styles utilisables sans cle :
+#   "white-bg"        aucun appel reseau, fond blanc (les contours departements
+#                     et le trait de cote sont deja dessines depuis les geojson)
+#   "esri-gray"       tuiles Esri World Light Gray, rendu proche de positron
+#   "open-street-map" tuiles OSM (fond plus charge)
+BASEMAP_STYLE = "white-bg"
+
+_ESRI_GRAY_TILES = (
+    "https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/"
+    "World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}"
+)
+
+
+def basemap(center_lat, center_lon, zoom, style=None):
+    """Configuration mapbox sans cle API (voir BASEMAP_STYLE)."""
+    style = style or BASEMAP_STYLE
+    center = dict(lat=center_lat, lon=center_lon)
+    if style == "esri-gray":
+        return dict(
+            style="white-bg",
+            layers=[dict(
+                below="traces",
+                sourcetype="raster",
+                source=[_ESRI_GRAY_TILES],
+                sourceattribution="Esri, HERE, Garmin, FAO, NOAA, USGS",
+            )],
+            center=center,
+            zoom=zoom,
+        )
+    return dict(style=style, center=center, zoom=zoom)
+
+
 def get_palette(dark_mode: bool) -> dict:
     if dark_mode:
         return dict(BG="#0F172A", CARD="#1E293B", TEXT="#F1F5F9",

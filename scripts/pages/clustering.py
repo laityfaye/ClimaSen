@@ -670,11 +670,7 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
                         [0.90, "#7c3aed"], [1.00, "#1e1b4b"],
                     ]
 
-                    _cl_bmap = dict(
-                        style="carto-positron",
-                        center=dict(lat=_cl_ctr_lat, lon=_cl_ctr_lon),
-                        zoom=6.2,
-                    )
+                    _cl_bmap = du.basemap(_cl_ctr_lat, _cl_ctr_lon, 6.2)
 
                     _cl_fig_comp = go.Figure()
 

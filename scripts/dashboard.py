@@ -126,8 +126,10 @@ PHASE_L = {"Phase_1_debut": "Debut Mai-Jun", "Phase_2_pleine": "Pleine Jul-Aou",
 
 # ─── Dark mode state ─────────────────────────────────────────────────────────
 # Priorite : session_state (navigation interne) > query_params (refresh/nouvel onglet)
+# Mode sombre par defaut : seul ?dm=0 (bascule explicite vers le mode clair)
+# force le theme clair.
 if "dark_mode" not in st.session_state:
-    st.session_state.dark_mode = (st.query_params.get("dm", "0") == "1")
+    st.session_state.dark_mode = (st.query_params.get("dm", "1") != "0")
 
 # ─── Page transition state ────────────────────────────────────────────────────
 if "nav_page" not in st.session_state:
@@ -670,21 +672,30 @@ section[data-testid="stSidebar"] hr {{
 }}
 
 /* ── Bouton hamburger (menu mobile) : cache sur desktop ── */
-button[key="mobile_menu_btn"] {{
+.st-key-mobile_menu_btn {{
     display: none !important;
 }}
 @media (max-width: 768px) {{
-    button[key="mobile_menu_btn"] {{
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
+    .st-key-mobile_menu_btn {{
+        display: block !important;
         position: fixed !important;
         top: 12px !important;
         left: 12px !important;
         z-index: 100000 !important;
         width: 40px !important;
         height: 40px !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        pointer-events: auto !important;
+    }}
+    .st-key-mobile_menu_btn button {{
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        width: 40px !important;
+        height: 40px !important;
         min-width: 40px !important;
+        min-height: 40px !important;
         border-radius: 10px !important;
         background: {SIDEBAR_BG} !important;
         color: #FFFFFF !important;
@@ -693,7 +704,6 @@ button[key="mobile_menu_btn"] {{
         line-height: 1 !important;
         padding: 0 !important;
         box-shadow: 0 2px 12px rgba(0,0,0,0.3) !important;
-        pointer-events: auto !important;
         opacity: 1 !important;
     }}
 }}
@@ -1136,9 +1146,9 @@ html, body {{
 }}
 
 /* ══════════════════════════════════════════════════════════
-   RESPONSIVE — Petit ecran bureau (1024px – 1280px)
+   RESPONSIVE — Petit ecran bureau (1024px – 1440px)
    ══════════════════════════════════════════════════════════ */
-@media (min-width: 1024px) and (max-width: 1280px) {{
+@media (min-width: 1024px) and (max-width: 1440px) {{
     /* Titre et sous-titre page */
     .pg-ttl {{ font-size: clamp(0.90rem, 1.2vw, 1.10rem) !important; }}
     .pg-sub {{ font-size: 0.67rem !important; }}
@@ -1167,6 +1177,31 @@ html, body {{
     }}
     /* Titres panneaux : legerement reduits */
     .pnl-ttl {{ font-size: clamp(0.78rem, 0.85vw, 0.84rem) !important; }}
+
+    /* Ecran 13 pouces : tout le texte est en rem -> on reduit la base
+       typographique pour que les cartes cessent de deborder. */
+    html {{ font-size: 14.5px !important; }}
+
+    /* Les colonnes flex doivent pouvoir retrecir sous leur contenu
+       (sinon le contenu long pousse la ligne hors de l'ecran). */
+    [data-testid="stHorizontalBlock"] > [data-testid="stColumn"] {{
+        min-width: 0 !important;
+    }}
+
+    /* Textes longs : coupure autorisee plutot que debordement */
+    .pnl-ttl, .pnl-sub, .rg-nm, .leg-lbl {{
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+    }}
+    .evt-badge, .chip {{
+        white-space: normal !important;
+        overflow-wrap: break-word !important;
+    }}
+
+    /* Tableaux / graphiques : jamais plus larges que leur colonne */
+    [data-testid="stPlotlyChart"], [data-testid="stDataFrame"] {{
+        max-width: 100% !important;
+    }}
 }}
 
 /* ══════════════════════════════════════════════════════════
@@ -1565,7 +1600,8 @@ if st.session_state.mobile_sidebar_open:
             pointer-events: none !important;
             opacity: 0.35 !important;
         }
-        button[key="mobile_menu_btn"] {
+        .st-key-mobile_menu_btn,
+        .st-key-mobile_menu_btn button {
             pointer-events: auto !important;
             opacity: 1 !important;
         }
