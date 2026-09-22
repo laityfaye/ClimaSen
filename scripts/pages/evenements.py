@@ -47,7 +47,7 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
             <p class="pg-bc">Dashboard &nbsp;/&nbsp; <b>Evenements</b></p>
             <h1 class="pg-ttl">Ev&eacute;nements de Pr&eacute;cipitation Extr&ecirc;me</h1>
             <p class="pg-sub">
-              S&eacute;n&eacute;gal &nbsp;&middot;&nbsp; CHIRPS 0.05&deg;
+              S&eacute;n&eacute;gal &nbsp;&middot;&nbsp; CHIRPS 0,25&deg;
               &nbsp;&middot;&nbsp; {year_range[0]}&ndash;{year_range[1]}
             </p>
           </div>
