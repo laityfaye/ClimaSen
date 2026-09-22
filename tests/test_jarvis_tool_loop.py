@@ -281,7 +281,9 @@ def test_outils_desactivables(settings, fake_claude):
 
 
 def test_health_annonce_les_outils(client):
-    assert client.get("/jarvis/health").json()["tools"] == 4
+    from jarvis import tools as module_outils
+    attendu = len(module_outils.specs_for("public"))
+    assert client.get("/jarvis/health").json()["tools"] == attendu
 
 
 def test_le_profil_vient_du_serveur(client, token, monkeypatch):

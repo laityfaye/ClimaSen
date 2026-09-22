@@ -4,8 +4,9 @@ Assistant IA de la plateforme CLIMAT-SEN, adossé à l'API Claude (Anthropic).
 Un seul cerveau, deux profils d'accès : **public** (widget en lecture seule) et
 **admin** (Laity, accès complet — Phase 4).
 
-État : **Phase 2 — outils publics**. Chat de bout en bout, avec accès en
-lecture seule aux données réelles de la plateforme. Pas encore de RAG.
+État : **Phase 3 — documents**. Chat de bout en bout, avec accès en lecture
+seule aux données réelles de la plateforme et aux textes qui la fondent
+(mémoire de master et article).
 
 ---
 
@@ -33,7 +34,7 @@ Vérification rapide sans navigateur :
 
 ```bash
 curl http://localhost:8000/jarvis/health
-# {"status":"ok",...,"configured":true,"env":"dev","tools":4}
+# {"status":"ok",...,"configured":true,"env":"dev","tools":5}
 ```
 
 Documentation d'API interactive en dev : <http://localhost:8000/jarvis/docs>
@@ -48,7 +49,7 @@ py -3 -m pytest tests/test_jarvis_*.py -q
 Aucun test ne joint l'API Anthropic : le client Claude est remplacé par un
 double (`FakeClaude` dans `tests/conftest.py`). **La suite ne coûte rien.**
 
-Pour lancer l'ensemble du dépôt (Jarvis + téléconnexions, 392 tests, ~2 min) :
+Pour lancer l'ensemble du dépôt (Jarvis + téléconnexions, 447 tests, ~2 min) :
 
 ```bash
 py -3 -m pytest tests/ -q
@@ -82,10 +83,11 @@ session.py   ratelimit.py   conversations.py   claude_client.py
 | `claude_client.py` | seul point de contact avec le SDK Anthropic |
 | `logging_conf.py` | logs JSON, flux public / admin séparés |
 | `prompts/system_public.md` | prompt système du profil public |
-| `tools/` | outils de lecture des données (Phase 2) |
+| `tools/` | outils de lecture (données et documents) |
+| `knowledge/` | index documentaire et moteur de recherche (Phase 3) |
 | `widget/widget.html` | bulle de chat autonome |
 
-### Les outils (Phase 2)
+### Les outils
 
 | Outil | Lit | Répond à |
 |---|---|---|
@@ -93,6 +95,7 @@ session.py   ratelimit.py   conversations.py   claude_client.py
 | `search_extreme_events` | `load_events` | combien d'événements, quand, où, lesquels ont été les plus intenses |
 | `get_teleconnection` | `load_telecon` | corrélation indice / pluies extrêmes, par phase et par lag |
 | `get_risk_cluster` | `load_clustering` | régimes océaniques du K-Means et leur profil |
+| `search_documents` | index embarqué | méthodes, justifications, interprétations (mémoire et article) |
 
 ```
 jarvis/tools/
@@ -100,6 +103,12 @@ jarvis/tools/
   registry.py   déclarations, permissions, exécution, plafond de taille
   common.py     vocabulaire de la plateforme, validation, formatage
   <outil>.py    une fonction pure run(params, data) par outil
+
+jarvis/knowledge/
+  texte.py         normalisation, racines, découpage (appliqué des deux côtés)
+  bm25.py          index inversé et classement
+  docx.py          lecture .docx par la bibliothèque standard
+  corpus.json.gz   index construit hors ligne, versionné et déployé
 ```
 
 **Une seule source de vérité.** Les outils passent par les loaders du dashboard,
@@ -118,6 +127,49 @@ champ SST global du jour de chaque événement : un cluster est une configuratio
 océanique. Les régions renvoyées par l'outil sont une conséquence observée (où
 sont tombées les pluies), jamais le critère de classification. L'outil le
 rappelle dans chaque réponse, et le prompt système en fait une règle.
+
+### La base documentaire (Phase 3)
+
+Le mémoire (18 400 mots) et l'article (10 200 mots) donnent à Jarvis de quoi
+répondre aux questions de **méthode** : pourquoi CHIRPS, comment un événement
+extrême est détecté, ce que corrige l'AR1. Les outils de données disent
+*combien*, celui-ci dit *pourquoi*.
+
+**Index construit hors ligne, embarqué dans le dépôt.** Les sources vivent dans
+un dossier personnel hors du projet ; le serveur ne les aura jamais.
+`scripts/15_build_jarvis_index.py` lit les `.docx` et écrit
+`jarvis/knowledge/corpus.json.gz` (234 passages, 103 Ko), le seul fichier que
+lit l'exécution. Aucune bibliothèque de documents, aucun appel réseau en
+production.
+
+**BM25 plutôt que des embeddings.** Sur 28 500 mots, un index inversé répond en
+une fraction de milliseconde et tient dans 1 Mo, là où un modèle local
+ajouterait des centaines de Mo de RAM et un service d'embeddings une clé d'API
+de plus. Le vocabulaire des questions est celui du texte — téléconnexion,
+CHIRPS, Niño 3.4 — soit le cas favorable du lexical. Et quand une formulation
+échoue, **la boucle d'outils permet déjà au modèle de relancer la recherche**
+avec d'autres termes : le rattrapage est architectural, pas statistique. Si le
+rappel déçoit à l'usage, passer aux embeddings ne toucherait que `bm25.py`.
+
+Trois réglages tirés de mesures, pas de principes :
+
+- **le titre de section compte triple** — une section intitulée « 2.2
+  Méthodologie de détection » traite du sujet, là où une conclusion peut citer
+  les mêmes mots en passant ;
+- **les synonymes du domaine sont appliqués à la requête** — le corpus dit
+  « précipitations » là où un visiteur écrit « pluie », qui sans cette table ne
+  touchait *aucun* passage ;
+- **les doublons mémoire/article sont écartés** — les deux textes partagent des
+  paragraphes identiques, les citer deux fois gaspille le contexte.
+
+**L'index porte la version du traitement de texte.** Changer la tokenisation
+sans reconstruire l'index ferait remonter des passages sans rapport, sans la
+moindre erreur : le chargement refuse alors de servir et réclame une
+reconstruction.
+
+**Extraits plafonnés à 600 caractères.** Le mémoire n'est pas publié et le
+widget est public et anonyme. Retirer une entrée de `CORPUS` dans le script de
+construction suffit à exclure un document.
 
 ### Choix structurants
 
@@ -221,14 +273,17 @@ Le rate limiting par défaut (12 en rafale, 6/minute) borne ce que peut consomme
 un visiteur seul ; `JARVIS_MAX_TOOL_ROUNDS` borne ce que peut coûter une seule
 question.
 
-## Limites connues (Phase 2)
+## Limites connues (Phase 3)
 
 - **État en mémoire** : conversations, sessions et compteurs de débit vivent
   dans le process. Un redémarrage les efface, et plusieurs workers uvicorn ne
   les partageraient pas — d'où `--workers 1`. Passage à SQLite ou Redis à
   arbitrer en Phase 6 selon le trafic réel.
-- **Aucun RAG.** Jarvis lit les données chiffrées, pas la thèse ni l'article :
-  il ne peut pas citer un passage de méthodologie. C'est l'objet de la Phase 3.
+- **Recherche lexicale, pas sémantique.** Une question dont aucun mot ne figure
+  dans le texte peut ne rien remonter. Le prompt demande au modèle d'envoyer des
+  mots-clés et de reformuler une fois avant de conclure.
+- **L'index n'est pas reconstruit tout seul.** Après modification du mémoire ou
+  de l'article, relancer `scripts/15_build_jarvis_index.py`.
 - **Les outils ne sont pas mémorisés.** Seul le texte final entre dans
   l'historique, pas les `tool_use`/`tool_result`. Une question de suivi
   (« et pour Niño 3 ? ») relance donc l'outil — quelques centaines de tokens,

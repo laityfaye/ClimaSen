@@ -10,7 +10,7 @@ from .common import (PHASES_LABELS, PHASES_TOUTES, SOURCE_EVENTS,
                      resoudre_phase)
 
 NAME = "search_extreme_events"
-LABEL = "Recherche dans le catalogue des evenements"
+LABEL = "Recherche dans le catalogue des événements"
 PERMISSION = "public"
 DATASETS = ("events",)
 

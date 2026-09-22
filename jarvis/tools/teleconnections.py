@@ -17,7 +17,7 @@ from .common import (INDICES, INDICES_LABELS, METRIQUES, PHASES_LABELS,
                      resoudre_indice, resoudre_phase)
 
 NAME = "get_teleconnection"
-LABEL = "Consultation des teleconnexions"
+LABEL = "Consultation des téléconnexions"
 PERMISSION = "public"
 DATASETS = ("correlations",)
 

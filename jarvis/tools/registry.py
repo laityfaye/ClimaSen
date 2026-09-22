@@ -18,14 +18,14 @@ import json
 import logging
 import time
 
-from . import clusters, events, sst_index, teleconnections
+from . import clusters, documents, events, sst_index, teleconnections
 from .common import ToolInputError
 from .dataset import DataUnavailableError
 from .dataset import load as charger_donnees
 
 log = logging.getLogger("jarvis.tools")
 
-MODULES = (sst_index, events, teleconnections, clusters)
+MODULES = (sst_index, events, teleconnections, clusters, documents)
 
 MAX_RESULT_CHARS = 6000
 
@@ -71,7 +71,7 @@ def specs_for(profile: str = "public") -> list:
 
 def label_for(nom: str) -> str:
     outil = TOOLS.get(nom)
-    return outil.label if outil else "Consultation des donnees"
+    return outil.label if outil else "Consultation des données"
 
 
 def _erreur(message: str) -> dict:

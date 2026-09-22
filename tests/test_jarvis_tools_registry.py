@@ -20,10 +20,11 @@ def donnees_injectees(monkeypatch, donnees_outils):
 
 
 # --- declarations ------------------------------------------------------------
-def test_les_quatre_outils_publics_sont_declares():
+def test_les_outils_publics_sont_declares():
     noms = {spec["name"] for spec in tools.specs_for("public")}
     assert noms == {"get_sst_index", "search_extreme_events",
-                    "get_teleconnection", "get_risk_cluster"}
+                    "get_teleconnection", "get_risk_cluster",
+                    "search_documents"}
 
 
 def test_chaque_declaration_est_complete():

@@ -17,7 +17,7 @@ from .common import (PHASES_LABELS, PHASES_TOUTES, SOURCE_CLUSTERING,
                      champ_entier, jour, resoudre_phase)
 
 NAME = "get_risk_cluster"
-LABEL = "Consultation des regimes oceaniques"
+LABEL = "Consultation des régimes océaniques"
 PERMISSION = "public"
 DATASETS = ("clustering", "events")
 

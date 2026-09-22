@@ -106,9 +106,24 @@ LOADERS = {
     "clustering":   "load_clustering",
 }
 
+# Jeux qui ne viennent pas du dashboard. L'index documentaire (Phase 3) est
+# un fichier construit hors ligne et embarque: il ne passe pas par
+# dashboard_utils, donc pas par streamlit non plus.
+JEUX = set(LOADERS) | {"knowledge"}
+
+
+def _charger_corpus():
+    from ..knowledge import CorpusIndisponible, charger
+    try:
+        return charger()
+    except CorpusIndisponible as exc:
+        raise DataUnavailableError(str(exc)) from exc
+
 
 def get(nom: str):
     """Charge un jeu de donnees (bloquant). Utilise par les tests et preload()."""
+    if nom == "knowledge":
+        return _charger_corpus()
     if nom not in LOADERS:  # pragma: no cover - garde-fou de refactoring
         raise DataUnavailableError("Jeu de donnees inconnu: %s" % nom)
     return _charger(LOADERS[nom])
@@ -129,7 +144,7 @@ def preload() -> None:
     Les echecs sont journalises, jamais propages: un jeu de donnees manquant
     ne doit pas empecher le service de demarrer.
     """
-    for nom in LOADERS:
+    for nom in sorted(JEUX):
         try:
             get(nom)
         except Exception as exc:
