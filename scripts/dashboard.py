@@ -1762,3 +1762,20 @@ elif page == "Clustering":
     _pg_clustering.run(**_page_kw)
 elif page == "Pipeline":
     _pg_pipeline.run(**_page_kw)
+
+# =============================================================================
+# JARVIS - bulle d'assistant (Phase 1)
+# =============================================================================
+# Isole volontairement dans un try/except: une indisponibilite du backend Jarvis
+# ne doit jamais empecher le dashboard de s'afficher.
+try:
+    import jarvis_widget as _jarvis
+    if not _jarvis.render(dark_mode=st.session_state.dark_mode):
+        # L echec est trace dans la console du serveur, jamais affiche au
+        # visiteur : le dashboard doit rester intact quoi qu il arrive.
+        if _jarvis.derniere_erreur:
+            print("[Jarvis] widget non affiche (voir trace ci-dessus)")
+except Exception as _exc_jarvis:
+    import traceback as _tb_jarvis
+    print("[Jarvis] erreur a l import du widget :")
+    _tb_jarvis.print_exc()

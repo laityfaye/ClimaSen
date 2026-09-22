@@ -52,3 +52,6 @@ Thumbs.db
 # ============================================================================
 postgres_data/
 timescaledb_data/
+
+# Logs Jarvis (trafic public et audit admin)
+outputs/jarvis_logs/

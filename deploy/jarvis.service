@@ -1,0 +1,37 @@
+# Service backend Jarvis - a installer dans /etc/systemd/system/jarvis.service
+#
+#   sudo cp deploy/jarvis.service /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now jarvis
+#   sudo systemctl status jarvis
+#
+# Service SEPARE de climatsen.service a dessein : un plantage de Jarvis ne doit
+# jamais faire tomber le dashboard.
+
+[Unit]
+Description=Jarvis CLIMAT-SEN - assistant IA (API Claude)
+After=network.target
+
+[Service]
+User=climatsen
+Group=climatsen
+WorkingDirectory=/home/climatsen/app
+Environment="PATH=/home/climatsen/app/venv/bin"
+# Les secrets vivent dans ce fichier, lisible par le seul utilisateur du service :
+#   sudo chown climatsen:climatsen /home/climatsen/app/.env && sudo chmod 600 ...
+EnvironmentFile=/home/climatsen/app/.env
+ExecStart=/home/climatsen/app/venv/bin/uvicorn jarvis.app:create_app --factory \
+          --host 127.0.0.1 --port 8000 --workers 1 --proxy-headers \
+          --forwarded-allow-ips 127.0.0.1
+Restart=always
+RestartSec=5
+
+# Durcissement systemd
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=read-only
+ReadWritePaths=/home/climatsen/app/outputs
+
+[Install]
+WantedBy=multi-user.target

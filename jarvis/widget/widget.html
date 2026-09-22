@@ -1,0 +1,700 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Jarvis CLIMAT-SEN</title>
+<style>
+  /* Palette CLIMAT-SEN : bleu ocean profond, turquoise, accent corail.
+     Alignee sur les constantes du dashboard (scripts/dashboard_utils.py). */
+  :root{
+    --ocean:#1D1864;      /* bleu ocean profond (fond sidebar du dashboard) */
+    --indigo:#4F46E5;
+    --turquoise:#0EA5E9;
+    --corail:#F43F5E;
+    --bg:#FFFFFF;
+    --surface:#F1F5F9;
+    --text:#0F172A;
+    --muted:#64748B;
+    --border:#E2E8F0;
+    --shadow:0 18px 48px rgba(15,23,42,.20);
+  }
+  html[data-dark="true"]{
+    --bg:#1E293B;
+    --surface:#0F172A;
+    --text:#F1F5F9;
+    --muted:#94A3B8;
+    --border:#334155;
+    --shadow:0 18px 48px rgba(0,0,0,.55);
+  }
+
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:transparent;overflow:hidden}
+  body{
+    font-family:Inter,"Segoe UI",system-ui,-apple-system,sans-serif;
+    color:var(--text);
+    display:flex;flex-direction:column;align-items:flex-end;justify-content:flex-end;
+    height:100vh;
+  }
+
+  /* ---------- Bulle flottante ---------- */
+  #fab{
+    width:58px;height:58px;border:0;border-radius:50%;cursor:pointer;flex:none;
+    background:linear-gradient(135deg,var(--indigo),var(--turquoise));
+    box-shadow:0 8px 26px rgba(79,70,229,.50);
+    display:flex;align-items:center;justify-content:center;
+    transition:transform .18s cubic-bezier(.34,1.3,.64,1), box-shadow .18s;
+  }
+  #fab:hover{transform:scale(1.07);box-shadow:0 10px 32px rgba(79,70,229,.62)}
+  #fab:active{transform:scale(.96)}
+  #fab svg{width:27px;height:27px;fill:#fff}
+  #fab .badge{
+    position:absolute;top:-2px;right:-2px;width:13px;height:13px;border-radius:50%;
+    background:var(--corail);border:2.5px solid var(--bg);display:none;
+  }
+  #fab.has-alert .badge{display:block}
+  .fab-wrap{position:relative;display:none}
+  body.collapsed .fab-wrap{display:block}
+
+  /* ---------- Panneau ---------- */
+  #panel{
+    display:none;flex-direction:column;
+    width:100%;height:100vh;max-height:100vh;
+    background:var(--bg);border:1px solid var(--border);border-radius:18px;
+    box-shadow:var(--shadow);overflow:hidden;
+    animation:pop .22s cubic-bezier(.34,1.25,.64,1);
+  }
+  body:not(.collapsed) #panel{display:flex}
+  @keyframes pop{from{opacity:0;transform:translateY(12px) scale(.97)}to{opacity:1;transform:none}}
+
+  header{
+    background:linear-gradient(135deg,var(--ocean),var(--indigo) 62%,var(--turquoise));
+    padding:13px 14px;display:flex;align-items:center;gap:11px;flex:none;
+  }
+  .avatar{
+    width:35px;height:35px;border-radius:11px;flex:none;
+    background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.26);
+    display:flex;align-items:center;justify-content:center;
+  }
+  .avatar svg{width:19px;height:19px;fill:#fff}
+  .htxt{min-width:0;flex:1}
+  .htitle{color:#fff;font-size:.9rem;font-weight:700;letter-spacing:-.2px;line-height:1.2}
+  .hsub{color:rgba(255,255,255,.76);font-size:.67rem;margin-top:2px;display:flex;align-items:center;gap:5px}
+  .dot{width:6px;height:6px;border-radius:50%;background:#10B981;flex:none}
+  .dot.off{background:var(--corail)}
+  .hclose{
+    background:rgba(255,255,255,.14);border:0;color:#fff;cursor:pointer;flex:none;
+    width:29px;height:29px;border-radius:9px;font-size:1rem;line-height:1;
+    display:flex;align-items:center;justify-content:center;transition:background .15s;
+  }
+  .hclose:hover{background:rgba(255,255,255,.28)}
+
+  /* ---------- Messages ---------- */
+  #log{flex:1;overflow-y:auto;padding:14px;background:var(--surface);display:flex;flex-direction:column;gap:10px}
+  #log::-webkit-scrollbar{width:7px}
+  #log::-webkit-scrollbar-thumb{background:var(--border);border-radius:9px}
+
+  .msg{max-width:87%;padding:9px 12px;border-radius:14px;font-size:.82rem;line-height:1.52;white-space:pre-wrap;word-wrap:break-word;animation:rise .2s ease}
+  @keyframes rise{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
+  .msg.user{align-self:flex-end;background:linear-gradient(135deg,var(--indigo),var(--turquoise));color:#fff;border-bottom-right-radius:5px}
+  .msg.bot{align-self:flex-start;background:var(--bg);border:1px solid var(--border);border-bottom-left-radius:5px}
+  .msg.bot strong{color:var(--indigo)}
+  html[data-dark="true"] .msg.bot strong{color:var(--turquoise)}
+  .msg code{background:var(--surface);border:1px solid var(--border);border-radius:5px;padding:1px 5px;font-size:.76rem;font-family:ui-monospace,Consolas,monospace}
+  .msg.user code{background:rgba(255,255,255,.2);border-color:rgba(255,255,255,.3);color:#fff}
+  .msg ul{margin:5px 0;padding-left:17px}
+  .msg li{margin:2px 0}
+
+  .intro{padding:16px 6px;text-align:center;color:var(--muted)}
+  .intro .big{font-size:1.9rem;margin-bottom:7px}
+  .intro h4{margin:0 0 5px;color:var(--text);font-size:.88rem;font-weight:700}
+  .intro p{margin:0;font-size:.75rem;line-height:1.55}
+  .chips{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-top:13px}
+  .chip{
+    background:var(--bg);border:1px solid var(--border);color:var(--text);
+    border-radius:99px;padding:6px 11px;font-size:.71rem;cursor:pointer;
+    transition:border-color .15s,color .15s,transform .15s;font-family:inherit;
+  }
+  .chip:hover{border-color:var(--turquoise);color:var(--turquoise);transform:translateY(-1px)}
+
+  .typing{align-self:flex-start;background:var(--bg);border:1px solid var(--border);border-radius:14px;border-bottom-left-radius:5px;padding:11px 13px;display:flex;gap:4px}
+  .typing i{width:6px;height:6px;border-radius:50%;background:var(--muted);animation:blink 1.3s infinite}
+  .typing i:nth-child(2){animation-delay:.18s}
+  .typing i:nth-child(3){animation-delay:.36s}
+  /* Lecture des donnees en cours : sans ce repere, plusieurs secondes de
+     silence passent pour un widget bloque. */
+  .tool{align-self:flex-start;display:flex;align-items:center;gap:7px;
+        font-size:11.5px;color:var(--muted);padding:3px 4px;font-style:italic}
+  .tool s{width:7px;height:7px;border-radius:50%;background:var(--turquoise);
+          animation:blink 1.1s infinite;flex:none}
+  @keyframes blink{0%,60%,100%{opacity:.28;transform:translateY(0)}30%{opacity:1;transform:translateY(-3px)}}
+
+  #banner{
+    display:none;padding:9px 13px;font-size:.73rem;line-height:1.45;flex:none;
+    background:rgba(244,63,94,.10);border-top:1px solid rgba(244,63,94,.28);color:var(--corail);
+  }
+  #banner.on{display:block}
+  #banner b{display:block;margin-bottom:2px}
+
+  /* ---------- Saisie ---------- */
+  .compose{flex:none;border-top:1px solid var(--border);background:var(--bg);padding:9px 10px;display:flex;gap:8px;align-items:flex-end}
+  textarea{
+    flex:1;resize:none;border:1px solid var(--border);border-radius:11px;
+    padding:9px 11px;font-family:inherit;font-size:.81rem;line-height:1.45;
+    background:var(--surface);color:var(--text);max-height:92px;min-height:38px;
+    transition:border-color .15s;
+  }
+  textarea:focus{outline:0;border-color:var(--turquoise)}
+  textarea:disabled{opacity:.55;cursor:not-allowed}
+  #send{
+    width:38px;height:38px;flex:none;border:0;border-radius:11px;cursor:pointer;
+    background:linear-gradient(135deg,var(--indigo),var(--turquoise));
+    display:flex;align-items:center;justify-content:center;transition:opacity .15s,transform .15s;
+  }
+  #send svg{width:17px;height:17px;fill:#fff}
+  #send:hover:not(:disabled){transform:scale(1.06)}
+  #send:disabled{opacity:.4;cursor:not-allowed}
+  .legal{flex:none;text-align:center;font-size:.62rem;color:var(--muted);padding:0 10px 8px;background:var(--bg)}
+</style>
+</head>
+<body class="collapsed">
+
+<div id="panel">
+  <header>
+    <div class="avatar">
+      <svg viewBox="0 0 24 24"><path d="M12 2C9 6.5 6 9.9 6 13.5A6 6 0 0 0 18 13.5C18 9.9 15 6.5 12 2z"/></svg>
+    </div>
+    <div class="htxt">
+      <div class="htitle">Jarvis</div>
+      <div class="hsub"><span class="dot" id="dot"></span><span id="status">Assistant CLIMAT-SEN</span></div>
+    </div>
+    <button class="hclose" id="close" title="Fermer" aria-label="Fermer">&#10005;</button>
+  </header>
+
+  <div id="log">
+    <div class="intro" id="intro">
+      <div class="big">&#127783;</div>
+      <h4>Bonjour, je suis Jarvis</h4>
+      <p>Je reponds a vos questions sur CLIMAT-SEN&nbsp;: la demarche scientifique,<br>les indices oceaniques et les cinq modules de la plateforme.</p>
+      <div class="chips">
+        <button class="chip">Qu'est-ce qu'une teleconnexion&nbsp;?</button>
+        <button class="chip">A quoi sert l'indice TSA&nbsp;?</button>
+        <button class="chip">Que contient le module Clustering&nbsp;?</button>
+        <button class="chip">Pourquoi des lags de 0 a 5 mois&nbsp;?</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="banner"></div>
+
+  <div class="compose">
+    <textarea id="input" rows="1" placeholder="Posez votre question..." maxlength="4000"></textarea>
+    <button id="send" title="Envoyer" aria-label="Envoyer" disabled>
+      <svg viewBox="0 0 24 24"><path d="M2.5 21 23 12 2.5 3 2.5 10l14 2-14 2z"/></svg>
+    </button>
+  </div>
+  <div class="legal">Reponses generees par IA &middot; a verifier avant tout usage decisionnel</div>
+</div>
+
+<div class="fab-wrap">
+  <button id="fab" title="Ouvrir Jarvis" aria-label="Ouvrir l'assistant Jarvis">
+    <svg viewBox="0 0 24 24"><path d="M12 3C7 3 3 6.4 3 10.6c0 2.4 1.3 4.5 3.4 5.9L5.6 21l4.3-2.3c.7.1 1.4.2 2.1.2 5 0 9-3.4 9-7.6S17 3 12 3z"/></svg>
+    <span class="badge"></span>
+  </button>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  var API   = "__JARVIS_API_BASE__";
+  var DARK  = __JARVIS_DARK__;
+  var MODE  = "__JARVIS_MODE__";     // "flottant" (defaut) ou "pousse"
+
+  var H_SHUT = 76;
+  var LARGEUR = 360;
+
+  // Dimensions de la FENETRE HOTE.
+  //
+  // Piege : a l interieur d une iframe, window.innerHeight vaut la hauteur de
+  // l IFRAME (76 px quand la bulle est repliee), pas celle de la page. S en
+  // servir donnait un panneau minuscule, et surtout faisait echouer le
+  // controle de visibilite ci-dessous, qui desepinglait la bulle et la rendait
+  // invisible. On interroge donc la fenetre parente, meme origine grace au
+  // srcdoc de Streamlit.
+  function vue(){
+    try{
+      var p = window.parent;
+      if(p && p !== window && p.innerHeight){
+        return {w: p.innerWidth, h: p.innerHeight};
+      }
+    }catch(e){}
+    return {w: window.innerWidth || 1200, h: window.innerHeight || 700};
+  }
+
+  // Hauteur du panneau calculee depuis la fenetre hote, jamais figee.
+  // Un panneau de 620 px sur un portable de 680 px occupait 91 % de la
+  // hauteur : le dashboard paraissait masque. On laisse toujours au moins
+  // 150 px de page visible au-dessus.
+  function hauteurPanneau(){
+    return Math.max(360, Math.min(560, vue().h - 150));
+  }
+  var H_OPEN = hauteurPanneau();
+
+  document.documentElement.setAttribute("data-dark", DARK ? "true" : "false");
+
+  // Traces de diagnostic, prefixees pour etre filtrables dans la console du
+  // navigateur (taper "Jarvis" dans le filtre). Un widget qui ne s affiche pas
+  // sans rien dire est indiagnosticable a distance.
+  function trace(){
+    try{
+      var a = ["[Jarvis]"].concat(Array.prototype.slice.call(arguments));
+      console.log.apply(console, a);
+    }catch(e){}
+  }
+  trace("script demarre");
+
+  var $ = function(id){ return document.getElementById(id); };
+  var panel=$("panel"), log=$("log"), intro=$("intro"), input=$("input"),
+      send=$("send"), fab=$("fab"), banner=$("banner"), dot=$("dot"), status=$("status");
+
+  var state = { open:false, busy:false, online:false, token:null, convId:null };
+
+  /* ---------- Dimensionnement de l'iframe -------------------------------
+     Le widget s'epingle lui-meme en bas a droite de la page hote. Si l'acces
+     a l'iframe est refuse (sandbox plus strict), on retombe sur le protocole
+     de composant Streamlit, qui ajuste au moins la hauteur.              */
+  var frame = null;
+  try { frame = window.frameElement; } catch(e) { frame = null; }
+
+  function pin(){
+    if(!frame) return false;
+    try{
+      // On ne style QUE notre propre iframe.
+      //
+      // Une version precedente remontait trois niveaux de parents pour y poser
+      // height:0, afin que le composant ne reserve pas de place dans le flux.
+      // Trois niveaux au-dessus de l iframe, Streamlit place stVerticalBlock :
+      // le conteneur de TOUT le contenu de la page. Le reduire a zero faisait
+      // disparaitre le dashboard. Ces conteneurs sont partages, ils ne nous
+      // appartiennent pas : on n y touche plus.
+      //
+      // La place dans le flux est neutralisee proprement cote Python, en
+      // publiant le composant avec une hauteur de 0 (scripts/jarvis_widget.py).
+      var s = frame.style;
+      var regles = {
+        "position": "fixed", "right": "18px", "bottom": "18px",
+        "width": LARGEUR + "px", "max-width": "calc(100vw - 36px)",
+        "height": H_SHUT + "px", "border": "0",
+        "z-index": "2147483000", "background": "transparent",
+        "color-scheme": "normal", "display": "block"
+      };
+      for(var cle in regles){ s.setProperty(cle, regles[cle], "important"); }
+      return true;
+    }catch(e){ return false; }
+  }
+
+  var pinned = pin();
+  trace("iframe accessible :", !!frame, "| epinglage :", pinned ? "OK" : "ECHEC");
+  if(frame){
+    try{
+      var r0 = frame.getBoundingClientRect();
+      trace("position de la bulle :", Math.round(r0.left) + "," + Math.round(r0.top),
+            "taille :", Math.round(r0.width) + "x" + Math.round(r0.height),
+            "| fenetre hote :", vue().w + "x" + vue().h);
+    }catch(e){ trace("mesure impossible :", e.message); }
+  }
+
+  // Filet de securite : si un ancetre cree un bloc conteneur (transform,
+  // filter, will-change...), le position:fixed serait relatif a lui et la
+  // bulle pourrait finir hors ecran ou rognee. Dans ce cas on renonce a
+  // l epinglage et on repasse au protocole de composant Streamlit, qui
+  // affiche le widget dans le flux : degrade, mais visible.
+  function verifierVisibilite(){
+    if(!pinned || !frame) return;
+    try{
+      var r = frame.getBoundingClientRect();
+      // On ne renonce a l epinglage QUE si l iframe n a aucune surface : la
+      // bulle serait alors reellement invisible.
+      //
+      // Une version precedente comparait la position de la bulle aux
+      // dimensions de window : or dans une iframe ces dimensions sont celles
+      // de l iframe, pas de la page. Le controle echouait systematiquement et
+      // effacait le style de la bulle, qui disparaissait. Un filet de securite
+      // ne doit jamais pouvoir casser ce qu il protege : on s en tient
+      // desormais au seul cas non ambigu.
+      if(r.width < 20 || r.height < 20){
+        trace("bulle sans surface (" + Math.round(r.width) + "x" +
+              Math.round(r.height) + ") : retour au mode dans le flux");
+        frame.style.cssText = "";
+        pinned = false;
+        setHeight(state.open ? H_OPEN : H_SHUT);
+      } else {
+        trace("controle de visibilite : OK");
+      }
+    }catch(e){}
+  }
+
+  function setHeight(h){
+    if(pinned && frame){
+      try{ frame.style.setProperty("height", h + "px", "important"); return; }catch(e){}
+    }
+    try{
+      window.parent.postMessage({
+        isStreamlitMessage:true, type:"streamlit:setFrameHeight", height:h
+      }, "*");
+    }catch(e){}
+  }
+
+  /* ---------- Rendu ------------------------------------------------------ */
+  function escapeHtml(s){
+    return s.replace(/[&<>"']/g, function(c){
+      return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];
+    });
+  }
+
+  // Sous-ensemble volontairement minimal de Markdown: gras, italique, code,
+  // listes a puces. Pas de titres ni de tableaux, la bulle est trop etroite.
+  function mini(md){
+    var html = escapeHtml(md);
+    html = html.replace(/`([^`\n]+)`/g, "<code>$1</code>");
+    html = html.replace(/\*\*([^*\n]+)\*\*/g, "<strong>$1</strong>");
+    html = html.replace(/(^|[\s(])\*([^*\n]+)\*/g, "$1<em>$2</em>");
+    var lines = html.split("\n"), out = [], list = [];
+    function flush(){ if(list.length){ out.push("<ul>"+list.join("")+"</ul>"); list=[]; } }
+    for(var i=0;i<lines.length;i++){
+      var m = /^\s*[-*]\s+(.*)$/.exec(lines[i]);
+      if(m){ list.push("<li>"+m[1]+"</li>"); } else { flush(); out.push(lines[i]); }
+    }
+    flush();
+    return out.join("\n");
+  }
+
+  function bubble(role, text){
+    if(intro && intro.parentNode){ intro.parentNode.removeChild(intro); intro = null; }
+    var el = document.createElement("div");
+    el.className = "msg " + role;
+    if(role === "bot"){ el.innerHTML = mini(text); } else { el.textContent = text; }
+    log.appendChild(el);
+    scroll();
+    return el;
+  }
+
+  function typing(on){
+    var t = document.getElementById("typing");
+    if(on && !t){
+      t = document.createElement("div");
+      t.className = "typing"; t.id = "typing";
+      t.innerHTML = "<i></i><i></i><i></i>";
+      log.appendChild(t); scroll();
+    } else if(!on && t){ t.parentNode.removeChild(t); }
+  }
+
+  function scroll(){ log.scrollTop = log.scrollHeight; }
+
+  /* Repere "lecture des donnees en cours". Remplace par la reponse des que le
+     premier fragment de texte arrive. */
+  function outil(label){
+    var el = document.getElementById("outil");
+    if(!el){
+      el = document.createElement("div");
+      el.className = "tool"; el.id = "outil";
+      log.appendChild(el);
+    }
+    el.innerHTML = "<s></s><span></span>";
+    el.lastChild.textContent = label;
+    scroll();
+  }
+  function clearOutil(){
+    var el = document.getElementById("outil");
+    if(el && el.parentNode){ el.parentNode.removeChild(el); }
+  }
+
+  function warn(title, detail){
+    banner.innerHTML = "<b>" + escapeHtml(title) + "</b>" + escapeHtml(detail || "");
+    banner.classList.add("on");
+  }
+  function clearWarn(){ banner.classList.remove("on"); banner.innerHTML = ""; }
+
+  function setOnline(ok, label){
+    state.online = ok;
+    dot.className = "dot" + (ok ? "" : " off");
+    status.textContent = label || (ok ? "Assistant CLIMAT-SEN" : "Hors ligne");
+    input.disabled = !ok;
+    refreshSend();
+  }
+
+  function refreshSend(){
+    send.disabled = state.busy || !state.online || !input.value.trim();
+  }
+
+  /* ---------- Etat local (survit au remontage de l'iframe) -------------- */
+  function remember(k, v){ try{ sessionStorage.setItem("jarvis_" + k, v); }catch(e){} }
+  function recall(k){ try{ return sessionStorage.getItem("jarvis_" + k); }catch(e){ return null; } }
+
+  /* ---------- Reseau ----------------------------------------------------- */
+  function headers(){
+    var h = {"Content-Type":"application/json"};
+    if(state.token){ h["X-Jarvis-Session"] = state.token; }
+    return h;
+  }
+
+  function health(){
+    return fetch(API + "/health", {cache:"no-store"})
+      .then(function(r){ if(!r.ok) throw new Error("health " + r.status); return r.json(); });
+  }
+
+  function newSession(){
+    return fetch(API + "/api/session", {method:"POST", headers:{"Content-Type":"application/json"}})
+      .then(function(r){ if(!r.ok) throw new Error("session " + r.status); return r.json(); })
+      .then(function(d){
+        state.token = d.token; remember("token", d.token);
+        return d;
+      });
+  }
+
+  function restore(){
+    var cid = recall("conv");
+    if(!cid || !state.token) return Promise.resolve();
+    return fetch(API + "/api/conversation/" + encodeURIComponent(cid), {headers: headers()})
+      .then(function(r){ return r.ok ? r.json() : null; })
+      .then(function(d){
+        if(!d || !d.messages || !d.messages.length) return;
+        state.convId = d.conversation_id;
+        d.messages.forEach(function(m){ bubble(m.role === "user" ? "user" : "bot", m.content); });
+      })
+      .catch(function(){ /* un fil perdu n'est pas une panne */ });
+  }
+
+  function boot(){
+    return health()
+      .then(function(h){
+        if(!h.configured){
+          setOnline(false, "Non configure");
+          warn("Assistant indisponible", "Le service n'a pas de cle API configuree.");
+          return;
+        }
+        clearWarn();
+        setOnline(true);
+        var tok = recall("token");
+        state.token = tok;
+        return (tok ? Promise.resolve() : newSession()).then(restore);
+      })
+      .catch(function(err){
+        trace("backend injoignable :", err && err.message);
+        setOnline(false, "Hors ligne");
+        warn("Jarvis est momentanement indisponible.",
+             "La plateforme, elle, fonctionne normalement. Reessayez dans un instant.");
+      });
+  }
+
+  /* ---------- Envoi + lecture du flux SSE -------------------------------- */
+  function parseSSE(raw, onEvent){
+    var blocks = raw.split("\n\n");
+    for(var i=0;i<blocks.length;i++){
+      var name = "message", data = "";
+      var lines = blocks[i].split("\n");
+      for(var j=0;j<lines.length;j++){
+        if(lines[j].indexOf("event:") === 0){ name = lines[j].slice(6).trim(); }
+        else if(lines[j].indexOf("data:") === 0){ data += lines[j].slice(5).trim(); }
+      }
+      if(data){
+        try{ onEvent(name, JSON.parse(data)); }catch(e){}
+      }
+    }
+  }
+
+  function ask(text){
+    if(state.busy || !state.online) return;
+    state.busy = true; refreshSend(); clearWarn();
+    bubble("user", text);
+    input.value = ""; autoGrow();
+    typing(true);
+
+    var body = {message: text};
+    if(state.convId){ body.conversation_id = state.convId; }
+
+    var target = null, buffer = "", failed = false;
+
+    fetch(API + "/api/chat", {method:"POST", headers: headers(), body: JSON.stringify(body)})
+      .then(function(res){
+        if(res.status === 401){
+          // Session expiree ou perdue: on en reprend une et on rejoue une fois.
+          try{ sessionStorage.removeItem("jarvis_token"); }catch(e){}
+          state.token = null; state.convId = null;
+          typing(false); state.busy = false;
+          return newSession().then(function(){ ask(text); }).then(function(){ return null; });
+        }
+        if(res.status === 429){
+          return res.json().then(function(d){
+            throw {soft:true, msg: (d.error && d.error.message) || "Trop de messages envoyes."};
+          });
+        }
+        if(!res.ok || !res.body){ throw new Error("HTTP " + res.status); }
+
+        var reader = res.body.getReader(), dec = new TextDecoder();
+        function pump(){
+          return reader.read().then(function(chunk){
+            if(chunk.done){
+              if(buffer.trim()){ parseSSE(buffer + "\n\n", handle); }
+              return;
+            }
+            buffer += dec.decode(chunk.value, {stream:true});
+            var cut = buffer.lastIndexOf("\n\n");
+            if(cut !== -1){
+              parseSSE(buffer.slice(0, cut + 2), handle);
+              buffer = buffer.slice(cut + 2);
+            }
+            return pump();
+          });
+        }
+        return pump();
+      })
+      .catch(function(err){
+        failed = true;
+        typing(false);
+        if(err && err.soft){ warn("Doucement", err.msg); }
+        else{
+          warn("La reponse n'a pas pu aboutir.", "Verifiez votre connexion et reessayez.");
+        }
+      })
+      .then(function(){
+        typing(false);
+        clearOutil();
+        state.busy = false; refreshSend();
+        if(!failed && target === null){ /* flux vide: rien a afficher */ }
+      });
+
+    function handle(name, data){
+      if(name === "meta"){
+        if(data.conversation_id){
+          state.convId = data.conversation_id;
+          remember("conv", data.conversation_id);
+        }
+      } else if(name === "tool"){
+        typing(false);
+        outil(data.label || "Consultation des donnees");
+      } else if(name === "delta"){
+        typing(false);
+        clearOutil();
+        if(target === null){ target = bubble("bot", ""); target._raw = ""; }
+        target._raw += data.text;
+        target.innerHTML = mini(target._raw);
+        scroll();
+      } else if(name === "error"){
+        typing(false);
+        clearOutil();
+        failed = true;
+        warn("Jarvis n'a pas pu repondre.", data.message || "");
+      }
+    }
+  }
+
+  /* ---------- Interactions ------------------------------------------------ */
+  /* Mode "pousse" (optionnel) : au lieu de recouvrir la page, on ajoute une
+     marge a droite du bloc principal pour que rien ne soit masque.
+     On ne touche QUE padding-right, sur une cible explicitement designee, et
+     on remet la valeur d origine a la fermeture. Aucune hauteur, aucun
+     parcours d ancetres a l aveugle. Si le selecteur ne correspond a rien
+     (version de Streamlit differente), il ne se passe simplement rien et on
+     retombe sur le comportement flottant. */
+  // En dessous de cette largeur, decaler le contenu de 400 px l ecraserait :
+  // on retombe alors sur le recouvrement, moindre mal.
+  var LARGEUR_MINI_POUSSEE = 1100;
+
+  function pousser(actif){
+    if(MODE !== "pousse") return;
+    if(actif && vue().w < LARGEUR_MINI_POUSSEE){ return; }
+    try{
+      var doc = window.parent.document;
+      var cibles = doc.querySelectorAll(
+        '[data-testid="stMainBlockContainer"],[data-testid="stAppViewBlockContainer"],.block-container');
+      for(var i = 0; i < cibles.length; i++){
+        cibles[i].style.transition  = "padding-right .18s ease";
+        cibles[i].style.paddingRight = actif ? (LARGEUR + 40) + "px" : "";
+      }
+    }catch(e){}
+  }
+
+  function open(donnerLeFocus){
+    state.open = true;
+    document.body.classList.remove("collapsed");
+    fab.classList.remove("has-alert");
+    H_OPEN = hauteurPanneau();
+    setHeight(H_OPEN);
+    pousser(true);
+    remember("open", "1");
+    setTimeout(function(){
+      if(donnerLeFocus !== false && !input.disabled){ input.focus(); }
+      scroll();
+    }, 60);
+    if(!state.online){ boot(); }
+  }
+
+  function shut(){
+    state.open = false;
+    document.body.classList.add("collapsed");
+    setHeight(H_SHUT);
+    pousser(false);
+    remember("open", "0");
+  }
+
+  // La fenetre change de taille : on recalcule plutot que de garder une
+  // hauteur figee qui deborderait.
+  function surRedimensionnement(){
+    var nouvelle = hauteurPanneau();
+    if(nouvelle === H_OPEN) return;      // evite toute boucle de redimensionnement
+    H_OPEN = nouvelle;
+    if(state.open){ setHeight(H_OPEN); }
+  }
+  // Sur la fenetre hote : c est elle qui change quand l utilisateur
+  // redimensionne son navigateur. L evenement resize de l iframe, lui, se
+  // declenche a chaque fois que NOUS changeons sa hauteur.
+  try{ window.parent.addEventListener("resize", surRedimensionnement); }
+  catch(e){ window.addEventListener("resize", surRedimensionnement); }
+
+  function autoGrow(){
+    input.style.height = "auto";
+    input.style.height = Math.min(input.scrollHeight, 92) + "px";
+  }
+
+  fab.addEventListener("click", function(){ open(true); });
+  $("close").addEventListener("click", shut);
+
+  input.addEventListener("input", function(){ autoGrow(); refreshSend(); });
+  input.addEventListener("keydown", function(e){
+    if(e.key === "Enter" && !e.shiftKey){
+      e.preventDefault();
+      var v = input.value.trim();
+      if(v){ ask(v); }
+    }
+  });
+  send.addEventListener("click", function(){
+    var v = input.value.trim();
+    if(v){ ask(v); }
+  });
+  document.addEventListener("keydown", function(e){
+    if(e.key === "Escape" && state.open){ shut(); }
+  });
+
+  Array.prototype.forEach.call(document.querySelectorAll(".chip"), function(c){
+    c.addEventListener("click", function(){
+      ask(c.textContent.replace(/ /g, " ").trim());
+    });
+  });
+
+  setHeight(H_SHUT);
+  setTimeout(verifierVisibilite, 300);
+
+  // Streamlit reexecute son script a chaque interaction avec le dashboard, ce
+  // qui remonte l iframe et repartait systematiquement panneau ferme : un clic
+  // sur un onglet faisait disparaitre la conversation de l ecran. On restaure
+  // donc l etat d ouverture, sans voler le focus au dashboard.
+  pousser(false);
+  boot().then(function(){
+    if(recall("open") === "1"){ open(false); }
+  });
+})();
+</script>
+</body>
+</html>
