@@ -475,7 +475,11 @@ class TeleconnectionsReportGeneratorCorrected:
             score += 1
         
         # 6. Variance expliquée pertinente (1 point)
-        strongest = patterns.get('strongest_teleconnection', {})
+        # dict.get(cle, defaut) ne renvoie le defaut que si la CLE est absente.
+        # Ici la cle existe toujours (initialisee a None dans le squelette de
+        # patterns), donc le {} n etait jamais utilise et l appel .get() suivant
+        # levait AttributeError des qu aucune teleconnexion n etait retenue.
+        strongest = patterns.get('strongest_teleconnection') or {}
         if strongest.get('variance_explained', 0) >= 2:
             score += 1
         

@@ -281,6 +281,12 @@ def p_from_r_neff(r: float, n_eff: int) -> float:
     """
     if n_eff <= 2:
         return 1.0
+    # Garde-fou : un r non defini (pearsonr/spearmanr sur une serie constante
+    # renvoient nan) serait ecrete a ~1.0 par le min/max ci-dessous, donnerait
+    # un t enorme et ressortirait a p ~ 1e-191, soit trois etoiles pour une
+    # correlation inexistante. Un r indefini n est jamais significatif.
+    if not np.isfinite(r):
+        return 1.0
     r_clipped = max(-1.0 + 1e-10, min(1.0 - 1e-10, r))
     t_stat = r_clipped * np.sqrt((n_eff - 2) / (1.0 - r_clipped ** 2))
     return float(2.0 * t_dist.sf(abs(t_stat), df=n_eff - 2))
