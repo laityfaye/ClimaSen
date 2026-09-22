@@ -65,6 +65,22 @@ class Settings(BaseSettings):
     # visiteur ne paie pas l'import de streamlit et la lecture des CSV.
     tools_preload: bool = True
 
+    # --- Profil admin (Phase 4) ----------------------------------------------
+    # Seul le HACHE est stocke (voir jarvis/auth.py). Vide = profil admin
+    # ferme: la route de connexion repond alors comme a un mauvais mot de
+    # passe, sans reveler que rien n'est configure.
+    admin_password_hash: str = ""
+    # Session admin courte: elle ouvre des actions sensibles, contrairement au
+    # jeton public qui ne donne acces qu'a de la lecture anonyme.
+    admin_session_ttl_seconds: int = 28800    # 8 h
+    # Anti-force brute sur la connexion, par IP.
+    admin_login_max_attempts: int = 5
+    admin_login_window_seconds: int = 900     # 15 min
+    # Debit admin: plus large que le public, mais PAS illimite. Le profil
+    # admin tourne sur Opus, une boucle accidentelle couterait cher.
+    admin_rate_limit_capacity: int = 30
+    admin_rate_limit_refill_per_minute: float = 20.0
+
     # --- Plafonds conversation (protection cout et contexte) ----------------
     session_ttl_seconds: int = 86400          # 24 h
     conversation_ttl_seconds: int = 7200      # 2 h d'inactivite
@@ -99,8 +115,40 @@ class Settings(BaseSettings):
     def rate_limit_refill_per_second(self) -> float:
         return self.rate_limit_refill_per_minute / 60.0
 
+    @property
+    def admin_rate_limit_refill_per_second(self) -> float:
+        return self.admin_rate_limit_refill_per_minute / 60.0
+
+    @property
+    def admin_enabled(self) -> bool:
+        return bool(self.admin_password_hash)
+
+    def ttl_for(self, profile: str) -> int:
+        return self.admin_session_ttl_seconds if profile == "admin" \
+            else self.session_ttl_seconds
+
+    def validate_admin_hash(self) -> None:
+        """Rejette un hache admin mal forme AU DEMARRAGE.
+
+        Sans ce controle, une faute de frappe dans le .env ne se verrait qu'a
+        la premiere tentative de connexion, sous la forme d'un refus
+        indistinguable d'un mauvais mot de passe: Laity chercherait son erreur
+        du mauvais cote.
+        """
+        if not self.admin_password_hash:
+            return
+        from .auth import _decoder
+        try:
+            _decoder(self.admin_password_hash)
+        except (ValueError, TypeError) as exc:
+            raise ConfigurationError(
+                "JARVIS_ADMIN_PASSWORD_HASH est mal forme (%s). Le regenerer "
+                "avec: py -3 -m jarvis.auth" % exc
+            ) from exc
+
     def validate_runtime(self) -> None:
         """Verifie les secrets au demarrage. Strict en prod, tolerant en dev."""
+        self.validate_admin_hash()
         if self.env == "prod":
             if not self.anthropic_api_key:
                 raise ConfigurationError("ANTHROPIC_API_KEY manquant.")

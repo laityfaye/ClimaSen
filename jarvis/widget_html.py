@@ -8,11 +8,29 @@ from functools import lru_cache
 from pathlib import Path
 
 WIDGET_FILE = Path(__file__).resolve().parent / "widget" / "widget.html"
+ADMIN_FILE = Path(__file__).resolve().parent / "admin" / "admin.html"
 
 
 @lru_cache(maxsize=1)
 def _template() -> str:
     return WIDGET_FILE.read_text(encoding="utf-8")
+
+
+@lru_cache(maxsize=1)
+def _template_admin() -> str:
+    return ADMIN_FILE.read_text(encoding="utf-8")
+
+
+def render_admin(api_base: str = "/jarvis") -> str:
+    """Console administrateur en pleine page (Phase 4).
+
+    Volontairement separee du widget: une bulle flottante en lecture seule et
+    une console d'administration n'ont ni la meme mise en page, ni le meme
+    cycle de vie de session. Les faire tenir dans un seul fichier aurait
+    complique le widget public, qui est le plus expose.
+    """
+    return _template_admin().replace("__JARVIS_API_BASE__",
+                                     (api_base or "/jarvis").rstrip("/"))
 
 
 MODES = ("flottant", "pousse")

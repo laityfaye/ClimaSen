@@ -12,6 +12,7 @@ client ne peut pas s'auto-promouvoir "admin" (prepare la Phase 4).
 import base64
 import hmac
 import secrets
+import threading
 import time
 from dataclasses import dataclass
 from hashlib import sha256
@@ -77,3 +78,46 @@ def verify_token(secret_key: str, token: str, ttl_seconds: int) -> SessionInfo:
         raise InvalidSessionError("Session expiree. Rechargez la page.")
 
     return SessionInfo(session_id=session_id, profile=profile, issued_at=issued_at)
+
+
+class JetonsRevoques:
+    """Sessions fermees avant leur expiration naturelle.
+
+    Un jeton HMAC est autoporteur: il reste valide jusqu'a son echeance, meme
+    apres une deconnexion. Sans cette liste, "se deconnecter" ne fermerait
+    rien du tout -- un jeton copie resterait utilisable pendant des heures.
+
+    La liste ne peut pas grandir indefiniment: une entree est oubliee des que
+    le jeton correspondant a expire de lui-meme, son inscription ne servant
+    alors plus a rien.
+    """
+
+    def __init__(self):
+        self._revoques = {}          # session_id -> instant d'oubli
+        self._verrou = threading.Lock()
+
+    def revoquer(self, session_id: str, ttl_seconds: int) -> None:
+        with self._verrou:
+            self._revoques[session_id] = time.time() + ttl_seconds
+
+    def est_revoque(self, session_id: str) -> bool:
+        with self._verrou:
+            echeance = self._revoques.get(session_id)
+            if echeance is None:
+                return False
+            if echeance < time.time():
+                del self._revoques[session_id]
+                return False
+            return True
+
+    def purger(self) -> int:
+        maintenant = time.time()
+        with self._verrou:
+            perimes = [c for c, e in self._revoques.items() if e < maintenant]
+            for cle in perimes:
+                del self._revoques[cle]
+            return len(perimes)
+
+    def taille(self) -> int:
+        with self._verrou:
+            return len(self._revoques)

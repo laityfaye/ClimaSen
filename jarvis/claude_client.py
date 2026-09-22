@@ -181,7 +181,7 @@ class ClaudeClient:
         return self.settings.model_public
 
     def system_for(self, profile: str) -> str:
-        name = "system_public"  # le prompt admin arrive en Phase 4
+        name = "system_admin" if profile == "admin" else "system_public"
         if name not in self._system_cache:
             self._system_cache[name] = load_system_prompt(name)
         return self._system_cache[name]

@@ -17,6 +17,12 @@ class SessionResponse(BaseModel):
     expires_in: int
 
 
+class AdminLoginRequest(BaseModel):
+    # Borne haute large mais finie: scrypt travaille sur ce que le client
+    # envoie, un champ non borne offrirait un deni de service a bon marche.
+    password: str = Field(min_length=1, max_length=256)
+
+
 class ChatRequest(BaseModel):
     message: str = Field(min_length=1, max_length=MAX_MESSAGE_CHARS)
     conversation_id: Optional[str] = Field(default=None, max_length=64)

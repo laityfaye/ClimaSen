@@ -12,7 +12,12 @@ import logging.handlers
 import time
 from pathlib import Path
 
-_SENSITIVE = ("api_key", "anthropic_api_key", "token", "secret", "secret_key")
+_SENSITIVE = ("api_key", "anthropic_api_key", "token", "secret", "secret_key",
+              # Phase 4: la connexion admin manipule un mot de passe. Aucun de
+              # ces champs ne doit pouvoir atterrir dans un fichier de log,
+              # meme par un appel maladroit a log_event().
+              "password", "passwd", "mot_de_passe", "motdepasse", "hash",
+              "credential", "authorization")
 
 
 class JsonFormatter(logging.Formatter):

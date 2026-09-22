@@ -4,9 +4,9 @@ Assistant IA de la plateforme CLIMAT-SEN, adossé à l'API Claude (Anthropic).
 Un seul cerveau, deux profils d'accès : **public** (widget en lecture seule) et
 **admin** (Laity, accès complet — Phase 4).
 
-État : **Phase 3 — documents**. Chat de bout en bout, avec accès en lecture
-seule aux données réelles de la plateforme et aux textes qui la fondent
-(mémoire de master et article).
+État : **Phase 4 — profil administrateur**. Le widget public reste en lecture
+seule ; une console d'administration authentifiée ouvre la branche admin
+(modèle Opus, prompt dédié). Les outils d'action arrivent en Phase 5.
 
 ---
 
@@ -49,7 +49,7 @@ py -3 -m pytest tests/test_jarvis_*.py -q
 Aucun test ne joint l'API Anthropic : le client Claude est remplacé par un
 double (`FakeClaude` dans `tests/conftest.py`). **La suite ne coûte rien.**
 
-Pour lancer l'ensemble du dépôt (Jarvis + téléconnexions, 447 tests, ~2 min) :
+Pour lancer l'ensemble du dépôt (Jarvis + téléconnexions, 496 tests, ~3 min) :
 
 ```bash
 py -3 -m pytest tests/ -q
@@ -77,7 +77,9 @@ session.py   ratelimit.py   conversations.py   claude_client.py
 |---|---|
 | `app.py` | routes, SSE, gestion d'erreurs, assemblage |
 | `config.py` | configuration par variables d'environnement |
-| `session.py` | jetons anonymes signés HMAC-SHA256 |
+| `session.py` | jetons signés HMAC-SHA256, révocation des sessions |
+| `auth.py` | mot de passe administrateur (scrypt) |
+| `admin/admin.html` | console d'administration |
 | `conversations.py` | historique serveur, TTL et plafonds |
 | `ratelimit.py` | seau à jetons par session+IP |
 | `claude_client.py` | seul point de contact avec le SDK Anthropic |
@@ -201,6 +203,10 @@ dessus sans rien refondre.
 | `POST` | `/jarvis/api/chat/sync` | jeton | même chose, non streamée |
 | `GET` | `/jarvis/api/conversation/{id}` | jeton | relit un fil |
 | `GET` | `/jarvis/widget.html` | — | widget en autonome |
+| `POST` | `/jarvis/api/admin/login` | — | ouvre une session admin |
+| `POST` | `/jarvis/api/admin/logout` | jeton admin | ferme et révoque la session |
+| `GET` | `/jarvis/api/admin/me` | jeton admin | état de la session |
+| `GET` | `/jarvis/admin` | — | console d'administration |
 
 Le jeton passe dans l'en-tête `X-Jarvis-Session`.
 
@@ -214,6 +220,40 @@ la lecture. Sans ce signal, l'utilisateur voit plusieurs secondes de silence et
 croit la bulle bloquée.
 
 ---
+
+## Le profil administrateur (Phase 4)
+
+```bash
+py -3 -m jarvis.auth          # génère le haché, à coller dans .env
+# puis redémarrer : uvicorn ne relit pas le .env à chaud
+```
+
+Console : <http://localhost:8000/jarvis/admin>
+
+**Seul le haché est stocké**, en `scrypt` (bibliothèque standard : rien à
+installer sur le serveur, et mémoire-dur, donc bien plus coûteux à attaquer
+par GPU que PBKDF2). Le mot de passe en clair n'existe ni dans le code, ni dans
+le `.env`, ni dans les logs — un test le vérifie sur le contenu réel des
+fichiers de journal.
+
+**Échouer toujours de la même façon.** Mot de passe faux, profil admin non
+configuré, trop de tentatives : même message. Distinguer les deux premiers cas
+dirait à un attaquant si la cible existe.
+
+**La déconnexion ferme réellement la session.** Un jeton HMAC est autoporteur :
+il reste valide jusqu'à son échéance même après un `logout`. Une liste de
+révocation côté serveur le neutralise, et oublie l'entrée dès que le jeton a
+expiré de lui-même.
+
+**Ce que le profil change** : le modèle (`claude-opus-5`), le prompt système
+(`prompts/system_admin.md`), le seau de débit (séparé du public — un afflux de
+visiteurs ne doit pas bloquer l'administrateur) et le fichier de journal
+(`admin.jsonl`). Les outils exposés suivront en Phase 5 : le registre filtre
+déjà par profil et **revalide à l'exécution**.
+
+Le profil vit dans le jeton signé : sans le secret serveur, on ne peut ni en
+forger un, ni promouvoir un jeton public en modifiant sa charge. Les deux cas
+sont testés.
 
 ## Ajouter un outil
 
@@ -273,7 +313,7 @@ Le rate limiting par défaut (12 en rafale, 6/minute) borne ce que peut consomme
 un visiteur seul ; `JARVIS_MAX_TOOL_ROUNDS` borne ce que peut coûter une seule
 question.
 
-## Limites connues (Phase 3)
+## Limites connues (Phase 4)
 
 - **État en mémoire** : conversations, sessions et compteurs de débit vivent
   dans le process. Un redémarrage les efface, et plusieurs workers uvicorn ne
@@ -288,7 +328,12 @@ question.
   l'historique, pas les `tool_use`/`tool_result`. Une question de suivi
   (« et pour Niño 3 ? ») relance donc l'outil — quelques centaines de tokens,
   contre un historique qui gonflerait indéfiniment.
-- **Profil admin non ouvert.** La plomberie existe, la branche est fermée.
+- **Aucun outil d'action.** Le profil admin lit les mêmes données que le
+  public, avec un modèle et un ton différents. Documents, bibliographie, git,
+  serveur et courrier arrivent en Phase 5.
+- **Session admin en mémoire.** La liste de révocation vit dans le process :
+  un redémarrage rouvre les jetons révoqués non expirés. Sans conséquence à un
+  seul administrateur et `--workers 1`, à revoir en Phase 6.
 
 ## Déploiement (préparé, non appliqué)
 

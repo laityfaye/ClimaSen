@@ -4,12 +4,15 @@ Toutes les routes sont prefixees /jarvis pour que le chemin soit identique en
 local (http://localhost:8000/jarvis/health) et derriere nginx
 (https://climatsen.innosft.com/jarvis/health). Aucune reecriture d'URL a gerer.
 
-Le champ `profile` circule deja partout (jeton, conversation, logs) mais seul
-"public" est emis en Phase 1. La Phase 4 n'aura qu'a ouvrir la branche admin.
+Deux profils circulent dans le jeton signe: "public" (widget anonyme, lecture
+seule) et "admin" (Laity, apres authentification par mot de passe). Le profil
+determine le modele, le prompt systeme, les outils exposes, le debit autorise
+et le fichier de journal.
 """
 import asyncio
 import json
 import logging
+import time
 from contextlib import asynccontextmanager
 from typing import Optional
 
@@ -17,17 +20,19 @@ from fastapi import Depends, FastAPI, Header, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
 
-from . import __version__, tools
+from . import __version__, auth, tools
 from .claude_client import ClaudeClient
 from .config import Settings, get_settings
 from .conversations import ConversationStore
-from .errors import JarvisError, PayloadTooLargeError, RateLimitedError
+from .errors import (AccessDeniedError, InvalidSessionError, JarvisError,
+                     PayloadTooLargeError, RateLimitedError)
 from .logging_conf import log_event, setup_logging
-from .models import (ChatRequest, ChatSyncResponse, ConversationResponse,
-                     HealthResponse, SessionResponse)
+from .models import (AdminLoginRequest, ChatRequest, ChatSyncResponse,
+                     ConversationResponse, HealthResponse, SessionResponse)
 from .ratelimit import TokenBucket
-from .session import SessionInfo, issue_token, verify_token
-from .widget_html import render_widget
+from .session import (JetonsRevoques, SessionInfo, issue_token,
+                      verify_token)
+from .widget_html import render_admin, render_widget
 
 log = logging.getLogger("jarvis.app")
 
@@ -49,7 +54,24 @@ class AppContext:
             capacity=settings.rate_limit_capacity,
             refill_per_second=settings.rate_limit_refill_per_second,
         )
+        # Debit admin separe: un plafond commun ferait qu'un afflux de
+        # visiteurs bloque l'administrateur, et inversement.
+        self.admin_bucket = TokenBucket(
+            capacity=settings.admin_rate_limit_capacity,
+            refill_per_second=settings.admin_rate_limit_refill_per_second,
+        )
+        # Anti-force brute sur la connexion, par IP. Un seau qui se remplit
+        # tres lentement: 5 essais, puis un seul toutes les 3 minutes.
+        self.login_bucket = TokenBucket(
+            capacity=settings.admin_login_max_attempts,
+            refill_per_second=(settings.admin_login_max_attempts
+                               / max(1.0, float(settings.admin_login_window_seconds))),
+        )
+        self.revoques = JetonsRevoques()
         self.claude = ClaudeClient(settings)
+
+    def bucket_for(self, profile: str) -> TokenBucket:
+        return self.admin_bucket if profile == "admin" else self.bucket
 
     def tool_specs(self, profile: str):
         """Outils exposes au modele pour ce profil, ou None si desactives."""
@@ -164,17 +186,34 @@ def create_app(settings: Optional[Settings] = None) -> FastAPI:
         x_jarvis_session: str = Header(default=""),
     ) -> SessionInfo:
         c = request.app.state.ctx
-        return verify_token(c.settings.secret_key, x_jarvis_session,
-                            c.settings.session_ttl_seconds)
+        # Le TTL depend du profil ANNONCE par le jeton, mais la signature est
+        # verifiee d'abord: un jeton forge "admin" est rejete avant d'atteindre
+        # cette ligne. On lit donc le profil en deux temps, avec le TTL le plus
+        # long, puis on revalide avec le TTL du profil reellement signe.
+        info = verify_token(c.settings.secret_key, x_jarvis_session,
+                            max(c.settings.session_ttl_seconds,
+                                c.settings.admin_session_ttl_seconds))
+        ttl = c.settings.ttl_for(info.profile)
+        info = verify_token(c.settings.secret_key, x_jarvis_session, ttl)
+        if c.revoques.est_revoque(info.session_id):
+            # Deconnexion explicite: le jeton reste cryptographiquement valide
+            # jusqu'a son echeance, seule cette liste le neutralise.
+            raise InvalidSessionError("Session fermee. Reconnectez-vous.")
+        return info
+
+    def require_admin(session: SessionInfo = Depends(current_session)) -> SessionInfo:
+        if session.profile != "admin":
+            raise AccessDeniedError()
+        return session
 
     def enforce_rate_limit(request: Request, session: SessionInfo) -> None:
         c = request.app.state.ctx
         # Cle combinee: changer de session ne suffit pas a repartir a zero,
         # et une IP partagee (NAT) ne penalise pas tout le monde d'un coup.
         key = "%s|%s" % (session.session_id, _client_ip(request))
-        allowed, retry_after = c.bucket.consume(key)
+        allowed, retry_after = c.bucket_for(session.profile).consume(key)
         if not allowed:
-            log_event("jarvis.public", "rate_limited",
+            log_event("jarvis.%s" % session.profile, "rate_limited",
                       session_id=session.session_id, retry_after=retry_after)
             raise RateLimitedError(retry_after=retry_after)
 
@@ -201,6 +240,72 @@ def create_app(settings: Optional[Settings] = None) -> FastAPI:
             session_id=info.session_id,
             profile=info.profile,
             expires_in=c.settings.session_ttl_seconds,
+        )
+
+    # --- profil administrateur (Phase 4) --------------------------------------
+    @app.post("/jarvis/api/admin/login", response_model=SessionResponse)
+    async def admin_login(request: Request, payload: AdminLoginRequest,
+                          c: AppContext = Depends(ctx)):
+        """Ouvre une session admin. Echoue de la meme maniere dans tous les cas.
+
+        Trois situations donnent la MEME reponse: mot de passe faux, profil
+        admin non configure, trop d'essais. Distinguer les deux premieres
+        indiquerait a un attaquant si la cible existe; distinguer la troisieme
+        lui dirait quand reessayer.
+        """
+        ip = _client_ip(request)
+        autorise, retry_after = c.login_bucket.consume(ip)
+        if not autorise:
+            log_event("jarvis.admin", "login_bloque", ip=ip, retry_after=retry_after)
+            raise RateLimitedError(
+                retry_after=retry_after,
+                message="Trop de tentatives. Reessayez plus tard.",
+            )
+
+        # scrypt bloque ~100 ms: hors de la boucle d'evenements, sinon chaque
+        # tentative gele le service pour tout le monde -- ce qui est aussi le
+        # levier d'un deni de service a tres bas cout.
+        valide = await asyncio.to_thread(
+            auth.verifier, payload.password, c.settings.admin_password_hash)
+
+        if not valide:
+            log_event("jarvis.admin", "login_refuse", ip=ip,
+                      configure=c.settings.admin_enabled)
+            raise AccessDeniedError("Identifiants invalides.")
+
+        token, info = issue_token(c.settings.secret_key, profile="admin")
+        log_event("jarvis.admin", "login_reussi", ip=ip, session_id=info.session_id)
+        return SessionResponse(
+            token=token,
+            session_id=info.session_id,
+            profile=info.profile,
+            expires_in=c.settings.admin_session_ttl_seconds,
+        )
+
+    @app.post("/jarvis/api/admin/logout")
+    async def admin_logout(request: Request,
+                           session: SessionInfo = Depends(require_admin),
+                           c: AppContext = Depends(ctx)):
+        c.revoques.revoquer(session.session_id, c.settings.admin_session_ttl_seconds)
+        log_event("jarvis.admin", "logout", ip=_client_ip(request),
+                  session_id=session.session_id)
+        return {"status": "ok"}
+
+    @app.get("/jarvis/api/admin/me", response_model=SessionResponse)
+    async def admin_me(session: SessionInfo = Depends(require_admin),
+                       c: AppContext = Depends(ctx)):
+        """Verifie qu'une session admin est toujours ouverte.
+
+        La console s'en sert au chargement pour savoir si elle doit afficher
+        le formulaire ou le fil de conversation. Ne renvoie JAMAIS le jeton:
+        le client possede deja le sien.
+        """
+        ecoule = int(time.time()) - session.issued_at
+        return SessionResponse(
+            token="",
+            session_id=session.session_id,
+            profile=session.profile,
+            expires_in=max(0, c.settings.admin_session_ttl_seconds - ecoule),
         )
 
     @app.get("/jarvis/api/conversation/{conversation_id}",
@@ -248,7 +353,7 @@ def create_app(settings: Optional[Settings] = None) -> FastAPI:
                           c: AppContext = Depends(ctx)):
         conv, messages = _prepare(request, payload, session, c)
         preview = payload.message[: c.settings.log_preview_chars] if c.settings.log_prompts else None
-        log_event("jarvis.public", "chat_stream_start",
+        log_event("jarvis.%s" % session.profile, "chat_stream_start",
                   session_id=session.session_id,
                   conversation_id=conv.conversation_id,
                   chars=len(payload.message), question=preview)
@@ -286,7 +391,7 @@ def create_app(settings: Optional[Settings] = None) -> FastAPI:
                 # Le flux HTTP a deja commence: impossible de changer le statut,
                 # l'erreur passe donc par un evenement SSE.
                 _commit(c, conv, payload.message, "".join(parts))
-                log_event("jarvis.public", "chat_stream_error",
+                log_event("jarvis.%s" % session.profile, "chat_stream_error",
                           session_id=session.session_id,
                           conversation_id=conv.conversation_id, code=exc.code)
                 yield _sse("error", {"code": exc.code, "message": exc.message})
@@ -304,7 +409,7 @@ def create_app(settings: Optional[Settings] = None) -> FastAPI:
 
             answer = "".join(parts)
             _commit(c, conv, payload.message, answer)
-            log_event("jarvis.public", "chat_stream_done",
+            log_event("jarvis.%s" % session.profile, "chat_stream_done",
                       session_id=session.session_id,
                       conversation_id=conv.conversation_id,
                       reply_chars=len(answer), tools=outils or None, **usage)
@@ -333,7 +438,7 @@ def create_app(settings: Optional[Settings] = None) -> FastAPI:
             executor=c.tool_executor(session.profile),
         )
         _commit(c, conv, payload.message, result["text"])
-        log_event("jarvis.public", "chat_sync_done",
+        log_event("jarvis.%s" % session.profile, "chat_sync_done",
                   session_id=session.session_id,
                   conversation_id=conv.conversation_id,
                   reply_chars=len(result["text"]),
@@ -343,6 +448,24 @@ def create_app(settings: Optional[Settings] = None) -> FastAPI:
             conversation_id=conv.conversation_id,
             reply=result["text"],
             usage=result.get("usage", {}),
+        )
+
+    @app.get("/jarvis/admin", response_class=HTMLResponse)
+    async def admin_console(c: AppContext = Depends(ctx)):
+        """Console d'administration. La page elle-meme n'est pas un secret.
+
+        Elle ne contient aucune donnee: tout passe par les routes d'API, qui
+        exigent un jeton admin. La proteger par mot de passe n'ajouterait rien,
+        et empecherait d'afficher un formulaire de connexion.
+
+        En-tetes: pas d'indexation, pas de mise en cache -- une console
+        d'administration n'a rien a faire dans un moteur de recherche ni dans
+        le cache d'un navigateur partage.
+        """
+        return HTMLResponse(
+            render_admin(api_base="/jarvis"),
+            headers={"X-Robots-Tag": "noindex, nofollow",
+                     "Cache-Control": "no-store"},
         )
 
     @app.get("/jarvis/widget.html", response_class=HTMLResponse)
@@ -364,6 +487,9 @@ async def _sweep_loop(app: FastAPI) -> None:
             removed = app.state.ctx.store.sweep()
             if removed:
                 log.info("Purge: %d conversation(s) expiree(s).", removed)
+            # Une session revoquee n'a plus a etre retenue une fois son jeton
+            # expire de lui-meme: la liste ne grandit donc pas sans fin.
+            app.state.ctx.revoques.purger()
         except Exception:
             log.exception("Echec de la purge des conversations")
 
