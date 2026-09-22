@@ -62,10 +62,23 @@ def test_autre_metrique(jeu_correlations):
 
 
 def test_avertissement_toujours_present(jeu_correlations):
-    """Une correlation livree sans mise en garde serait trompeuse."""
+    """Une correlation livree sans mise en garde serait trompeuse.
+
+    Le garde-fou est telegraphique a dessein: de longues phrases francaises
+    dans la charge tiraient les reponses vers le francais quand la question
+    etait posee en anglais.
+    """
     res = lancer(jeu_correlations, phase="Phase_2_pleine")
     assert "causalite" in res["avertissement"]
     assert "AR1" in res["avertissement"]
+    assert len(res["avertissement"]) < 120
+
+
+def test_pas_de_prose_repetee_par_ligne(jeu_correlations):
+    """La description d un indice, repetee a chaque ligne, etait 300
+    caracteres de redondance a chaque appel."""
+    res = lancer(jeu_correlations, phase="Phase_2_pleine")
+    assert "indice_description" not in res["correlations"][0]
 
 
 def test_phase_obligatoire(jeu_correlations):

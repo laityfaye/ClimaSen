@@ -11,7 +11,7 @@ rendrait les chiffres trompeurs:
   - une correlation n est pas une causalite, et ces resultats portent sur
     l INTENSITE des extremes, pas sur le cumul saisonnier.
 """
-from .common import (INDICES, INDICES_LABELS, METRIQUES, PHASES_LABELS,
+from .common import (INDICES, METRIQUES, PHASES_LABELS,
                      PHASES_TOUTES, SOURCE_CORRELATIONS, ToolInputError,
                      arrondir, champ_bool, champ_entier, champ_enum, etoiles,
                      resoudre_indice, resoudre_phase)
@@ -63,11 +63,12 @@ SCHEMA = {
     "required": ["phase"],
 }
 
-AVERTISSEMENT = (
-    "Une correlation n est pas une preuve de causalite et ne constitue pas une "
-    "prevision. La p-value citee (p_neff) est corrigee de l autocorrelation "
-    "AR1; aucune correction de tests multiples n est appliquee."
-)
+# Garde-fou volontairement TELEGRAPHIQUE. Ces champs sont lus par le modele
+# juste avant qu il redige: de longues phrases francaises ici tiraient ses
+# reponses vers le francais meme quand la question etait posee en anglais
+# (mesure: 1 reponse sur 3). Le sens est conserve, la prose est partie dans le
+# prompt systeme, ou elle est mise en cache une fois pour toutes.
+AVERTISSEMENT = "correlation != causalite; p_neff corrigee AR1; pas de correction FDR"
 
 
 def run(params, data):
@@ -128,7 +129,6 @@ def run(params, data):
 
     lignes = [{
         "indice": ligne["index"],
-        "indice_description": INDICES_LABELS.get(ligne["index"], ligne["index"]),
         "lag_mois": int(ligne["lag_months"]),
         "pearson_r": arrondir(ligne["pearson_r"], 3),
         "p_neff": arrondir(ligne["pearson_p_neff"], 4),
@@ -160,12 +160,6 @@ def run(params, data):
             "significativite": etoiles(meilleure["pearson_p_neff"]) or "non significatif",
         },
         "correlations": lignes,
-        "lecture": (
-            "Un r negatif signifie qu un indice eleve va de pair avec des "
-            "pluies extremes moins intenses. Le lag est le nombre de mois "
-            "entre la mesure de l indice et la pluie: un lag de 3 mois signifie "
-            "que l indice est mesure 3 mois avant."
-        ),
         "avertissement": AVERTISSEMENT,
         "source": SOURCE_CORRELATIONS,
     }
