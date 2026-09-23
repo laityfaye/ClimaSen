@@ -14,24 +14,28 @@ plutot que dans chaque outil:
     plafond, un filtre trop large ferait exploser la facture en tokens.
 """
 import asyncio
+import inspect
 import json
 import logging
 import time
 
-from . import clusters, documents, events, sst_index, teleconnections
+from . import clusters, documents, events, redaction, sst_index, teleconnections
 from .common import ToolInputError
 from .dataset import DataUnavailableError
 from .dataset import load as charger_donnees
 
 log = logging.getLogger("jarvis.tools")
 
-MODULES = (sst_index, events, teleconnections, clusters, documents)
+# Un "fournisseur" est un module (outils publics) ou une classe (outils admin
+# de jarvis/tools/redaction.py): les deux exposent les memes attributs, donc
+# le registre n'a pas a les distinguer.
+MODULES = (sst_index, events, teleconnections, clusters, documents) + redaction.OUTILS
 
 MAX_RESULT_CHARS = 6000
 
 
 class Tool:
-    """Un outil: sa declaration pour l API et sa fonction pure."""
+    """Un outil: sa declaration pour l API et sa fonction."""
 
     def __init__(self, module):
         self.name = module.NAME
@@ -106,7 +110,7 @@ def _reduire(charge: dict, max_chars: int) -> str:
 
 
 async def execute(nom: str, arguments, profile: str = "public",
-                  max_chars: int = MAX_RESULT_CHARS) -> dict:
+                  max_chars: int = MAX_RESULT_CHARS, contexte=None) -> dict:
     """Execute un outil. Ne leve jamais: renvoie toujours un tool_result."""
     debut = time.monotonic()
     outil = TOOLS.get(nom)
@@ -130,9 +134,16 @@ async def execute(nom: str, arguments, profile: str = "public",
         return _erreur("Les donnees necessaires a cet outil sont "
                        "momentanement indisponibles.")
 
+    # Certains outils ont besoin du contexte de la requete (reglages, session,
+    # registre d'actions). On ne passe que ce que la fonction accepte: les
+    # outils publics gardent leur signature (params, data) inchangee.
+    parametres = inspect.signature(outil.run).parameters
+    extra = {cle: valeur for cle, valeur in (contexte or {}).items()
+             if cle in parametres}
+
     try:
         # Les filtres pandas sont rapides mais bloquants: hors boucle.
-        resultat = await asyncio.to_thread(outil.run, arguments, donnees)
+        resultat = await asyncio.to_thread(outil.run, arguments, donnees, **extra)
     except ToolInputError as exc:
         return _erreur(str(exc))
     except Exception:

@@ -81,6 +81,16 @@ class Settings(BaseSettings):
     admin_rate_limit_capacity: int = 30
     admin_rate_limit_refill_per_minute: float = 20.0
 
+    # --- Documents de recherche (Phase 5) -------------------------------------
+    # Les sources vivent HORS du depot: dossier personnel, non versionne. Le
+    # serveur de production n'y a pas acces, et c'est voulu -- les outils de
+    # redaction sont reserves au poste de Laity.
+    documents_dir: str = str(PROJECT_DIR.parent / "recherche" / "Rédaction")
+    documents_memoire: str = "Mémoire_VERSION_FINALE (1).docx"
+    documents_article: str = "Article_extremes_pluviometriques_Sahel_senegalais_v2 (1).docx"
+    # Duree de vie d'une proposition de modification non approuvee.
+    action_ttl_seconds: int = 1800            # 30 min
+
     # --- Plafonds conversation (protection cout et contexte) ----------------
     session_ttl_seconds: int = 86400          # 24 h
     conversation_ttl_seconds: int = 7200      # 2 h d'inactivite
@@ -122,6 +132,14 @@ class Settings(BaseSettings):
     @property
     def admin_enabled(self) -> bool:
         return bool(self.admin_password_hash)
+
+    @property
+    def documents(self) -> dict:
+        """Cle logique -> nom de fichier. Les outils ne manipulent que des
+        cles: un chemin libre venu du modele serait une traversee de
+        repertoire en puissance."""
+        return {"memoire": self.documents_memoire,
+                "article": self.documents_article}
 
     def ttl_for(self, profile: str) -> int:
         return self.admin_session_ttl_seconds if profile == "admin" \

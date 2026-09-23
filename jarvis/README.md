@@ -4,9 +4,9 @@ Assistant IA de la plateforme CLIMAT-SEN, adossé à l'API Claude (Anthropic).
 Un seul cerveau, deux profils d'accès : **public** (widget en lecture seule) et
 **admin** (Laity, accès complet — Phase 4).
 
-État : **Phase 4 — profil administrateur**. Le widget public reste en lecture
-seule ; une console d'administration authentifiée ouvre la branche admin
-(modèle Opus, prompt dédié). Les outils d'action arrivent en Phase 5.
+État : **Phase 5 — premiers outils d'action**. Le widget public reste en
+lecture seule ; la console admin peut corriger le mémoire et l'article, mais
+**Jarvis ne fait que proposer** : l'écriture part d'un clic de l'utilisateur.
 
 ---
 
@@ -49,7 +49,7 @@ py -3 -m pytest tests/test_jarvis_*.py -q
 Aucun test ne joint l'API Anthropic : le client Claude est remplacé par un
 double (`FakeClaude` dans `tests/conftest.py`). **La suite ne coûte rien.**
 
-Pour lancer l'ensemble du dépôt (Jarvis + téléconnexions, 496 tests, ~3 min) :
+Pour lancer l'ensemble du dépôt (Jarvis + téléconnexions, 545 tests, ~3 min) :
 
 ```bash
 py -3 -m pytest tests/ -q
@@ -79,6 +79,8 @@ session.py   ratelimit.py   conversations.py   claude_client.py
 | `config.py` | configuration par variables d'environnement |
 | `session.py` | jetons signés HMAC-SHA256, révocation des sessions |
 | `auth.py` | mot de passe administrateur (scrypt) |
+| `actions.py` | propositions en attente d'approbation |
+| `documents.py` | lecture et modification des .docx |
 | `admin/admin.html` | console d'administration |
 | `conversations.py` | historique serveur, TTL et plafonds |
 | `ratelimit.py` | seau à jetons par session+IP |
@@ -207,6 +209,9 @@ dessus sans rien refondre.
 | `POST` | `/jarvis/api/admin/logout` | jeton admin | ferme et révoque la session |
 | `GET` | `/jarvis/api/admin/me` | jeton admin | état de la session |
 | `GET` | `/jarvis/admin` | — | console d'administration |
+| `GET` | `/jarvis/api/admin/actions` | jeton admin | propositions en attente |
+| `POST` | `/jarvis/api/admin/actions/{id}/approve` | jeton admin | applique une proposition |
+| `POST` | `/jarvis/api/admin/actions/{id}/reject` | jeton admin | refuse une proposition |
 
 Le jeton passe dans l'en-tête `X-Jarvis-Session`.
 
@@ -254,6 +259,48 @@ déjà par profil et **revalide à l'exécution**.
 Le profil vit dans le jeton signé : sans le secret serveur, on ne peut ni en
 forger un, ni promouvoir un jeton public en modifiant sa charge. Les deux cas
 sont testés.
+
+## Les outils d'action (Phase 5)
+
+`list_documents`, `find_in_document` et `propose_document_edit` — réservés au
+profil admin, ils travaillent sur les **fichiers vivants**, pas sur l'index figé
+qu'interroge `search_documents`.
+
+### Pourquoi Jarvis ne peut pas écrire
+
+Un outil qui accepterait un paramètre `confirmer=true` ne prouverait rien :
+c'est le **modèle** qui compose les arguments. Il peut mettre ce drapeau
+lui-même, par zèle ou parce qu'une instruction bien tournée l'y a poussé. Une
+consigne de prompt ne protège pas un fichier.
+
+D'où la séparation en deux chemins :
+
+```
+Jarvis  ──propose──>  registre d'actions  ──clic de l'utilisateur──>  serveur écrit
+(outil)               (en attente, 30 min)   (route HTTP, pas un outil)
+```
+
+`propose_document_edit` dépose une proposition et **rend la main**. La route
+`/approve` n'est pas un outil : le modèle ne peut pas l'appeler. Elle exige une
+session admin, n'accepte que les propositions **de cette session**, refuse un
+rejeu et refuse une proposition expirée.
+
+Conséquence assumée : aucun outil d'action ne modifie quoi que ce soit dans le
+tour où il est appelé. C'est exactement l'effet recherché.
+
+### Ce que garantit l'écriture elle-même
+
+- **Sauvegarde horodatée** avant toute modification (`*.avant-jarvis-*.docx`).
+- **Seuls les nœuds `<w:t>` sont touchés** : un remplacement sur le XML entier
+  atteindrait aussi les largeurs de tableau, où Word stocke des valeurs comme
+  « 560 » en twips.
+- **Écriture atomique** : fichier temporaire puis remplacement, pour qu'une
+  interruption ne laisse pas un `.docx` tronqué.
+- **Piste d'audit** dans `admin.jsonl` : quoi, par qui, combien d'occurrences,
+  quelle sauvegarde.
+
+Après une modification, l'index documentaire est périmé : relancer
+`scripts/15_build_jarvis_index.py`.
 
 ## Ajouter un outil
 
@@ -313,7 +360,7 @@ Le rate limiting par défaut (12 en rafale, 6/minute) borne ce que peut consomme
 un visiteur seul ; `JARVIS_MAX_TOOL_ROUNDS` borne ce que peut coûter une seule
 question.
 
-## Limites connues (Phase 4)
+## Limites connues (Phase 5)
 
 - **État en mémoire** : conversations, sessions et compteurs de débit vivent
   dans le process. Un redémarrage les efface, et plusieurs workers uvicorn ne
@@ -328,9 +375,14 @@ question.
   l'historique, pas les `tool_use`/`tool_result`. Une question de suivi
   (« et pour Niño 3 ? ») relance donc l'outil — quelques centaines de tokens,
   contre un historique qui gonflerait indéfiniment.
-- **Aucun outil d'action.** Le profil admin lit les mêmes données que le
-  public, avec un modèle et un ton différents. Documents, bibliographie, git,
-  serveur et courrier arrivent en Phase 5.
+- **Un seul domaine d'action.** Seuls les documents sont modifiables.
+  Bibliographie, git, serveur et courrier restent à faire — le protocole de
+  proposition, lui, est écrit une fois pour toutes.
+- **Les outils de rédaction sont inopérants en production.** Les `.docx` vivent
+  dans un dossier personnel hors du dépôt : le serveur n'y a pas accès, et
+  c'est voulu.
+- **Propositions en mémoire.** Un redémarrage annule celles qui attendent —
+  préférable à une écriture approuvable dont plus personne ne se souvient.
 - **Session admin en mémoire.** La liste de révocation vit dans le process :
   un redémarrage rouvre les jetons révoqués non expirés. Sans conséquence à un
   seul administrateur et `--workers 1`, à revoir en Phase 6.

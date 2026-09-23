@@ -20,7 +20,7 @@ from fastapi import Depends, FastAPI, Header, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
 
-from . import __version__, auth, tools
+from . import __version__, actions, auth, tools
 from .claude_client import ClaudeClient
 from .config import Settings, get_settings
 from .conversations import ConversationStore
@@ -68,6 +68,9 @@ class AppContext:
                                / max(1.0, float(settings.admin_login_window_seconds))),
         )
         self.revoques = JetonsRevoques()
+        # Propositions de modification en attente d'approbation (Phase 5).
+        self.actions = actions.RegistreActions(
+            ttl_seconds=settings.action_ttl_seconds)
         self.claude = ClaudeClient(settings)
 
     def bucket_for(self, profile: str) -> TokenBucket:
@@ -79,16 +82,22 @@ class AppContext:
             return None
         return tools.specs_for(profile) or None
 
-    def tool_executor(self, profile: str):
-        """Executeur lie au profil de la session.
+    def tool_executor(self, profile: str, session_id: str = ""):
+        """Executeur lie au profil ET a la session.
 
-        Le profil est capture ici, cote serveur: le modele ne peut pas
-        l'influencer en changeant ses arguments.
+        Les deux sont captures ici, cote serveur: le modele ne peut influencer
+        ni l'un ni l'autre en changeant ses arguments. Une proposition deposee
+        reste ainsi rattachee a la session qui l'a produite.
         """
+        contexte = {"settings": self.settings,
+                    "session_id": session_id,
+                    "registre": self.actions}
+
         async def executer(nom, arguments):
             resultat = await tools.execute(
                 nom, arguments, profile,
-                max_chars=self.settings.tool_result_max_chars)
+                max_chars=self.settings.tool_result_max_chars,
+                contexte=contexte)
             log_event("jarvis.%s" % profile, "tool_call", tool=nom,
                       ok=not resultat.get("is_error"),
                       duration_ms=resultat.get("duration_ms"),
@@ -308,6 +317,63 @@ def create_app(settings: Optional[Settings] = None) -> FastAPI:
             expires_in=max(0, c.settings.admin_session_ttl_seconds - ecoule),
         )
 
+    # --- propositions de modification (Phase 5) -------------------------------
+    @app.get("/jarvis/api/admin/actions")
+    async def admin_actions(session: SessionInfo = Depends(require_admin),
+                            c: AppContext = Depends(ctx)):
+        """Propositions deposees par Jarvis dans CETTE session."""
+        return {"actions": c.actions.lister(session.session_id)}
+
+    @app.post("/jarvis/api/admin/actions/{action_id}/approve")
+    async def admin_approve(action_id: str, request: Request,
+                            session: SessionInfo = Depends(require_admin),
+                            c: AppContext = Depends(ctx)):
+        """Applique une proposition. SEUL chemin d'ecriture du service.
+
+        Le modele ne peut pas appeler cette route: elle n'est pas un outil,
+        elle exige une session admin et elle est declenchee par un clic dans
+        la console. Jarvis propose, l'utilisateur approuve, le serveur ecrit.
+        """
+        try:
+            action = c.actions.recuperer(session.session_id, action_id)
+        except actions.ActionIntrouvable as exc:
+            raise JarvisError(str(exc), code="action_introuvable", status=404)
+
+        try:
+            resultat = await asyncio.to_thread(actions.executer, c.settings, action)
+        except Exception as exc:
+            c.actions.marquer(action, actions.REFUSEE, {"erreur": str(exc)})
+            log.exception("Echec de l'action %s", action_id)
+            log_event("jarvis.admin", "action_echouee", ip=_client_ip(request),
+                      session_id=session.session_id, action_id=action_id,
+                      type=action.type)
+            raise JarvisError(
+                "L'action n'a pas pu etre appliquee: %s" % exc,
+                code="action_echouee", status=500)
+
+        c.actions.marquer(action, actions.APPLIQUEE, resultat)
+        # Piste d'audit: quoi, par qui, avec quel resultat.
+        log_event("jarvis.admin", "action_appliquee", ip=_client_ip(request),
+                  session_id=session.session_id, action_id=action_id,
+                  type=action.type, cible=resultat.get("fichier"),
+                  n_occurrences=resultat.get("n_occurrences"),
+                  sauvegarde=resultat.get("sauvegarde"))
+        return {"statut": "appliquee", "resultat": resultat}
+
+    @app.post("/jarvis/api/admin/actions/{action_id}/reject")
+    async def admin_reject(action_id: str, request: Request,
+                           session: SessionInfo = Depends(require_admin),
+                           c: AppContext = Depends(ctx)):
+        try:
+            action = c.actions.recuperer(session.session_id, action_id)
+        except actions.ActionIntrouvable as exc:
+            raise JarvisError(str(exc), code="action_introuvable", status=404)
+        c.actions.marquer(action, actions.REFUSEE)
+        log_event("jarvis.admin", "action_refusee", ip=_client_ip(request),
+                  session_id=session.session_id, action_id=action_id,
+                  type=action.type)
+        return {"statut": "refusee"}
+
     @app.get("/jarvis/api/conversation/{conversation_id}",
              response_model=ConversationResponse)
     async def read_conversation(conversation_id: str,
@@ -368,7 +434,7 @@ def create_app(settings: Optional[Settings] = None) -> FastAPI:
                 flux = c.claude.stream_reply(
                     messages, session.profile,
                     tools=c.tool_specs(session.profile),
-                    executor=c.tool_executor(session.profile),
+                    executor=c.tool_executor(session.profile, session.session_id),
                 )
                 async for chunk in flux:
                     if isinstance(chunk, dict):
@@ -435,7 +501,7 @@ def create_app(settings: Optional[Settings] = None) -> FastAPI:
         result = await c.claude.complete(
             messages, session.profile,
             tools=c.tool_specs(session.profile),
-            executor=c.tool_executor(session.profile),
+            executor=c.tool_executor(session.profile, session.session_id),
         )
         _commit(c, conv, payload.message, result["text"])
         log_event("jarvis.%s" % session.profile, "chat_sync_done",
@@ -490,6 +556,7 @@ async def _sweep_loop(app: FastAPI) -> None:
             # Une session revoquee n'a plus a etre retenue une fois son jeton
             # expire de lui-meme: la liste ne grandit donc pas sans fin.
             app.state.ctx.revoques.purger()
+            app.state.ctx.actions.purger()
         except Exception:
             log.exception("Echec de la purge des conversations")
 

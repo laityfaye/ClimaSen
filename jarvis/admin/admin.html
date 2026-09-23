@@ -75,6 +75,29 @@
     animation:clign 1.1s infinite;flex:none}
   @keyframes clign{0%,100%{opacity:.25}50%{opacity:1}}
   .vide{color:var(--muted);text-align:center;padding:40px 0;font-size:13px}
+
+  /* Carte d'approbation: Jarvis propose, c'est ici que l'utilisateur decide.
+     Volontairement distincte d'un message, pour qu'on ne clique pas par
+     habitude en lisant une reponse. */
+  .action{border:1px solid var(--indigo);border-radius:12px;margin-bottom:16px;
+    background:rgba(79,70,229,.07);overflow:hidden}
+  .action-tete{padding:11px 15px;border-bottom:1px solid var(--border);
+    display:flex;align-items:center;gap:9px;font-size:13px;font-weight:600}
+  .action-tete b{color:var(--turquoise);font-weight:600}
+  .action-corps{padding:13px 15px;font-size:13px}
+  .action-raison{color:var(--muted);margin-bottom:11px}
+  .diff{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;
+    background:var(--bg);border:1px solid var(--border);border-radius:8px;
+    padding:9px 11px;margin-bottom:9px;overflow-x:auto;white-space:pre-wrap;
+    overflow-wrap:anywhere}
+  .diff .sup{color:#FDA4AF} .diff .add{color:#6EE7B7}
+  .action-pied{padding:11px 15px;border-top:1px solid var(--border);
+    display:flex;gap:10px;align-items:center}
+  .action-pied .delai{margin-left:auto;color:var(--muted);font-size:11.5px}
+  .bouton{width:auto;margin:0;padding:8px 16px;font-size:13px}
+  .bouton.refuser{background:transparent;border:1px solid var(--border);color:var(--muted)}
+  .action.traitee{opacity:.75;border-color:var(--border)}
+  .action-bilan{padding:11px 15px;font-size:12.5px;color:var(--muted)}
   footer{border-top:1px solid var(--border);background:var(--surface);padding:12px 18px}
   .saisie{max-width:780px;margin:0 auto;display:flex;gap:10px;align-items:flex-end}
   textarea{flex:1;resize:none;max-height:180px;padding:11px 13px;border-radius:12px;
@@ -371,6 +394,9 @@
       .then(function(){
         retirerOutil();
         etat.occupe = false; $("envoyer").disabled = false;
+        // Une proposition a pu etre deposee pendant ce tour: on l'affiche
+        // apres la reponse, pour que le contexte soit lu avant de decider.
+        rafraichirActions();
       });
 
     function traiter(nom, d){
@@ -415,6 +441,95 @@
      etat ni secret: l'exposer ne donne acces a rien. En contrepartie, le
      rendu -- qui porte l'echappement du HTML -- devient verifiable. */
   window.__rendu = mini;
+
+  /* ---------- Propositions de modification ---------- */
+  /* Jarvis ne peut que DEPOSER une proposition. L'ecriture part d'ici, sur un
+     clic, vers une route que le modele ne peut pas appeler. */
+  var actionsAffichees = {};
+
+  function carteAction(a){
+    if(actionsAffichees[a.id]){ return; }
+    actionsAffichees[a.id] = true;
+
+    var el = document.createElement("div");
+    el.className = "action";
+    el.id = "action-" + a.id;
+
+    var d = a.details || {};
+    var diffs = (d.changements || []).slice(0, 3).map(function(c){
+      return '<div class="diff"><span class="sup">− ' + echapper(c.avant) +
+             '</span>\n<span class="add">+ ' + echapper(c.apres) + '</span></div>';
+    }).join("");
+    var reste = (d.n_occurrences || 0) - (d.changements || []).length;
+
+    el.innerHTML =
+      '<div class="action-tete">⚠ Proposition de modification — <b>' +
+        echapper(d.fichier || d.document || "document") + '</b></div>' +
+      '<div class="action-corps">' +
+        '<div class="action-raison">' + echapper(d.raison || "") + '</div>' +
+        diffs +
+        (reste > 0 ? '<div class="action-raison">… et ' + reste +
+                     ' autre(s) occurrence(s) identique(s).</div>' : '') +
+        '<div class="action-raison">' + (d.n_occurrences || 0) +
+        ' occurrence(s) seront remplacées. Une sauvegarde horodatée est ' +
+        'écrite avant modification.</div>' +
+      '</div>' +
+      '<div class="action-pied">' +
+        '<button class="bouton" data-oui="' + a.id + '">Appliquer</button>' +
+        '<button class="bouton refuser" data-non="' + a.id + '">Refuser</button>' +
+        '<span class="delai">expire dans ' + Math.round((a.expire_dans || 0)/60) + ' min</span>' +
+      '</div>';
+
+    $("messages").appendChild(el);
+    el.querySelector("[data-oui]").addEventListener("click", function(){
+      trancher(a.id, "approve", el);
+    });
+    el.querySelector("[data-non]").addEventListener("click", function(){
+      trancher(a.id, "reject", el);
+    });
+    defiler();
+  }
+
+  function trancher(id, verdict, el){
+    el.querySelectorAll("button").forEach(function(b){ b.disabled = true; });
+    fetch(API + "/api/admin/actions/" + encodeURIComponent(id) + "/" + verdict,
+          {method:"POST", headers: entetes()})
+      .then(function(r){ return r.json().then(function(d){ return {ok:r.ok, d:d}; }); })
+      .then(function(res){
+        el.classList.add("traitee");
+        var pied = el.querySelector(".action-pied");
+        if(!res.ok){
+          var m = (res.d && res.d.error && res.d.error.message) || "Échec.";
+          pied.outerHTML = '<div class="action-bilan">✕ ' + echapper(m) + '</div>';
+          return;
+        }
+        if(verdict === "reject"){
+          pied.outerHTML = '<div class="action-bilan">✕ Proposition refusée. Rien n’a été modifié.</div>';
+          return;
+        }
+        var r2 = res.d.resultat || {};
+        pied.outerHTML = '<div class="action-bilan">✔ Appliquée — ' +
+          (r2.n_occurrences || 0) + ' remplacement(s) dans ' +
+          echapper(r2.fichier || "") + '. Sauvegarde : ' +
+          echapper(r2.sauvegarde || "") + '</div>';
+      })
+      .catch(function(){
+        el.querySelectorAll("button").forEach(function(b){ b.disabled = false; });
+      });
+  }
+
+  function rafraichirActions(){
+    if(!etat.jeton){ return; }
+    fetch(API + "/api/admin/actions", {headers: entetes()})
+      .then(function(r){ return r.ok ? r.json() : null; })
+      .then(function(d){
+        if(!d){ return; }
+        (d.actions || []).forEach(function(a){
+          if(a.statut === "en_attente"){ carteAction(a); }
+        });
+      })
+      .catch(function(){});
+  }
 
   /* ---------- Reprise de session ---------- */
   etat.jeton = relire();

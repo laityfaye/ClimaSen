@@ -292,7 +292,7 @@ def test_le_profil_vient_du_serveur(client, token, monkeypatch):
 
     vus = []
 
-    async def _executer(nom, arguments, profile, max_chars=0):
+    async def _executer(nom, arguments, profile, max_chars=0, contexte=None):
         vus.append(profile)
         return {"content": "{}", "is_error": False}
 
