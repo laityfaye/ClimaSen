@@ -127,6 +127,56 @@
         font-size:11.5px;color:var(--muted);padding:3px 4px;font-style:italic}
   .tool s{width:7px;height:7px;border-radius:50%;background:var(--turquoise);
           animation:blink 1.1s infinite;flex:none}
+
+  /* ---------- Mode administrateur ----------
+     Interface unique: le mot de passe saisi dans le champ eleve la session.
+     Tout doit changer d'aspect, sinon on ne sait plus a qui on parle. */
+  body.admin .avatar{background:linear-gradient(135deg,#F59E0B,#F43F5E)}
+  body.admin #panel{border-color:var(--corail)}
+  .badge-admin{display:none;font-size:.62rem;font-weight:700;letter-spacing:.04em;
+    padding:2px 7px;border-radius:6px;background:rgba(244,63,94,.16);
+    color:#FDA4AF;border:1px solid rgba(244,63,94,.4);margin-left:6px}
+  body.admin .badge-admin{display:inline-block}
+  body.admin .dot{background:var(--corail)}
+  .hquit{display:none;background:none;border:0;color:var(--muted);cursor:pointer;
+    font-size:.68rem;text-decoration:underline;padding:0 6px}
+  body.admin .hquit{display:inline-block}
+
+  /* Le profil admin repond avec des titres et des tableaux: la bulle doit
+     savoir les afficher, sinon elle rend du Markdown brut. */
+  .msg.bot{white-space:normal}
+  .msg.bot h1,.msg.bot h2,.msg.bot h3{margin:11px 0 6px;font-size:.86rem;font-weight:650}
+  .msg.bot h1:first-child,.msg.bot h2:first-child,.msg.bot h3:first-child{margin-top:0}
+  .msg.bot p{margin:0 0 7px} .msg.bot p:last-child{margin-bottom:0}
+  .msg.bot ul,.msg.bot ol{margin:0 0 7px;padding-left:19px}
+  .msg.bot li{margin-bottom:3px}
+  .msg.bot pre{background:var(--surface);border:1px solid var(--border);
+    border-radius:8px;padding:8px 10px;overflow-x:auto;margin:0 0 7px}
+  .msg.bot pre code{background:none;padding:0}
+  .tableau{overflow-x:auto;margin:0 0 8px}
+  .msg.bot table{border-collapse:collapse;font-size:.74rem}
+  .msg.bot th,.msg.bot td{border:1px solid var(--border);padding:4px 8px;text-align:left}
+  .msg.bot th{background:rgba(148,163,184,.12);font-weight:600}
+
+  /* Carte d'approbation: Jarvis propose, l'utilisateur decide. Distincte
+     d'un message, pour qu'on ne clique pas par habitude en lisant. */
+  .action{border:1px solid var(--corail);border-radius:12px;margin-bottom:11px;
+    background:rgba(244,63,94,.06);overflow:hidden;font-size:.76rem}
+  .action-tete{padding:8px 11px;border-bottom:1px solid var(--border);font-weight:650}
+  .action-corps{padding:9px 11px;color:var(--text)}
+  .action-raison{color:var(--muted);margin-bottom:7px}
+  .diff{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.68rem;
+    background:var(--surface);border:1px solid var(--border);border-radius:7px;
+    padding:6px 8px;margin-bottom:6px;max-height:150px;overflow:auto;
+    white-space:pre-wrap;overflow-wrap:anywhere}
+  .diff .sup{color:#FDA4AF} .diff .add{color:#6EE7B7}
+  .action-pied{padding:8px 11px;border-top:1px solid var(--border);display:flex;gap:7px}
+  .action-pied button{padding:6px 12px;border-radius:8px;border:0;cursor:pointer;
+    font-size:.74rem;font-weight:600;background:var(--indigo);color:#fff}
+  .action-pied button.refuser{background:transparent;border:1px solid var(--border);
+    color:var(--muted);font-weight:400}
+  .action-bilan{padding:8px 11px;border-top:1px solid var(--border);
+    color:var(--muted);font-size:.72rem}
   @keyframes blink{0%,60%,100%{opacity:.28;transform:translateY(0)}30%{opacity:1;transform:translateY(-3px)}}
 
   #banner{
@@ -165,9 +215,10 @@
       <svg viewBox="0 0 24 24"><path d="M12 2C9 6.5 6 9.9 6 13.5A6 6 0 0 0 18 13.5C18 9.9 15 6.5 12 2z"/></svg>
     </div>
     <div class="htxt">
-      <div class="htitle">Jarvis</div>
+      <div class="htitle">Jarvis<span class="badge-admin">ADMIN</span></div>
       <div class="hsub"><span class="dot" id="dot"></span><span id="status">Assistant CLIMAT-SEN</span></div>
     </div>
+    <button class="hquit" id="quit" title="Revenir au profil public">Quitter</button>
     <button class="hclose" id="close" title="Fermer" aria-label="Fermer">&#10005;</button>
   </header>
 
@@ -258,7 +309,8 @@
   var panel=$("panel"), log=$("log"), intro=$("intro"), input=$("input"),
       send=$("send"), fab=$("fab"), banner=$("banner"), dot=$("dot"), status=$("status");
 
-  var state = { open:false, busy:false, online:false, token:null, convId:null };
+  var state = { open:false, busy:false, online:false, token:null, convId:null,
+               admin:false };
 
   /* ---------- Dimensionnement de l'iframe -------------------------------
      Le widget s'epingle lui-meme en bas a droite de la page hote. Si l'acces
@@ -355,19 +407,90 @@
 
   // Sous-ensemble volontairement minimal de Markdown: gras, italique, code,
   // listes a puces. Pas de titres ni de tableaux, la bulle est trop etroite.
+  /* Rendu Markdown: titres, listes, tableaux, blocs de code, gras.
+     Le profil admin repond avec des tableaux; sans ce rendu, la bulle
+     affichait des lignes de tableau brutes.
+     TOUT est echappe AVANT assemblage: une reponse du modele ne peut donc
+     pas injecter de balise, ni dans le texte, ni dans une cellule. */
+  function enligne(t){
+    return escapeHtml(t)
+      .replace(/`([^`\n]+)`/g, "<code>$1</code>")
+      .replace(/\*\*([^*\n]+)\*\*/g, "<strong>$1</strong>")
+      .replace(/(^|[\s(])\*([^*\n]+)\*/g, "$1<em>$2</em>");
+  }
+  function cellules(l){
+    return l.trim().replace(/^\|/, "").replace(/\|$/, "").split("|")
+            .map(function(c){ return c.trim(); });
+  }
+  function estSeparateur(l){
+    return /^\s*\|?[\s:|-]+\|[\s:|-]*$/.test(l) && l.indexOf("-") !== -1;
+  }
+
   function mini(md){
-    var html = escapeHtml(md);
-    html = html.replace(/`([^`\n]+)`/g, "<code>$1</code>");
-    html = html.replace(/\*\*([^*\n]+)\*\*/g, "<strong>$1</strong>");
-    html = html.replace(/(^|[\s(])\*([^*\n]+)\*/g, "$1<em>$2</em>");
-    var lines = html.split("\n"), out = [], list = [];
-    function flush(){ if(list.length){ out.push("<ul>"+list.join("")+"</ul>"); list=[]; } }
-    for(var i=0;i<lines.length;i++){
-      var m = /^\s*[-*]\s+(.*)$/.exec(lines[i]);
-      if(m){ list.push("<li>"+m[1]+"</li>"); } else { flush(); out.push(lines[i]); }
+    var lignes = String(md).split("\n"), out = [], i = 0;
+    while(i < lignes.length){
+      var l = lignes[i];
+
+      if(/^\s*```/.test(l)){
+        var code = []; i++;
+        while(i < lignes.length && !/^\s*```/.test(lignes[i])){ code.push(lignes[i]); i++; }
+        i++;
+        out.push("<pre><code>" + escapeHtml(code.join("\n")) + "</code></pre>");
+        continue;
+      }
+
+      if(l.indexOf("|") !== -1 && i + 1 < lignes.length && estSeparateur(lignes[i+1])){
+        var entetes = cellules(l); i += 2;
+        var corps = [];
+        while(i < lignes.length && lignes[i].indexOf("|") !== -1 && lignes[i].trim()){
+          corps.push(cellules(lignes[i])); i++;
+        }
+        var t = '<div class="tableau"><table><thead><tr>';
+        entetes.forEach(function(c){ t += "<th>" + enligne(c) + "</th>"; });
+        t += "</tr></thead><tbody>";
+        corps.forEach(function(r){
+          t += "<tr>";
+          r.forEach(function(c){ t += "<td>" + enligne(c) + "</td>"; });
+          t += "</tr>";
+        });
+        out.push(t + "</tbody></table></div>");
+        continue;
+      }
+
+      var titre = /^(#{1,3})\s+(.*)$/.exec(l);
+      if(titre){
+        var n = titre[1].length;
+        out.push("<h" + n + ">" + enligne(titre[2]) + "</h" + n + ">");
+        i++; continue;
+      }
+
+      if(/^\s*([-*+]|\d+[.)])\s+/.test(l)){
+        var num = /^\s*\d+[.)]\s+/.test(l), items = [];
+        while(i < lignes.length && /^\s*([-*+]|\d+[.)])\s+/.test(lignes[i])){
+          items.push(lignes[i].replace(/^\s*([-*+]|\d+[.)])\s+/, "")); i++;
+        }
+        var b = num ? "ol" : "ul";
+        out.push("<" + b + ">" + items.map(function(x){
+          return "<li>" + enligne(x) + "</li>"; }).join("") + "</" + b + ">");
+        continue;
+      }
+
+      if(l.trim()){
+        var para = [];
+        while(i < lignes.length && lignes[i].trim()
+              && !/^(#{1,3})\s+/.test(lignes[i])
+              && !/^\s*([-*+]|\d+[.)])\s+/.test(lignes[i])
+              && !/^\s*```/.test(lignes[i])
+              && !(lignes[i].indexOf("|") !== -1 && i + 1 < lignes.length
+                   && estSeparateur(lignes[i+1]))){
+          para.push(lignes[i]); i++;
+        }
+        out.push("<p>" + enligne(para.join("\n")).replace(/\n/g, "<br>") + "</p>");
+        continue;
+      }
+      i++;
     }
-    flush();
-    return out.join("\n");
+    return out.join("");
   }
 
   function bubble(role, text){
@@ -408,6 +531,124 @@
   function clearOutil(){
     var el = document.getElementById("outil");
     if(el && el.parentNode){ el.parentNode.removeChild(el); }
+  }
+
+  /* ---------- Profil administrateur ------------------------------------- */
+  /* Interface unique: on tape son mot de passe dans le champ de saisie, la
+     session passe en admin. Le secret est intercepte cote serveur AVANT
+     journalisation, historique et appel au modele. */
+  function passerEnAdmin(d){
+    /* Retirer la bulle qui contient le mot de passe. Le serveur ne l'a ni
+       journalise, ni archive, ni transmis au modele -- mais il s'affichait
+       encore en clair dans le fil, lisible par-dessus l'epaule et conserve
+       jusqu'a la fermeture du panneau. Ce n'etait pas un message. */
+    var saisies = log.querySelectorAll(".msg.user");
+    if(saisies.length){
+      var derniere = saisies[saisies.length - 1];
+      if(derniere.parentNode){ derniere.parentNode.removeChild(derniere); }
+    }
+    state.token = d.token;
+    state.admin = true;
+    state.convId = null;              // on repart d'un fil propre
+    remember("token", d.token);
+    remember("admin", "1");
+    remember("conv", "");
+    document.body.classList.add("admin");
+    if(status){ status.textContent = "Session administrateur"; }
+    bubble("bot", "**Session administrateur ouverte.** Modele " +
+           (d.model || "admin") + ". Les outils de redaction sont disponibles : "
+           + "je peux chercher dans le memoire et l'article, et te *proposer* "
+           + "des corrections — que tu appliques toi-meme d'un clic.");
+  }
+
+  function quitterAdmin(){
+    var ancien = state.token;
+    state.admin = false; state.convId = null;
+    document.body.classList.remove("admin");
+    if(status){ status.textContent = "Assistant CLIMAT-SEN"; }
+    remember("admin", "0"); remember("conv", "");
+    fetch(API + "/api/admin/logout", {method:"POST", headers: headers()})
+      .catch(function(){})
+      .then(function(){
+        state.token = null; remember("token", "");
+        return newSession();
+      })
+      .then(function(){ bubble("bot", "Retour au profil public."); });
+  }
+
+  /* ---------- Propositions de modification ------------------------------ */
+  var actionsVues = {};
+
+  function carteAction(a){
+    if(actionsVues[a.id]){ return; }
+    actionsVues[a.id] = true;
+    var d = a.details || {};
+    var el = document.createElement("div");
+    el.className = "action";
+    var diffs = (d.changements || []).slice(0, 2).map(function(c){
+      return '<div class="diff"><span class="sup">&minus; ' + escapeHtml(c.avant) +
+             '</span>\n<span class="add">+ ' + escapeHtml(c.apres) + '</span></div>';
+    }).join("");
+    el.innerHTML =
+      '<div class="action-tete">&#9888; Proposition &mdash; ' +
+        escapeHtml(d.fichier || d.document || "document") + '</div>' +
+      '<div class="action-corps"><div class="action-raison">' +
+        escapeHtml(d.raison || "") + '</div>' + diffs +
+        '<div class="action-raison">' + (d.n_occurrences || 0) +
+        ' occurrence(s). Une sauvegarde horodatee est ecrite avant modification.' +
+      '</div></div>' +
+      '<div class="action-pied">' +
+        '<button data-oui="1">Appliquer</button>' +
+        '<button class="refuser" data-non="1">Refuser</button></div>';
+    log.appendChild(el);
+    el.querySelector("[data-oui]").addEventListener("click", function(){
+      trancherAction(a.id, "approve", el);
+    });
+    el.querySelector("[data-non]").addEventListener("click", function(){
+      trancherAction(a.id, "reject", el);
+    });
+    scroll();
+  }
+
+  function trancherAction(id, verdict, el){
+    var boutons = el.querySelectorAll("button");
+    for(var i=0;i<boutons.length;i++){ boutons[i].disabled = true; }
+    fetch(API + "/api/admin/actions/" + encodeURIComponent(id) + "/" + verdict,
+          {method:"POST", headers: headers()})
+      .then(function(r){ return r.json().then(function(d){ return {ok:r.ok, d:d}; }); })
+      .then(function(res){
+        var pied = el.querySelector(".action-pied");
+        if(!res.ok){
+          pied.outerHTML = '<div class="action-bilan">&#10005; ' +
+            escapeHtml((res.d.error && res.d.error.message) || "Echec.") + '</div>';
+          return;
+        }
+        if(verdict === "reject"){
+          pied.outerHTML = '<div class="action-bilan">&#10005; Refusee. Rien n\'a ete modifie.</div>';
+          return;
+        }
+        var r2 = res.d.resultat || {};
+        pied.outerHTML = '<div class="action-bilan">&#10003; Appliquee &mdash; ' +
+          (r2.n_occurrences || 0) + ' remplacement(s). Sauvegarde : ' +
+          escapeHtml(r2.sauvegarde || "") + '</div>';
+        scroll();
+      })
+      .catch(function(){
+        for(var j=0;j<boutons.length;j++){ boutons[j].disabled = false; }
+      });
+  }
+
+  function rafraichirActions(){
+    if(!state.admin || !state.token){ return; }
+    fetch(API + "/api/admin/actions", {headers: headers()})
+      .then(function(r){ return r.ok ? r.json() : null; })
+      .then(function(d){
+        if(!d){ return; }
+        (d.actions || []).forEach(function(a){
+          if(a.statut === "en_attente"){ carteAction(a); }
+        });
+      })
+      .catch(function(){});
   }
 
   function warn(title, detail){
@@ -478,6 +719,13 @@
         setOnline(true);
         var tok = recall("token");
         state.token = tok;
+        // Une session admin survit au remontage de l'iframe (Streamlit
+        // reexecute son script a chaque interaction).
+        if(tok && recall("admin") === "1"){
+          state.admin = true;
+          document.body.classList.add("admin");
+          if(status){ status.textContent = "Session administrateur"; }
+        }
         return (tok ? Promise.resolve() : newSession()).then(restore);
       })
       .catch(function(err){
@@ -562,6 +810,8 @@
         typing(false);
         clearOutil();
         state.busy = false; refreshSend();
+        // Une proposition a pu etre deposee pendant ce tour.
+        rafraichirActions();
         if(!failed && target === null){ /* flux vide: rien a afficher */ }
       });
 
@@ -571,6 +821,11 @@
           state.convId = data.conversation_id;
           remember("conv", data.conversation_id);
         }
+      } else if(name === "elevation"){
+        /* Le mot de passe a ete reconnu cote serveur: il n'est jamais
+           parti dans l'historique ni vers le modele. On bascule de jeton. */
+        typing(false);
+        passerEnAdmin(data);
       } else if(name === "tool"){
         typing(false);
         outil(data.label || "Consultation des donnees");
@@ -660,6 +915,7 @@
 
   fab.addEventListener("click", function(){ open(true); });
   $("close").addEventListener("click", shut);
+  $("quit").addEventListener("click", quitterAdmin);
 
   input.addEventListener("input", function(){ autoGrow(); refreshSend(); });
   input.addEventListener("keydown", function(e){

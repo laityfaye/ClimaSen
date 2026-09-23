@@ -20,7 +20,7 @@ from fastapi import Depends, FastAPI, Header, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
 
-from . import __version__, actions, auth, tools
+from . import __version__, actions, auth, elevation, tools
 from .claude_client import ClaudeClient
 from .config import Settings, get_settings
 from .conversations import ConversationStore
@@ -475,6 +475,53 @@ def create_app(settings: Optional[Settings] = None) -> FastAPI:
         conv = c.store.get(conversation_id, session.session_id)
         return ConversationResponse(**conv.to_public_dict())
 
+    async def _tenter_elevation(request: Request, payload: ChatRequest,
+                                session: SessionInfo, c: AppContext):
+        """Le message est-il le mot de passe admin ? Si oui, eleve la session.
+
+        Appele AVANT le rate limiting, la journalisation, l'historique et tout
+        appel a l'API: un mot de passe ne doit emprunter aucun de ces chemins.
+
+        Retourne le dict d'elevation, ou None pour poursuivre normalement. Le
+        second membre du couple indique s'il faut taire le texte du message
+        dans les journaux (tentative ratee: ce peut etre un mot de passe mal
+        tape).
+        """
+        if session.profile == "admin":
+            return None, False
+        if not elevation.ressemble_a_un_mot_de_passe(payload.message):
+            return None, False
+
+        ip = _client_ip(request, c.settings.trusted_proxy_hops, c.settings.proxies)
+        autorise, retry_after = c.login_bucket.consume(ip)
+        if not autorise:
+            # Meme seau que la route de connexion: le champ de saisie ne doit
+            # pas offrir un second guichet, plus permissif, pour essayer des
+            # mots de passe.
+            log_event("jarvis.admin", "elevation_bloquee", ip=ip,
+                      retry_after=retry_after)
+            raise RateLimitedError(
+                retry_after=retry_after,
+                message="Trop de tentatives. Reessayez plus tard.")
+
+        valide = await asyncio.to_thread(
+            auth.verifier, payload.message, c.settings.admin_password_hash)
+        if not valide:
+            # Echec: on poursuit comme une question ordinaire, mais sans
+            # recopier le texte dans les journaux.
+            return None, True
+
+        token, info = issue_token(c.settings.secret_key, profile="admin")
+        log_event("jarvis.admin", "elevation_reussie", ip=ip,
+                  session_id=info.session_id, depuis=session.session_id)
+        return {
+            "token": token,
+            "session_id": info.session_id,
+            "profile": "admin",
+            "expires_in": c.settings.admin_session_ttl_seconds,
+            "model": c.claude.model_for("admin"),
+        }, False
+
     def _prepare(request: Request, payload: ChatRequest, session: SessionInfo,
                  c: AppContext):
         """Controles communs aux deux routes de chat, avant tout appel facture."""
@@ -505,8 +552,19 @@ def create_app(settings: Optional[Settings] = None) -> FastAPI:
     async def chat_stream(request: Request, payload: ChatRequest,
                           session: SessionInfo = Depends(current_session),
                           c: AppContext = Depends(ctx)):
+        eleve, taire = await _tenter_elevation(request, payload, session, c)
+        if eleve:
+            # Le mot de passe s'arrete ici: ni historique, ni journal, ni API.
+            async def _flux_elevation():
+                yield _sse("elevation", eleve)
+                yield _sse("done", {"usage": {}})
+            return StreamingResponse(
+                _flux_elevation(), media_type="text/event-stream",
+                headers={"Cache-Control": "no-store", "X-Accel-Buffering": "no"})
+
         conv, messages = _prepare(request, payload, session, c)
-        preview = payload.message[: c.settings.log_preview_chars] if c.settings.log_prompts else None
+        preview = (payload.message[: c.settings.log_preview_chars]
+                   if c.settings.log_prompts and not taire else None)
         log_event("jarvis.%s" % session.profile, "chat_stream_start",
                   session_id=session.session_id,
                   conversation_id=conv.conversation_id,
@@ -586,6 +644,10 @@ def create_app(settings: Optional[Settings] = None) -> FastAPI:
     async def chat_sync(request: Request, payload: ChatRequest,
                         session: SessionInfo = Depends(current_session),
                         c: AppContext = Depends(ctx)):
+        eleve, _ = await _tenter_elevation(request, payload, session, c)
+        if eleve:
+            return JSONResponse({"elevation": eleve})
+
         conv, messages = _prepare(request, payload, session, c)
         result = await c.claude.complete(
             messages, session.profile,

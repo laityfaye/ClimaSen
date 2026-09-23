@@ -4,9 +4,9 @@ Assistant IA de la plateforme CLIMAT-SEN, adossé à l'API Claude (Anthropic).
 Un seul cerveau, deux profils d'accès : **public** (widget en lecture seule) et
 **admin** (Laity, accès complet — Phase 4).
 
-État : **Phase 6 — durcissement**. Les six phases sont livrées. Deux
-contournements ont été trouvés exploitables pendant la revue de sécurité, puis
-corrigés et verrouillés par des tests écrits comme des attaques.
+État : **livré**. Les six phases sont en place. **Une seule interface** : la
+bulle Jarvis du dashboard. On y tape son mot de passe dans le champ de saisie
+pour passer en profil administrateur.
 
 ---
 
@@ -49,7 +49,7 @@ py -3 -m pytest tests/test_jarvis_*.py -q
 Aucun test ne joint l'API Anthropic : le client Claude est remplacé par un
 double (`FakeClaude` dans `tests/conftest.py`). **La suite ne coûte rien.**
 
-Pour lancer l'ensemble du dépôt (Jarvis + téléconnexions, 559 tests, ~3 min) :
+Pour lancer l'ensemble du dépôt (Jarvis + téléconnexions, 581 tests, ~3 min) :
 
 ```bash
 py -3 -m pytest tests/ -q
@@ -225,6 +225,43 @@ la lecture. Sans ce signal, l'utilisateur voit plusieurs secondes de silence et
 croit la bulle bloquée.
 
 ---
+
+## Une seule interface
+
+La bulle du dashboard est le seul point d'entrée. Pour passer en administrateur,
+**tapez votre mot de passe dans le champ de saisie**, comme une question. Le
+panneau change alors d'aspect — badge `ADMIN`, bordure corail, lien *Quitter* —
+pour qu'on sache toujours à qui on parle.
+
+### Le secret ne suit pas le chemin d'un message
+
+Un message ordinaire est journalisé (extrait de 200 caractères), archivé dans
+l'historique de conversation et transmis à l'API Anthropic. Un mot de passe ne
+doit emprunter aucune de ces trois voies. L'interception a donc lieu **avant**
+elles, dans `jarvis/elevation.py` : le message est reconnu, la session élevée,
+et rien d'autre ne se produit. Trois tests le vérifient sur le contenu réel des
+journaux, sur les appels reçus par le client Claude et sur la taille du magasin
+de conversations.
+
+Le widget **retire aussi la bulle** qui affichait le mot de passe : côté serveur
+il n'a laissé aucune trace, mais il restait lisible à l'écran.
+
+### Deux écueils qui dictent la forme du code
+
+**Ne pas hacher chaque message.** Une vérification coûte 100 ms de `scrypt` :
+répondre à toute question par un hachage serait un déni de service à bon marché.
+Seuls les messages qui *ressemblent* à un mot de passe sont examinés — un seul
+bloc, sans espace, longueur plausible. Une question en langage naturel contient
+des espaces.
+
+**Ne pas répondre « mot de passe invalide ».** Un visiteur qui tape un mot isolé
+(« téléconnexions ») recevrait un refus au lieu d'une réponse. Une tentative
+ratée retombe donc sur le chemin normal — mais sans recopier le texte dans les
+journaux, puisque ce peut être un mot de passe mal tapé.
+
+**Le raccourci n'ouvre pas un second guichet.** Les tentatives par le champ de
+saisie consomment le **même** seau que la route de connexion : cinq essais par
+quart d'heure et par adresse, partagés entre les deux chemins.
 
 ## Le profil administrateur (Phase 4)
 
