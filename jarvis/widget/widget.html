@@ -58,7 +58,7 @@
 
   /* ---------- Panneau ---------- */
   #panel{
-    display:none;flex-direction:column;
+    display:none;flex-direction:column;position:relative;
     width:100%;height:100vh;max-height:100vh;
     background:var(--bg);border:1px solid var(--border);border-radius:18px;
     box-shadow:var(--shadow);overflow:hidden;
@@ -88,6 +88,29 @@
     display:flex;align-items:center;justify-content:center;transition:background .15s;
   }
   .hclose:hover{background:rgba(255,255,255,.28)}
+
+  /* ---------- Redimensionnement ----------
+     La carte est ancree en bas a droite: on l'agrandit en tirant son coin
+     SUPERIEUR GAUCHE, le seul qui soit libre de bouger. */
+  /* Assez visible pour qu'on devine le geste sans l'avoir appris: un coin
+     discret ne se voyait pas sur le degrade de l'entete. */
+  #grip{
+    position:absolute;top:0;left:0;width:30px;height:30px;cursor:nwse-resize;
+    z-index:5;border-radius:18px 0 0 0;transition:background .15s;
+  }
+  #grip::before, #grip::after{
+    content:"";position:absolute;background:rgba(255,255,255,.75);
+    border-radius:1px;transition:background .15s;
+  }
+  /* Deux traits en chevron, orientes vers le coin: la forme dit le sens. */
+  #grip::before{top:9px;left:7px;width:13px;height:2px;transform:rotate(-45deg)}
+  #grip::after{top:14px;left:5px;width:8px;height:2px;transform:rotate(-45deg)}
+  #grip:hover{background:rgba(255,255,255,.14)}
+  #grip:hover::before, #grip:hover::after{background:#fff}
+  body.redim{cursor:nwse-resize}
+  /* Pendant le glissement, la souris passe au-dessus du fil de discussion:
+     sans cela le texte se selectionne et le geste est saccade. */
+  body.redim #log, body.redim .msg{user-select:none}
 
   /* ---------- Messages ---------- */
   #log{flex:1;overflow-y:auto;padding:14px;background:var(--surface);display:flex;flex-direction:column;gap:10px}
@@ -210,6 +233,7 @@
 <body class="collapsed">
 
 <div id="panel">
+  <div id="grip" title="Redimensionner (tirer ce coin)"></div>
   <header>
     <div class="avatar">
       <svg viewBox="0 0 24 24"><path d="M12 2C9 6.5 6 9.9 6 13.5A6 6 0 0 0 18 13.5C18 9.9 15 6.5 12 2z"/></svg>
@@ -219,6 +243,7 @@
       <div class="hsub"><span class="dot" id="dot"></span><span id="status">Assistant CLIMAT-SEN</span></div>
     </div>
     <button class="hquit" id="quit" title="Revenir au profil public">Quitter</button>
+    <button class="hclose" id="agrandir" title="Agrandir / reduire" aria-label="Agrandir">&#9974;</button>
     <button class="hclose" id="close" title="Fermer" aria-label="Fermer">&#10005;</button>
   </header>
 
@@ -263,7 +288,22 @@
   var MODE  = "__JARVIS_MODE__";     // "flottant" (defaut) ou "pousse"
 
   var H_SHUT = 76;
-  var LARGEUR = 360;
+
+  // Taille choisie par l'utilisateur, conservee d'un remontage a l'autre.
+  // Streamlit reexecute son script a chaque interaction du dashboard, ce qui
+  // remonte l'iframe: sans memoire, la carte reprendrait sa taille par defaut
+  // a chaque clic ailleurs dans la page.
+  function tailleGardee(cle, defaut){
+    try{
+      var v = parseInt(sessionStorage.getItem("jarvis_" + cle), 10);
+      return (v && v > 0) ? v : defaut;
+    }catch(e){ return defaut; }
+  }
+  function garderTaille(cle, v){
+    try{ sessionStorage.setItem("jarvis_" + cle, String(v)); }catch(e){}
+  }
+
+  var LARGEUR = tailleGardee("w", 360);
 
   // Dimensions de la FENETRE HOTE.
   //
@@ -290,7 +330,7 @@
   function hauteurPanneau(){
     return Math.max(360, Math.min(560, vue().h - 150));
   }
-  var H_OPEN = hauteurPanneau();
+  var H_OPEN = tailleGardee("h", hauteurPanneau());
 
   document.documentElement.setAttribute("data-dark", DARK ? "true" : "false");
 
@@ -875,7 +915,10 @@
     state.open = true;
     document.body.classList.remove("collapsed");
     fab.classList.remove("has-alert");
-    H_OPEN = hauteurPanneau();
+    // On applique la taille RETENUE (re-bornee a la fenetre courante), et non
+    // une hauteur recalculee: sinon l'agrandissement serait perdu a chaque
+    // ouverture.
+    appliquerTaille(LARGEUR, H_OPEN, false);
     setHeight(H_OPEN);
     pousser(true);
     remember("open", "1");
@@ -894,13 +937,97 @@
     remember("open", "0");
   }
 
-  // La fenetre change de taille : on recalcule plutot que de garder une
-  // hauteur figee qui deborderait.
+  /* ---------- Redimensionnement a la souris ------------------------------
+     La carte est ancree en bas a droite de la page hote: c'est donc son coin
+     SUPERIEUR GAUCHE qu'on tire. Ce n'est pas le panneau qu'on redimensionne
+     mais l'IFRAME elle-meme -- le panneau la remplit (height:100vh), et une
+     iframe ne peut pas deborder de la taille que l'hote lui donne. */
+  function bornes(){
+    var v = vue();
+    return {wMin: 300, hMin: 320,
+            wMax: Math.max(300, v.w - 36),
+            hMax: Math.max(320, v.h - 36)};
+  }
+
+  function appliquerTaille(w, h, memoriser){
+    var b = bornes();
+    LARGEUR = Math.round(Math.min(Math.max(w, b.wMin), b.wMax));
+    H_OPEN  = Math.round(Math.min(Math.max(h, b.hMin), b.hMax));
+    if(pinned && frame){
+      try{
+        frame.style.setProperty("width", LARGEUR + "px", "important");
+        if(state.open){ frame.style.setProperty("height", H_OPEN + "px", "important"); }
+      }catch(e){}
+    }
+    if(memoriser !== false){
+      garderTaille("w", LARGEUR);
+      garderTaille("h", H_OPEN);
+    }
+  }
+
+  var redim = null;
+
+  function ecouterRedim(actif){
+    var m = actif ? "addEventListener" : "removeEventListener";
+    document[m]("mousemove", pendantRedim);
+    document[m]("mouseup", finirRedim);
+    // La souris quitte l'iframe des que la carte s'agrandit: sans ecouter
+    // AUSSI la page hote, le geste s'interrompait au premier pixel. On n'y
+    // ajoute que des ecouteurs, retires des le relachement -- aucun
+    // conteneur de l'hote n'est modifie.
+    try{
+      var d = window.parent.document;
+      d[m]("mousemove", pendantRedim);
+      d[m]("mouseup", finirRedim);
+    }catch(e){}
+  }
+
+  function demarrerRedim(e){
+    e.preventDefault();
+    // Coordonnees ECRAN: les coordonnees client changeraient de repere au
+    // moment meme ou l'iframe se redimensionne sous le curseur.
+    redim = {x: e.screenX, y: e.screenY, w: LARGEUR, h: H_OPEN};
+    document.body.classList.add("redim");
+    ecouterRedim(true);
+  }
+
+  function pendantRedim(e){
+    if(!redim){ return; }
+    appliquerTaille(redim.w + (redim.x - e.screenX),
+                    redim.h + (redim.y - e.screenY), false);
+  }
+
+  function finirRedim(){
+    if(!redim){ return; }
+    redim = null;
+    document.body.classList.remove("redim");
+    ecouterRedim(false);
+    garderTaille("w", LARGEUR);
+    garderTaille("h", H_OPEN);
+  }
+
+  function estPleineTaille(){
+    var b = bornes();
+    return LARGEUR >= b.wMax - 4 && H_OPEN >= b.hMax - 4;
+  }
+
+  function basculerTaille(){
+    var b = bornes();
+    if(estPleineTaille()){
+      appliquerTaille(tailleGardee("w0", 360), tailleGardee("h0", hauteurPanneau()));
+    }else{
+      garderTaille("w0", LARGEUR);
+      garderTaille("h0", H_OPEN);
+      appliquerTaille(b.wMax, b.hMax);
+    }
+  }
+
+  // La fenetre hote change de taille : on se contente de re-borner la taille
+  // choisie, sans l'ecraser -- une carte agrandie a la main doit le rester.
   function surRedimensionnement(){
-    var nouvelle = hauteurPanneau();
-    if(nouvelle === H_OPEN) return;      // evite toute boucle de redimensionnement
-    H_OPEN = nouvelle;
-    if(state.open){ setHeight(H_OPEN); }
+    var avantW = LARGEUR, avantH = H_OPEN;
+    appliquerTaille(LARGEUR, H_OPEN, false);
+    if(LARGEUR === avantW && H_OPEN === avantH){ return; }
   }
   // Sur la fenetre hote : c est elle qui change quand l utilisateur
   // redimensionne son navigateur. L evenement resize de l iframe, lui, se
@@ -916,6 +1043,15 @@
   fab.addEventListener("click", function(){ open(true); });
   $("close").addEventListener("click", shut);
   $("quit").addEventListener("click", quitterAdmin);
+  $("grip").addEventListener("mousedown", demarrerRedim);
+  $("agrandir").addEventListener("click", basculerTaille);
+  // Hors iframe (page autonome /jarvis/widget.html), le panneau occupe deja
+  // toute la fenetre: redimensionner n'a plus de sens, et la poignee
+  // promettrait un geste sans effet.
+  if(!pinned){
+    $("grip").style.display = "none";
+    $("agrandir").style.display = "none";
+  }
 
   input.addEventListener("input", function(){ autoGrow(); refreshSend(); });
   input.addEventListener("keydown", function(e){
