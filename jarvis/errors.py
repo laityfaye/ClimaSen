@@ -13,6 +13,8 @@ class JarvisError(Exception):
     code = "internal_error"
     status = 500
     message = "Une erreur interne est survenue."
+    # Precision technique destinee AU JOURNAL uniquement, jamais au client.
+    detail = None
 
     def __init__(self, message=None, code=None, status=None):
         super().__init__(message or self.message)

@@ -71,6 +71,19 @@ def _decoder(stocke: str):
     return n, r, p, _b64d(morceaux[4]), _b64d(morceaux[5])
 
 
+_SEL_FACTICE = b"\x00" * LONGUEUR_SEL
+
+
+def _travail_factice(mot_de_passe: str) -> None:
+    """Consomme le meme temps qu'une verification reelle, et jette le resultat."""
+    try:
+        hashlib.scrypt(mot_de_passe.encode("utf-8"), salt=_SEL_FACTICE,
+                       n=N_DEFAUT, r=R_DEFAUT, p=P_DEFAUT,
+                       dklen=LONGUEUR_CLE, maxmem=MAXMEM)
+    except Exception:  # pragma: no cover - ne doit jamais influencer l'appelant
+        pass
+
+
 def verifier(mot_de_passe: str, stocke: str) -> bool:
     """Verifie un mot de passe contre un hache stocke.
 
@@ -78,7 +91,14 @@ def verifier(mot_de_passe: str, stocke: str) -> bool:
     ici distinguerait "mal configure" de "mauvais mot de passe" dans la reponse
     HTTP, ce qui renseignerait un attaquant.
     """
-    if not mot_de_passe or not stocke:
+    if not mot_de_passe:
+        return False
+    if not stocke:
+        # Profil admin non configure. Repondre tout de suite creerait un
+        # oracle temporel: une reponse en 1 ms au lieu de 100 ms dirait a
+        # l'attaquant qu'il n'y a aucun mot de passe a chercher ici. On fait
+        # donc le meme travail, pour rien.
+        _travail_factice(mot_de_passe)
         return False
     try:
         n, r, p, sel, attendu = _decoder(stocke)

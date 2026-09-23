@@ -67,6 +67,17 @@ class AppContext:
             refill_per_second=(settings.admin_login_max_attempts
                                / max(1.0, float(settings.admin_login_window_seconds))),
         )
+        # Plafonds par ADRESSE, distincts des plafonds par session: un jeton
+        # de session s'obtient sans authentification, il ne peut donc pas etre
+        # le seul point d'ancrage du debit.
+        self.ip_bucket = TokenBucket(
+            capacity=settings.rate_limit_ip_capacity,
+            refill_per_second=settings.rate_limit_ip_refill_per_second,
+        )
+        self.admin_ip_bucket = TokenBucket(
+            capacity=settings.admin_rate_limit_capacity * 2,
+            refill_per_second=settings.admin_rate_limit_refill_per_second * 2,
+        )
         self.revoques = JetonsRevoques()
         # Propositions de modification en attente d'approbation (Phase 5).
         self.actions = actions.RegistreActions(
@@ -75,6 +86,9 @@ class AppContext:
 
     def bucket_for(self, profile: str) -> TokenBucket:
         return self.admin_bucket if profile == "admin" else self.bucket
+
+    def ip_bucket_for(self, profile: str) -> TokenBucket:
+        return self.admin_ip_bucket if profile == "admin" else self.ip_bucket
 
     def tool_specs(self, profile: str):
         """Outils exposes au modele pour ce profil, ou None si desactives."""
@@ -110,12 +124,37 @@ def _sse(event: str, payload: dict) -> str:
     return "event: %s\ndata: %s\n\n" % (event, json.dumps(payload, ensure_ascii=False))
 
 
-def _client_ip(request: Request) -> str:
-    # nginx transmet X-Forwarded-For; on ne garde que la premiere adresse.
+def _client_ip(request: Request, hops: int = 1, proxies=()) -> str:
+    """Adresse du client, en ne croyant l'en-tete que lorsqu'il est credible.
+
+    Faille corrigee en Phase 6, verifiee exploitable: l'anti-force brute de
+    la connexion admin ne bloquait plus rien des lors que l'attaquant
+    changeait d'adresse declaree a chaque essai (12 tentatives, 12 adresses,
+    aucun blocage).
+
+    Deux erreurs se cumulaient:
+
+    1. X-Forwarded-For etait cru sur parole. Il est ecrit par le CLIENT, et
+       nginx (`$proxy_add_x_forwarded_for`) se contente d'AJOUTER l'adresse
+       reelle a la fin sans effacer ce qui precede. L'en-tete ne vaut donc
+       que si la requete vient bien de notre proxy: sinon, seule l'adresse
+       du pair compte.
+    2. La PREMIERE entree etait retenue -- justement celle que le client
+       controle. C'est la derniere qui est ecrite par notre nginx.
+
+    `hops` vaut le nombre de proxys de confiance en amont (1 = nginx seul,
+    2 si un CDN s'ajoute devant).
+    """
+    pair = request.client.host if request.client else "unknown"
+    if pair not in proxies:
+        # Connexion directe: l'en-tete est purement declaratif, on l'ignore.
+        return pair
     forwarded = request.headers.get("x-forwarded-for")
     if forwarded:
-        return forwarded.split(",")[0].strip()
-    return request.client.host if request.client else "unknown"
+        adresses = [a.strip() for a in forwarded.split(",") if a.strip()]
+        if adresses:
+            return adresses[max(0, len(adresses) - max(1, hops))]
+    return pair
 
 
 def create_app(settings: Optional[Settings] = None) -> FastAPI:
@@ -168,6 +207,35 @@ def create_app(settings: Optional[Settings] = None) -> FastAPI:
         cors["allow_origins"] = settings.origins
     app.add_middleware(CORSMiddleware, **cors)
 
+    # --- en-tetes de securite -------------------------------------------------
+    # La console affiche du texte produit par un modele, et le widget est
+    # injecte dans une page tierce. L'echappement du rendu est la premiere
+    # barriere; la CSP est la seconde, celle qui tient encore si la premiere
+    # cede un jour. Tout est en ligne dans les deux pages -- aucune ressource
+    # externe n'est chargee -- d'ou 'self' avec 'unsafe-inline' pour les
+    # styles et scripts embarques, et rien d'autre.
+    CSP = ("default-src 'self'; "
+           "script-src 'self' 'unsafe-inline'; "
+           "style-src 'self' 'unsafe-inline'; "
+           "img-src 'self' data:; "
+           "connect-src 'self' " + " ".join(settings.origins) + "; "
+           "object-src 'none'; base-uri 'none'; form-action 'none'; "
+           # Le widget est legitimement dans une iframe Streamlit; la console
+           # n'a aucune raison d'etre encadree par qui que ce soit.
+           "frame-ancestors 'self' " + " ".join(settings.origins))
+
+    @app.middleware("http")
+    async def _entetes_securite(request: Request, call_next):
+        reponse = await call_next(request)
+        reponse.headers.setdefault("X-Content-Type-Options", "nosniff")
+        reponse.headers.setdefault("Referrer-Policy", "no-referrer")
+        reponse.headers.setdefault("Content-Security-Policy", CSP)
+        if settings.env == "prod":
+            # Ne vaut que derriere HTTPS, ce qui est le cas en production.
+            reponse.headers.setdefault(
+                "Strict-Transport-Security", "max-age=31536000; includeSubDomains")
+        return reponse
+
     # --- gestion d'erreurs ---------------------------------------------------
     @app.exception_handler(JarvisError)
     async def _jarvis_error(request: Request, exc: JarvisError):
@@ -216,14 +284,34 @@ def create_app(settings: Optional[Settings] = None) -> FastAPI:
         return session
 
     def enforce_rate_limit(request: Request, session: SessionInfo) -> None:
+        """Deux plafonds INDEPENDANTS, tous deux a franchir.
+
+        La cle combinee "session|ip" utilisee jusqu'en Phase 6 ne tenait pas:
+        un jeton de session s'obtient sans authentification, donc en demander
+        un neuf a chaque message changeait la cle et remettait le seau a zero
+        (verifie: 10 messages, 10 sessions, aucun blocage). Le commentaire
+        d'origine affirmait le contraire.
+
+        Desormais l'adresse est un plafond a elle seule -- on ne peut plus s'y
+        soustraire en changeant de session -- et la session en est un autre,
+        pour qu'un seul visiteur derriere un NAT partage n'epuise pas le
+        plafond commun a lui tout seul.
+        """
         c = request.app.state.ctx
-        # Cle combinee: changer de session ne suffit pas a repartir a zero,
-        # et une IP partagee (NAT) ne penalise pas tout le monde d'un coup.
-        key = "%s|%s" % (session.session_id, _client_ip(request))
-        allowed, retry_after = c.bucket_for(session.profile).consume(key)
+        ip = _client_ip(request, c.settings.trusted_proxy_hops, c.settings.proxies)
+
+        allowed, retry_after = c.ip_bucket_for(session.profile).consume(ip)
         if not allowed:
             log_event("jarvis.%s" % session.profile, "rate_limited",
-                      session_id=session.session_id, retry_after=retry_after)
+                      motif="ip", session_id=session.session_id,
+                      retry_after=retry_after)
+            raise RateLimitedError(retry_after=retry_after)
+
+        allowed, retry_after = c.bucket_for(session.profile).consume(session.session_id)
+        if not allowed:
+            log_event("jarvis.%s" % session.profile, "rate_limited",
+                      motif="session", session_id=session.session_id,
+                      retry_after=retry_after)
             raise RateLimitedError(retry_after=retry_after)
 
     # --- routes ---------------------------------------------------------------
@@ -243,7 +331,7 @@ def create_app(settings: Optional[Settings] = None) -> FastAPI:
     async def create_session(request: Request, c: AppContext = Depends(ctx)):
         token, info = issue_token(c.settings.secret_key, profile="public")
         log_event("jarvis.public", "session_created",
-                  session_id=info.session_id, ip=_client_ip(request))
+                  session_id=info.session_id, ip=_client_ip(request, c.settings.trusted_proxy_hops, c.settings.proxies))
         return SessionResponse(
             token=token,
             session_id=info.session_id,
@@ -262,7 +350,7 @@ def create_app(settings: Optional[Settings] = None) -> FastAPI:
         indiquerait a un attaquant si la cible existe; distinguer la troisieme
         lui dirait quand reessayer.
         """
-        ip = _client_ip(request)
+        ip = _client_ip(request, c.settings.trusted_proxy_hops, c.settings.proxies)
         autorise, retry_after = c.login_bucket.consume(ip)
         if not autorise:
             log_event("jarvis.admin", "login_bloque", ip=ip, retry_after=retry_after)
@@ -296,7 +384,7 @@ def create_app(settings: Optional[Settings] = None) -> FastAPI:
                            session: SessionInfo = Depends(require_admin),
                            c: AppContext = Depends(ctx)):
         c.revoques.revoquer(session.session_id, c.settings.admin_session_ttl_seconds)
-        log_event("jarvis.admin", "logout", ip=_client_ip(request),
+        log_event("jarvis.admin", "logout", ip=_client_ip(request, c.settings.trusted_proxy_hops, c.settings.proxies),
                   session_id=session.session_id)
         return {"status": "ok"}
 
@@ -344,7 +432,7 @@ def create_app(settings: Optional[Settings] = None) -> FastAPI:
         except Exception as exc:
             c.actions.marquer(action, actions.REFUSEE, {"erreur": str(exc)})
             log.exception("Echec de l'action %s", action_id)
-            log_event("jarvis.admin", "action_echouee", ip=_client_ip(request),
+            log_event("jarvis.admin", "action_echouee", ip=_client_ip(request, c.settings.trusted_proxy_hops, c.settings.proxies),
                       session_id=session.session_id, action_id=action_id,
                       type=action.type)
             raise JarvisError(
@@ -353,7 +441,7 @@ def create_app(settings: Optional[Settings] = None) -> FastAPI:
 
         c.actions.marquer(action, actions.APPLIQUEE, resultat)
         # Piste d'audit: quoi, par qui, avec quel resultat.
-        log_event("jarvis.admin", "action_appliquee", ip=_client_ip(request),
+        log_event("jarvis.admin", "action_appliquee", ip=_client_ip(request, c.settings.trusted_proxy_hops, c.settings.proxies),
                   session_id=session.session_id, action_id=action_id,
                   type=action.type, cible=resultat.get("fichier"),
                   n_occurrences=resultat.get("n_occurrences"),
@@ -369,7 +457,7 @@ def create_app(settings: Optional[Settings] = None) -> FastAPI:
         except actions.ActionIntrouvable as exc:
             raise JarvisError(str(exc), code="action_introuvable", status=404)
         c.actions.marquer(action, actions.REFUSEE)
-        log_event("jarvis.admin", "action_refusee", ip=_client_ip(request),
+        log_event("jarvis.admin", "action_refusee", ip=_client_ip(request, c.settings.trusted_proxy_hops, c.settings.proxies),
                   session_id=session.session_id, action_id=action_id,
                   type=action.type)
         return {"statut": "refusee"}
@@ -459,7 +547,8 @@ def create_app(settings: Optional[Settings] = None) -> FastAPI:
                 _commit(c, conv, payload.message, "".join(parts))
                 log_event("jarvis.%s" % session.profile, "chat_stream_error",
                           session_id=session.session_id,
-                          conversation_id=conv.conversation_id, code=exc.code)
+                          conversation_id=conv.conversation_id, code=exc.code,
+                          detail=exc.detail)
                 yield _sse("error", {"code": exc.code, "message": exc.message})
                 return
             except asyncio.CancelledError:

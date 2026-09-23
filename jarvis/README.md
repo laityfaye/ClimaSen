@@ -4,9 +4,9 @@ Assistant IA de la plateforme CLIMAT-SEN, adossé à l'API Claude (Anthropic).
 Un seul cerveau, deux profils d'accès : **public** (widget en lecture seule) et
 **admin** (Laity, accès complet — Phase 4).
 
-État : **Phase 5 — premiers outils d'action**. Le widget public reste en
-lecture seule ; la console admin peut corriger le mémoire et l'article, mais
-**Jarvis ne fait que proposer** : l'écriture part d'un clic de l'utilisateur.
+État : **Phase 6 — durcissement**. Les six phases sont livrées. Deux
+contournements ont été trouvés exploitables pendant la revue de sécurité, puis
+corrigés et verrouillés par des tests écrits comme des attaques.
 
 ---
 
@@ -49,7 +49,7 @@ py -3 -m pytest tests/test_jarvis_*.py -q
 Aucun test ne joint l'API Anthropic : le client Claude est remplacé par un
 double (`FakeClaude` dans `tests/conftest.py`). **La suite ne coûte rien.**
 
-Pour lancer l'ensemble du dépôt (Jarvis + téléconnexions, 545 tests, ~3 min) :
+Pour lancer l'ensemble du dépôt (Jarvis + téléconnexions, 559 tests, ~3 min) :
 
 ```bash
 py -3 -m pytest tests/ -q
@@ -327,6 +327,67 @@ Les paramètres sont volontairement tolérants : `"nino 3.4"`, `"pleine saison"`
 `"kedougou"` sont acceptés. Le modèle n'écrit pas toujours la forme exacte du
 fichier, et une erreur évitée est un appel API économisé.
 
+## Revue de sécurité (Phase 6)
+
+Deux failles **vérifiées exploitables** sur le code des phases précédentes, et
+non théoriques : chacune a été reproduite avant d'être corrigée.
+
+### 1. Anti-force brute contournable — `X-Forwarded-For`
+
+*Constat : 12 tentatives de connexion, 12 adresses déclarées, **aucun
+blocage**.*
+
+nginx était configuré avec `$proxy_add_x_forwarded_for`, qui **conserve**
+l'en-tête envoyé par le client et se contente d'ajouter l'adresse réelle à la
+fin. Le code lisait la **première** valeur — précisément celle que le client
+contrôle. Il suffisait d'en changer à chaque essai pour repartir d'un compteur
+neuf : le mot de passe admin devenait attaquable à une dizaine d'essais par
+seconde.
+
+Corrigé sur deux plans, indépendants l'un de l'autre :
+
+- **côté application** : l'en-tête n'est cru que si la requête vient d'un proxy
+  de confiance (`JARVIS_TRUSTED_PROXIES`), et la valeur est lue **depuis la
+  droite** — la seule que notre nginx écrit ;
+- **côté nginx** : `X-Forwarded-For $remote_addr` **réécrit** l'en-tête au lieu
+  de l'allonger, donc plus rien du client n'y subsiste.
+
+### 2. Plafond de débit contournable — rotation de session
+
+*Constat : 10 messages avec 10 jetons de session neufs depuis la même adresse,
+**aucun blocage**.*
+
+La clé du seau était `session_id|ip`. Or un jeton de session s'obtient **sans
+authentification** : en demander un neuf à chaque message changeait la clé et
+remettait le compteur à zéro. Le commentaire du code affirmait le contraire.
+
+Il y a désormais **deux plafonds indépendants, tous deux à franchir** : un par
+adresse (qu'on ne peut plus fuir) et un par session (qui borne une rafale et
+évite qu'un seul visiteur derrière un NAT épuise le plafond commun). Le journal
+indique lequel des deux a bloqué — sans quoi le réglage se ferait à l'aveugle.
+
+### 3. Oracle temporel sur un profil non configuré
+
+Sans mot de passe configuré, la réponse arrivait en 1 ms au lieu de 100 :
+mesurer le temps de réponse suffisait à savoir qu'il n'y avait rien à chercher.
+La vérification fait désormais le même travail, pour rien.
+
+### En-têtes de sécurité
+
+`Content-Security-Policy` (`default-src 'self'`, pas de ressource externe),
+`X-Content-Type-Options: nosniff`, `Referrer-Policy`, et `Strict-Transport-Security`
+en production. La console affiche du texte produit par un modèle : l'échappement
+du rendu est la première barrière, la CSP est celle qui tient si la première
+cède.
+
+### Ce que la revue n'a pas trouvé
+
+Pas de traversée de répertoire (les outils ne manipulent que des **clés**
+logiques, jamais un chemin venu du modèle), pas de secret dans les journaux
+(vérifié sur leur contenu réel), pas d'élévation de profil (un jeton forgé ou
+modifié est rejeté), pas d'écriture accessible au modèle (§ protocole
+d'approbation).
+
 ## Coût et exploitation
 
 Modèle public `claude-sonnet-5` : 2 $ / M tokens en entrée, 10 $ / M en sortie.
@@ -360,7 +421,7 @@ Le rate limiting par défaut (12 en rafale, 6/minute) borne ce que peut consomme
 un visiteur seul ; `JARVIS_MAX_TOOL_ROUNDS` borne ce que peut coûter une seule
 question.
 
-## Limites connues (Phase 5)
+## Limites connues (Phase 6)
 
 - **État en mémoire** : conversations, sessions et compteurs de débit vivent
   dans le process. Un redémarrage les efface, et plusieurs workers uvicorn ne
@@ -383,9 +444,14 @@ question.
   c'est voulu.
 - **Propositions en mémoire.** Un redémarrage annule celles qui attendent —
   préférable à une écriture approuvable dont plus personne ne se souvient.
-- **Session admin en mémoire.** La liste de révocation vit dans le process :
-  un redémarrage rouvre les jetons révoqués non expirés. Sans conséquence à un
-  seul administrateur et `--workers 1`, à revoir en Phase 6.
+- **Tout l'état vit en mémoire** : conversations, compteurs de débit, sessions
+  révoquées, propositions en attente. D'où `--workers 1`, qui n'est pas un
+  détail : avec plusieurs processus, chacun aurait ses propres compteurs et les
+  plafonds seraient multipliés d'autant. Le `limit_req` nginx est la deuxième
+  ligne de défense, indépendante du nombre de processus.
+- **Les journaux gardent un extrait des questions** (200 caractères), y compris
+  côté public. Utile pour mesurer l'usage, à considérer si la plateforme
+  s'ouvre largement : `JARVIS_LOG_PROMPTS=false` le désactive.
 
 ## Déploiement (préparé, non appliqué)
 

@@ -100,8 +100,22 @@ class Settings(BaseSettings):
     max_conversations: int = 2000             # garde-fou memoire
 
     # --- Rate limiting public ------------------------------------------------
-    rate_limit_capacity: int = 12             # rafale autorisee
-    rate_limit_refill_per_minute: float = 6.0 # regime permanent
+    # Deux plafonds independants, tous deux a franchir (voir enforce_rate_limit).
+    rate_limit_capacity: int = 12             # par SESSION: rafale autorisee
+    rate_limit_refill_per_minute: float = 6.0 # par SESSION: regime permanent
+    # Par ADRESSE: plus large, pour ne pas penaliser un NAT partage, mais
+    # fini -- c'est ce plafond qu'on ne peut pas contourner en changeant de
+    # session, un jeton s'obtenant sans authentification.
+    rate_limit_ip_capacity: int = 40
+    rate_limit_ip_refill_per_minute: float = 20.0
+    # Nombre de proxys de confiance devant le service (1 = nginx seul).
+    # Sert a lire X-Forwarded-For depuis la DROITE: les entrees de gauche sont
+    # celles que le client a pu ecrire lui-meme.
+    trusted_proxy_hops: int = 1
+    # Adresses dont on accepte X-Forwarded-For. Hors de cette liste,
+    # l'en-tete est ignore et seule l'adresse du pair compte: un client
+    # qui joint le service en direct ne doit pas pouvoir declarer qui il est.
+    trusted_proxies: str = "127.0.0.1,::1"
 
     # --- Reseau / logs --------------------------------------------------------
     allowed_origins: str = "http://localhost:8501,http://127.0.0.1:8501"
@@ -110,12 +124,17 @@ class Settings(BaseSettings):
     log_preview_chars: int = 200
 
     @field_validator("max_turns", "max_message_chars", "max_history_chars",
-                     "tool_result_max_chars")
+                     "tool_result_max_chars", "rate_limit_ip_capacity",
+                     "trusted_proxy_hops")
     @classmethod
     def _positive(cls, v):
         if v <= 0:
             raise ValueError("doit etre strictement positif")
         return v
+
+    @property
+    def proxies(self) -> set:
+        return {p.strip() for p in self.trusted_proxies.split(",") if p.strip()}
 
     @property
     def origins(self) -> List[str]:
@@ -124,6 +143,10 @@ class Settings(BaseSettings):
     @property
     def rate_limit_refill_per_second(self) -> float:
         return self.rate_limit_refill_per_minute / 60.0
+
+    @property
+    def rate_limit_ip_refill_per_second(self) -> float:
+        return self.rate_limit_ip_refill_per_minute / 60.0
 
     @property
     def admin_rate_limit_refill_per_second(self) -> float:

@@ -88,8 +88,13 @@ def _translate(exc: Exception) -> UpstreamError:
         log.error("Erreur API Anthropic %s: %s", getattr(exc, "status_code", "?"), exc)
         return UpstreamError(code="upstream_error")
 
+    # Le type d'exception est conserve pour le journal: une erreur
+    # "upstream_error" sans autre indication est indiagnosticable a posteriori
+    # (constate en Phase 6 sur une erreur isolee, impossible a expliquer).
     log.exception("Erreur inattendue lors de l'appel a l'API Claude.")
-    return UpstreamError(code="upstream_error")
+    erreur = UpstreamError(code="upstream_error")
+    erreur.detail = type(exc).__name__
+    return erreur
 
 
 def _usage_dict(message) -> dict:
