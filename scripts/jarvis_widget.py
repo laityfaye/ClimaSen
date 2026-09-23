@@ -50,18 +50,21 @@ def est_active() -> bool:
 def _mode() -> str:
     """Mode d affichage du panneau.
 
-    Defaut "pousse" : le contenu du dashboard se decale pendant que le panneau
-    est ouvert. Mesure au navigateur sur la page Evenements (1361x680) :
-    129 elements de contenu passaient sous le panneau en mode flottant, 0 en
-    mode pousse -- et les graphiques Plotly se redimensionnent proprement, leur
-    SVG suivant son conteneur sans rognage.
+    Defaut "flottant" : la carte se superpose au dashboard sans rien deplacer.
 
-    JARVIS_WIDGET_MODE=flottant pour revenir au recouvrement classique.
-    Sous 1100 px de large, le widget retombe de lui-meme sur le recouvrement :
-    decaler de 400 px ecraserait le contenu.
+    Le defaut a longtemps ete "pousse", sur la foi d'une mesure : sur la page
+    Evenements en 1361x680, 129 elements de contenu passaient sous le panneau
+    en flottant, 0 en pousse. L'argument ne tient plus depuis que la carte est
+    redimensionnable : c'est l'utilisateur qui decide de la place qu'elle
+    prend, et voir la mise en page du dashboard se reorganiser a chaque
+    ouverture est plus derangeant qu'un coin masque.
+
+    JARVIS_WIDGET_MODE=pousse retablit le decalage. Sous 1100 px de large, ce
+    mode retombe de lui-meme sur le recouvrement : decaler de 400 px
+    ecraserait le contenu.
     """
-    valeur = os.environ.get("JARVIS_WIDGET_MODE", "pousse").strip().lower()
-    return valeur if valeur in ("flottant", "pousse") else "pousse"
+    valeur = os.environ.get("JARVIS_WIDGET_MODE", "flottant").strip().lower()
+    return valeur if valeur in ("flottant", "pousse") else "flottant"
 
 
 derniere_erreur = None

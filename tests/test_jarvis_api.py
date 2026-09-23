@@ -401,19 +401,36 @@ def test_le_mode_pousse_ne_modifie_que_la_marge():
             "le mode pousse modifie %r sur le DOM parent" % interdit)
 
 
-def test_le_mode_par_defaut_decale_le_contenu(monkeypatch):
-    """Mesure au navigateur : en mode flottant, 129 elements de contenu
-    passaient sous le panneau sur la page Evenements ; 0 en mode pousse."""
+def test_le_mode_par_defaut_recouvre_sans_deplacer(monkeypatch):
+    """La carte se superpose au dashboard sans rien deplacer.
+
+    Le defaut a longtemps ete "pousse" sur la foi d une mesure (129 elements
+    de contenu passaient sous le panneau en flottant, 0 en pousse). L argument
+    est tombe quand la carte est devenue redimensionnable : c est
+    l utilisateur qui decide de la place qu elle prend, et voir la mise en
+    page se reorganiser a chaque ouverture derange davantage qu un coin
+    masque.
+    """
     import sys
     sys.path.insert(0, "scripts")
     import jarvis_widget
 
     monkeypatch.delenv("JARVIS_WIDGET_MODE", raising=False)
+    assert jarvis_widget._mode() == "flottant"
+
+
+def test_le_mode_pousse_reste_disponible(monkeypatch):
+    import sys
+    sys.path.insert(0, "scripts")
+    import jarvis_widget
+
+    monkeypatch.setenv("JARVIS_WIDGET_MODE", "pousse")
     assert jarvis_widget._mode() == "pousse"
     monkeypatch.setenv("JARVIS_WIDGET_MODE", "flottant")
     assert jarvis_widget._mode() == "flottant"
+    # Valeur invalide : on retombe sur le defaut, qui recouvre sans deplacer.
     monkeypatch.setenv("JARVIS_WIDGET_MODE", "nimporte quoi")
-    assert jarvis_widget._mode() == "pousse"
+    assert jarvis_widget._mode() == "flottant"
 
 
 def test_la_poussee_est_desactivee_sur_ecran_etroit():
