@@ -1295,6 +1295,104 @@ html, body {{
     .kpi {{ padding: 14px 15px !important; }}
 }}
 
+/* ══════════════════════════════════════════════════════════
+   TELEPHONE (<640px) : organisation des pages
+   Place APRES les regles ci-dessus, qu'il corrige :
+   - la regle "<420px" remettait KPI et mini-cartes sur UNE colonne,
+     or la plupart des telephones font 360-414 px : 4 KPI empiles
+     occupaient deux ecrans ;
+   - les colonnes a 50 % ignoraient l'ecart entre colonnes (gap) : la
+     seconde carte passait a la ligne, d'ou une colonne unique la aussi.
+   ══════════════════════════════════════════════════════════ */
+@media (max-width: 640px) {{
+    /* KPI et mini-cartes evenements : 2 par ligne, ecart compris.
+       Streamlit pose une marge de -1rem sous chaque bloc de texte : les
+       cartes KPI mordaient sur la rangee suivante, d'ou l'ecart vertical
+       de 26 px (10 px visibles). */
+    [data-testid="stHorizontalBlock"]:has(.kpi),
+    [data-testid="stHorizontalBlock"]:has(.kpi-clu),
+    [data-testid="stHorizontalBlock"]:has(.mini-ev-card) {{
+        flex-wrap: wrap !important;
+        gap: 10px !important;
+    }}
+    [data-testid="stHorizontalBlock"]:has(.kpi),
+    [data-testid="stHorizontalBlock"]:has(.kpi-clu) {{ row-gap: 26px !important; }}
+    [data-testid="stHorizontalBlock"]:has(.kpi) > [data-testid="stColumn"],
+    [data-testid="stHorizontalBlock"]:has(.kpi-clu) > [data-testid="stColumn"],
+    [data-testid="stHorizontalBlock"]:has(.mini-ev-card) > [data-testid="stColumn"] {{
+        width: calc(50% - 5px) !important;
+        min-width: calc(50% - 5px) !important;
+        flex: 0 0 calc(50% - 5px) !important;
+    }}
+    .kpi {{ padding: 11px 12px !important; }}
+    .kpi-val {{ font-size: 1.05rem !important; }}
+    .kpi-tag {{ white-space: normal !important; line-height: 1.3 !important; }}
+    .kpi-clu {{ padding: 11px 12px !important; }}
+    .kpi-clu > div:first-child {{ font-size: 1.15rem !important; }}
+    .kpi-clu p:nth-of-type(2) {{ font-size: 1.2rem !important; }}
+
+    /* Rangees de filtres (3 colonnes et plus : Teleconnexions) : 2 par
+       ligne au lieu de 4-5 widgets empiles sur toute la hauteur. */
+    [data-testid="stHorizontalBlock"]:has(> [data-testid="stColumn"]:nth-child(3)):has([data-testid="stSelectbox"]):not(:has([data-testid="stPlotlyChart"])):not(:has(.st-key-ev_prev)) {{
+        flex-wrap: wrap !important;
+        gap: 4px 10px !important;
+    }}
+    [data-testid="stHorizontalBlock"]:has(> [data-testid="stColumn"]:nth-child(3)):has([data-testid="stSelectbox"]):not(:has([data-testid="stPlotlyChart"])):not(:has(.st-key-ev_prev)) > [data-testid="stColumn"] {{
+        width: calc(50% - 5px) !important;
+        min-width: calc(50% - 5px) !important;
+        flex: 0 0 calc(50% - 5px) !important;
+    }}
+
+    /* Navigation des evenements cartographies : selecteur sur toute la
+       largeur, puis  <-  1/6  ->  sur UNE ligne (et non trois). */
+    [data-testid="stHorizontalBlock"]:has(.st-key-ev_prev) {{
+        flex-wrap: wrap !important;
+        gap: 8px !important;
+    }}
+    [data-testid="stHorizontalBlock"]:has(.st-key-ev_prev) > [data-testid="stColumn"] {{
+        width: calc(33.333% - 6px) !important;
+        min-width: calc(33.333% - 6px) !important;
+        flex: 0 0 calc(33.333% - 6px) !important;
+    }}
+    [data-testid="stHorizontalBlock"]:has(.st-key-ev_prev) > [data-testid="stColumn"]:first-child {{
+        width: 100% !important;
+        min-width: 100% !important;
+        flex: 0 0 100% !important;
+    }}
+
+    /* Vide d'alignement de l'en-tete, inutile une fois les colonnes empilees */
+    [data-testid="stElementContainer"]:has(.hdr-spacer) {{ display: none !important; }}
+
+    /* Barre d'outils Plotly : au doigt elle ne sert guere et recouvrait
+       titres et legendes. Le zoom au pincement reste disponible. */
+    .modebar-container {{ display: none !important; }}
+
+    /* Boutons (telechargements du Pipeline) : texte sur plusieurs lignes
+       plutot que hors de l'ecran. */
+    [data-testid="stDownloadButton"] button,
+    [data-testid="stButton"] button {{
+        white-space: normal !important;
+        height: auto !important;
+        min-height: 2.5rem !important;
+    }}
+    [data-testid="stDownloadButton"] button p,
+    [data-testid="stButton"] button p {{
+        white-space: normal !important;
+        overflow-wrap: anywhere !important;
+    }}
+
+    /* Sous-titre des separateurs de section : il poussait la ligne a
+       700 px de large. Le titre suffit sur petit ecran. */
+    .sec-hdr-sub {{ display: none !important; }}
+
+    /* Top regions : "46.7 %" se coupait en deux lignes */
+    .rg-pct {{ width: auto !important; white-space: nowrap !important; }}
+    .rg-nm  {{ min-width: 0 !important; overflow: hidden !important; text-overflow: ellipsis !important; }}
+
+    /* Rien ne doit elargir la page au-dela de l'ecran */
+    [data-testid="stMain"] {{ overflow-x: hidden !important; }}
+}}
+
 /* ── Filtres section Evenements ── */
 /* Labels slider + multiselect en uppercase compact */
 [data-testid="stMainBlockContainer"] [data-testid="stSlider"] label p,

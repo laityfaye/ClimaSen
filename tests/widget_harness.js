@@ -10,12 +10,20 @@
  * que la bulle etait hors ecran, et effacait son style. La bulle devenait
  * invisible.
  *
- * Usage : node tests/widget_harness.js <fichier.js>
+ * Usage : node tests/widget_harness.js <fichier.js> [ouvert] [mobile]
+ *   ouvert : Jarvis etait ouvert avant une reexecution Streamlit
+ *   mobile : page hote de telephone (390 px), clavier virtuel ouvert
  * Sortie : une ligne "OK <verification>" par controle, ou "ECHEC ..." + code 1.
  */
 const fs = require("fs");
 
-const HOTE = { w: 1361, h: 590 };     // fenetre du navigateur
+const OPTIONS = process.argv.slice(3);
+const MOBILE = OPTIONS.includes("mobile");
+// Fenetre du navigateur. Sur telephone, le clavier virtuel ne change pas la
+// fenetre mais reduit la zone VISIBLE (visualViewport) : c est elle que le
+// plein ecran doit suivre, sinon la saisie finit sous le clavier.
+const HOTE = MOBILE ? { w: 390, h: 760 } : { w: 1361, h: 590 };
+const ZONE = MOBILE ? { height: 412, offsetTop: 36 } : null;
 const MARGE = 18;
 
 let echecs = [];
@@ -92,7 +100,7 @@ const frame = {
 
 // Second argument : "ouvert" pour simuler une restauration apres une
 // reexecution Streamlit, panneau precedemment ouvert.
-const OUVERT = process.argv[3] === "ouvert";
+const OUVERT = OPTIONS.includes("ouvert");
 const stockage = OUVERT ? { jarvis_open: "1" } : {};
 const elements = {};
 ["panel", "log", "intro", "input", "send", "fab", "banner", "dot", "status", "close",
@@ -119,6 +127,7 @@ const parent = {
   addEventListener() {}, postMessage() {},
   document: { querySelectorAll: () => [] },
 };
+if (ZONE) { parent.visualViewport = Object.assign({ addEventListener() {} }, ZONE); }
 
 // La fenetre de l IFRAME : 76 px de haut quand la bulle est repliee.
 // Toute la subtilite du test est la.
@@ -144,7 +153,14 @@ try {
 // --- Verifications immediates ------------------------------------------------
 const p = frame.style._props;
 verifier("la bulle est epinglee en position fixe", p.position === "fixed", JSON.stringify(p));
-verifier("la bulle a une largeur", parseInt(p.width, 10) >= 300, p.width);
+if (MOBILE) {
+  // Une iframe transparente de 360 px barrait le bas de l ecran du telephone
+  // et avalait les touchers destines au dashboard.
+  verifier("sur telephone, la bulle repliee se limite a l orbe",
+           parseInt(p.width, 10) <= 80, p.width);
+} else {
+  verifier("la bulle a une largeur", parseInt(p.width, 10) >= 300, p.width);
+}
 verifier("la bulle a une hauteur repliee visible", parseInt(p.height, 10) >= 50, p.height);
 verifier("la bulle est au-dessus du contenu", parseInt(p["z-index"], 10) > 1000, p["z-index"]);
 
@@ -161,10 +177,15 @@ setTimeout(() => {
     // rouvrir, et depuis l'interface J.A.R.V.I.S, en PLEIN ECRAN -- l'orbe
     // ouvre directement ce mode, comme JARVIS-pro. L'iframe couvre alors
     // toute la fenetre hote.
+    // Hauteur = zone VISIBLE (sous les barres du navigateur et au-dessus du
+    // clavier), ancree par le haut. 100vh la surestimait sur telephone.
+    const hauteur = ZONE ? ZONE.height : HOTE.h;
+    const haut = ZONE ? ZONE.offsetTop : 0;
     verifier("Jarvis est rouvert apres une reexecution Streamlit",
-             apres.height === "100vh", "hauteur " + apres.height);
+             apres.height === hauteur + "px", "hauteur " + apres.height);
     verifier("et en plein ecran (interface J.A.R.V.I.S)",
-             apres.width === "100vw" && apres.right === "0" && apres.bottom === "0",
+             apres.width === "100vw" && apres.right === "0" &&
+             apres.top === haut + "px" && apres.bottom === "auto",
              JSON.stringify(apres));
   }
 

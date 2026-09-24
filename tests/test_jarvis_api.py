@@ -442,7 +442,7 @@ def test_la_poussee_est_desactivee_sur_ecran_etroit():
     assert "vue().w < LARGEUR_MINI_POUSSEE" in source
 
 
-@pytest.mark.parametrize("scenario", ["replie", "ouvert"])
+@pytest.mark.parametrize("scenario", ["replie", "ouvert", "mobile_replie", "mobile_ouvert"])
 def test_le_widget_s_affiche_reellement(scenario, tmp_path):
     """Execute le JavaScript du widget dans un DOM simule (tests/widget_harness.js).
 
@@ -476,7 +476,9 @@ def test_le_widget_s_affiche_reellement(scenario, tmp_path):
     fichier.write_text(script.group(1), encoding="utf-8")
 
     args = [node, str(harnais), str(fichier)]
-    if scenario == "ouvert":
+    if scenario.endswith("ouvert"):
         args.append("ouvert")
+    if scenario.startswith("mobile"):
+        args.append("mobile")
     r = subprocess.run(args, capture_output=True, text=True, timeout=60)
     assert r.returncode == 0, "\n" + r.stdout + r.stderr

@@ -314,7 +314,9 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
                 r_val    = rec[r_col0]
                 is_pos   = r_val >= 0
                 bar_clr  = GRAD_POS[min(i, 3)] if is_pos else GRAD_NEG[min(i, 3)]
-                bar_w    = int(abs(r_val) / 0.5 * 100)
+                # Echelle pleine a |r| = 0.5 : au-dela, la barre depassait 100 %
+                # et sortait de sa colonne.
+                bar_w    = min(100, int(abs(r_val) / 0.5 * 100))
                 r_clr    = "#1D4ED8" if is_pos else "#B91C1C"
                 r_str    = f"{r_val:+.3f}"
                 badge    = _sig_from_p_neff(rec.get(p_active_col0))
@@ -587,7 +589,7 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
                 r_val    = rec[r_col]
                 is_pos   = r_val >= 0
                 bar_clr  = GRAD_POS[min(i, 3)] if is_pos else GRAD_NEG[min(i, 3)]
-                bar_w    = int(abs(r_val) / 0.5 * 100)
+                bar_w    = min(100, int(abs(r_val) / 0.5 * 100))
                 r_clr    = "#1D4ED8" if is_pos else "#B91C1C"
                 r_str    = f"{r_val:+.3f}"
                 badge    = _sig_from_p_neff(rec.get(p_active_col))

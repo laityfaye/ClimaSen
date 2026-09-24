@@ -66,7 +66,10 @@ def test_ecran_de_demarrage_sans_faux_online():
 
 
 def test_plein_ecran_ne_style_que_notre_iframe():
-    bloc = SOURCE[SOURCE.index("function pleinEcran(oui)"):SOURCE.index("function majMenu()")]
+    # Le plein ecran passe par cadrer(), seul endroit qui positionne l'iframe.
+    bloc = SOURCE[SOURCE.index("function pleinEcran()"):SOURCE.index("function majMenu()")]
+    assert "cadrer()" in bloc
+    bloc = SOURCE[SOURCE.index("function cadrer()"):SOURCE.index("function setHeight(h)")]
     assert "frame.style" in bloc
     assert "parent.document" not in bloc
 

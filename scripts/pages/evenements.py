@@ -68,7 +68,9 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
         </div>
         """, unsafe_allow_html=True)
     with hc2:
-        st.markdown("<div style='height:56px'></div>", unsafe_allow_html=True)
+        # Aligne le bouton sur les badges; masque sur telephone, ou les
+        # colonnes s'empilent et ce vide separait le titre de son bouton.
+        st.markdown("<div class='hdr-spacer' style='height:56px'></div>", unsafe_allow_html=True)
         st.download_button(
             "Exporter CSV",
             data=dff.to_csv(index=False).encode("utf-8"),

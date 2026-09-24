@@ -203,7 +203,8 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
     for col, (ico, label, val, sub) in zip(cols_kpi, kpi_items):
         with col:
             st.markdown(
-                f'<div style="background:{CARD};border:1px solid {BORDER};border-radius:14px;'
+                # kpi-clu : reperee par le CSS telephone (grille 2x2)
+                f'<div class="kpi-clu" style="background:{CARD};border:1px solid {BORDER};border-radius:14px;'
                 f'padding:18px 20px;">'
                 f'<div style="font-size:1.5rem;">{ico}</div>'
                 f'<p style="font-size:0.72rem;color:{MUTED};margin:6px 0 2px 0;text-transform:uppercase;'

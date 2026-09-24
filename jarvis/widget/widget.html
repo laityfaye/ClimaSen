@@ -488,6 +488,56 @@
     #hud-pied{letter-spacing:.22em}
   }
   @media (prefers-reduced-motion: reduce){ .hb-anneau i{animation:none} }
+
+  /* ---------- Telephone ----------
+     body.mobile est pose par cadrer() d'apres la largeur de la PAGE HOTE:
+     une media query lirait celle de l'iframe, 76 px quand la bulle est
+     repliee. Ouverte, la carte occupe tout l'ecran. */
+  #log{overscroll-behavior:contain}
+  body.mobile #panel{border-radius:0;border-left:0;border-right:0}
+  body.mobile #grip, body.mobile #agrandir{display:none}
+  /* iOS zoome toute la page au focus d'un champ de moins de 16 px, et ne
+     dezoome pas ensuite: l'interface restait decalee. */
+  body.mobile textarea{font-size:16px}
+  body.mobile header{padding:10px 12px}
+  body.mobile .hclose{width:38px;height:38px}
+  body.mobile #hud-btn{padding:0 11px}
+  body.mobile .msg{max-width:92%;font-size:.86rem}
+  body.mobile .chip{padding:10px 14px;font-size:.74rem}
+  body.mobile #send, body.mobile #micro, body.mobile #vue{width:44px;height:44px}
+  body.mobile #hud-menu-btn{left:12px;padding:10px 16px}
+  body.mobile #hud-coin{right:12px}
+  body.mobile #hud-coin .hud-icone{width:38px;height:38px}
+  body.mobile #hud-menu{left:12px;right:12px;width:auto}
+  body.mobile #hud-menu button{padding:12px 14px;font-size:.7rem}
+  /* Clavier visuel et transcription ouverts ensemble: la saisie (bas 150 px)
+     recouvrait le bas de la transcription (bas 174 px). */
+  body.mobile.hud.hud-clavier #log{bottom:216px}
+  /* L'horloge descend jusqu'a 134 px sur telephone: le bandeau d'erreur
+     (122 px) la recouvrait. */
+  body.mobile.hud #banner{top:142px}
+  /* Le menu vit dans #hud (z-index 0), la transcription et la saisie dans
+     #panel (z-index 2): ils passaient DEVANT le menu. Sur telephone le menu
+     prend toute la largeur, on masque donc le panneau le temps du choix. */
+  body.mobile.hud-menu-ouvert #panel{visibility:hidden}
+
+  /* Hauteur utile reduite (clavier virtuel ouvert, telephone a l'horizontale):
+     l'iframe suit la zone visible, donc cette requete s'y applique. On garde
+     l'orbe, la saisie et la reponse; le decor s'efface. */
+  @media (max-height:520px){
+    #hud-horloge, #hud-pied, #hud-astuce{display:none}
+    #hud-boutons{bottom:36px}
+    #hud-statut{bottom:12px}
+    #hud-soustitre{bottom:104px}
+    body.hud #log{top:62px;bottom:104px;height:auto}
+    body.hud .compose{bottom:104px}
+    body.hud.hud-clavier #hud-boutons, body.hud.hud-clavier #hud-statut{display:none}
+    body.hud.hud-clavier .compose{bottom:10px}
+    body.hud.hud-clavier #log, body.mobile.hud.hud-clavier #log{bottom:70px}
+    body.hud.hud-clavier #hud-soustitre{bottom:70px}
+    #hud-menu{max-height:calc(100vh - 70px)}
+    body.hud #banner, body.mobile.hud #banner{top:62px}
+  }
 </style>
 </head>
 <body class="collapsed">
@@ -774,7 +824,67 @@
     }catch(e){}
   }
 
+  /* ---------- Cadrage de l'iframe : carte, plein ecran, telephone --------
+     Une seule fonction decide ou se trouve l'iframe, a partir de l'etat. Les
+     reglages disperses (ouverture, fermeture, mode J.A.R.V.I.S, fenetre
+     redimensionnee) se contredisaient: sur telephone, un redimensionnement
+     reposait une carte de 360 px par-dessus le plein ecran.
+
+     Sur un telephone, une carte de 360 px a 18 px des bords ne laisse qu'une
+     bande inutile de chaque cote: ouverte, elle prend tout l'ecran. */
+  var LARGEUR_MOBILE = 640;
+  function estMobile(){ return vue().w <= LARGEUR_MOBILE; }
+
+  // Zone REELLEMENT visible de la page hote. 100vh la surestime sur mobile
+  // (barres du navigateur) et ignore le clavier virtuel: le champ de saisie
+  // et les boutons du bas finissaient caches dessous. visualViewport suit
+  // les deux; on ancre donc l'iframe par le HAUT, sur cette zone.
+  function zoneVisible(){
+    try{
+      var vv = window.parent.visualViewport;
+      if(vv && vv.height){
+        return {h: Math.round(vv.height), top: Math.round(vv.offsetTop || 0)};
+      }
+    }catch(e){}
+    return {h: vue().h, top: 0};
+  }
+
+  function pleinEcranVoulu(){
+    var hud = (typeof Hud !== "undefined") && Hud && Hud.actif();
+    return hud || (state.open && estMobile());
+  }
+
+  function cadrer(){
+    if(!pinned || !frame){ return false; }
+    try{
+      var s = frame.style, mobile = estMobile();
+      document.body.classList.toggle("mobile", mobile);
+      if(pleinEcranVoulu()){
+        var z = zoneVisible();
+        s.setProperty("top", z.top + "px", "important");
+        s.setProperty("bottom", "auto", "important");
+        s.setProperty("right", "0", "important");
+        s.setProperty("width", "100vw", "important");
+        s.setProperty("max-width", "100vw", "important");
+        s.setProperty("height", z.h + "px", "important");
+        return true;
+      }
+      var marge = mobile ? "12px" : "18px";
+      s.setProperty("top", "auto", "important");
+      s.setProperty("bottom", marge, "important");
+      s.setProperty("right", marge, "important");
+      s.setProperty("max-width", "calc(100vw - 36px)", "important");
+      // Repliee sur telephone, l'iframe transparente de 360 px barrait le bas
+      // de l'ecran et avalait les touchers destines au dashboard: on la
+      // reduit a la bulle.
+      s.setProperty("width", (!state.open && mobile ? H_SHUT : LARGEUR) + "px", "important");
+      s.setProperty("height", (state.open ? H_OPEN : H_SHUT) + "px", "important");
+      return true;
+    }catch(e){ return false; }
+  }
+
   function setHeight(h){
+    if(cadrer()){ return; }
     if(pinned && frame){
       try{ frame.style.setProperty("height", h + "px", "important"); return; }catch(e){}
     }
@@ -1240,24 +1350,11 @@
       }
     }
 
-    function pleinEcran(oui){
+    // L'etat "actif" est deja a jour quand on arrive ici: cadrer() en deduit
+    // seul le plein ecran ou le retour a la carte.
+    function pleinEcran(){
       if(!pinned || !frame){ return; }
-      try{
-        var s = frame.style;
-        if(oui){
-          s.setProperty("right", "0", "important");
-          s.setProperty("bottom", "0", "important");
-          s.setProperty("width", "100vw", "important");
-          s.setProperty("max-width", "100vw", "important");
-          s.setProperty("height", "100vh", "important");
-        } else {
-          s.setProperty("right", "18px", "important");
-          s.setProperty("bottom", "18px", "important");
-          s.setProperty("max-width", "calc(100vw - 36px)", "important");
-          appliquerTaille(LARGEUR, H_OPEN, false);
-          setHeight(state.open ? H_OPEN : H_SHUT);
-        }
-      }catch(e){}
+      cadrer();
     }
 
     function majMenu(){
@@ -1293,6 +1390,7 @@
       $("hud-menu-btn").classList.toggle("ouvert", ouvert);
       $("hud-menu-btn").setAttribute("aria-expanded", ouvert ? "true" : "false");
       $("hud-astuce").style.display = ouvert ? "none" : "";
+      document.body.classList.toggle("hud-menu-ouvert", ouvert);
     }
 
     /* Ecran de demarrage. Chaque ligne dit un etat REEL: service, cle API,
@@ -2270,12 +2368,7 @@
     var b = bornes();
     LARGEUR = Math.round(Math.min(Math.max(w, b.wMin), b.wMax));
     H_OPEN  = Math.round(Math.min(Math.max(h, b.hMin), b.hMax));
-    if(pinned && frame){
-      try{
-        frame.style.setProperty("width", LARGEUR + "px", "important");
-        if(state.open){ frame.style.setProperty("height", H_OPEN + "px", "important"); }
-      }catch(e){}
-    }
+    cadrer();
     if(memoriser !== false){
       garderTaille("w", LARGEUR);
       garderTaille("h", H_OPEN);
@@ -2351,6 +2444,16 @@
   // declenche a chaque fois que NOUS changeons sa hauteur.
   try{ window.parent.addEventListener("resize", surRedimensionnement); }
   catch(e){ window.addEventListener("resize", surRedimensionnement); }
+  // Clavier virtuel qui s'ouvre, barre d'adresse qui se replie: seule la zone
+  // visible change, pas la fenetre. Le plein ecran la suit.
+  try{
+    var zv = window.parent.visualViewport;
+    if(zv){
+      var suivreZone = function(){ if(pleinEcranVoulu()){ cadrer(); } };
+      zv.addEventListener("resize", suivreZone);
+      zv.addEventListener("scroll", suivreZone);
+    }
+  }catch(e){}
 
   function autoGrow(){
     input.style.height = "auto";
