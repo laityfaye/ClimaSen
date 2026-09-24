@@ -167,6 +167,8 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
             if _sel_idx != _idx_cur:
                 st.session_state["carto_nav_idx"] = _sel_idx
                 _idx_cur = _sel_idx
+            # Lu par la bulle Jarvis (scripts/jarvis_widget.py) : "cet evenement"
+            st.session_state["jarvis_evt_date"] = str(_dates[_idx_cur])[:10]
         with _ctr_col:
             st.markdown(
                 f'<div style="text-align:center;padding:8px 0;'

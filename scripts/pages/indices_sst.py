@@ -56,12 +56,14 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
             options=SST_INDICES,
             default=["Nino34", "IOBM", "AMO"],
             label_visibility="visible",
+            key="sst_sel_idx",
         )
         if not sel_idx:
             sel_idx = ["Nino34"]
     with fb:
         agg_mode = st.selectbox(
             "Agregation", ["Mensuelle", "Annuelle", "Journaliere"],
+            key="sst_agg_mode",
         )
 
     primary = sel_idx[0]

@@ -42,6 +42,20 @@ function style() {
   });
 }
 
+function classes() {
+  const ens = new Set();
+  return {
+    add(...c) { c.forEach((x) => ens.add(x)); },
+    remove(...c) { c.forEach((x) => ens.delete(x)); },
+    contains(c) { return ens.has(c); },
+    toggle(c, force) {
+      const oui = force === undefined ? !ens.has(c) : !!force;
+      if (oui) { ens.add(c); } else { ens.delete(c); }
+      return oui;
+    },
+  };
+}
+
 function element(id) {
   return {
     id,
@@ -50,9 +64,12 @@ function element(id) {
     disabled: false,
     scrollHeight: 20, scrollTop: 0,
     textContent: "", innerHTML: "",
-    classList: { add() {}, remove() {}, contains() { return false; } },
-    addEventListener() {}, appendChild() {}, removeChild() {},
-    querySelectorAll() { return []; },
+    classList: classes(),
+    addEventListener() {}, appendChild() {}, removeChild() {}, replaceChild() {},
+    querySelectorAll() { return []; }, querySelector() { return null; },
+    setAttribute() {}, getAttribute() { return null; }, removeAttribute() {},
+    getContext() { return null; },
+    hidden: false, clientWidth: 0, clientHeight: 0,
     focus() {},
     parentNode: null,
   };
@@ -89,7 +106,7 @@ global.sessionStorage = {
 
 global.document = {
   documentElement: { setAttribute() {} },
-  body: { classList: { add() {}, remove() {} }, appendChild() {} },
+  body: { classList: classes(), appendChild() {} },
   getElementById: (id) => elements[id] || element(id),
   createElement: () => element("cree"),
   querySelectorAll: () => [],
@@ -140,15 +157,15 @@ setTimeout(() => {
            "style apres controle : " + JSON.stringify(apres));
 
   if (OUVERT) {
-    // Le panneau etait ouvert avant la reexecution Streamlit : il doit etre
-    // rouvert, et sa hauteur doit se deduire de la fenetre HOTE (590 px), pas
-    // de celle de l iframe. Attendu : max(360, min(560, 590-150)) = 440.
-    // Un script qui lirait window.innerHeight obtiendrait 360, le plancher.
-    const hauteur = parseInt(apres.height, 10);
-    verifier("le panneau est rouvert apres une reexecution Streamlit",
-             hauteur > 100, "hauteur " + apres.height);
-    verifier("sa hauteur suit la fenetre hote et non l iframe",
-             hauteur === 440, "attendu 440 px, obtenu " + apres.height);
+    // Jarvis etait ouvert avant la reexecution Streamlit : il doit se
+    // rouvrir, et depuis l'interface J.A.R.V.I.S, en PLEIN ECRAN -- l'orbe
+    // ouvre directement ce mode, comme JARVIS-pro. L'iframe couvre alors
+    // toute la fenetre hote.
+    verifier("Jarvis est rouvert apres une reexecution Streamlit",
+             apres.height === "100vh", "hauteur " + apres.height);
+    verifier("et en plein ecran (interface J.A.R.V.I.S)",
+             apres.width === "100vw" && apres.right === "0" && apres.bottom === "0",
+             JSON.stringify(apres));
   }
 
   if (echecs.length) {

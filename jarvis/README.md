@@ -4,7 +4,11 @@ Assistant IA de la plateforme CLIMAT-SEN, adossé à l'API Claude (Anthropic).
 Un seul cerveau, deux profils d'accès : **public** (widget en lecture seule) et
 **admin** (Laity, accès complet — Phase 4).
 
-État : **livré**. Les six phases sont en place. **Une seule interface** : la
+État : **livré**. Les six phases sont en place, les Phases 7 (contexte du
+dashboard, outils d'analyse), 8 (figures), 9 (lecture visuelle du dashboard),
+10 (code et tâches), 11 (voix et orbe) et 12 (revue de sécurité) sont codées
+et testées. **Reste à faire** : les essais contre la vraie API, bloqués par un
+crédit Anthropic épuisé au moment du développement. **Une seule interface** : la
 bulle Jarvis du dashboard. On y tape son mot de passe dans le champ de saisie
 pour passer en profil administrateur.
 
@@ -21,8 +25,8 @@ cp .env.example .env
 py -3 -c "import secrets; print(secrets.token_urlsafe(48))"   # → JARVIS_SECRET_KEY
 #   puis renseigner ANTHROPIC_API_KEY dans .env
 
-# 3. Backend Jarvis (port 8000)
-py -3 -m uvicorn jarvis.app:create_app --factory --reload --port 8000
+# 3. Backend Jarvis (port 8010 en local : JARVIS-pro occupe deja le 8000)
+py -3 -m uvicorn jarvis.app:create_app --factory --reload --port 8010
 
 # 4. Dashboard, dans un second terminal (port 8501)
 py -3 -m streamlit run scripts/dashboard.py
@@ -33,11 +37,11 @@ La bulle Jarvis apparaît en bas à droite du dashboard.
 Vérification rapide sans navigateur :
 
 ```bash
-curl http://localhost:8000/jarvis/health
+curl http://localhost:8010/jarvis/health
 # {"status":"ok",...,"configured":true,"env":"dev","tools":5}
 ```
 
-Documentation d'API interactive en dev : <http://localhost:8000/jarvis/docs>
+Documentation d'API interactive en dev : <http://localhost:8010/jarvis/docs>
 (fermée automatiquement quand `JARVIS_ENV=prod`).
 
 ## Tests
@@ -100,6 +104,10 @@ session.py   ratelimit.py   conversations.py   claude_client.py
 | `get_teleconnection` | `load_telecon` | corrélation indice / pluies extrêmes, par phase et par lag |
 | `get_risk_cluster` | `load_clustering` | régimes océaniques du K-Means et leur profil |
 | `search_documents` | index embarqué | méthodes, justifications, interprétations (mémoire et article) |
+| `analyze_teleconnections` | `load_telecon` | significativité comparée au hasard, bassin dominant, comparaison de phases, robustesse |
+| `analyze_extreme_events` | `load_events` | tendance (Mann-Kendall, pente de Sen), deux périodes, saisonnalité, régions |
+| `get_pipeline_status` | `PIPELINE_STEPS` + dates des fichiers | résultats à jour, étapes à relancer |
+| `make_figure` | les quatre loaders | figure affichée sous la réponse (7 types), données en CSV |
 
 ```
 jarvis/tools/
@@ -205,13 +213,16 @@ dessus sans rien refondre.
 | `POST` | `/jarvis/api/chat/sync` | jeton | même chose, non streamée |
 | `GET` | `/jarvis/api/conversation/{id}` | jeton | relit un fil |
 | `GET` | `/jarvis/widget.html` | — | widget en autonome |
+| `GET` | `/jarvis/static/jarvis-orb.js` | — | orbe 3D du mode J.A.R.V.I.S (seul fichier servi) |
 | `POST` | `/jarvis/api/admin/login` | — | ouvre une session admin |
 | `POST` | `/jarvis/api/admin/logout` | jeton admin | ferme et révoque la session |
 | `GET` | `/jarvis/api/admin/me` | jeton admin | état de la session |
 | `GET` | `/jarvis/admin` | — | console d'administration |
+| `GET` | `/jarvis/api/figures/{id}` | jeton | image PNG (`?theme=clair\|sombre`) ou données (`?format=csv`) d'une figure de la session |
 | `GET` | `/jarvis/api/admin/actions` | jeton admin | propositions en attente |
 | `POST` | `/jarvis/api/admin/actions/{id}/approve` | jeton admin | applique une proposition |
 | `POST` | `/jarvis/api/admin/actions/{id}/reject` | jeton admin | refuse une proposition |
+| `POST` | `/jarvis/api/admin/actions/{id}/revert` | jeton admin | annule une modification de code appliquée |
 
 Le jeton passe dans l'en-tête `X-Jarvis-Session`.
 
@@ -270,7 +281,7 @@ py -3 -m jarvis.auth          # génère le haché, à coller dans .env
 # puis redémarrer : uvicorn ne relit pas le .env à chaud
 ```
 
-Console : <http://localhost:8000/jarvis/admin>
+Console : <http://localhost:8010/jarvis/admin>
 
 **Seul le haché est stocké**, en `scrypt` (bibliothèque standard : rien à
 installer sur le serveur, et mémoire-dur, donc bien plus coûteux à attaquer
@@ -338,6 +349,265 @@ tour où il est appelé. C'est exactement l'effet recherché.
 
 Après une modification, l'index documentaire est périmé : relancer
 `scripts/15_build_jarvis_index.py`.
+
+## Le contexte du dashboard (Phase 7)
+
+La bulle joint à chaque question **la page ouverte et les filtres réglés** :
+Jarvis comprend « ce graphique », « cette phase », « l'événement affiché »
+sans faire répéter la question.
+
+```
+st.session_state ─> scripts/jarvis_widget.py ─> widget (JSON injecté)
+      ─> POST /api/chat {page_context} ─> jarvis/page_context.py ─> Claude
+```
+
+**Donnée non fiable.** Le contexte vient du navigateur, donc de n'importe qui.
+`page_context.nettoyer()` ne garde que les champs déclarés pour la page
+déclarée, et **aucun texte libre** : énumérations, entiers bornés, booléens,
+dates au format fixe. Une chaîne arbitraire serait un canal d'injection de
+consignes vers le modèle. Le schéma plafonne l'objet à 2 000 caractères avant
+toute lecture ; un contexte invalide est ignoré, jamais bloquant.
+
+**Hors de l'historique.** Le contexte part vers l'API dans un bloc séparé de
+la question, mais seule la question est archivée : il décrit l'écran à
+l'instant T, le rejouer au tour suivant ferait croire que les filtres n'ont
+pas bougé.
+
+**Injection dans le gabarit.** Le JSON est écrit dans une balise `<script>` :
+`<`, `>` et `&` y sont échappés en séquences unicode, sans quoi une valeur contenant
+`</script>` sortirait de la balise.
+
+Ajouter un filtre : une entrée dans `CLES_CONTEXTE` (`scripts/jarvis_widget.py`)
+**et** dans `CHAMPS` (`jarvis/page_context.py`). Un test vérifie que les deux
+listes concordent : un champ collecté mais non déclaré serait jeté en silence.
+
+### Les outils d'analyse
+
+`analyze_teleconnections` existe parce qu'une étoile ne suffit pas : le
+script 04 ne corrige pas les comparaisons multiples, et sur 66 tests par
+phase, environ 3 sortent significatifs par pur hasard. L'outil compare le
+compte observé à ce hasard (test binomial) et note chaque corrélation sur
+trois critères (p corrigée AR1, confirmation par Spearman, lags voisins
+cohérents). Sur les données réelles : la **pleine saison** compte 11
+corrélations significatives pour 3,3 attendues (p = 0,0004), les phases de
+début et de fin **n'en comptent pas plus que le hasard**.
+
+`analyze_extreme_events` compte les **années sans événement pour zéro** :
+un simple `groupby` les ferait disparaître et fabriquerait une tendance.
+
+`get_pipeline_status` relit les dates des fichiers à chaque appel. Une étape
+est « à relancer » si l'une de ses sorties précède (de plus de 2 minutes) la
+sortie principale d'une étape dont elle dépend ; les dépendances sont
+relevées dans les scripts eux-mêmes (`DEPENDANCES`).
+
+## Les figures (Phase 8)
+
+`make_figure` propose **sept types fermés** : carte des corrélations d'une
+phase, corrélation selon le lag, séries d'indices SST, événements par an avec
+tendance de Sen, saisonnalité, régions, profil des clusters. Le modèle choisit
+un type et des paramètres ; il n'écrit jamais de code. Un graphique libre
+supposerait d'exécuter sur le serveur du code produit par le modèle.
+
+```
+make_figure ─> spécification (type + données calculées) ─> FigureStore
+     └─> résumé chiffré ─> modèle        SSE "figure" {id, titre} ─> widget
+widget ─fetch─> GET /api/figures/{id}?theme=… ─> rendu PNG (mis en cache)
+```
+
+**On stocke la spécification, pas l'image.** Le PNG est dessiné à la première
+demande dans le thème du demandeur, puis gardé en cache. La même spécification
+donne la vue CSV, qui est l'alternative accessible à l'image.
+
+**Cloisonnement.** Une figure n'est servie qu'à la session qui l'a produite ;
+un identifiant inconnu, expiré ou appartenant à une autre session reçoit le
+même 404. Seul le *résultat* de l'outil alimente l'événement `figure` : un
+identifiant écrit par le modèle dans sa réponse n'atteint jamais le widget.
+
+**Historique.** Les références de figures sont rangées avec la réponse, pour
+qu'un remontage de l'iframe les réaffiche. `Conversation.api_messages()` les
+retire avant l'envoi : une clé inconnue ferait rejeter la requête par l'API.
+
+**Rendu.** L'API objet de matplotlib (`Figure` + `FigureCanvasAgg`) plutôt que
+`pyplot`, dont l'état global n'est pas sûr entre threads ; un verrou protège
+les réglages de police. Palette validée par `validate_palette.js` sur les fonds
+exacts des bulles (`#FFFFFF` et `#1E293B`) : catégorielle en ordre fixe (4
+séries au plus), divergente bleu/rouge avec un milieu gris pour les
+corrélations. Le titre est en HTML, pas dans l'image. Trois défauts relevés
+en regardant les rendus, puis corrigés : une légende décalée d'un cran par la
+ligne du zéro, des étiquettes de fin de courbe écartées au point de ne plus
+désigner leur courbe (elles ne sont maintenant posées que si elles tiennent à
+leur place), et un liseré sur le bord de la carte de chaleur.
+
+## La lecture du dashboard (Phase 9)
+
+Quand l'utilisateur demande d'interpréter ce qu'il voit, la bulle capture la
+page : titre, indicateurs clés, et pour chaque graphique Plotly (quatre au
+plus, ceux à l'écran d'abord) son titre de panneau, **les données réellement
+tracées** et **son image**. Claude reçoit les deux : l'image pour ce que voit
+l'utilisateur, les données pour les chiffres exacts. C'est ce qui lui permet
+de signaler un affichage trompeur.
+
+Déclenchement : le bouton appareil photo à gauche du champ de saisie, ou
+automatiquement quand la question parle de ce qui est affiché (« ce
+graphique », « cette carte », « interprète »…). Le bouton n'apparaît que dans
+le dashboard.
+
+Côté navigateur (`widget.html`), lecture seule de la page hôte :
+
+- les données viennent de `gd._fullData`, les tableaux décodés par Plotly, et
+  non de `gd.data`, qui peut contenir des tableaux encodés en base64 ;
+- l'image vient de `window.parent.Plotly.toImage`, **aplatie sur la couleur de
+  fond réelle du panneau** : exportée sur fond transparent, une figure du
+  mode sombre avait des étiquettes illisibles ;
+- les cartes à fond de carte n'ont que leurs données, l'export de leurs tuiles
+  échouant. La détection se fait par **liste exacte des types** : le motif
+  `/map$/` attrapait aussi « heatmap », dont l'image était écartée.
+
+Côté serveur (`jarvis/page_view.py`), donnée non fiable :
+
+- chaque champ est borné par le schéma, images comprises (400 000 caractères,
+  trois images au plus) ;
+- une image n'est transmise que si ses **octets** sont un PNG (signature, bloc
+  IHDR) de 2 000 px de côté au plus ; sinon elle est ignorée sans bloquer ;
+- le bloc `<vue_dashboard>` et les images précèdent la question, et rien
+  n'entre dans l'historique ; le journal ne garde que des comptes.
+
+**Taille des requêtes.** Avec des images, une question pèse jusqu'à ~1,3 Mo.
+L'application refuse au-delà de 2,5 Mo en lisant `Content-Length`, **avant**
+de lire le corps. nginx est limité à 3 Mo sur `/jarvis/` : la valeur du
+serveur (500 Mo, pour les téléversements du dashboard) s'y appliquait
+jusqu'ici.
+
+## Le code et les tâches (Phase 10)
+
+Quatre outils **admin** : `read_code` (lister, lire, chercher),
+`propose_code_edit`, `propose_task` et `get_task_status`. Les deux `propose_`
+ne font que **déposer** : l'écriture ou l'exécution part d'un clic, par le
+protocole de la Phase 5. Les règles vivent dans `jarvis/code_ops.py`.
+
+| | Autorisé | Refusé |
+|---|---|---|
+| **Lecture** | tout le dépôt | `.env*`, noms évoquant un secret, `.git/`, environnements, `JARVIS-pro/`, `LINUX/`, `data/raw/`, fichiers binaires ou > 1 Mo |
+| **Écriture** | `scripts/`, `src/`, `tests/` (extensions texte) | `jarvis/` (ses propres protections), `deploy/`, configuration, dépendances, `scripts/jarvis_widget.py` |
+| **Exécution** | scripts du module Pipeline, `pytest` sur `tests/test_*.py` | toute autre commande, tout argument libre |
+
+**Écrire en place, pas sur une branche.** Le plan prévoyait une branche git
+dédiée. Mais le dossier de travail porte souvent des changements non
+commités : une branche partirait du dernier commit, et Jarvis modifierait une
+autre version des fichiers que celle affichée. L'écriture se fait donc en
+place, encadrée à chaque étape :
+
+- **à la proposition** : chemin résolu puis comparé à la racine (ni `..`, ni
+  chemin absolu, ni lien symbolique sortant), texte à remplacer **unique**,
+  code Python **compilé** (une erreur de syntaxe revient au modèle, qui
+  corrige), diff présenté à l'utilisateur ;
+- **à l'approbation** : tout est revalidé ; l'**empreinte** du fichier doit
+  être celle de la proposition (sinon refus : le fichier a changé entre-temps),
+  sauvegarde horodatée dans `.jarvis/sauvegardes/`, écriture atomique ;
+- **après** : bouton *Annuler*, qui rétablit la sauvegarde, sauf si le
+  fichier a été retouché depuis, pour ne pas écraser ce travail.
+
+**Tâches.** Lancées en arrière-plan après approbation, **une à la fois**, avec
+un délai maximal (`JARVIS_TASK_TIMEOUT_SECONDS`, 30 min par défaut). La
+commande est **recalculée** depuis la liste fermée au moment de l'approbation.
+Le sous-processus ne reçoit **aucun secret** : les variables `ANTHROPIC_*`,
+`JARVIS_*`, `*TOKEN*`, `*PASSWORD*` et `*API_KEY*` sont retirées de son
+environnement. La carte suit la tâche et affiche le code retour, la durée et
+la fin de la sortie, y compris après un remontage de l'iframe.
+
+**Limite assumée.** Lancer les tests après une modification exécute le code
+modifié. C'est le but, et c'est pourquoi rien ne part sans deux clics
+distincts : un pour écrire, un pour exécuter.
+
+**Interrupteur.** `JARVIS_CODE_ACTIONS_ENABLED=false` coupe les propositions
+**et** l'approbation de celles déjà déposées. La lecture du code reste
+possible.
+
+Le profil admin dispose de 8 tours d'outils par question
+(`JARVIS_MAX_TOOL_ROUNDS_ADMIN`), contre 3 en public : lister, lire, chercher
+puis proposer n'y tiendrait pas.
+
+## La voix et l'orbe (Phase 11)
+
+**Tout se passe dans le navigateur** : rien à installer, aucun coût serveur,
+aucune nouvelle route.
+
+- **Dictée** (bouton micro) : `SpeechRecognition` (Chrome, Edge, Safari). La
+  question part d'elle-même à la fin de la phrase. **Chrome envoie l'audio à
+  Google** pour la reconnaissance : l'infobulle du bouton le dit.
+- **Lecture** (bouton haut-parleur, préférence retenue pour l'onglet) :
+  `speechSynthesis`, avec les voix du système. La réponse est lue sans
+  Markdown (ni code, ni tableau, ni URL), 2 000 caractères au plus, dans sa
+  langue (français ou anglais). La lecture s'arrête à la question suivante et
+  à la fermeture.
+- Les deux boutons **n'apparaissent que si le navigateur sait le faire** :
+  Firefox, par exemple, n'a pas la dictée.
+
+**L'orbe** reprend l'idée de celle de JARVIS-pro, une sphère de particules
+vivante, **sans** three.js ni WebGL : environ 600 Ko de bibliothèque pour une
+bulle publique affichée sur chaque page, c'était hors de proportion. Ici, 90
+particules réparties en spirale de Fibonacci sur un canvas 2D, à 30 images
+par seconde au plus, en pause quand l'onglet est caché, et figées si
+l'utilisateur a demandé moins d'animations (`prefers-reduced-motion`). Quatre
+états : repos, écoute, réflexion (Jarvis lit les données), parole. Elle
+remplace l'icône du bouton flottant et l'avatar de l'en-tête.
+
+## L'interface J.A.R.V.I.S
+
+L'interface reprend celle de **JARVIS-pro**, l'assistant de bureau de Laity :
+noir, cyan `#00E5FF` lumineux, police monospace, coins en équerre, lignes de
+balayage. Elle est toujours sombre, comme dans JARVIS-pro, quel que soit le
+thème du dashboard.
+
+**La bulle** (compacte) prend ce style, avec l'orbe 2D de la Phase 11 en cyan.
+
+**Le mode J.A.R.V.I.S** (bouton `◆ J.A.R.V.I.S` de l'en-tête) passe l'iframe
+en plein écran et reproduit l'écran de JARVIS-pro :
+
+- **écran de démarrage** « J.A.R.V.I.S », une fois par session. Chaque module
+  affiche un **état réel** (serveur, clé Claude, nombre d'outils, lien au
+  dashboard, voix, WebGL), jamais un « ONLINE » décoratif ;
+- **l'orbe 3D de la version bureau de JARVIS-pro** (`frontend/src/orb.ts`
+  et ses neuf modèles), la même que sur ton écran, qui réagit aux états de
+  Jarvis (repos, écoute, réflexion, parole, avec le volume simulé de
+  JARVIS-pro) ;
+- **l'horloge HUD** (profil, heure, nombre d'outils), le badge de connexion,
+  la consigne « DEMANDEZ : … » et la signature en pied de page ;
+- **`◆ MENU`** : les contrôles de JARVIS-pro remplacés par ceux de ClimatSen
+  (téléconnexions, tendance, saisonnalité, régions, pipeline, analyse de la
+  page, lecture vocale, écoute continue, mode admin, retour au dashboard) ;
+- **les trois boutons ronds** : micro, stop (coupe la voix, l'écoute **et la
+  réponse en cours**), écoute continue. En écoute continue, seules les
+  phrases contenant « Jarvis » partent, comme le mot d'appel de JARVIS-pro.
+  Dessous, le statut : *en attente*, *écoute...*, *analyse...*, *parle...* ;
+- **voix d'abord, comme JARVIS-pro** : au centre, l'orbe seule. La réponse
+  s'affiche en sous-titre au-dessus des boutons. La transcription (icône
+  en haut à droite, ou menu) et le clavier (icône, ou frapper directement
+  une lettre) s'ouvrent à la demande. La transcription s'ouvre d'elle-même
+  quand arrive une figure ou une proposition à approuver ; les figures sont
+  rendues dans le thème `hud` (fond `#07121A`) ;
+- en haut à droite : clavier, transcription, plein écran du navigateur, et
+  le badge *connecté*.
+
+**L'orbe (583 Ko, three.js compris) n'est chargée qu'à l'entrée dans ce
+mode**, depuis le backend (`/jarvis/static/jarvis-orb.js`, seul fichier servi
+par cette route) : aucun CDN, et la bulle publique reste légère.
+
+`jarvis/hud/jarvis-orb.js` est l'assemblage **sans modification** de
+`JARVIS-pro/frontend/src/orb.ts` et de three.js 0.170 (licence MIT
+conservée dans le fichier). Pour le reconstruire après un changement de
+l'orbe dans JARVIS-pro :
+
+```bash
+npm install esbuild@0.24 three@0.170.0          # dans un dossier de travail
+echo 'import { createOrb } from "<JARVIS-pro>/frontend/src/orb";
+(window as any).createOrb = createOrb;' > entree.ts
+npx esbuild entree.ts --bundle --format=iife --minify --legal-comments=inline \
+  --alias:three=./node_modules/three/build/three.module.js --outfile=jarvis-orb.js
+```
+
+puis recopier le fichier dans `jarvis/hud/` en gardant l'en-tête de provenance. Sans WebGL, repli sur l'orbe 2D. En quittant (bouton ou
+Échap), l'orbe est détruite et l'iframe reprend sa place de bulle.
 
 ## Ajouter un outil
 
@@ -424,6 +694,37 @@ logiques, jamais un chemin venu du modèle), pas de secret dans les journaux
 (vérifié sur leur contenu réel), pas d'élévation de profil (un jeton forgé ou
 modifié est rejeté), pas d'écriture accessible au modèle (§ protocole
 d'approbation).
+
+## Revue de sécurité des phases 7 à 11 (Phase 12)
+
+Même méthode qu'en Phase 6 : chaque faille est **reproduite** avant d'être
+corrigée (`tests/test_jarvis_securite_phase12.py` échouait sur le code
+d'avant). Cinq failles réelles :
+
+| # | Faille | Constat | Correction |
+|---|---|---|---|
+| 1 | Limite de taille contournable en *chunked* | 5,2 Mo sans `Content-Length` lus en entier (limite 2,5 Mo) | intergiciel ASGI qui **compte** les octets reçus, placé sous le CORS pour que le 413 reste lisible par le widget |
+| 2 | Regex piégée dans `read_code` | `(a+)+$` a **figé tout le serveur** : le moteur `re` garde le verrou global de Python, même dans un thread | recherche **littérale** uniquement, lignes bornées à 2 000 caractères |
+| 3 | Code caché à l'approbation | diff tronqué à 160 lignes : une charge placée après la 400e ligne d'un fichier créé n'apparaissait pas | le diff n'est **jamais** tronqué ; au-delà de 400 lignes, la proposition est refusée et doit être découpée |
+| 4 | Secret dans la sortie d'une tâche | un script qui lit le `.env` et l'affiche faisait sortir la clé vers l'interface **et le modèle** (`get_task_status`) | valeurs sensibles de l'environnement **et du `.env`** masquées, ainsi que tout ce qui a la forme d'un secret (`sk-ant-…`, `token=…`, haché scrypt) |
+| 5 | Mémoire des figures | un cache par figure permettait ~200 Mo (1 000 figures × 2 thèmes × ~100 Ko) | cache **global** limité aux 60 derniers rendus |
+
+Plus deux durcissements sans faille démontrée : `data/raw` sans barre finale
+échappait au filtre de lecture (listing vide, donc sans effet), et les
+chevrons des titres capturés sont neutralisés, pour qu'un titre ne puisse
+pas clore le bloc `<vue_dashboard>`.
+
+Vérifié et **non** exploitable : chemins en majuscules sous Windows (`.GIT`,
+`JARVIS-PRO`, `JARVIS_WIDGET.py`, que `Path.resolve()` ramène à la vraie
+casse), traversée (`..`, chemins absolus, liens symboliques), lecture
+croisée d'une figure ou d'une proposition entre sessions, approbation ou
+annulation depuis un jeton public, secrets dans `deploy/`.
+
+**Risque résiduel assumé.** Une injection de consignes cachée dans un fichier
+lu par Jarvis peut l'amener à *proposer* une modification malveillante. Le
+garde-fou est humain : le diff complet est affiché, rien ne s'écrit sans un
+clic, et l'exécution demande un second clic. Relire le diff n'est pas une
+formalité.
 
 ## Coût et exploitation
 

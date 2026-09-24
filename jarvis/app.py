@@ -14,18 +14,21 @@ import json
 import logging
 import time
 from contextlib import asynccontextmanager
+from pathlib import Path
 from typing import Optional
 
 from fastapi import Depends, FastAPI, Header, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
+from fastapi.responses import (FileResponse, HTMLResponse, JSONResponse,
+                               Response, StreamingResponse)
 
-from . import __version__, actions, auth, elevation, tools
+from . import (__version__, actions, auth, code_ops, elevation, figures,
+               page_context, page_view, tools)
 from .claude_client import ClaudeClient
 from .config import Settings, get_settings
 from .conversations import ConversationStore
 from .errors import (AccessDeniedError, InvalidSessionError, JarvisError,
-                     PayloadTooLargeError, RateLimitedError)
+                     NotFoundError, PayloadTooLargeError, RateLimitedError)
 from .logging_conf import log_event, setup_logging
 from .models import (AdminLoginRequest, ChatRequest, ChatSyncResponse,
                      ConversationResponse, HealthResponse, SessionResponse)
@@ -37,6 +40,16 @@ from .widget_html import render_admin, render_widget
 log = logging.getLogger("jarvis.app")
 
 SWEEP_INTERVAL_SECONDS = 300
+
+# Fichier du mode J.A.R.V.I.S plein ecran: l'orbe de la version BUREAU de
+# JARVIS-pro (frontend/src/orb.ts) assemblee avec three.js 0.170 (MIT). Liste
+# FERMEE: la route ne sert rien d'autre, le nom demande n'est jamais
+# transforme en chemin.
+DOSSIER_HUD = Path(__file__).resolve().parent / "hud"
+FICHIERS_HUD = {"jarvis-orb.js": DOSSIER_HUD / "jarvis-orb.js"}
+# Plafond du corps d'une requete. Une question avec trois images de
+# graphiques (Phase 9) pese ~1,3 Mo; au-dela, c'est un abus.
+MAX_BODY_BYTES = 2_500_000
 
 
 class AppContext:
@@ -82,6 +95,14 @@ class AppContext:
         # Propositions de modification en attente d'approbation (Phase 5).
         self.actions = actions.RegistreActions(
             ttl_seconds=settings.action_ttl_seconds)
+        # Figures produites par make_figure (Phase 8): specifications en
+        # memoire, rendues a la demande. Meme duree de vie que les fils.
+        self.figures = figures.FigureStore(
+            ttl_seconds=settings.conversation_ttl_seconds)
+        # Taches lancees apres approbation (Phase 10): une a la fois.
+        self.taches = code_ops.Taches(secrets=(
+            settings.anthropic_api_key, settings.secret_key,
+            getattr(settings, "admin_password_hash", "")))
         self.claude = ClaudeClient(settings)
 
     def bucket_for(self, profile: str) -> TokenBucket:
@@ -96,7 +117,8 @@ class AppContext:
             return None
         return tools.specs_for(profile) or None
 
-    def tool_executor(self, profile: str, session_id: str = ""):
+    def tool_executor(self, profile: str, session_id: str = "",
+                      figures_produites=None):
         """Executeur lie au profil ET a la session.
 
         Les deux sont captures ici, cote serveur: le modele ne peut influencer
@@ -105,7 +127,8 @@ class AppContext:
         """
         contexte = {"settings": self.settings,
                     "session_id": session_id,
-                    "registre": self.actions}
+                    "registre": self.actions,
+                    "figures": self.figures}
 
         async def executer(nom, arguments):
             resultat = await tools.execute(
@@ -116,8 +139,99 @@ class AppContext:
                       ok=not resultat.get("is_error"),
                       duration_ms=resultat.get("duration_ms"),
                       chars=resultat.get("chars"))
+            if (figures_produites is not None and nom == "make_figure"
+                    and not resultat.get("is_error")):
+                _noter_figure(resultat, figures_produites)
             return resultat
         return executer
+
+
+def _noter_figure(resultat: dict, figures_produites: list) -> None:
+    """Releve la figure deposee par make_figure pour l'annoncer au widget.
+
+    Lu dans le RESULTAT de l'outil (produit par notre code), jamais dans le
+    texte du modele: un identifiant invente par le modele n'atteint pas le
+    widget.
+    """
+    try:
+        charge = json.loads(resultat.get("content") or "{}")
+    except ValueError:
+        return
+    if charge.get("figure_id"):
+        figures_produites.append({"id": charge["figure_id"],
+                                  "titre": charge.get("titre", ""),
+                                  "sous_titre": charge.get("sous_titre", "")})
+
+
+class LimiteCorps:
+    """Refuse un corps de requete trop gros, en COMPTANT les octets recus.
+
+    Depuis la Phase 9, une question peut porter des images: la limite existe
+    donc dans l'application, pas seulement dans nginx (dont la configuration
+    serveur autorise 500 Mo pour le dashboard).
+
+    Phase 12: la premiere version ne lisait que l'en-tete Content-Length. Un
+    corps envoye en "chunked", sans cet en-tete, passait et etait lu en
+    entier en memoire (5 Mo acceptes pour une limite de 2,5 Mo). Intergiciel
+    ASGI pur: sans Content-Length, le corps est lu en comptant, jusqu'a la
+    limite, puis rejoue a l'application.
+    """
+
+    def __init__(self, app, maximum: int):
+        self.app = app
+        self.maximum = maximum
+
+    async def __call__(self, scope, receive, send):
+        if scope["type"] != "http":
+            await self.app(scope, receive, send)
+            return
+        longueur = dict(scope.get("headers") or []).get(b"content-length")
+        if longueur is not None:
+            try:
+                trop_gros = int(longueur) > self.maximum
+            except ValueError:
+                trop_gros = True
+            if trop_gros:
+                await self._refuser(send)
+            else:
+                await self.app(scope, receive, send)
+            return
+
+        morceaux, total = [], 0
+        while True:
+            message = await receive()
+            if message["type"] == "http.disconnect":
+                return
+            corps = message.get("body", b"")
+            total += len(corps)
+            if total > self.maximum:
+                await self._refuser(send)
+                return
+            morceaux.append(corps)
+            if not message.get("more_body"):
+                break
+        tout = b"".join(morceaux)
+        rejoue = False
+
+        async def rejouer():
+            nonlocal rejoue
+            if not rejoue:
+                rejoue = True
+                return {"type": "http.request", "body": tout, "more_body": False}
+            # Ensuite, on rend la main: la reponse en flux ecoute la
+            # deconnexion du client par ce canal.
+            return await receive()
+
+        await self.app(scope, rejouer, send)
+
+    @staticmethod
+    async def _refuser(send):
+        corps = json.dumps({"error": {"code": "payload_too_large",
+                                      "message": "Requete trop volumineuse."}}).encode()
+        await send({"type": "http.response.start", "status": 413,
+                    "headers": [(b"content-type", b"application/json"),
+                                (b"content-length", str(len(corps)).encode())]})
+        await send({"type": "http.response.body", "body": corps})
 
 
 def _sse(event: str, payload: dict) -> str:
@@ -205,6 +319,9 @@ def create_app(settings: Optional[Settings] = None) -> FastAPI:
         cors["allow_origins"] = settings.origins
     else:
         cors["allow_origins"] = settings.origins
+    # Ajoutee AVANT le CORS, donc executee a l'interieur: une reponse 413
+    # garde ses en-tetes CORS et le widget peut afficher pourquoi.
+    app.add_middleware(LimiteCorps, maximum=MAX_BODY_BYTES)
     app.add_middleware(CORSMiddleware, **cors)
 
     # --- en-tetes de securite -------------------------------------------------
@@ -427,6 +544,15 @@ def create_app(settings: Optional[Settings] = None) -> FastAPI:
         except actions.ActionIntrouvable as exc:
             raise JarvisError(str(exc), code="action_introuvable", status=404)
 
+        ip = _client_ip(request, c.settings.trusted_proxy_hops, c.settings.proxies)
+        if action.type in ("code_modifier", "tache_executer")                 and not c.settings.code_actions_enabled:
+            # L'interrupteur vaut aussi pour les propositions deja deposees.
+            raise JarvisError("Les modifications de code et les taches sont "
+                              "desactivees sur ce serveur.",
+                              code="code_desactive", status=403)
+        if action.type in actions.TYPES_ASYNCHRONES:
+            return _lancer_tache(c, action, session, ip)
+
         try:
             resultat = await asyncio.to_thread(actions.executer, c.settings, action)
         except Exception as exc:
@@ -447,6 +573,70 @@ def create_app(settings: Optional[Settings] = None) -> FastAPI:
                   n_occurrences=resultat.get("n_occurrences"),
                   sauvegarde=resultat.get("sauvegarde"))
         return {"statut": "appliquee", "resultat": resultat}
+
+    def _lancer_tache(c: AppContext, action, session: SessionInfo, ip: str) -> dict:
+        """Lance une tache approuvee en arriere-plan et rend la main.
+
+        La commande est RECALCULEE a partir de la liste fermee au moment de
+        l'approbation: rien de ce que le modele a ecrit n'y entre.
+        """
+        script = action.payload["script"]
+        cible = action.payload.get("cible")
+        # pytest sans fichier precis = toute la suite ("tests/").
+        cible_tests = cible if script == "pytest" and cible != "tests/" else None
+        try:
+            tache = code_ops.preparer_tache(script, cible_tests)
+        except code_ops.RefusCode as exc:
+            c.actions.marquer(action, actions.REFUSEE, {"erreur": str(exc)})
+            raise JarvisError(str(exc), code="tache_refusee", status=400)
+
+        def fini(resultat):
+            c.actions.marquer(action, actions.TERMINEE if resultat.get("reussi")
+                              else actions.ECHOUEE, resultat)
+            log_event("jarvis.admin", "tache_terminee", session_id=session.session_id,
+                      action_id=action.id, script=tache["cible"],
+                      reussi=resultat.get("reussi"), code=resultat.get("code_retour"),
+                      duree_s=resultat.get("duree_s"))
+
+        try:
+            c.taches.lancer(tache["commande"], c.settings.task_timeout_seconds, fini)
+        except code_ops.RefusCode as exc:
+            # Une autre tache tourne: la proposition reste approuvable.
+            raise JarvisError(str(exc), code="tache_occupee", status=409)
+        c.actions.marquer(action, actions.EN_COURS, {"debut": int(time.time())})
+        log_event("jarvis.admin", "tache_lancee", ip=ip, session_id=session.session_id,
+                  action_id=action.id, script=tache["cible"])
+        return {"statut": actions.EN_COURS, "resultat": None}
+
+    @app.post("/jarvis/api/admin/actions/{action_id}/revert")
+    async def admin_revert(action_id: str, request: Request,
+                           session: SessionInfo = Depends(require_admin),
+                           c: AppContext = Depends(ctx)):
+        """Retablit le fichier d'avant une modification de code appliquee.
+
+        Route, pas outil: comme l'approbation, l'annulation vient d'un clic.
+        Refusee si le fichier a ete retouche depuis, pour ne pas ecraser ce
+        travail.
+        """
+        try:
+            action = c.actions.obtenir(session.session_id, action_id)
+        except actions.ActionIntrouvable as exc:
+            raise JarvisError(str(exc), code="action_introuvable", status=404)
+        if action.type != "code_modifier" or action.statut != actions.APPLIQUEE:
+            raise JarvisError("Seule une modification de code appliquee peut "
+                              "etre annulee.", code="annulation_impossible",
+                              status=409)
+        try:
+            retour = await asyncio.to_thread(code_ops.annuler_modification,
+                                             action.resultat)
+        except code_ops.RefusCode as exc:
+            raise JarvisError(str(exc), code="annulation_refusee", status=409)
+        c.actions.marquer(action, actions.ANNULEE, {**action.resultat, **retour})
+        log_event("jarvis.admin", "action_annulee",
+                  ip=_client_ip(request, c.settings.trusted_proxy_hops, c.settings.proxies),
+                  session_id=session.session_id, action_id=action_id,
+                  cible=action.resultat.get("fichier"))
+        return {"statut": actions.ANNULEE, "resultat": retour}
 
     @app.post("/jarvis/api/admin/actions/{action_id}/reject")
     async def admin_reject(action_id: str, request: Request,
@@ -533,10 +723,16 @@ def create_app(settings: Optional[Settings] = None) -> FastAPI:
         enforce_rate_limit(request, session)
         conv = c.store.get_or_create(payload.conversation_id,
                                      session.session_id, session.profile)
-        messages = list(conv.messages) + [{"role": "user", "content": payload.message}]
-        return conv, messages
+        # Le contexte de page accompagne CETTE question vers l'API, mais
+        # n'entre pas dans l'historique: _commit n'y ecrit que payload.message.
+        contexte = page_context.nettoyer(payload.page_context)
+        blocs_vue = page_view.blocs(payload.page_view)
+        messages = conv.api_messages() + [
+            page_context.message_utilisateur(payload.message, contexte, blocs_vue)]
+        return conv, messages, contexte
 
-    def _commit(c: AppContext, conv, question: str, answer: str) -> None:
+    def _commit(c: AppContext, conv, question: str, answer: str,
+                figures_produites=None) -> None:
         """N'ecrit dans l'historique qu'une fois une reponse obtenue.
 
         Si l'appel echoue sans produire un seul caractere, rien n'est ecrit:
@@ -546,7 +742,7 @@ def create_app(settings: Optional[Settings] = None) -> FastAPI:
         if not answer:
             return
         c.store.append(conv, "user", question)
-        c.store.append(conv, "assistant", answer)
+        c.store.append(conv, "assistant", answer, figures=figures_produites)
 
     @app.post("/jarvis/api/chat")
     async def chat_stream(request: Request, payload: ChatRequest,
@@ -562,27 +758,38 @@ def create_app(settings: Optional[Settings] = None) -> FastAPI:
                 _flux_elevation(), media_type="text/event-stream",
                 headers={"Cache-Control": "no-store", "X-Accel-Buffering": "no"})
 
-        conv, messages = _prepare(request, payload, session, c)
+        conv, messages, contexte = _prepare(request, payload, session, c)
         preview = (payload.message[: c.settings.log_preview_chars]
                    if c.settings.log_prompts and not taire else None)
         log_event("jarvis.%s" % session.profile, "chat_stream_start",
                   session_id=session.session_id,
                   conversation_id=conv.conversation_id,
-                  chars=len(payload.message), question=preview)
+                  chars=len(payload.message), question=preview,
+                  page=contexte["page"] if contexte else None,
+                  vue=page_view.resume_journal(payload.page_view))
 
         async def generator():
             parts = []
             usage = {}
             outils = []
+            produites = []
+            annoncees = 0
             try:
                 yield _sse("meta", {"conversation_id": conv.conversation_id,
                                     "model": c.claude.model_for(session.profile)})
                 flux = c.claude.stream_reply(
                     messages, session.profile,
                     tools=c.tool_specs(session.profile),
-                    executor=c.tool_executor(session.profile, session.session_id),
+                    executor=c.tool_executor(session.profile, session.session_id,
+                                             produites),
                 )
                 async for chunk in flux:
+                    # Une figure deposee pendant le tour d'outils precedent
+                    # est annoncee des le fragment suivant, sans attendre la
+                    # fin de la reponse.
+                    while annoncees < len(produites):
+                        yield _sse("figure", produites[annoncees])
+                        annoncees += 1
                     if isinstance(chunk, dict):
                         if chunk.get("type") == "tools":
                             # Sans ce signal, l'utilisateur voit plusieurs
@@ -620,8 +827,11 @@ def create_app(settings: Optional[Settings] = None) -> FastAPI:
                                      "message": "Une erreur interne est survenue."})
                 return
 
+            while annoncees < len(produites):
+                yield _sse("figure", produites[annoncees])
+                annoncees += 1
             answer = "".join(parts)
-            _commit(c, conv, payload.message, answer)
+            _commit(c, conv, payload.message, answer, produites)
             log_event("jarvis.%s" % session.profile, "chat_stream_done",
                       session_id=session.session_id,
                       conversation_id=conv.conversation_id,
@@ -648,13 +858,15 @@ def create_app(settings: Optional[Settings] = None) -> FastAPI:
         if eleve:
             return JSONResponse({"elevation": eleve})
 
-        conv, messages = _prepare(request, payload, session, c)
+        conv, messages, _ = _prepare(request, payload, session, c)
+        produites = []
         result = await c.claude.complete(
             messages, session.profile,
             tools=c.tool_specs(session.profile),
-            executor=c.tool_executor(session.profile, session.session_id),
+            executor=c.tool_executor(session.profile, session.session_id,
+                                     produites),
         )
-        _commit(c, conv, payload.message, result["text"])
+        _commit(c, conv, payload.message, result["text"], produites)
         log_event("jarvis.%s" % session.profile, "chat_sync_done",
                   session_id=session.session_id,
                   conversation_id=conv.conversation_id,
@@ -665,7 +877,33 @@ def create_app(settings: Optional[Settings] = None) -> FastAPI:
             conversation_id=conv.conversation_id,
             reply=result["text"],
             usage=result.get("usage", {}),
+            figures=produites,
         )
+
+    @app.get("/jarvis/api/figures/{figure_id}")
+    async def figure(figure_id: str, theme: str = "clair", format: str = "png",
+                     session: SessionInfo = Depends(current_session),
+                     c: AppContext = Depends(ctx)):
+        """Image (ou donnees CSV) d'une figure de CETTE session.
+
+        Pas de balise <img src> possible: le jeton passe en en-tete. Le widget
+        telecharge donc l'image par fetch, puis l'affiche.
+        """
+        if not figure_id.isalnum() or len(figure_id) > 64:
+            raise NotFoundError("Figure introuvable.")
+        trouvee = c.figures.obtenir(session.session_id, figure_id)
+        if trouvee is None:
+            raise NotFoundError("Figure introuvable.")
+        entetes = {"Cache-Control": "private, max-age=3600"}
+        if format == "csv":
+            texte = figures.en_csv(trouvee.spec)
+            entetes["Content-Disposition"] = (
+                'attachment; filename="figure-%s.csv"' % trouvee.spec["type"])
+            return Response(texte.encode("utf-8-sig"), media_type="text/csv",
+                            headers=entetes)
+        png = await asyncio.to_thread(figures.rendu_en_cache, trouvee,
+                                      theme if theme in figures.THEMES else "clair")
+        return Response(png, media_type="image/png", headers=entetes)
 
     @app.get("/jarvis/admin", response_class=HTMLResponse)
     async def admin_console(c: AppContext = Depends(ctx)):
@@ -684,6 +922,16 @@ def create_app(settings: Optional[Settings] = None) -> FastAPI:
             headers={"X-Robots-Tag": "noindex, nofollow",
                      "Cache-Control": "no-store"},
         )
+
+    @app.get("/jarvis/static/{nom}")
+    async def fichier_hud(nom: str):
+        """L'orbe 3D (three.js inclus), chargee par le widget a l'entree du
+        mode plein ecran seulement: la bulle compacte n'en a pas besoin."""
+        chemin = FICHIERS_HUD.get(nom)
+        if chemin is None or not chemin.is_file():
+            raise NotFoundError("Fichier introuvable.")
+        return FileResponse(chemin, media_type="application/javascript",
+                            headers={"Cache-Control": "public, max-age=86400"})
 
     @app.get("/jarvis/widget.html", response_class=HTMLResponse)
     async def widget(dark: int = 1, c: AppContext = Depends(ctx)):
@@ -708,6 +956,7 @@ async def _sweep_loop(app: FastAPI) -> None:
             # expire de lui-meme: la liste ne grandit donc pas sans fin.
             app.state.ctx.revoques.purger()
             app.state.ctx.actions.purger()
+            app.state.ctx.figures.purger()
         except Exception:
             log.exception("Echec de la purge des conversations")
 

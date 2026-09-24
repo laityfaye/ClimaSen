@@ -34,11 +34,18 @@ class Conversation:
             "profile": self.profile,
             "created_at": self.created_at,
             "messages": [
-                {"role": m["role"], "content": m["content"]}
+                {"role": m["role"], "content": m["content"],
+                 "figures": m.get("figures", [])}
                 for m in self.messages
                 if m["role"] in ("user", "assistant")
             ],
         }
+
+    def api_messages(self) -> list:
+        """L'historique au format de l'API Anthropic: role et contenu, rien
+        d'autre. Une cle inconnue ("figures") ferait rejeter la requete."""
+        return [{"role": m["role"], "content": m["content"]}
+                for m in self.messages if m["role"] in ("user", "assistant")]
 
 
 class ConversationStore:
@@ -111,11 +118,18 @@ class ConversationStore:
         # AccessDeniedError remonte volontairement: c'est une tentative d'acces.
 
     # --- ecriture ------------------------------------------------------------
-    def append(self, conv: Conversation, role: str, content: str) -> None:
+    def append(self, conv: Conversation, role: str, content: str,
+               figures=None) -> None:
+        """figures (Phase 8): references des figures jointes a une reponse,
+        pour que le widget les reaffiche apres un remontage. Elles ne partent
+        jamais vers l'API: voir Conversation.api_messages()."""
         if role not in ("user", "assistant"):
             raise ValueError("role invalide: %r" % (role,))
         with self._lock:
-            conv.messages.append({"role": role, "content": content})
+            message = {"role": role, "content": content}
+            if figures:
+                message["figures"] = list(figures)
+            conv.messages.append(message)
             conv.last_used_at = time.time()
             self._trim_locked(conv)
 

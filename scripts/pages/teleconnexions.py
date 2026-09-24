@@ -352,23 +352,26 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
             options=list(PHASE_TC_L.keys()),
             format_func=lambda x: PHASE_TC_L[x],
             index=list(PHASE_TC_L.keys()).index("Toutes phases"),
+            key="tc_phase",
         )
     with fb:
         tc_metric = st.selectbox(
             "Metrique",
             options=list(METRIC_L.keys()),
             format_func=lambda x: METRIC_L[x],
+            key="tc_metric",
         )
     with fc:
-        tc_type = st.selectbox("Type", ["Pearson", "Spearman"])
+        tc_type = st.selectbox("Type", ["Pearson", "Spearman"], key="tc_type")
     with fd:
-        show_sig = st.checkbox("Sig. seulement", value=False)
+        show_sig = st.checkbox("Sig. seulement", value=False, key="tc_show_sig")
     with fe:
         p_mode = st.radio(
             "Significativite",
             options=["p brute", "p neff (AR1)"],
             index=1,
             horizontal=True,
+            key="tc_p_mode",
             help="p neff (AR1) : corrigee pour l'autocorrelation (Chelton 1983) -- recommandee\n"
                  "p brute : p-value nominale sans correction",
         )
@@ -631,6 +634,7 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
         options=all_indices,
         default=["Nino34", "IOBM", "AMO", "TNA"],
         label_visibility="collapsed",
+        key="tc_sel_indices",
     )
 
     fig_line = go.Figure()

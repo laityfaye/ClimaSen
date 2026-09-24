@@ -4,6 +4,7 @@ Module volontairement sans dependance a FastAPI: scripts/jarvis_widget.py
 l'importe depuis le process Streamlit, qui n'a aucune raison de charger le
 backend.
 """
+import json
 from functools import lru_cache
 from pathlib import Path
 
@@ -36,8 +37,21 @@ def render_admin(api_base: str = "/jarvis") -> str:
 MODES = ("flottant", "pousse")
 
 
+def _json_dans_script(valeur) -> str:
+    """JSON inerte a l'interieur d'une balise <script>.
+
+    json.dumps n'echappe ni "<" ni "/": une valeur contenant "</script>"
+    fermerait la balise et le reste serait interprete comme du HTML. Les trois
+    caracteres sensibles passent donc en sequences d'echappement unicode, que
+    JavaScript relit a l'identique.
+    """
+    texte = json.dumps(valeur, ensure_ascii=True, default=str)
+    return (texte.replace("<", "\\u003c").replace(">", "\\u003e")
+            .replace("&", "\\u0026"))
+
+
 def render_widget(api_base: str = "/jarvis", dark_mode: bool = True,
-                  mode: str = "flottant") -> str:
+                  mode: str = "flottant", page_context=None) -> str:
     """Injecte la base d'API, le theme et le mode d'affichage dans le gabarit.
 
     api_base ne doit jamais se terminer par un slash: le widget concatene
@@ -51,6 +65,10 @@ def render_widget(api_base: str = "/jarvis", dark_mode: bool = True,
                  pendant que le panneau est ouvert: plus aucun recouvrement,
                  au prix d une reorganisation de la page (les graphiques
                  Plotly se redimensionnent).
+
+    page_context (Phase 7): page ouverte et filtres regles, joints a chaque
+    question. Le serveur le revalide integralement (jarvis/page_context.py):
+    ce qui est injecte ici n'est qu'une commodite, pas une garantie.
     """
     base = (api_base or "/jarvis").rstrip("/")
     if mode not in MODES:
@@ -58,4 +76,5 @@ def render_widget(api_base: str = "/jarvis", dark_mode: bool = True,
     return (_template()
             .replace("__JARVIS_API_BASE__", base)
             .replace("__JARVIS_DARK__", "true" if dark_mode else "false")
-            .replace("__JARVIS_MODE__", mode))
+            .replace("__JARVIS_MODE__", mode)
+            .replace("__JARVIS_PAGE_CONTEXT__", _json_dans_script(page_context)))

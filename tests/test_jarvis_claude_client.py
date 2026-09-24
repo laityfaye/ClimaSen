@@ -175,3 +175,17 @@ class TestWorkspace:
         assert info.value.code == "upstream_workspace_required"
         # Le detail technique ne doit pas remonter au visiteur.
         assert "workspace" not in info.value.message.lower()
+
+    @pytest.mark.asyncio
+    async def test_le_credit_epuise_est_signale_distinctement(self, settings):
+        """Constate le 24/09/2026: sans code propre, un compte a sec se
+        confondait avec une question mal formee."""
+        import anthropic
+
+        exc = anthropic.BadRequestError(
+            "Your credit balance is too low to access the Anthropic API.",
+            response=_response(400), body=None)
+        with pytest.raises(UpstreamError) as info:
+            await make(settings, error=exc).complete([{"role": "user", "content": "x"}])
+        assert info.value.code == "upstream_billing"
+        assert "credit" not in info.value.message.lower()

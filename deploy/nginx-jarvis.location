@@ -6,6 +6,10 @@
 # transmis tel quel a FastAPI, dont toutes les routes commencent par /jarvis.
 
 location /jarvis/ {
+    # Le serveur autorise 500 Mo pour le dashboard; Jarvis n'en a pas
+    # besoin. Une question avec captures de graphiques pese ~1,3 Mo
+    # (Phase 9); l'application refuse aussi au-dela de 2,5 Mo.
+    client_max_body_size 3m;
     proxy_pass         http://127.0.0.1:8000;
     proxy_http_version 1.1;
 

@@ -19,7 +19,9 @@ import json
 import logging
 import time
 
-from . import clusters, documents, events, redaction, sst_index, teleconnections
+from . import (analyse_evenements, analyse_teleconnexions, clusters, code,
+               documents, events, graphiques, pipeline_statut, redaction,
+               sst_index, teleconnections)
 from .common import ToolInputError
 from .dataset import DataUnavailableError
 from .dataset import load as charger_donnees
@@ -29,7 +31,9 @@ log = logging.getLogger("jarvis.tools")
 # Un "fournisseur" est un module (outils publics) ou une classe (outils admin
 # de jarvis/tools/redaction.py): les deux exposent les memes attributs, donc
 # le registre n'a pas a les distinguer.
-MODULES = (sst_index, events, teleconnections, clusters, documents) + redaction.OUTILS
+MODULES = (sst_index, events, teleconnections, clusters, documents,
+           analyse_teleconnexions, analyse_evenements,
+           pipeline_statut, graphiques) + redaction.OUTILS + code.OUTILS
 
 MAX_RESULT_CHARS = 6000
 

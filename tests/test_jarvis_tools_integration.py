@@ -84,3 +84,40 @@ async def test_taille_des_resultats_bornee():
                         ("get_risk_cluster", {"phase": "Toutes phases"})):
         resultat = await tools.execute(nom, params, "public")
         assert len(resultat["content"]) <= tools.MAX_RESULT_CHARS
+
+
+# --- Phase 7: outils d'analyse ----------------------------------------------------
+@pytest.mark.asyncio
+async def test_bilan_significativite_reel():
+    """Le script 04 teste 66 combinaisons par phase et par metrique."""
+    donnees = await lancer("analyze_teleconnections",
+                           analysis="bilan_significativite")
+    phases = {p["phase"]: p for p in donnees["phases"]}
+    assert set(phases) == {"Phase_1_debut", "Phase_2_pleine", "Phase_3_fin"}
+    for bloc in phases.values():
+        assert bloc["n_tests"] == 66
+        assert bloc["attendues_par_hasard"] == pytest.approx(3.3)
+
+
+@pytest.mark.asyncio
+async def test_robustesse_reelle():
+    donnees = await lancer("analyze_teleconnections", analysis="robustesse",
+                           phase="Phase_2_pleine")
+    assert donnees["n_candidates"] >= 1
+    assert donnees["correlations"][0]["verdict"] in ("robuste", "moderee", "fragile")
+
+
+@pytest.mark.asyncio
+async def test_tendance_reelle_couvre_toute_la_periode():
+    donnees = await lancer("analyze_extreme_events", analysis="tendance")
+    assert donnees["n_evenements"] == 1317
+    assert donnees["filtres"]["annees"] == [1981, 2023]
+    assert donnees["n_annees"] == 43
+
+
+@pytest.mark.asyncio
+async def test_statut_pipeline_reel():
+    donnees = await lancer("get_pipeline_status")
+    ids = {e["etape"] for e in donnees["etapes"]}
+    assert {"01", "04", "11"} <= ids
+    assert sum(donnees["resume"].values()) == donnees["n_etapes"]

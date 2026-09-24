@@ -53,6 +53,14 @@ class ConversationNotFoundError(JarvisError):
     message = "Conversation introuvable ou expiree."
 
 
+class NotFoundError(JarvisError):
+    """Ressource inconnue, expiree ou d'une autre session: meme reponse dans
+    les trois cas, pour ne pas confirmer l'existence d'un identifiant."""
+    code = "not_found"
+    status = 404
+    message = "Ressource introuvable."
+
+
 class RateLimitedError(JarvisError):
     code = "rate_limited"
     status = 429

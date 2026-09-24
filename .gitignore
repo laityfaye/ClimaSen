@@ -55,3 +55,10 @@ timescaledb_data/
 
 # Logs Jarvis (trafic public et audit admin)
 outputs/jarvis_logs/
+
+# Projets JARVIS personnels (bureau Windows/Linux) - non integres a ClimatSen
+JARVIS-pro/
+LINUX/
+
+# Sauvegardes des modifications de code faites par Jarvis (Phase 10)
+.jarvis/

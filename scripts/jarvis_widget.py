@@ -30,7 +30,10 @@ def _api_base() -> str:
         return explicit.rstrip("/")
     if os.environ.get("JARVIS_ENV", "dev") == "prod":
         return "/jarvis"
-    return "http://localhost:8000/jarvis"
+    # 8010 et non 8000 en local: JARVIS-pro, l'assistant de bureau de Laity,
+    # occupe deja le port 8000. La bulle interrogeait alors JARVIS-pro, qui
+    # repondait 404, et s'affichait "hors ligne" (constate le 24/09/2026).
+    return "http://localhost:8010/jarvis"
 
 
 HAUTEUR_REPLIEE = 76      # doit correspondre a H_SHUT dans widget.html
@@ -67,6 +70,77 @@ def _mode() -> str:
     return valeur if valeur in ("flottant", "pousse") else "flottant"
 
 
+# Contexte de page (Phase 7): quelle cle de st.session_state porte quel
+# filtre, page par page. Les noms de gauche sont ceux qu'accepte le serveur
+# (jarvis/page_context.py, CHAMPS): un champ ajoute ici sans y etre declare
+# serait ignore cote serveur, jamais transmis au modele.
+CLES_CONTEXTE = {
+    "Evenements": {
+        "annees": "evt_yr_range",
+        "phases": "evt_phases_sel",
+        "evenement_date": "jarvis_evt_date",
+    },
+    "Indices SST": {
+        "indices": "sst_sel_idx",
+        "agregation": "sst_agg_mode",
+    },
+    "Teleconnexions": {
+        "phase": "tc_phase",
+        "metrique": "tc_metric",
+        "type_correlation": "tc_type",
+        "significatives_seulement": "tc_show_sig",
+        "p_value": "tc_p_mode",
+        "phase_lag0": "lag0_phase_sel",
+        "indices_series": "tc_sel_indices",
+    },
+    "Clustering": {
+        "phase": "cl_phase",
+        "cluster": "cl_shared_cluster",
+        "metrique_barres": "cl_metric_bar",
+    },
+    "Pipeline": {
+        "onglet": "pip_tab",
+    },
+}
+
+
+def _simple(valeur):
+    """Ramene une valeur de session a un type JSON natif.
+
+    Les selecteurs Streamlit renvoient des numpy.int64 (identifiants de
+    cluster), des tuples (curseurs a deux bornes): json.dumps refuserait les
+    premiers et le serveur n'accepte que des listes pour les seconds.
+    """
+    if hasattr(valeur, "item") and not isinstance(valeur, (list, tuple, dict)):
+        try:
+            return valeur.item()
+        except Exception:                          # noqa: BLE001
+            return valeur
+    if isinstance(valeur, (list, tuple)):
+        return [_simple(v) for v in valeur]
+    return valeur
+
+
+def contexte_page(etat) -> dict:
+    """Page ouverte et filtres regles, lus dans st.session_state.
+
+    Ne leve jamais: sans contexte, Jarvis repond quand meme, simplement sans
+    savoir ce que l'utilisateur regarde.
+    """
+    try:
+        page = etat.get("nav_page")
+        cles = CLES_CONTEXTE.get(page)
+        if cles is None:
+            return None
+        filtres = {}
+        for champ, cle in cles.items():
+            if cle in etat:
+                filtres[champ] = _simple(etat[cle])
+        return {"page": page, "filtres": filtres}
+    except Exception:                              # noqa: BLE001
+        return None
+
+
 derniere_erreur = None
 
 
@@ -81,12 +155,14 @@ def render(dark_mode: bool = True) -> bool:
     if not est_active():
         return False
     try:
+        import streamlit as st
         import streamlit.components.v1 as components
 
         from jarvis.widget_html import render_widget
 
         html = render_widget(api_base=_api_base(), dark_mode=bool(dark_mode),
-                             mode=_mode())
+                             mode=_mode(),
+                             page_context=contexte_page(st.session_state))
         # Hauteur de la bulle repliee, et non 0.
         #
         # Arbitrage : avec 0, le composant ne reserve aucune place dans le flux,

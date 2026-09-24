@@ -84,12 +84,29 @@ def test_expiration(registre, monkeypatch):
 
 
 def test_purge_des_traitees(registre):
+    """Phase 10: une proposition traitee reste visible un TTL (annulation
+    d'une modification de code, resultat d'une tache), puis est oubliee."""
+    traitees = []
     for _ in range(3):
-        registre.marquer(deposer(registre), actions.APPLIQUEE)
+        a = deposer(registre)
+        registre.marquer(a, actions.APPLIQUEE)
+        traitees.append(a)
     en_attente = deposer(registre)
+    assert registre.purger() == 0                 # encore annulables
+    for a in traitees:
+        a.cree_le -= registre.ttl + 1
     assert registre.purger() == 3
     assert registre.taille() == 1
     assert registre.recuperer("sess1", en_attente.id)
+
+
+def test_une_tache_en_cours_n_est_jamais_purgee(registre):
+    a = deposer(registre)
+    registre.marquer(a, actions.EN_COURS)
+    a.cree_le -= registre.ttl * 10
+    a.expire_le -= registre.ttl * 10
+    registre.purger()
+    assert registre.obtenir("sess1", a.id) is a
 
 
 def test_plafond_du_registre():

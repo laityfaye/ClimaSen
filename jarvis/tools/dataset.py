@@ -109,7 +109,7 @@ LOADERS = {
 # Jeux qui ne viennent pas du dashboard. L'index documentaire (Phase 3) est
 # un fichier construit hors ligne et embarque: il ne passe pas par
 # dashboard_utils, donc pas par streamlit non plus.
-JEUX = set(LOADERS) | {"knowledge"}
+JEUX = set(LOADERS) | {"knowledge", "pipeline"}
 
 
 def _charger_corpus():
@@ -120,10 +120,29 @@ def _charger_corpus():
         raise DataUnavailableError(str(exc)) from exc
 
 
+def _charger_pipeline():
+    """Etapes du module Pipeline, lues dans la page elle-meme (Phase 7).
+
+    Seule la LISTE des etapes est chargee ici, une fois pour toutes; les dates
+    des fichiers sont relues a chaque appel de l'outil, sans quoi une etape
+    relancee resterait "a relancer" jusqu'au redemarrage du service.
+    """
+    import importlib
+    _utils()  # met scripts/ dans sys.path et fait taire streamlit
+    try:
+        module = importlib.import_module("pages.pipeline")
+    except Exception as exc:  # pragma: no cover - depend de l'install
+        log.exception("Import de pages.pipeline impossible.")
+        raise DataUnavailableError(str(exc)) from exc
+    return {"steps": module.PIPELINE_STEPS, "base": str(module.BASE)}
+
+
 def get(nom: str):
     """Charge un jeu de donnees (bloquant). Utilise par les tests et preload()."""
     if nom == "knowledge":
         return _charger_corpus()
+    if nom == "pipeline":
+        return _charger_pipeline()
     if nom not in LOADERS:  # pragma: no cover - garde-fou de refactoring
         raise DataUnavailableError("Jeu de donnees inconnu: %s" % nom)
     return _charger(LOADERS[nom])

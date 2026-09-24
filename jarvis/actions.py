@@ -26,6 +26,15 @@ EN_ATTENTE = "en_attente"
 APPLIQUEE = "appliquee"
 REFUSEE = "refusee"
 EXPIREE = "expiree"
+# Phase 10: une tache approuvee tourne en arriere-plan, puis se termine.
+EN_COURS = "en_cours"
+TERMINEE = "terminee"
+ECHOUEE = "echouee"
+# Phase 10: une modification de code appliquee puis retablie.
+ANNULEE = "annulee"
+
+# Types dont l'execution est lancee en arriere-plan par la route d'approbation.
+TYPES_ASYNCHRONES = {"tache_executer"}
 
 TTL_DEFAUT = 1800        # 30 min: une proposition oubliee ne doit pas trainer
 MAX_ACTIONS = 100
@@ -119,14 +128,26 @@ class RegistreActions:
                     "Proposition expiree. Redemander a Jarvis.")
             return action
 
+    def obtenir(self, session_id: str, action_id: str) -> Action:
+        """L'action de CETTE session, quel que soit son statut (annulation)."""
+        with self._verrou:
+            entree = self._actions.get(action_id)
+            if entree is None or entree[0] != session_id:
+                raise ActionIntrouvable("Proposition introuvable.")
+            return entree[1]
+
     def marquer(self, action: Action, statut: str, resultat=None) -> None:
         with self._verrou:
             action.statut = statut
             action.resultat = resultat
 
     def _purger_verrouille(self) -> None:
+        # Une tache en cours ou une modification annulable restent visibles:
+        # seules les propositions closes depuis plus d'un TTL sont oubliees.
+        limite = time.time() - self.ttl
         perimes = [i for i, (_, a) in self._actions.items()
-                   if a.expiree or a.statut != EN_ATTENTE]
+                   if a.expiree or (a.statut not in (EN_ATTENTE, EN_COURS)
+                                    and a.cree_le < limite)]
         for cle in perimes:
             del self._actions[cle]
         if len(self._actions) > self.maximum:
@@ -150,6 +171,9 @@ class RegistreActions:
 # plus: il ne peut ni choisir le moment, ni modifier la charge entre la
 # proposition et l'execution.
 def executer(settings, action: Action) -> dict:
+    if action.type == "code_modifier":
+        from . import code_ops
+        return code_ops.appliquer_modification(action.payload)
     if action.type == "document_remplacer":
         from . import documents
         return documents.appliquer_remplacement(

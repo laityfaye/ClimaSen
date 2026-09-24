@@ -113,4 +113,5 @@ def test_export_public_ne_fuit_pas_la_session():
     s.append(c, "user", "bonjour")
     data = c.to_public_dict()
     assert "session_id" not in data
-    assert data["messages"] == [{"role": "user", "content": "bonjour"}]
+    assert data["messages"] == [{"role": "user", "content": "bonjour",
+                                 "figures": []}]

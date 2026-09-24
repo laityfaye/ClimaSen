@@ -48,6 +48,10 @@
   #fab:hover{transform:scale(1.07);box-shadow:0 10px 32px rgba(79,70,229,.62)}
   #fab:active{transform:scale(.96)}
   #fab svg{width:27px;height:27px;fill:#fff}
+  /* Orbe (Phase 11): sphere de particules dessinee sur canvas 2D. */
+  .orbe{display:block;width:100%;height:100%}
+  #fab .orbe{width:58px;height:58px;border-radius:50%}
+  .avatar .orbe{width:35px;height:35px;border-radius:11px}
   #fab .badge{
     position:absolute;top:-2px;right:-2px;width:13px;height:13px;border-radius:50%;
     background:var(--corail);border:2.5px solid var(--bg);display:none;
@@ -126,6 +130,17 @@
   .msg code{background:var(--surface);border:1px solid var(--border);border-radius:5px;padding:1px 5px;font-size:.76rem;font-family:ui-monospace,Consolas,monospace}
   .msg.user code{background:rgba(255,255,255,.2);border-color:rgba(255,255,255,.3);color:#fff}
   .msg ul{margin:5px 0;padding-left:17px}
+  /* Figures (Phase 8): sous la reponse, titre en HTML, image au fond de la
+     bulle (le PNG est dessine sur ce meme fond, clair ou sombre). */
+  .fig{align-self:flex-start;width:94%;margin:0;padding:9px 10px 7px;background:var(--bg);border:1px solid var(--border);border-radius:14px;border-bottom-left-radius:5px;animation:rise .2s ease}
+  .fig figcaption{font-size:.78rem;line-height:1.35;margin-bottom:6px}
+  .fig figcaption strong{display:block;color:var(--text)}
+  .fig figcaption span{display:block;color:var(--muted);font-size:.7rem;margin-top:1px}
+  .fig-img{min-height:40px;color:var(--muted);font-size:.72rem}
+  .fig-img img{display:block;width:100%;height:auto;border-radius:6px}
+  .fig-liens{display:flex;justify-content:flex-end;margin-top:4px}
+  .fig-liens button{background:none;border:0;padding:2px 0;color:var(--indigo);font-size:.7rem;cursor:pointer;text-decoration:underline}
+  html[data-dark="true"] .fig-liens button{color:var(--turquoise)}
   .msg li{margin:2px 0}
 
   .intro{padding:16px 6px;text-align:center;color:var(--muted)}
@@ -193,6 +208,13 @@
     padding:6px 8px;margin-bottom:6px;max-height:150px;overflow:auto;
     white-space:pre-wrap;overflow-wrap:anywhere}
   .diff .sup{color:#FDA4AF} .diff .add{color:#6EE7B7}
+  .diff .meta{color:var(--muted)}
+  .diff-code{max-height:230px;white-space:pre;overflow:auto}
+  .sortie{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.64rem;margin:6px 0 0;
+    background:var(--surface);border:1px solid var(--border);border-radius:7px;padding:6px 8px;
+    max-height:160px;overflow:auto;white-space:pre-wrap;color:var(--text)}
+  .action-bilan .lien{background:none;border:0;padding:0;margin-left:6px;cursor:pointer;
+    color:var(--corail);text-decoration:underline;font-size:.72rem}
   .action-pied{padding:8px 11px;border-top:1px solid var(--border);display:flex;gap:7px}
   .action-pied button{padding:6px 12px;border-radius:8px;border:0;cursor:pointer;
     font-size:.74rem;font-weight:600;background:var(--indigo);color:#fff}
@@ -227,22 +249,335 @@
   #send svg{width:17px;height:17px;fill:#fff}
   #send:hover:not(:disabled){transform:scale(1.06)}
   #send:disabled{opacity:.4;cursor:not-allowed}
+  /* Phase 9: joindre la vue du dashboard a la question. */
+  #vue{width:34px;height:38px;flex:none;border:1px solid var(--border);border-radius:11px;cursor:pointer;background:var(--surface);display:flex;align-items:center;justify-content:center;transition:background .15s,border-color .15s}
+  #vue[hidden],#micro[hidden],#voix[hidden]{display:none}
+  #micro{width:34px;height:38px;flex:none;border:1px solid var(--border);border-radius:11px;cursor:pointer;background:var(--surface);display:flex;align-items:center;justify-content:center;transition:background .15s,border-color .15s}
+  #micro svg{width:17px;height:17px;fill:var(--muted)}
+  #micro.on{background:var(--corail);border-color:var(--corail);animation:ecoute 1.2s ease-in-out infinite}
+  #micro.on svg{fill:#fff}
+  @keyframes ecoute{0%,100%{box-shadow:0 0 0 0 rgba(244,63,94,.45)}50%{box-shadow:0 0 0 6px rgba(244,63,94,0)}}
+  #voix svg{width:15px;height:15px;fill:currentColor}
+  #voix.on{background:rgba(255,255,255,.28)}
+  @media (prefers-reduced-motion: reduce){ #micro.on{animation:none} }
+  #vue svg{width:17px;height:17px;fill:var(--muted)}
+  #vue.on{background:var(--indigo);border-color:var(--indigo)}
+  #vue.on svg{fill:#fff}
   .legal{flex:none;text-align:center;font-size:.62rem;color:var(--muted);padding:0 10px 8px;background:var(--bg)}
+
+  /* =====================================================================
+     INTERFACE J.A.R.V.I.S -- reprise de JARVIS-pro (frontend/src/style.css)
+     Noir, cyan #00E5FF lumineux, police monospace, coins en equerre, lignes
+     de balayage. L'interface est toujours sombre, comme dans JARVIS-pro,
+     quel que soit le theme du dashboard.
+     ===================================================================== */
+  :root, html[data-dark="true"], html[data-dark="false"]{
+    --ocean:#02070A; --indigo:#00B8D4; --turquoise:#00E5FF; --corail:#FF4D6D;
+    --bg:#07121A; --surface:#03080C; --text:#D8F6FF; --muted:#6FA3B3;
+    --border:#0F3440; --cyan:#00E5FF;
+    --mono:"Courier New",ui-monospace,Consolas,monospace;
+    --shadow:0 0 0 1px rgba(0,229,255,.16),0 18px 48px rgba(0,0,0,.72),0 0 36px rgba(0,229,255,.10);
+  }
+  #panel{border-radius:4px;border:1px solid rgba(0,229,255,.35);background:rgba(3,8,12,.97)}
+  #panel::before,#panel::after{content:"";position:absolute;width:16px;height:16px;
+    border:2px solid var(--cyan);pointer-events:none;z-index:6;filter:drop-shadow(0 0 4px rgba(0,229,255,.8))}
+  #panel::before{top:-1px;left:-1px;border-right:0;border-bottom:0}
+  #panel::after{bottom:-1px;right:-1px;border-left:0;border-top:0}
+  header{background:linear-gradient(180deg,rgba(0,229,255,.09),rgba(0,229,255,0));
+    border-bottom:1px solid rgba(0,229,255,.22)}
+  .htitle{font-family:var(--mono);font-weight:900;letter-spacing:.32em;color:var(--cyan);
+    text-shadow:0 0 10px rgba(0,229,255,.75)}
+  .hsub{font-family:var(--mono);letter-spacing:.12em;text-transform:uppercase;color:rgba(0,229,255,.55)}
+  .avatar{border-radius:50%;background:#020607;border:1px solid rgba(0,229,255,.5);
+    box-shadow:0 0 12px rgba(0,229,255,.3)}
+  .avatar .orbe{border-radius:50%}
+  .hclose{background:transparent;border:1px solid rgba(0,229,255,.32);color:var(--cyan);border-radius:50%}
+  .hclose:hover{background:rgba(0,229,255,.12)}
+  #hud-btn{font-family:var(--mono);font-size:.62rem;font-weight:700;letter-spacing:.08em;
+    width:auto;padding:0 9px;border-radius:14px}
+  #log{background:repeating-linear-gradient(0deg,rgba(0,229,255,.022) 0 1px,transparent 1px 3px),var(--surface)}
+  #log::-webkit-scrollbar-thumb{background:rgba(0,229,255,.25)}
+  .msg{border-radius:3px}
+  .msg.user{background:rgba(0,229,255,.09);border:1px solid rgba(0,229,255,.45);color:#E6FBFF;
+    border-radius:3px}
+  .msg.bot{background:var(--bg);border:1px solid var(--border);border-left:2px solid var(--cyan);border-radius:3px}
+  .msg.bot strong{color:var(--cyan)}
+  .fig{border-radius:3px;border-left:2px solid var(--cyan)}
+  .fig figcaption strong{font-family:var(--mono);letter-spacing:.04em;color:var(--cyan)}
+  .intro h4{font-family:var(--mono);letter-spacing:.28em;color:var(--cyan);text-shadow:0 0 8px rgba(0,229,255,.6)}
+  .chip{border-radius:2px;font-family:var(--mono);font-size:.66rem;letter-spacing:.04em;
+    background:transparent;border-color:rgba(0,229,255,.3);color:var(--cyan)}
+  .chip:hover{background:rgba(0,229,255,.08)}
+  #fab{background:radial-gradient(circle at 50% 45%,#06222C,#020607 70%);
+    border:1px solid rgba(0,229,255,.6);box-shadow:0 0 22px rgba(0,229,255,.45),inset 0 0 18px rgba(0,229,255,.22)}
+  #fab:hover{box-shadow:0 0 30px rgba(0,229,255,.65),inset 0 0 18px rgba(0,229,255,.3)}
+  .compose{background:var(--surface);border-top:1px solid rgba(0,229,255,.2)}
+  textarea{border-radius:3px;font-family:var(--mono);font-size:.78rem;background:#020507;
+    border-color:rgba(0,229,255,.3);color:#E6FBFF}
+  textarea:focus{border-color:var(--cyan);box-shadow:0 0 0 1px rgba(0,229,255,.25)}
+  textarea::placeholder{color:rgba(0,229,255,.38);letter-spacing:.04em}
+  #send{border-radius:50%;background:transparent;border:1px solid var(--cyan);box-shadow:0 0 12px rgba(0,229,255,.35)}
+  #send svg{fill:var(--cyan)}
+  #micro,#vue{border-radius:50%;width:38px;background:transparent;border-color:rgba(0,229,255,.35)}
+  #micro svg,#vue svg{fill:var(--cyan)}
+  #micro.on{background:rgba(255,77,109,.22);border-color:#FF4D6D}
+  #vue.on{background:rgba(0,229,255,.2);border-color:var(--cyan)}
+  .legal{font-family:var(--mono);letter-spacing:.12em;text-transform:uppercase;
+    color:rgba(0,229,255,.38);background:var(--surface)}
+  .typing,.tool{font-family:var(--mono)}
+  .action{border-radius:3px}
+  body.admin #panel{border-color:rgba(255,77,109,.7)}
+  body.admin #panel::before,body.admin #panel::after{border-color:#FF4D6D}
+  body.admin .htitle{color:#FF8FA3;text-shadow:0 0 10px rgba(255,77,109,.7)}
+
+  /* ---------- Mode J.A.R.V.I.S plein ecran ---------------------------- */
+  #hud{display:none}
+  body.hud #hud{display:block;position:fixed;inset:0;z-index:0;overflow:hidden;
+    background:radial-gradient(ellipse at 50% 45%,#041018 0%,#020406 62%);font-family:var(--mono)}
+  body.hud{align-items:stretch}
+  body.hud #panel{position:fixed;inset:0;width:auto;height:auto;max-height:none;
+    background:transparent;border:0;box-shadow:none;border-radius:0;z-index:2;
+    animation:none;pointer-events:none}
+  body.hud #panel::before,body.hud #panel::after,body.hud header,body.hud #grip,
+  body.hud .legal,body.hud #micro{display:none}
+  body.hud #panel > *{pointer-events:auto}
+  /* Comme JARVIS-pro: l'orbe seule au centre. La transcription et le clavier
+     s'ouvrent a la demande (menu, icones, frappe au clavier), ou d'eux-memes
+     quand une figure ou une proposition arrive. */
+  body.hud #log, body.hud .compose{display:none}
+  body.hud.hud-transcription #log{display:flex}
+  body.hud.hud-clavier .compose{display:flex}
+  body.hud #log{position:fixed;top:128px;right:22px;bottom:176px;width:min(430px,38vw);
+    border:1px solid rgba(0,229,255,.28);background:rgba(2,7,10,.80);
+    box-shadow:0 0 24px rgba(0,229,255,.08)}
+  body.hud #banner{position:fixed;top:122px;left:50%;transform:translateX(-50%);
+    width:min(520px,90vw);z-index:4}
+  body.hud .compose{position:fixed;left:50%;bottom:150px;transform:translateX(-50%);
+    width:min(640px,92vw);background:rgba(2,7,10,.86);border:1px solid rgba(0,229,255,.3)}
+  #hud-orbe,#hud-orbe2d{position:absolute;inset:0;width:100%;height:100%;display:block}
+  #hud-orbe2d{display:none;width:min(420px,70vw);height:min(420px,70vw);inset:auto;
+    left:50%;top:50%;transform:translate(-50%,-55%)}
+  #hud.sans3d #hud-orbe{display:none}
+  #hud.sans3d #hud-orbe2d{display:block}
+  .hud-grille{position:absolute;inset:0;pointer-events:none;opacity:.35;
+    background-image:linear-gradient(rgba(0,229,255,.05) 1px,transparent 1px),
+                     linear-gradient(90deg,rgba(0,229,255,.05) 1px,transparent 1px);
+    background-size:48px 48px}
+  #hud-menu-btn{position:absolute;top:18px;left:20px;z-index:3;padding:7px 18px;
+    background:rgba(0,229,255,.04);border:1px solid rgba(0,229,255,.55);color:var(--cyan);
+    font-family:var(--mono);font-weight:900;letter-spacing:.14em;font-size:.72rem;cursor:pointer;
+    box-shadow:0 0 12px rgba(0,229,255,.18)}
+  #hud-menu-btn:hover,#hud-menu-btn.ouvert{background:rgba(0,229,255,.14);box-shadow:0 0 18px rgba(0,229,255,.4)}
+  #hud-astuce.cache{opacity:0;pointer-events:none}
+  #hud-astuce{transition:opacity .8s ease;position:absolute;top:58px;left:20px;z-index:1;max-width:min(430px,42vw);
+    padding:9px 14px 9px 20px;border-left:3px solid var(--cyan);background:rgba(0,229,255,.05);
+    color:var(--cyan);font-weight:900;letter-spacing:.1em;font-size:.7rem;
+    text-shadow:0 0 8px rgba(0,229,255,.6);box-shadow:0 0 18px rgba(0,229,255,.08)}
+  #hud-menu{position:absolute;top:58px;left:20px;z-index:4;width:300px;
+    max-height:calc(100vh - 90px);overflow-y:auto;padding:14px;display:none;
+    background:rgba(2,8,11,.94);border:1px solid rgba(0,229,255,.4);
+    box-shadow:0 0 28px rgba(0,229,255,.18)}
+  #hud-menu.ouvert{display:block}
+  .hm-titre{color:var(--cyan);font-weight:900;font-size:.66rem;letter-spacing:.14em;
+    padding-bottom:10px;border-bottom:1px solid rgba(0,229,255,.25);margin-bottom:12px}
+  .hm-section{font-size:.6rem;letter-spacing:.2em;color:#C084FC;margin:14px 0 8px;
+    padding-bottom:5px;border-bottom:1px solid rgba(192,132,252,.25)}
+  .hm-section.orange{color:#FB923C;border-color:rgba(251,146,60,.25)}
+  .hm-section.cyan{color:var(--cyan);border-color:rgba(0,229,255,.25)}
+  #hud-menu button{display:block;width:100%;text-align:left;margin-bottom:8px;
+    padding:9px 12px;background:rgba(0,229,255,.03);border:1px solid rgba(0,229,255,.22);
+    color:#CFF7FF;font-family:var(--mono);font-weight:700;font-size:.66rem;letter-spacing:.09em;
+    cursor:pointer;border-radius:3px}
+  #hud-menu button:hover{background:rgba(0,229,255,.12);border-color:var(--cyan);color:#fff}
+  #hud-menu button.on{border-color:var(--cyan);box-shadow:0 0 12px rgba(0,229,255,.35);color:var(--cyan)}
+  #hud-horloge{position:absolute;top:18px;left:50%;transform:translateX(-50%);z-index:1;
+    width:min(494px,56vw);height:92px;border:1px solid rgba(0,229,255,.28);
+    background:rgba(0,229,255,.03);display:grid;grid-template-columns:70px 1fr 70px;
+    align-items:center;padding:0 12px;box-shadow:0 0 22px rgba(0,229,255,.08)}
+  .hh-coin{position:absolute;width:10px;height:10px;border:2px solid var(--cyan)}
+  .hh-hg{top:4px;left:4px;border-right:0;border-bottom:0}
+  .hh-hd{top:4px;right:4px;border-left:0;border-bottom:0}
+  .hh-bg{bottom:4px;left:4px;border-right:0;border-top:0}
+  .hh-bd{bottom:4px;right:4px;border-left:0;border-top:0}
+  .hh-label{position:absolute;top:7px;left:0;right:0;text-align:center;font-size:.55rem;
+    letter-spacing:.24em;color:rgba(0,229,255,.55)}
+  #hud-heure{text-align:center;color:var(--cyan);font-size:clamp(1.3rem,3.4vw,2.35rem);
+    font-weight:900;letter-spacing:.2em;text-shadow:0 0 14px rgba(0,229,255,.85)}
+  .hh-stat{text-align:center;font-size:.52rem;letter-spacing:.14em;color:rgba(0,229,255,.55)}
+  .hh-stat b{display:block;font-weight:400}
+  .hh-stat span{display:block;margin-top:3px;color:var(--cyan);font-size:.66rem;font-weight:900}
+  .hh-bas{position:absolute;bottom:7px;left:18px;right:18px;display:flex;justify-content:space-between;
+    font-size:.5rem;letter-spacing:.2em;color:rgba(0,229,255,.45)}
+  #hud-lien{position:static;padding:6px 14px;border-radius:14px;
+    border:1px solid rgba(16,185,129,.4);color:#34D399;font-size:.66rem;letter-spacing:.08em;
+    background:rgba(16,185,129,.06)}
+  #hud-lien.hors{border-color:rgba(255,77,109,.4);color:#FF4D6D;background:rgba(255,77,109,.05)}
+  #hud-boutons{position:absolute;bottom:84px;left:50%;transform:translateX(-50%);z-index:1;
+    display:flex;gap:16px}
+  #hud-statut{position:absolute;bottom:52px;left:0;right:0;text-align:center;z-index:1;
+    font-family:"Segoe UI",system-ui,sans-serif;font-size:.8rem;letter-spacing:.14em;
+    color:rgba(0,229,255,.6)}
+  #hud-soustitre{position:absolute;left:50%;bottom:156px;transform:translateX(-50%);z-index:1;
+    width:min(760px,86vw);text-align:center;font-family:"Segoe UI",system-ui,sans-serif;
+    font-size:.95rem;line-height:1.5;color:#CFF7FF;text-shadow:0 0 12px rgba(0,229,255,.45);
+    transition:opacity .4s ease}
+  #hud-soustitre:empty{opacity:0}
+  #hud-soustitre button{display:inline-block;margin-left:8px;background:none;border:0;
+    color:var(--cyan);font-family:var(--mono);font-size:.66rem;letter-spacing:.14em;
+    cursor:pointer;text-decoration:underline}
+  body.hud.hud-clavier #hud-soustitre{bottom:214px}
+  /* Transcription ouverte: le texte y est deja, le sous-titre la chevaucherait. */
+  body.hud.hud-transcription #hud-soustitre{display:none}
+  #hud-coin{position:absolute;top:18px;right:20px;z-index:1;display:flex;align-items:center;gap:12px}
+  #hud-coin .hud-icone{width:34px;height:34px;border-radius:50%;cursor:pointer;display:flex;
+    align-items:center;justify-content:center;background:transparent;
+    border:1px solid rgba(0,229,255,.45);color:var(--cyan)}
+  #hud-coin .hud-icone svg{width:16px;height:16px;fill:var(--cyan)}
+  #hud-coin .hud-icone.on{background:rgba(0,229,255,.16);box-shadow:0 0 12px rgba(0,229,255,.4)}
+  #hud-coin .hud-icone:hover{background:rgba(0,229,255,.1)}
+  .hud-rond{width:58px;height:58px;border-radius:50%;cursor:pointer;display:flex;
+    align-items:center;justify-content:center;background:rgba(0,229,255,.06);
+    border:1px solid rgba(0,229,255,.45);box-shadow:0 0 14px rgba(0,229,255,.22),inset 0 0 12px rgba(0,229,255,.12);
+    transition:box-shadow .15s,background .15s}
+  .hud-rond svg{width:22px;height:22px;fill:var(--cyan)}
+  .hud-rond:hover{background:rgba(0,229,255,.14);box-shadow:0 0 22px rgba(0,229,255,.45)}
+  .hud-rond.on{background:rgba(0,229,255,.22);box-shadow:0 0 26px rgba(0,229,255,.6)}
+  #hud-micro.on{background:rgba(255,77,109,.2);border-color:#FF4D6D}
+  #hud-micro.on svg{fill:#FF4D6D}
+  .hud-rond[hidden]{display:none}
+  #hud-pied{position:absolute;bottom:10px;left:0;right:0;text-align:center;
+    font-size:.56rem;letter-spacing:.6em;color:rgba(0,229,255,.2)}
+  #hud-boot{position:fixed;inset:0;z-index:20;display:flex;flex-direction:column;
+    align-items:center;justify-content:center;background:#020406;font-family:var(--mono);
+    transition:opacity .45s ease}
+  #hud-boot[hidden]{display:none}
+  /* Pendant le demarrage, rien ne passe devant l'ecran d'initialisation. */
+  body.hud-boot #panel{visibility:hidden}
+  #hud-boot.fin{opacity:0}
+  .hb-anneau{width:80px;height:80px;border-radius:50%;border:2px solid rgba(0,229,255,.35);
+    position:relative;margin-bottom:26px;box-shadow:0 0 22px rgba(0,229,255,.25)}
+  .hb-anneau::after{content:"";position:absolute;left:50%;top:50%;width:10px;height:10px;
+    margin:-5px 0 0 -5px;border-radius:50%;background:var(--cyan);box-shadow:0 0 12px var(--cyan)}
+  .hb-anneau i{position:absolute;inset:-2px;border-radius:50%;border:2px solid transparent;
+    border-top-color:var(--cyan);animation:tourne 1.2s linear infinite}
+  @keyframes tourne{to{transform:rotate(360deg)}}
+  .hb-titre{color:var(--cyan);font-size:clamp(1.8rem,6vw,3.6rem);font-weight:900;letter-spacing:.4em;
+    text-shadow:0 0 22px rgba(0,229,255,.9);margin-left:.4em}
+  .hb-sous{color:rgba(0,229,255,.6);font-size:.7rem;letter-spacing:.5em;margin-top:10px;text-align:center}
+  .hb-sous2{color:rgba(0,229,255,.35);font-size:.58rem;letter-spacing:.3em;margin-top:6px}
+  .hb-sep{color:rgba(0,229,255,.55);font-size:.58rem;letter-spacing:.3em;margin:28px 0 18px}
+  #hb-modules{width:min(680px,88vw)}
+  .hb-ligne{display:flex;align-items:center;gap:10px;font-size:.72rem;letter-spacing:.1em;
+    color:var(--cyan);margin:7px 0;animation:rise .2s ease}
+  .hb-ligne i{flex:1;border-bottom:1px dotted rgba(0,229,255,.18)}
+  .hb-ligne b{font-weight:900;color:#22C55E}
+  .hb-ligne b.attente{color:#F59E0B}
+  .hb-barre{width:min(680px,88vw);height:3px;background:rgba(0,229,255,.12);margin-top:22px}
+  .hb-barre i{display:block;height:100%;width:0;background:var(--cyan);box-shadow:0 0 10px var(--cyan);
+    transition:width .18s linear}
+  .hb-pct{width:min(680px,88vw);text-align:right;color:rgba(0,229,255,.5);font-size:.58rem;
+    letter-spacing:.2em;margin-top:8px}
+  @media (max-width:760px){
+    body.hud #log{top:auto;left:10px;right:10px;width:auto;height:34vh;bottom:174px}
+    #hud-horloge{width:min(360px,70vw);height:74px;top:60px}
+    #hud-astuce{display:none}
+    #hud-lien{padding:4px 10px}
+    #hud-coin{top:22px;gap:6px}
+    #hud-coin .hud-icone{width:30px;height:30px}
+    #hud-soustitre{font-size:.85rem;bottom:150px}
+    #hud-pied{letter-spacing:.22em}
+  }
+  @media (prefers-reduced-motion: reduce){ .hb-anneau i{animation:none} }
 </style>
 </head>
 <body class="collapsed">
+
+<div id="hud">
+  <canvas id="hud-orbe" aria-hidden="true"></canvas>
+  <canvas id="hud-orbe2d" class="orbe" aria-hidden="true"></canvas>
+  <div class="hud-grille"></div>
+  <button id="hud-menu-btn" type="button" aria-expanded="false">&#9670; MENU</button>
+  <div id="hud-astuce">DEMANDEZ : "JARVIS, QUE MONTRE CETTE PAGE ?"</div>
+  <nav id="hud-menu" aria-label="Commandes de Jarvis">
+    <div class="hm-titre">&#9670; CONTROLES_SYSTEME // CLIMATSEN</div>
+    <div class="hm-section">ANALYSES CLIMATIQUES</div>
+    <button type="button" data-q="Montre-moi la carte des correlations de pleine saison et dis-moi lesquelles sont vraiment robustes.">TELECONNEXIONS // PLEINE SAISON</button>
+    <button type="button" data-q="Les evenements de pluies extremes deviennent-ils plus frequents ? Montre la tendance.">TENDANCE DES EXTREMES</button>
+    <button type="button" data-q="Quelle est la saisonnalite des evenements extremes ? Montre-la.">SAISONNALITE</button>
+    <button type="button" data-q="Quelles regions du Senegal concentrent les evenements extremes ?">REGIONS TOUCHEES</button>
+    <button type="button" data-q="Les resultats de la plateforme sont-ils a jour ? Y a-t-il des etapes a relancer ?">ETAT DU PIPELINE</button>
+    <button type="button" data-action="vue">ANALYSER LA PAGE AFFICHEE</button>
+    <div class="hm-section orange">VOIX &amp; INTERFACE</div>
+    <button type="button" data-action="voix" id="hm-voix">LECTURE VOCALE : OFF</button>
+    <button type="button" data-action="continu" id="hm-continu">ECOUTE CONTINUE : OFF</button>
+    <button type="button" data-action="clavier" id="hm-clavier">CLAVIER VISUEL</button>
+    <button type="button" data-action="transcription" id="hm-transcription">TRANSCRIPTION : OFF</button>
+    <div class="hm-section cyan">SESSION</div>
+    <button type="button" data-action="admin" id="hm-admin">MODE ADMINISTRATEUR</button>
+    <button type="button" data-action="sortir">&#8617; RETOUR AU DASHBOARD</button>
+  </nav>
+  <div id="hud-horloge">
+    <span class="hh-coin hh-hg"></span><span class="hh-coin hh-hd"></span>
+    <span class="hh-coin hh-bg"></span><span class="hh-coin hh-bd"></span>
+    <div class="hh-label">&#9670; LOCAL_TIME</div>
+    <div class="hh-stat"><b>PROFIL</b><span id="hud-profil">PUBLIC</span></div>
+    <div id="hud-heure">--:--:--</div>
+    <div class="hh-stat"><b>OUTILS</b><span id="hud-outils">--</span></div>
+    <div class="hh-bas"><span>SYS_CLOCK</span><span id="hud-date"></span><span id="hud-etat">ONLINE</span></div>
+  </div>
+  <div id="hud-coin">
+    <button class="hud-icone" id="hud-clavier-btn" type="button" title="Clavier (ou tapez directement)" aria-label="Clavier" aria-pressed="false">
+      <svg viewBox="0 0 24 24"><path d="M20 5H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2zm-9 3h2v2h-2V8zm0 3h2v2h-2v-2zM8 8h2v2H8V8zm0 3h2v2H8v-2zM5 8h2v2H5V8zm0 3h2v2H5v-2zm11 5H8v-2h8v2zm0-3h-2v-2h2v2zm0-3h-2V8h2v2zm3 3h-2v-2h2v2zm0-3h-2V8h2v2z"/></svg>
+    </button>
+    <button class="hud-icone" id="hud-transcription-btn" type="button" title="Transcription de la conversation" aria-label="Transcription" aria-pressed="false">
+      <svg viewBox="0 0 24 24"><path d="M4 4h16v2H4V4zm0 4h16v2H4V8zm0 4h10v2H4v-2zm0 4h16v2H4v-2z"/></svg>
+    </button>
+    <button class="hud-icone" id="hud-plein-btn" type="button" title="Plein ecran du navigateur" aria-label="Plein ecran">
+      <svg viewBox="0 0 24 24"><path d="M4 4h6v2H6v4H4V4zm10 0h6v6h-2V6h-4V4zM4 14h2v4h4v2H4v-6zm14 0h2v6h-6v-2h4v-4z"/></svg>
+    </button>
+    <div id="hud-lien" class="hors">&#9679; <span id="hud-lien-txt">connexion</span></div>
+  </div>
+  <div id="hud-soustitre" aria-live="polite"></div>
+  <div id="hud-boutons">
+    <button class="hud-rond" id="hud-micro" type="button" title="Parler a Jarvis (la reconnaissance vocale du navigateur peut transmettre l'audio a son fournisseur)" aria-label="Parler a Jarvis" hidden>
+      <svg viewBox="0 0 24 24"><path d="M12 14a3 3 0 0 0 3-3V5a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.9V21h2v-3.1A7 7 0 0 0 19 11h-2z"/></svg>
+    </button>
+    <button class="hud-rond" id="hud-stop" type="button" title="Arreter (voix et reponse en cours)" aria-label="Arreter">
+      <svg viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="1.5"/></svg>
+    </button>
+    <button class="hud-rond" id="hud-continu" type="button" title="Ecoute continue : commencez vos phrases par &laquo; Jarvis &raquo;" aria-label="Ecoute continue" aria-pressed="false" hidden>
+      <svg viewBox="0 0 24 24"><path d="M12 3a7 7 0 0 0-7 7c0 2.7 1.2 4 2.3 5.2.9 1 1.7 1.9 1.7 3.3a2.5 2.5 0 0 0 5 0h-2a.5.5 0 0 1-1 0c0-2.2-1.2-3.5-2.2-4.6C7.8 12.8 7 11.9 7 10a5 5 0 0 1 10 0h2a7 7 0 0 0-7-7zm0 4a3 3 0 0 0-3 3h2a1 1 0 0 1 2 0c0 .8-.4 1.2-1 1.8-.7.7-1.5 1.5-1.5 3.2h2c0-.8.4-1.2 1-1.8.7-.7 1.5-1.5 1.5-3.2a3 3 0 0 0-3-3z"/></svg>
+    </button>
+  </div>
+  <div id="hud-statut">en attente</div>
+  <div id="hud-pied">J.A.R.V.I.S &middot; CLIMATSEN &middot; BY INNOSFT.COM</div>
+  <div id="hud-boot" hidden>
+    <div class="hb-anneau"><i></i></div>
+    <div class="hb-titre">J.A.R.V.I.S</div>
+    <div class="hb-sous">JUST A RATHER VERY INTELLIGENT SYSTEM</div>
+    <div class="hb-sous2">CLIMATSEN &middot; BUILD INNOSOFT &middot; 2026</div>
+    <div class="hb-sep">&#9670; INITIALISATION DES PROTOCOLES &#9670;</div>
+    <div id="hb-modules"></div>
+    <div class="hb-barre"><i id="hb-progres"></i></div>
+    <div class="hb-pct" id="hb-pct">CHARGEMENT... 0%</div>
+  </div>
+</div>
 
 <div id="panel">
   <div id="grip" title="Redimensionner (tirer ce coin)"></div>
   <header>
     <div class="avatar">
-      <svg viewBox="0 0 24 24"><path d="M12 2C9 6.5 6 9.9 6 13.5A6 6 0 0 0 18 13.5C18 9.9 15 6.5 12 2z"/></svg>
+      <canvas class="orbe" id="orbe-tete" aria-hidden="true"></canvas>
     </div>
     <div class="htxt">
       <div class="htitle">Jarvis<span class="badge-admin">ADMIN</span></div>
       <div class="hsub"><span class="dot" id="dot"></span><span id="status">Assistant CLIMAT-SEN</span></div>
     </div>
     <button class="hquit" id="quit" title="Revenir au profil public">Quitter</button>
+    <button class="hclose" id="hud-btn" title="Mode J.A.R.V.I.S plein ecran" aria-label="Mode J.A.R.V.I.S plein ecran">&#9670; J.A.R.V.I.S</button>
+    <button class="hclose" id="voix" title="Lire les reponses a voix haute" aria-label="Lecture vocale" aria-pressed="false" hidden>
+      <svg viewBox="0 0 24 24"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3A4.5 4.5 0 0 0 14 8v8a4.5 4.5 0 0 0 2.5-4zM14 3.2v2.1a7 7 0 0 1 0 13.4v2.1a9 9 0 0 0 0-17.6z"/></svg>
+    </button>
     <button class="hclose" id="agrandir" title="Agrandir / reduire" aria-label="Agrandir">&#9974;</button>
     <button class="hclose" id="close" title="Fermer" aria-label="Fermer">&#10005;</button>
   </header>
@@ -264,6 +599,12 @@
   <div id="banner"></div>
 
   <div class="compose">
+    <button id="micro" type="button" title="Dicter la question. La reconnaissance vocale de votre navigateur peut transmettre l'audio a son fournisseur (Google pour Chrome)." aria-label="Dicter la question" aria-pressed="false" hidden>
+      <svg viewBox="0 0 24 24"><path d="M12 14a3 3 0 0 0 3-3V5a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.9V21h2v-3.1A7 7 0 0 0 19 11h-2z"/></svg>
+    </button>
+    <button id="vue" type="button" title="Joindre la vue du dashboard a la prochaine question" aria-label="Joindre la vue du dashboard" aria-pressed="false" hidden>
+      <svg viewBox="0 0 24 24"><path d="M9 4 7.2 6H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-3.2L15 4H9zm3 4.5a4.5 4.5 0 1 1 0 9 4.5 4.5 0 0 1 0-9zm0 2a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5z"/></svg>
+    </button>
     <textarea id="input" rows="1" placeholder="Posez votre question..." maxlength="4000"></textarea>
     <button id="send" title="Envoyer" aria-label="Envoyer" disabled>
       <svg viewBox="0 0 24 24"><path d="M2.5 21 23 12 2.5 3 2.5 10l14 2-14 2z"/></svg>
@@ -274,7 +615,7 @@
 
 <div class="fab-wrap">
   <button id="fab" title="Ouvrir Jarvis" aria-label="Ouvrir l'assistant Jarvis">
-    <svg viewBox="0 0 24 24"><path d="M12 3C7 3 3 6.4 3 10.6c0 2.4 1.3 4.5 3.4 5.9L5.6 21l4.3-2.3c.7.1 1.4.2 2.1.2 5 0 9-3.4 9-7.6S17 3 12 3z"/></svg>
+    <canvas class="orbe" id="orbe-fab" aria-hidden="true"></canvas>
     <span class="badge"></span>
   </button>
 </div>
@@ -286,6 +627,10 @@
   var API   = "__JARVIS_API_BASE__";
   var DARK  = __JARVIS_DARK__;
   var MODE  = "__JARVIS_MODE__";     // "flottant" (defaut) ou "pousse"
+  // Page du dashboard et filtres regles (Phase 7), joints a chaque question.
+  // Injecte a chaque remontage de l'iframe, donc toujours a jour. Le serveur
+  // le revalide champ par champ: ce n'est jamais une source de confiance.
+  var PAGE_CTX = __JARVIS_PAGE_CONTEXT__;
 
   var H_SHUT = 76;
 
@@ -347,10 +692,12 @@
 
   var $ = function(id){ return document.getElementById(id); };
   var panel=$("panel"), log=$("log"), intro=$("intro"), input=$("input"),
-      send=$("send"), fab=$("fab"), banner=$("banner"), dot=$("dot"), status=$("status");
+      send=$("send"), fab=$("fab"), banner=$("banner"), dot=$("dot"), status=$("status"),
+      vueBtn=$("vue"), microBtn=$("micro"), voixBtn=$("voix");
 
   var state = { open:false, busy:false, online:false, token:null, convId:null,
-               admin:false };
+               admin:false, joindreVue:false, voix:false, continu:false,
+               requete:null, sante:null };
 
   /* ---------- Dimensionnement de l'iframe -------------------------------
      Le widget s'epingle lui-meme en bas a droite de la page hote. Si l'acces
@@ -543,6 +890,831 @@
     return el;
   }
 
+  /* ---------- Figures (Phase 8) ------------------------------------------
+     Le jeton de session passe en en-tete: une balise <img src> ne peut pas
+     l'envoyer. L'image est donc telechargee par fetch, puis convertie en
+     URL data: (autorisee par la CSP de la console, img-src 'self' data:). */
+  function figureBloc(ref){
+    if(!ref || !ref.id) return;
+    if(intro && intro.parentNode){ intro.parentNode.removeChild(intro); intro = null; }
+    var fig = document.createElement("figure");
+    fig.className = "fig";
+    var legende = document.createElement("figcaption");
+    var titre = document.createElement("strong");
+    titre.textContent = ref.titre || "Figure";
+    legende.appendChild(titre);
+    if(ref.sous_titre){
+      var sous = document.createElement("span");
+      sous.textContent = ref.sous_titre;
+      legende.appendChild(sous);
+    }
+    var cadre = document.createElement("div");
+    cadre.className = "fig-img";
+    cadre.textContent = "Chargement de la figure\u2026";
+    var liens = document.createElement("div");
+    liens.className = "fig-liens";
+    var csv = document.createElement("button");
+    csv.type = "button";
+    csv.textContent = "Donn\u00e9es (CSV)";
+    csv.addEventListener("click", function(){ telechargerCSV(ref); });
+    liens.appendChild(csv);
+    fig.appendChild(legende); fig.appendChild(cadre); fig.appendChild(liens);
+    log.appendChild(fig);
+    scroll();
+    chargerFigure(ref, cadre);
+  }
+
+  function urlFigure(ref, suite){
+    return API + "/api/figures/" + encodeURIComponent(ref.id) + suite;
+  }
+
+  function chargerFigure(ref, cadre){
+    fetch(urlFigure(ref, "?theme=hud"), {headers: headers()})
+      .then(function(r){ if(!r.ok){ throw new Error("HTTP " + r.status); } return r.blob(); })
+      .then(function(blob){
+        return new Promise(function(ok, ko){
+          var lecteur = new FileReader();
+          lecteur.onload = function(){ ok(lecteur.result); };
+          lecteur.onerror = ko;
+          lecteur.readAsDataURL(blob);
+        });
+      })
+      .then(function(url){
+        cadre.textContent = "";
+        var img = document.createElement("img");
+        img.alt = (ref.titre || "Figure") + (ref.sous_titre ? " \u2014 " + ref.sous_titre : "");
+        img.src = url;
+        img.addEventListener("load", scroll);
+        cadre.appendChild(img);
+      })
+      .catch(function(){
+        cadre.textContent = "Figure indisponible : elle a expir\u00e9 ou appartient \u00e0 une session pr\u00e9c\u00e9dente.";
+      });
+  }
+
+  function telechargerCSV(ref){
+    fetch(urlFigure(ref, "?format=csv"), {headers: headers()})
+      .then(function(r){ if(!r.ok){ throw new Error("HTTP " + r.status); } return r.blob(); })
+      .then(function(blob){
+        var lien = document.createElement("a");
+        lien.href = URL.createObjectURL(blob);
+        lien.download = "jarvis-figure.csv";
+        document.body.appendChild(lien);
+        lien.click();
+        setTimeout(function(){ URL.revokeObjectURL(lien.href); lien.remove(); }, 1000);
+      })
+      .catch(function(){ warn("T\u00e9l\u00e9chargement impossible.", "La figure a peut-\u00eatre expir\u00e9."); });
+  }
+
+  /* ---------- Orbe (Phase 11) --------------------------------------------
+     Reprise legere de l'orbe de JARVIS-pro: la meme idee (une sphere de
+     particules vivante) sans three.js ni WebGL, trop lourds pour une bulle
+     publique affichee sur chaque page. Quatre etats: repos, ecoute,
+     reflexion (Jarvis lit les donnees), parole. Fige si l'utilisateur
+     demande moins d'animations; en pause quand l'onglet est cache. */
+  var Orbe = (function(){
+    var reduit = !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+    var N = 90, points = [];
+    for(var i = 0; i < N; i++){
+      // Spirale de Fibonacci: repartition uniforme sur la sphere.
+      var y = 1 - (i / (N - 1)) * 2, rayon = Math.sqrt(1 - y * y), theta = i * 2.399963;
+      points.push([Math.cos(theta) * rayon, y, Math.sin(theta) * rayon]);
+    }
+    var ETATS = {
+      repos:     {vitesse: 0.35, pouls: 0.03, rgb: "0,229,255"},
+      ecoute:    {vitesse: 0.6,  pouls: 0.14, rgb: "253,164,175"},
+      reflexion: {vitesse: 1.8,  pouls: 0.05, rgb: "196,181,253"},
+      parole:    {vitesse: 0.8,  pouls: 0.18, rgb: "110,231,183"}
+    };
+    var etat = "repos", t = 0, precedent = 0, toiles = [], lance = false, abonnes = [];
+
+    function ajuster(toile){
+      // Taille recalculee au dessin: une toile attachee panneau ferme mesure
+      // 0 px, et garderait sinon une resolution floue une fois affichee.
+      var voulu = Math.round((toile.clientWidth || 0) * Math.min(2, window.devicePixelRatio || 1));
+      if(voulu > 0 && toile.width !== voulu){ toile.width = toile.height = voulu; }
+    }
+
+    function dessiner(toile){
+      ajuster(toile);
+      var ctx = toile.getContext("2d");
+      if(!ctx){ return; }
+      var W = toile.width, H = toile.height, cx = W / 2, cy = H / 2;
+      var e = ETATS[etat], R = Math.min(W, H) * 0.33 * (1 + e.pouls * Math.sin(t * 5));
+      ctx.clearRect(0, 0, W, H);
+      var halo = ctx.createRadialGradient(cx, cy, R * 0.15, cx, cy, R * 1.5);
+      halo.addColorStop(0, "rgba(" + e.rgb + ",0.40)");
+      halo.addColorStop(1, "rgba(" + e.rgb + ",0)");
+      ctx.fillStyle = halo;
+      ctx.fillRect(0, 0, W, H);
+      var a = t * e.vitesse, ca = Math.cos(a), sa = Math.sin(a), cb = Math.cos(0.45), sb = Math.sin(0.45);
+      for(var i = 0; i < points.length; i++){
+        var p = points[i];
+        var x = p[0] * ca + p[2] * sa, z = -p[0] * sa + p[2] * ca;   // rotation Y
+        var y = p[1] * cb - z * sb;  z = p[1] * sb + z * cb;         // inclinaison X
+        var prof = (z + 1) / 2;                                       // 0 = fond, 1 = devant
+        ctx.globalAlpha = 0.25 + 0.75 * prof;
+        ctx.fillStyle = prof > 0.5 ? "#ffffff" : "rgb(" + e.rgb + ")";
+        ctx.beginPath();
+        ctx.arc(cx + x * R, cy + y * R, Math.max(0.6, W / 70 * (0.5 + prof)), 0, 6.2832);
+        ctx.fill();
+      }
+      ctx.globalAlpha = 1;
+    }
+
+    function boucle(maintenant){
+      if(!document.hidden && maintenant - precedent >= 33){       // ~30 i/s
+        t += Math.min(0.1, (maintenant - precedent) / 1000);
+        precedent = maintenant;
+        for(var i = 0; i < toiles.length; i++){
+          if(toiles[i].offsetParent !== null){ dessiner(toiles[i]); }
+        }
+      }
+      requestAnimationFrame(boucle);
+    }
+
+    return {
+      attacher: function(toile){
+        if(!toile || !toile.getContext){ return; }
+        toiles.push(toile);
+        dessiner(toile);
+        if(!reduit && !lance && window.requestAnimationFrame){
+          lance = true;
+          requestAnimationFrame(boucle);
+        }
+      },
+      etat: function(nouveau){
+        if(!ETATS[nouveau] || nouveau === etat){ return; }
+        etat = nouveau;
+        if(reduit){ toiles.forEach(dessiner); }   // un seul dessin, sans animation
+        abonnes.forEach(function(f){ try{ f(etat); }catch(e){} });
+      },
+      courant: function(){ return etat; },
+      abonner: function(f){ abonnes.push(f); }
+    };
+  })();
+
+  /* ---------- Voix (Phase 11) ---------------------------------------------
+     Tout passe par le NAVIGATEUR: rien a installer, aucun cout serveur.
+     Dictee: SpeechRecognition (Chrome, Edge, Safari). Lecture: speechSynthesis,
+     voix du systeme. Les boutons n'apparaissent que si le navigateur sait
+     faire. */
+  var Reconnaissance = window.SpeechRecognition || window.webkitSpeechRecognition;
+  var synthese = window.speechSynthesis || null;
+  var reco = null;
+
+  function orbeAuRepos(){
+    Orbe.etat(state.busy ? "reflexion" : (synthese && synthese.speaking ? "parole" : "repos"));
+  }
+
+  function dicter(){
+    if(!Reconnaissance || state.busy){ return; }
+    if(reco){ reco.stop(); return; }
+    arreterLecture();
+    reco = new Reconnaissance();
+    reco.lang = navigator.language || "fr-FR";
+    reco.interimResults = true;
+    reco.continuous = false;
+    var debut = input.value ? input.value.replace(/\s+$/, "") + " " : "";
+    reco.onresult = function(e){
+      var texte = "";
+      for(var i = 0; i < e.results.length; i++){ texte += e.results[i][0].transcript; }
+      input.value = debut + texte;
+      autoGrow(); refreshSend();
+    };
+    reco.onerror = function(e){
+      if(e.error === "not-allowed" || e.error === "service-not-allowed"){
+        warn("Micro refuse.", "Autorisez le micro dans le navigateur pour dicter.");
+      } else if(e.error !== "no-speech" && e.error !== "aborted"){
+        warn("Dictee interrompue.", "Reessayez ou tapez la question.");
+      }
+    };
+    reco.onend = function(){
+      reco = null;
+      Hud.micro(false);
+      microBtn.classList.remove("on");
+      microBtn.setAttribute("aria-pressed", "false");
+      orbeAuRepos();
+      var v = input.value.trim();
+      if(state.continu){
+        // Ecoute continue, comme dans JARVIS-pro: seules les phrases qui
+        // contiennent le mot d'appel partent, le reste est ignore.
+        var m = v.match(/\bjarvis\b[\s,.:;!?-]*(.*)$/i);
+        if(m && m[1].trim()){ input.value = ""; autoGrow(); ask(m[1].trim()); }
+        else { input.value = debut; autoGrow(); refreshSend(); relancerEcoute(); }
+        return;
+      }
+      // Une question dictee part d'elle-meme, comme on parle a un assistant.
+      if(v && v !== debut.trim()){ ask(v); }
+    };
+    microBtn.classList.add("on");
+    microBtn.setAttribute("aria-pressed", "true");
+    Hud.micro(true);
+    Orbe.etat("ecoute");
+    try{ reco.start(); }catch(e){ reco = null; microBtn.classList.remove("on"); orbeAuRepos(); }
+  }
+
+  function langueDe(texte){
+    var en = (texte.match(/\b(the|and|is|are|of|with|this|that)\b/gi) || []).length;
+    var fr = (texte.match(/\b(le|la|les|et|est|des|une|avec|dans)\b/gi) || []).length;
+    return en > fr ? "en-US" : "fr-FR";
+  }
+
+  function textePourLecture(md){
+    return String(md || "")
+      .replace(/```[\s\S]*?```/g, " ")
+      .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
+      .replace(/https?:\/\/\S+/g, " ")
+      .replace(/^\s*[-*+]\s+/gm, "")
+      .replace(/^\s*\|?[-:| ]+\|?\s*$/gm, " ")
+      .replace(/\*\*|__|[*`~]/g, "")
+      .replace(/[|#>]/g, " ")
+      .replace(/\s+/g, " ").trim().slice(0, 2000);
+  }
+
+  function lireAVoixHaute(md){
+    if(!synthese || !state.voix){ return; }
+    var texte = textePourLecture(md);
+    if(!texte){ return; }
+    synthese.cancel();
+    var phrase = new SpeechSynthesisUtterance(texte);
+    phrase.lang = langueDe(texte);
+    var voix = synthese.getVoices().filter(function(v){
+      return v.lang && v.lang.slice(0, 2) === phrase.lang.slice(0, 2);
+    });
+    if(voix.length){ phrase.voice = voix[0]; }
+    phrase.rate = 1.03;
+    phrase.onstart = function(){ Orbe.etat("parole"); };
+    phrase.onend = phrase.onerror = function(){ orbeAuRepos(); relancerEcoute(); };
+    synthese.speak(phrase);
+  }
+
+  function arreterLecture(){
+    if(synthese && synthese.speaking){ synthese.cancel(); }
+    orbeAuRepos();
+  }
+
+  function basculerVoix(actif){
+    state.voix = !!actif;
+    voixBtn.classList.toggle("on", state.voix);
+    voixBtn.setAttribute("aria-pressed", state.voix ? "true" : "false");
+    remember("voix", state.voix ? "1" : "0");
+    if(!state.voix){ arreterLecture(); }
+  }
+
+  /* ---------- Mode J.A.R.V.I.S plein ecran --------------------------------
+     L'interface de JARVIS-pro, pour ClimatSen: ecran de demarrage, orbe de
+     particules 3D au centre (three.js + orb.js de JARVIS-pro, servis par le
+     backend et charges SEULEMENT a l'entree dans ce mode), horloge HUD, menu
+     de commandes, trois boutons ronds (micro, stop, ecoute continue).
+     L'iframe couvre alors toute la fenetre: on ne style que notre propre
+     iframe, jamais un conteneur de la page hote. */
+  function relancerEcoute(){
+    if(!state.continu || !Reconnaissance || state.busy || reco){ return; }
+    if(synthese && synthese.speaking){ return; }
+    setTimeout(function(){
+      if(state.continu && !state.busy && !reco){ dicter(); }
+    }, 400);
+  }
+
+  function basculerContinu(actif){
+    state.continu = !!actif && !!Reconnaissance;
+    Hud.majMenu();
+    if(state.continu){ relancerEcoute(); }
+    else if(reco){ reco.abort(); }
+  }
+
+  function arreterTout(){
+    arreterLecture();
+    if(reco){ reco.abort(); }
+    if(state.requete){ try{ state.requete.abort(); }catch(e){} }
+  }
+
+  var Hud = (function(){
+    var actif = false, orbe3d = null, horloge = null, volume = null, chargement = null;
+    var MAP = {repos: "idle", ecoute: "listening", reflexion: "thinking", parole: "speaking"};
+
+    function deux(n){ return (n < 10 ? "0" : "") + n; }
+    function tic(){
+      var d = new Date();
+      $("hud-heure").textContent = deux(d.getHours()) + ":" + deux(d.getMinutes()) + ":" + deux(d.getSeconds());
+      $("hud-date").textContent = deux(d.getDate()) + "/" + deux(d.getMonth() + 1) + "/" + d.getFullYear();
+    }
+
+    function webgl(){
+      try{
+        var c = document.createElement("canvas");
+        return !!(window.WebGLRenderingContext && (c.getContext("webgl") || c.getContext("experimental-webgl")));
+      }catch(e){ return false; }
+    }
+
+    function script(nom){
+      return new Promise(function(ok, ko){
+        var s = document.createElement("script");
+        s.src = API + "/static/" + nom;
+        s.onload = ok; s.onerror = ko;
+        document.head.appendChild(s);
+      });
+    }
+
+    function chargerOrbe(){
+      if(!chargement){
+        // Un seul fichier: l'orbe de JARVIS-pro (version bureau) et three.js.
+        chargement = window.createOrb ? Promise.resolve() : script("jarvis-orb.js");
+      }
+      return chargement;
+    }
+
+    function etatOrbe(e){
+      if(!orbe3d){ return; }
+      orbe3d.setState(MAP[e] || "idle");
+      if(e === "parole" && !volume){
+        // Volume simule pendant la parole, comme JARVIS-pro (app.js).
+        volume = setInterval(function(){
+          var t = Date.now() / 50;
+          var v = 0.4 + 0.3 * Math.sin(t) + 0.2 * Math.sin(t * 0.5) + (Math.random() * 0.2 - 0.1);
+          orbe3d.setVolume(Math.max(0.1, Math.min(1, v)));
+        }, 50);
+      } else if(e !== "parole" && volume){
+        clearInterval(volume); volume = null; orbe3d.setVolume(0);
+      }
+    }
+
+    function pleinEcran(oui){
+      if(!pinned || !frame){ return; }
+      try{
+        var s = frame.style;
+        if(oui){
+          s.setProperty("right", "0", "important");
+          s.setProperty("bottom", "0", "important");
+          s.setProperty("width", "100vw", "important");
+          s.setProperty("max-width", "100vw", "important");
+          s.setProperty("height", "100vh", "important");
+        } else {
+          s.setProperty("right", "18px", "important");
+          s.setProperty("bottom", "18px", "important");
+          s.setProperty("max-width", "calc(100vw - 36px)", "important");
+          appliquerTaille(LARGEUR, H_OPEN, false);
+          setHeight(state.open ? H_OPEN : H_SHUT);
+        }
+      }catch(e){}
+    }
+
+    function majMenu(){
+      $("hm-voix").textContent = "LECTURE VOCALE : " + (state.voix ? "ON" : "OFF");
+      $("hm-voix").classList.toggle("on", !!state.voix);
+      $("hm-continu").textContent = "ECOUTE CONTINUE : " + (state.continu ? "ON" : "OFF");
+      $("hm-continu").classList.toggle("on", !!state.continu);
+      $("hm-continu").hidden = !Reconnaissance;
+      $("hm-voix").hidden = !synthese;
+      $("hm-admin").textContent = state.admin ? "QUITTER LE MODE ADMIN" : "MODE ADMINISTRATEUR";
+      $("hud-continu").classList.toggle("on", !!state.continu);
+      $("hud-continu").setAttribute("aria-pressed", state.continu ? "true" : "false");
+      $("hud-profil").textContent = state.admin ? "ADMIN" : "PUBLIC";
+      $("hud-outils").textContent = state.sante && state.sante.tools ? String(state.sante.tools) : "--";
+      $("hud-lien").className = state.online ? "" : "hors";
+      $("hud-lien-txt").textContent = state.online ? "connecte" : "deconnecte";
+      var tr = document.body.classList.contains("hud-transcription");
+      var cl = document.body.classList.contains("hud-clavier");
+      $("hm-transcription").textContent = "TRANSCRIPTION : " + (tr ? "ON" : "OFF");
+      $("hm-transcription").classList.toggle("on", tr);
+      $("hm-clavier").classList.toggle("on", cl);
+      $("hud-transcription-btn").classList.toggle("on", tr);
+      $("hud-transcription-btn").setAttribute("aria-pressed", tr ? "true" : "false");
+      $("hud-clavier-btn").classList.toggle("on", cl);
+      $("hud-clavier-btn").setAttribute("aria-pressed", cl ? "true" : "false");
+      $("hud-etat").textContent = state.online ? "ONLINE" : "OFFLINE";
+    }
+
+    function menu(ouvrir){
+      var m = $("hud-menu");
+      var ouvert = (ouvrir === undefined) ? !m.classList.contains("ouvert") : !!ouvrir;
+      m.classList.toggle("ouvert", ouvert);
+      $("hud-menu-btn").classList.toggle("ouvert", ouvert);
+      $("hud-menu-btn").setAttribute("aria-expanded", ouvert ? "true" : "false");
+      $("hud-astuce").style.display = ouvert ? "none" : "";
+    }
+
+    /* Ecran de demarrage. Chaque ligne dit un etat REEL: service, cle API,
+       outils, lien au dashboard, voix, rendu 3D. Pas de faux "ONLINE". */
+    function demarrage(){
+      var boot = $("hud-boot"), liste = $("hb-modules");
+      var h = state.sante || {};
+      var OK = "[ ONLINE ]";
+      var modules = [
+        ["CONNEXION_SERVEUR", state.online ? OK : "[ HORS LIGNE ]"],
+        ["NOYAU_CLAUDE", h.configured ? OK : "[ NON CONFIGURE ]"],
+        ["OUTILS_CLIMATSEN", h.tools ? "[ " + h.tools + " OUTILS ]" : "[ INDISPONIBLES ]"],
+        ["LIEN_DASHBOARD", pageHote() ? OK : "[ AUTONOME ]"],
+        ["RECONNAISSANCE_VOCALE", Reconnaissance ? OK : "[ INDISPONIBLE ]"],
+        ["SYNTHESE_VOCALE", synthese ? OK : "[ INDISPONIBLE ]"],
+        ["RENDU_3D", webgl() ? OK : "[ MODE 2D ]"]
+      ];
+      liste.innerHTML = "";
+      boot.classList.remove("fin");
+      boot.hidden = false;
+      document.body.classList.add("hud-boot");
+      var i = 0;
+      var reduit = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      function suivante(){
+        if(!actif){ boot.hidden = true; document.body.classList.remove("hud-boot"); return; }
+        if(i < modules.length){
+          var ligne = document.createElement("div");
+          ligne.className = "hb-ligne";
+          var nom = document.createElement("span"); nom.textContent = modules[i][0];
+          var pts = document.createElement("i");
+          var st = document.createElement("b"); st.textContent = modules[i][1];
+          if(modules[i][1] !== OK){ st.className = "attente"; }
+          ligne.appendChild(nom); ligne.appendChild(pts); ligne.appendChild(st);
+          liste.appendChild(ligne);
+          i += 1;
+          var pct = Math.round(100 * i / modules.length);
+          $("hb-progres").style.width = pct + "%";
+          $("hb-pct").textContent = "CHARGEMENT... " + pct + "%";
+          setTimeout(suivante, reduit ? 0 : 170);
+        } else {
+          setTimeout(function(){
+            boot.classList.add("fin");
+            setTimeout(function(){
+              boot.hidden = true;
+              document.body.classList.remove("hud-boot");
+            }, reduit ? 0 : 450);
+          }, reduit ? 0 : 450);
+        }
+      }
+      suivante();
+    }
+
+    function entrer(sansDemarrage){
+      if(actif){ return; }
+      actif = true;
+      if(!state.open){ open(false); }
+      document.body.classList.add("hud");
+      pleinEcran(true);
+      tic();
+      horloge = setInterval(tic, 1000);
+      majMenu();
+      statut(Orbe.courant());
+      $("hud-soustitre").textContent = "";
+      $("hud-astuce").classList.remove("cache");
+      setTimeout(function(){ $("hud-astuce").classList.add("cache"); }, 12000);
+      remember("hud", "1");
+      if(!sansDemarrage && recall("hudboot") !== "1"){
+        remember("hudboot", "1");
+        demarrage();
+      }
+      var hud = $("hud");
+      if(webgl()){
+        hud.classList.remove("sans3d");
+        chargerOrbe().then(function(){
+          if(actif && window.createOrb && !orbe3d){
+            orbe3d = window.createOrb($("hud-orbe"));
+            etatOrbe(Orbe.courant());
+          }
+        }).catch(function(){
+          trace("orbe 3D indisponible: repli 2D");
+          hud.classList.add("sans3d");
+          Orbe.attacher($("hud-orbe2d"));
+        });
+      } else {
+        hud.classList.add("sans3d");
+        Orbe.attacher($("hud-orbe2d"));
+      }
+      setTimeout(scroll, 60);
+    }
+
+    function sortir(){
+      if(!actif){ return; }
+      actif = false;
+      menu(false);
+      document.body.classList.remove("hud", "hud-transcription", "hud-clavier");
+      clearInterval(horloge); horloge = null;
+      if(volume){ clearInterval(volume); volume = null; }
+      if(orbe3d){
+        try{ orbe3d.destroy(); }catch(e){}
+        orbe3d = null;
+        // Toile neuve: un contexte WebGL libere ne se reutilise pas proprement.
+        var ancienne = $("hud-orbe"), neuve = document.createElement("canvas");
+        neuve.id = "hud-orbe"; neuve.setAttribute("aria-hidden", "true");
+        ancienne.parentNode.replaceChild(neuve, ancienne);
+      }
+      pleinEcran(false);
+      remember("hud", "0");
+    }
+
+    var STATUTS = {repos: "en attente", ecoute: "ecoute...", reflexion: "analyse...",
+                   parole: "parle..."};
+    function statut(e){ var el = $("hud-statut"); if(el){ el.textContent = STATUTS[e] || ""; } }
+
+    function transcription(oui){
+      document.body.classList.toggle("hud-transcription",
+        oui === undefined ? !document.body.classList.contains("hud-transcription") : !!oui);
+      majMenu();
+      setTimeout(scroll, 30);
+    }
+
+    function clavier(oui){
+      var ouvert = oui === undefined ? !document.body.classList.contains("hud-clavier") : !!oui;
+      document.body.classList.toggle("hud-clavier", ouvert);
+      majMenu();
+      if(ouvert){ setTimeout(function(){ input.focus(); }, 30); }
+    }
+
+    /* Sous-titre: la reponse en cours, a la maniere du "HUD TEXT" de
+       JARVIS-pro. Texte brut (textContent), jamais du HTML. */
+    function soustitre(md, fini){
+      var el = $("hud-soustitre");
+      if(!el || !actif){ return; }
+      var texte = textePourLecture(md);
+      if(texte.length > 320){ texte = fini ? texte.slice(0, 320) + "\u2026" : "\u2026" + texte.slice(-320); }
+      el.textContent = texte;
+      if(fini && md){
+        var b = document.createElement("button");
+        b.type = "button";
+        b.textContent = "TRANSCRIPTION";
+        b.addEventListener("click", function(){ transcription(true); });
+        el.appendChild(b);
+      }
+    }
+
+    function plein(){
+      try{
+        var d = document;
+        if(d.fullscreenElement){ d.exitFullscreen(); }
+        else if(d.documentElement.requestFullscreen){ d.documentElement.requestFullscreen(); }
+      }catch(e){}
+    }
+
+    function action(bouton){
+      var q = bouton.getAttribute("data-q"), a = bouton.getAttribute("data-action");
+      menu(false);
+      if(q){ if(!state.busy){ ask(q); } return; }
+      if(a === "vue"){
+        basculerVue(true);
+        if(!state.busy){ ask("Interprete la page affichee du dashboard : que faut-il en retenir ?"); }
+      } else if(a === "voix"){ basculerVoix(!state.voix); majMenu(); }
+      else if(a === "continu"){ basculerContinu(!state.continu); }
+      else if(a === "admin"){
+        if(state.admin){ quitterAdmin(); }
+        else {
+          input.placeholder = "MOT DE PASSE ADMINISTRATEUR...";
+          input.focus();
+        }
+      } else if(a === "sortir"){ shut(); }       // ferme tout: retour a l'orbe
+      else if(a === "clavier"){ clavier(); }
+      else if(a === "transcription"){ transcription(); }
+    }
+
+    Orbe.abonner(etatOrbe);
+    Orbe.abonner(statut);
+
+    return {
+      entrer: entrer, sortir: sortir, menu: menu, majMenu: majMenu, action: action,
+      transcription: transcription, clavier: clavier, soustitre: soustitre, plein: plein,
+      actif: function(){ return actif; },
+      micro: function(on){ var b = $("hud-micro"); if(b){ b.classList.toggle("on", !!on); } }
+    };
+  })();
+
+  /* ---------- Vue du dashboard (Phase 9) -----------------------------------
+     Lecture SEULE de la page hote: titre, indicateurs, et pour chaque
+     graphique Plotly visible son titre de panneau, un resume de ses donnees
+     et son image. Rien n'est modifie dans la page (voir la regle sur les
+     conteneurs parents, plus haut). */
+  var MOTS_VUE = /(graphique|graphe|courbe|carte|figure|heatmap|diagramme|histogramme|camembert|barres|ce que (je vois|j'ai sous|tu vois)|cette page|ce tableau|ces chiffres|dashboard|tableau de bord|interpr[e\u00e8\u00e9]t|affich|what i see|this (chart|graph|page|map))/i;
+  var MAX_GRAPHIQUES = 4, MAX_IMAGES = 3, MAX_IMAGE_CHARS = 400000;
+  // Liste EXACTE: un motif comme /map$/ attrapait aussi "heatmap", dont
+  // l'image etait alors ecartee (constate sur la page Teleconnexions).
+  var TYPES_CARTE = /^(scattermapbox|densitymapbox|choroplethmapbox|scattermap|densitymap|choroplethmap|scattergeo|choropleth)$/;
+  function estCarte(t){ return TYPES_CARTE.test((t && t.type) || ""); }
+
+  function pageHote(){
+    try{
+      if(window.parent && window.parent !== window){
+        var d = window.parent.document;
+        if(d && d.querySelector(".js-plotly-plot, .pg-ttl")){ return d; }
+      }
+    }catch(e){}
+    return null;
+  }
+
+  function texteDe(el, max){
+    var t = el ? (el.textContent || "").replace(/\s+/g, " ").trim() : "";
+    return t.slice(0, max || 200);
+  }
+
+  function precedent(doc, noeud, selecteur){
+    var liste = doc.querySelectorAll(selecteur), trouve = null;
+    for(var i = 0; i < liste.length; i++){
+      // 4 = DOCUMENT_POSITION_FOLLOWING: le noeud vient apres cet element.
+      if(liste[i].compareDocumentPosition(noeud) & 4){ trouve = liste[i]; }
+    }
+    return trouve;
+  }
+
+  function tableau(a){
+    if(!a){ return []; }
+    try{ return Array.prototype.slice.call(a); }catch(e){ return []; }
+  }
+  function arrondi(v){
+    return (typeof v === "number" && isFinite(v)) ? Math.round(v * 1000) / 1000 : v;
+  }
+  function valeur(v){
+    if(typeof v === "number"){ return arrondi(v); }
+    return String(v).slice(0, 40);
+  }
+  function nombres(a){
+    return tableau(a).filter(function(v){ return typeof v === "number" && isFinite(v); });
+  }
+  function stats(a){
+    var n = nombres(a);
+    if(!n.length){ return null; }
+    var min = Infinity, max = -Infinity, somme = 0;
+    n.forEach(function(v){ if(v < min){ min = v; } if(v > max){ max = v; } somme += v; });
+    return {min: arrondi(min), max: arrondi(max), moyenne: arrondi(somme / n.length), n: n.length};
+  }
+
+  function resumeTrace(t, maxPoints){
+    var type = t.type || "scatter", r = {type: type};
+    if(t.name){ r.nom = String(t.name).slice(0, 60); }
+    if(t.visible === "legendonly" || t.visible === false){ r.masquee = true; }
+    if(type === "heatmap"){
+      r.x = tableau(t.x).slice(0, 15).map(valeur);
+      r.y = tableau(t.y).slice(0, 15).map(valeur);
+      r.z = tableau(t.z).slice(0, 15).map(function(l){ return tableau(l).slice(0, 15).map(arrondi); });
+      return r;
+    }
+    if(type === "pie"){
+      r.etiquettes = tableau(t.labels).slice(0, 15).map(valeur);
+      r.valeurs = tableau(t.values).slice(0, 15).map(arrondi);
+      return r;
+    }
+    if(estCarte(t)){
+      r.n = tableau(t.lat).length;
+      r.lat = stats(t.lat); r.lon = stats(t.lon);
+      if(t.z){ r.z = stats(t.z); }
+      if(t.marker && t.marker.color && t.marker.color.length){ r.couleur = stats(t.marker.color); }
+      return r;
+    }
+    var x = tableau(t.x), y = tableau(t.y);
+    r.n = Math.max(x.length, y.length);
+    if(t.orientation === "h"){ r.orientation = "horizontale"; }
+    if(r.n <= maxPoints){
+      r.x = x.map(valeur); r.y = y.map(valeur);
+    } else {
+      r.x_debut = valeur(x[0]); r.x_fin = valeur(x[x.length - 1]);
+      r.y = stats(y);
+      var ny = y.map(function(v){ return typeof v === "number" ? v : NaN; });
+      var iMax = 0, iMin = 0;
+      ny.forEach(function(v, i){ if(v > ny[iMax]){ iMax = i; } if(v < ny[iMin]){ iMin = i; } });
+      r.y_max_en = valeur(x[iMax]); r.y_min_en = valeur(x[iMin]);
+    }
+    return r;
+  }
+
+  function resumeGraphique(gd){
+    var traces = tableau(gd._fullData && gd._fullData.length ? gd._fullData : gd.data);
+    var mise = gd._fullLayout || gd.layout || {};
+    function titreAxe(a){
+      var t = a && a.title ? texteDe({textContent: a.title.text || a.title}, 80) : "";
+      // Plotly remplit les titres vides d'un texte d'edition: ce n'est pas un titre.
+      return /^Click to enter/i.test(t) ? "" : t;
+    }
+    var base = {axe_x: titreAxe(mise.xaxis), axe_y: titreAxe(mise.yaxis), n_traces: traces.length};
+    var paliers = [40, 12, 0];
+    for(var k = 0; k < paliers.length; k++){
+      var r = JSON.parse(JSON.stringify(base));
+      r.traces = traces.slice(0, 10).map(function(t){ return resumeTrace(t, paliers[k]); });
+      var texte = JSON.stringify(r);
+      if(texte.length <= 5800){ return texte; }
+    }
+    return JSON.stringify(base).slice(0, 5800);
+  }
+
+  function avecDelai(promesse, ms){
+    return new Promise(function(ok, ko){
+      var t = setTimeout(function(){ ko(new Error("delai")); }, ms);
+      promesse.then(function(v){ clearTimeout(t); ok(v); }, function(e){ clearTimeout(t); ko(e); });
+    });
+  }
+
+  /* Couleur de fond reelle derriere le graphique. On interroge le document
+     hote sur les elements empiles SOUS un point du graphique, du plus haut
+     au plus bas, et on prend le premier fond opaque. Lecture seule: aucun
+     conteneur parent n'est parcouru ni modifie (voir la regle plus haut). */
+  function opaque(c){
+    return c && c !== "transparent" && !/rgba\(\s*0,\s*0,\s*0,\s*0\s*\)/.test(c);
+  }
+  function fondDe(gd){
+    var w = window.parent;
+    try{
+      var r = gd.getBoundingClientRect();
+      var pile = w.document.elementsFromPoint(r.left + 4, r.top + 4);
+      for(var i = 0; i < pile.length; i++){
+        var c = w.getComputedStyle(pile[i]).backgroundColor;
+        if(opaque(c)){ return c; }
+      }
+      // Graphique hors de l'ecran: fond general de l'application.
+      var app = w.document.querySelector('[data-testid="stAppViewContainer"], .stApp');
+      var f = app ? w.getComputedStyle(app).backgroundColor : "";
+      if(opaque(f)){ return f; }
+    }catch(e){}
+    return "#ffffff";
+  }
+
+  /* Plotly exporte sur fond transparent. En mode sombre, les etiquettes sont
+     claires: posees sur le blanc par defaut d'un lecteur d'image, elles
+     devenaient illisibles (constate). On aplatit donc l'image sur le fond
+     que l'utilisateur voit reellement. */
+  function aplatir(url, fond){
+    return new Promise(function(ok){
+      var img = new Image();
+      img.onload = function(){
+        try{
+          var c = document.createElement("canvas");
+          c.width = img.naturalWidth; c.height = img.naturalHeight;
+          var ctx = c.getContext("2d");
+          ctx.fillStyle = fond; ctx.fillRect(0, 0, c.width, c.height);
+          ctx.drawImage(img, 0, 0);
+          ok(c.toDataURL("image/png"));
+        }catch(e){ ok(url); }
+      };
+      img.onerror = function(){ ok(url); };
+      img.src = url;
+    });
+  }
+
+  function imageDe(gd, traces){
+    var P = window.parent.Plotly;
+    // Les fonds de carte viennent d'un autre domaine: leur export echoue.
+    var carte = traces.some(estCarte);
+    if(!P || !P.toImage || carte || !gd.clientWidth){ return Promise.resolve(null); }
+    var largeur = Math.min(900, gd.clientWidth);
+    var hauteur = Math.round(gd.clientHeight * largeur / gd.clientWidth);
+    return avecDelai(P.toImage(gd, {format: "png", width: largeur, height: hauteur}), 5000)
+      .then(function(url){ return url ? aplatir(url, fondDe(gd)) : null; })
+      .then(function(url){ return (url && url.length <= MAX_IMAGE_CHARS) ? url : null; })
+      .catch(function(){ return null; });
+  }
+
+  function capturerVue(){
+    var doc = pageHote();
+    if(!doc){ return Promise.resolve(null); }
+    var hauteurVue = window.parent.innerHeight || 800;
+    var graphes = tableau(doc.querySelectorAll(".js-plotly-plot")).filter(function(gd){
+      return gd.clientWidth > 0 && (gd._fullData || gd.data);
+    });
+    // Ceux qui sont a l'ecran d'abord: c'est d'eux que l'on parle.
+    graphes.sort(function(a, b){
+      function visible(g){ var r = g.getBoundingClientRect(); return (r.bottom > 0 && r.top < hauteurVue) ? 0 : 1; }
+      return visible(a) - visible(b);
+    });
+    graphes = graphes.slice(0, MAX_GRAPHIQUES);
+
+    var vue = {
+      page_titre: texteDe(doc.querySelector(".pg-ttl"), 200),
+      indicateurs: tableau(doc.querySelectorAll(".kpi")).slice(0, 12).map(function(k){
+        return {libelle: texteDe(k.querySelector(".kpi-lbl"), 80),
+                valeur: texteDe(k.querySelector(".kpi-val"), 40)};
+      }).filter(function(k){ return k.libelle && k.valeur; }),
+      graphiques: []
+    };
+    var images = 0;
+    return graphes.reduce(function(chaine, gd){
+      return chaine.then(function(){
+        var titre = precedent(doc, gd, ".pnl-ttl");
+        var sous = precedent(doc, gd, ".pnl-sub");
+        // Un sous-titre n'appartient au panneau que s'il suit son titre.
+        if(sous && titre && !(titre.compareDocumentPosition(sous) & 4)){ sous = null; }
+        var g = {titre: texteDe(titre, 200), sous_titre: texteDe(sous, 300),
+                 resume: resumeGraphique(gd)};
+        vue.graphiques.push(g);
+        if(images >= MAX_IMAGES){ return null; }
+        var traces = tableau(gd._fullData || gd.data);
+        return imageDe(gd, traces).then(function(url){
+          if(url){ g.image = url; images += 1; }
+        });
+      });
+    }, Promise.resolve()).then(function(){ return vue; })
+      .catch(function(){ return vue; });
+  }
+
+  function basculerVue(actif){
+    state.joindreVue = !!actif;
+    vueBtn.classList.toggle("on", state.joindreVue);
+    vueBtn.setAttribute("aria-pressed", state.joindreVue ? "true" : "false");
+  }
+
+  function joindreVue(body, text){
+    var voulu = state.joindreVue || MOTS_VUE.test(text);
+    basculerVue(false);
+    if(!voulu || !pageHote()){ return Promise.resolve(); }
+    outil("Lecture de la page affich\u00e9e");
+    return avecDelai(capturerVue(), 12000)
+      .then(function(vue){ if(vue && (vue.graphiques.length || vue.indicateurs.length)){ body.page_view = vue; } })
+      .catch(function(){ /* sans vue, on repond quand meme */ });
+  }
+
   function typing(on){
     var t = document.getElementById("typing");
     if(on && !t){
@@ -578,6 +1750,7 @@
      session passe en admin. Le secret est intercepte cote serveur AVANT
      journalisation, historique et appel au modele. */
   function passerEnAdmin(d){
+    setTimeout(function(){ try{ Hud.majMenu(); input.placeholder = "Posez votre question..."; }catch(e){} }, 0);
     /* Retirer la bulle qui contient le mot de passe. Le serveur ne l'a ni
        journalise, ni archive, ni transmis au modele -- mais il s'affichait
        encore en clair dans le fil, lisible par-dessus l'epaule et conserve
@@ -602,6 +1775,7 @@
   }
 
   function quitterAdmin(){
+    setTimeout(function(){ try{ Hud.majMenu(); }catch(e){} }, 600);
     var ancien = state.token;
     state.admin = false; state.convId = null;
     document.body.classList.remove("admin");
@@ -616,66 +1790,174 @@
       .then(function(){ bubble("bot", "Retour au profil public."); });
   }
 
-  /* ---------- Propositions de modification ------------------------------ */
+  /* ---------- Propositions (documents, code, taches) ------------------- */
+  /* Jarvis ne fait que DEPOSER une proposition. L'ecriture ou l'execution
+     part d'un clic ici, vers une route que le modele ne peut pas appeler. */
   var actionsVues = {};
 
-  function carteAction(a){
-    if(actionsVues[a.id]){ return; }
-    actionsVues[a.id] = true;
+  function diffColore(texte){
+    return String(texte || "").split("\n").map(function(l){
+      var c = (l.indexOf("+++") === 0 || l.indexOf("---") === 0 || l.indexOf("@@") === 0)
+        ? "meta" : (l.charAt(0) === "+" ? "add" : (l.charAt(0) === "-" ? "sup" : ""));
+      return '<span class="' + c + '">' + escapeHtml(l) + '</span>';
+    }).join("\n");
+  }
+
+  function contenuAction(a){
     var d = a.details || {};
-    var el = document.createElement("div");
-    el.className = "action";
+    var raison = '<div class="action-raison">' + escapeHtml(d.raison || "") + '</div>';
+    if(a.type === "code_modifier"){
+      return {
+        tete: "Modification du code &mdash; " + escapeHtml(d.fichier || ""),
+        corps: raison + '<div class="diff diff-code">' + diffColore(d.diff) + '</div>' +
+          '<div class="action-raison">+' + (d.lignes_ajoutees || 0) + ' / &minus;' +
+          (d.lignes_retirees || 0) + ' ligne(s)' + (d.diff_tronque ? ' (diff tronque)' : '') +
+          '. Code compile avant ecriture, sauvegarde horodatee, annulable.</div>'
+      };
+    }
+    if(a.type === "tache_executer"){
+      return {
+        tete: "Execution &mdash; " + escapeHtml(d.cible || ""),
+        corps: raison + '<div class="action-raison">' + escapeHtml(d.libelle || "") +
+          ' &middot; duree max ' + Math.round((d.delai_max_s || 0) / 60) +
+          ' min &middot; une tache a la fois.</div>'
+      };
+    }
     var diffs = (d.changements || []).slice(0, 2).map(function(c){
       return '<div class="diff"><span class="sup">&minus; ' + escapeHtml(c.avant) +
              '</span>\n<span class="add">+ ' + escapeHtml(c.apres) + '</span></div>';
     }).join("");
+    return {
+      tete: "Proposition &mdash; " + escapeHtml(d.fichier || d.document || "document"),
+      corps: raison + diffs + '<div class="action-raison">' + (d.n_occurrences || 0) +
+        ' occurrence(s). Une sauvegarde horodatee est ecrite avant modification.</div>'
+    };
+  }
+
+  function carteAction(a){
+    if(actionsVues[a.id]){ return; }
+    actionsVues[a.id] = true;
+    // Une proposition se lit avant d'etre approuvee: on l'affiche.
+    if(Hud.actif()){ Hud.transcription(true); }
+    var c = contenuAction(a);
+    var el = document.createElement("div");
+    el.className = "action";
     el.innerHTML =
-      '<div class="action-tete">&#9888; Proposition &mdash; ' +
-        escapeHtml(d.fichier || d.document || "document") + '</div>' +
-      '<div class="action-corps"><div class="action-raison">' +
-        escapeHtml(d.raison || "") + '</div>' + diffs +
-        '<div class="action-raison">' + (d.n_occurrences || 0) +
-        ' occurrence(s). Une sauvegarde horodatee est ecrite avant modification.' +
-      '</div></div>' +
+      '<div class="action-tete">&#9888; ' + c.tete + '</div>' +
+      '<div class="action-corps">' + c.corps + '</div>' +
       '<div class="action-pied">' +
-        '<button data-oui="1">Appliquer</button>' +
+        '<button data-oui="1">' + (a.type === "tache_executer" ? "Lancer" : "Appliquer") + '</button>' +
         '<button class="refuser" data-non="1">Refuser</button></div>';
     log.appendChild(el);
-    el.querySelector("[data-oui]").addEventListener("click", function(){
-      trancherAction(a.id, "approve", el);
-    });
-    el.querySelector("[data-non]").addEventListener("click", function(){
-      trancherAction(a.id, "reject", el);
-    });
+    if(a.statut === "en_cours"){
+      // Remontage de l'iframe pendant une tache: on reprend le suivi.
+      bilan(el, '&#9203; En cours&hellip;');
+      suivreTache(a.id, el);
+    } else {
+      el.querySelector("[data-oui]").addEventListener("click", function(){
+        trancherAction(a, "approve", el);
+      });
+      el.querySelector("[data-non]").addEventListener("click", function(){
+        trancherAction(a, "reject", el);
+      });
+    }
     scroll();
   }
 
-  function trancherAction(id, verdict, el){
+  function bilan(el, html){
+    var ancien = el.querySelector(".action-pied, .action-bilan");
+    var div = document.createElement("div");
+    div.className = "action-bilan";
+    div.innerHTML = html;
+    if(ancien){ ancien.parentNode.replaceChild(div, ancien); } else { el.appendChild(div); }
+    scroll();
+    return div;
+  }
+
+  function erreurDe(res){
+    return escapeHtml((res.d && res.d.error && res.d.error.message) || "Echec.");
+  }
+
+  function trancherAction(a, verdict, el){
     var boutons = el.querySelectorAll("button");
     for(var i=0;i<boutons.length;i++){ boutons[i].disabled = true; }
-    fetch(API + "/api/admin/actions/" + encodeURIComponent(id) + "/" + verdict,
+    fetch(API + "/api/admin/actions/" + encodeURIComponent(a.id) + "/" + verdict,
           {method:"POST", headers: headers()})
-      .then(function(r){ return r.json().then(function(d){ return {ok:r.ok, d:d}; }); })
+      .then(function(r){ return r.json().then(function(d){ return {ok:r.ok, d:d, status:r.status}; }); })
       .then(function(res){
-        var pied = el.querySelector(".action-pied");
         if(!res.ok){
-          pied.outerHTML = '<div class="action-bilan">&#10005; ' +
-            escapeHtml((res.d.error && res.d.error.message) || "Echec.") + '</div>';
+          if(res.status === 409 && a.type === "tache_executer"){
+            // Une autre tache tourne: la proposition reste approuvable.
+            for(var k=0;k<boutons.length;k++){ boutons[k].disabled = false; }
+            warn("Tache non lancee.", (res.d.error && res.d.error.message) || "");
+            return;
+          }
+          bilan(el, '&#10005; ' + erreurDe(res));
           return;
         }
         if(verdict === "reject"){
-          pied.outerHTML = '<div class="action-bilan">&#10005; Refusee. Rien n\'a ete modifie.</div>';
+          bilan(el, '&#10005; Refusee. Rien n\'a ete modifie.');
           return;
         }
         var r2 = res.d.resultat || {};
-        pied.outerHTML = '<div class="action-bilan">&#10003; Appliquee &mdash; ' +
-          (r2.n_occurrences || 0) + ' remplacement(s). Sauvegarde : ' +
-          escapeHtml(r2.sauvegarde || "") + '</div>';
-        scroll();
+        if(a.type === "tache_executer"){
+          bilan(el, '&#9203; Lancee &mdash; en cours&hellip;');
+          suivreTache(a.id, el);
+        } else if(a.type === "code_modifier"){
+          var b = bilan(el, '&#10003; Appliquee &mdash; ' + escapeHtml(r2.fichier || "") +
+            (r2.sauvegarde ? '. Sauvegarde : ' + escapeHtml(r2.sauvegarde) : ' (fichier cree)') +
+            ' <button class="lien" data-annuler="1">Annuler</button>');
+          b.querySelector("[data-annuler]").addEventListener("click", function(){
+            annulerModification(a.id, el);
+          });
+        } else {
+          bilan(el, '&#10003; Appliquee &mdash; ' + (r2.n_occurrences || 0) +
+            ' remplacement(s). Sauvegarde : ' + escapeHtml(r2.sauvegarde || ""));
+        }
       })
       .catch(function(){
         for(var j=0;j<boutons.length;j++){ boutons[j].disabled = false; }
       });
+  }
+
+  function annulerModification(id, el){
+    var bouton = el.querySelector("[data-annuler]");
+    if(bouton){ bouton.disabled = true; }
+    fetch(API + "/api/admin/actions/" + encodeURIComponent(id) + "/revert",
+          {method:"POST", headers: headers()})
+      .then(function(r){ return r.json().then(function(d){ return {ok:r.ok, d:d}; }); })
+      .then(function(res){
+        bilan(el, res.ok ? '&#8634; Modification annulee : fichier retabli.'
+                         : '&#10005; ' + erreurDe(res));
+      })
+      .catch(function(){ if(bouton){ bouton.disabled = false; } });
+  }
+
+  /* Une tache tourne cote serveur; on interroge la liste des propositions
+     toutes les 3 s jusqu'a sa fin. */
+  function suivreTache(id, el){
+    var essais = 0;
+    function tour(){
+      essais += 1;
+      fetch(API + "/api/admin/actions", {headers: headers()})
+        .then(function(r){ return r.ok ? r.json() : null; })
+        .then(function(d){
+          var a = d && (d.actions || []).filter(function(x){ return x.id === id; })[0];
+          if(!a || a.statut === "en_cours"){
+            if(essais < 1200){ setTimeout(tour, 3000); }
+            return;
+          }
+          var r = a.resultat || {};
+          var tete = (a.statut === "terminee" ? '&#10003; Terminee' : '&#10005; Echec') +
+            ' en ' + (r.duree_s != null ? r.duree_s : "?") + ' s' +
+            (r.code_retour != null ? ' (code ' + r.code_retour + ')' : '') +
+            (r.erreur ? ' &mdash; ' + escapeHtml(r.erreur) : '');
+          var sortie = String(r.sortie_fin || "").split("\n").slice(-12).join("\n");
+          bilan(el, tete + (sortie ? '<pre class="sortie">' + escapeHtml(sortie) + '</pre>' : ''));
+        })
+        .catch(function(){ setTimeout(tour, 5000); });
+    }
+    setTimeout(tour, 2000);
   }
 
   function rafraichirActions(){
@@ -685,7 +1967,7 @@
       .then(function(d){
         if(!d){ return; }
         (d.actions || []).forEach(function(a){
-          if(a.statut === "en_attente"){ carteAction(a); }
+          if(a.statut === "en_attente" || a.statut === "en_cours"){ carteAction(a); }
         });
       })
       .catch(function(){});
@@ -699,6 +1981,7 @@
 
   function setOnline(ok, label){
     state.online = ok;
+    try{ Hud.majMenu(); }catch(e){}
     dot.className = "dot" + (ok ? "" : " off");
     status.textContent = label || (ok ? "Assistant CLIMAT-SEN" : "Hors ligne");
     input.disabled = !ok;
@@ -722,7 +2005,8 @@
 
   function health(){
     return fetch(API + "/health", {cache:"no-store"})
-      .then(function(r){ if(!r.ok) throw new Error("health " + r.status); return r.json(); });
+      .then(function(r){ if(!r.ok) throw new Error("health " + r.status); return r.json(); })
+      .then(function(d){ state.sante = d; return d; });
   }
 
   function newSession(){
@@ -742,7 +2026,10 @@
       .then(function(d){
         if(!d || !d.messages || !d.messages.length) return;
         state.convId = d.conversation_id;
-        d.messages.forEach(function(m){ bubble(m.role === "user" ? "user" : "bot", m.content); });
+        d.messages.forEach(function(m){
+          bubble(m.role === "user" ? "user" : "bot", m.content);
+          (m.figures || []).forEach(figureBloc);
+        });
       })
       .catch(function(){ /* un fil perdu n'est pas une panne */ });
   }
@@ -795,17 +2082,33 @@
   function ask(text){
     if(state.busy || !state.online) return;
     state.busy = true; refreshSend(); clearWarn();
+    arreterLecture();
+    Orbe.etat("reflexion");
     bubble("user", text);
     input.value = ""; autoGrow();
     typing(true);
 
     var body = {message: text};
     if(state.convId){ body.conversation_id = state.convId; }
+    if(PAGE_CTX && typeof PAGE_CTX === "object"){ body.page_context = PAGE_CTX; }
 
     var target = null, buffer = "", failed = false;
+    // Les figures annoncees pendant le flux s'affichent SOUS la reponse,
+    // une fois celle-ci terminee.
+    var figuresRecues = [];
 
-    fetch(API + "/api/chat", {method:"POST", headers: headers(), body: JSON.stringify(body)})
+    var controleur = window.AbortController ? new AbortController() : null;
+    state.requete = controleur;
+    joindreVue(body, text)
+      .then(function(){
+        var options = {method:"POST", headers: headers(), body: JSON.stringify(body)};
+        if(controleur){ options.signal = controleur.signal; }
+        return fetch(API + "/api/chat", options);
+      })
       .then(function(res){
+        if(res.status === 413){
+          throw {soft:true, msg: "La page capturee est trop lourde. Reessayez sans joindre la vue."};
+        }
         if(res.status === 401){
           // Session expiree ou perdue: on en reprend une et on rejoue une fois.
           try{ sessionStorage.removeItem("jarvis_token"); }catch(e){}
@@ -841,7 +2144,8 @@
       .catch(function(err){
         failed = true;
         typing(false);
-        if(err && err.soft){ warn("Doucement", err.msg); }
+        if(err && err.name === "AbortError"){ /* arretee par l'utilisateur */ }
+        else if(err && err.soft){ warn("Doucement", err.msg); }
         else{
           warn("La reponse n'a pas pu aboutir.", "Verifiez votre connexion et reessayez.");
         }
@@ -850,6 +2154,13 @@
         typing(false);
         clearOutil();
         state.busy = false; refreshSend();
+        state.requete = null;
+        if(target && target._raw){ Hud.soustitre(target._raw, true); }
+        if(figuresRecues.length && Hud.actif()){ Hud.transcription(true); }
+        figuresRecues.forEach(figureBloc);
+        orbeAuRepos();
+        if(!failed && target && target._raw && state.voix){ lireAVoixHaute(target._raw); }
+        else { relancerEcoute(); }
         // Une proposition a pu etre deposee pendant ce tour.
         rafraichirActions();
         if(!failed && target === null){ /* flux vide: rien a afficher */ }
@@ -866,6 +2177,8 @@
            parti dans l'historique ni vers le modele. On bascule de jeton. */
         typing(false);
         passerEnAdmin(data);
+      } else if(name === "figure"){
+        figuresRecues.push(data);
       } else if(name === "tool"){
         typing(false);
         outil(data.label || "Consultation des donnees");
@@ -875,6 +2188,7 @@
         if(target === null){ target = bubble("bot", ""); target._raw = ""; }
         target._raw += data.text;
         target.innerHTML = mini(target._raw);
+        Hud.soustitre(target._raw, false);
         scroll();
       } else if(name === "error"){
         typing(false);
@@ -930,7 +2244,10 @@
   }
 
   function shut(){
+    if(Hud.actif()){ Hud.sortir(); }
     state.open = false;
+    arreterLecture();
+    if(reco){ reco.abort(); }
     document.body.classList.add("collapsed");
     setHeight(H_SHUT);
     pousser(false);
@@ -1040,7 +2357,8 @@
     input.style.height = Math.min(input.scrollHeight, 92) + "px";
   }
 
-  fab.addEventListener("click", function(){ open(true); });
+  // Comme JARVIS-pro: l'orbe ouvre directement l'interface plein ecran.
+  fab.addEventListener("click", function(){ Hud.entrer(); });
   $("close").addEventListener("click", shut);
   $("quit").addEventListener("click", quitterAdmin);
   $("grip").addEventListener("mousedown", demarrerRedim);
@@ -1061,12 +2379,61 @@
       if(v){ ask(v); }
     }
   });
+  vueBtn.addEventListener("click", function(){ basculerVue(!state.joindreVue); input.focus(); });
+
+  $("hud-btn").addEventListener("click", function(){ Hud.entrer(); });
+  $("hud-menu-btn").addEventListener("click", function(){ Hud.menu(); });
+  $("hud-menu").addEventListener("click", function(e){
+    var b = e.target && e.target.closest ? e.target.closest("button") : null;
+    if(b){ Hud.action(b); }
+  });
+  $("hud-stop").addEventListener("click", arreterTout);
+  $("hud-clavier-btn").addEventListener("click", function(){ Hud.clavier(); });
+  $("hud-transcription-btn").addEventListener("click", function(){ Hud.transcription(); });
+  $("hud-plein-btn").addEventListener("click", function(){ Hud.plein(); });
+  // En mode J.A.R.V.I.S, taper une lettre ouvre le clavier: pas besoin de
+  // chercher le champ de saisie.
+  document.addEventListener("keydown", function(e){
+    if(!Hud.actif() || document.body.classList.contains("hud-clavier")){ return; }
+    if(e.ctrlKey || e.metaKey || e.altKey || !e.key || e.key.length !== 1){ return; }
+    if(e.target && (e.target.tagName === "TEXTAREA" || e.target.tagName === "INPUT")){ return; }
+    e.preventDefault();
+    Hud.clavier(true);
+    input.value += e.key;
+    autoGrow(); refreshSend();
+  });
+  if(Reconnaissance){
+    $("hud-micro").hidden = false;
+    $("hud-continu").hidden = false;
+    $("hud-micro").addEventListener("click", dicter);
+    $("hud-continu").addEventListener("click", function(){ basculerContinu(!state.continu); });
+  }
+
+  Orbe.attacher($("orbe-fab"));
+  Orbe.attacher($("orbe-tete"));
+  if(Reconnaissance){
+    microBtn.hidden = false;
+    microBtn.addEventListener("click", dicter);
+  }
+  if(synthese && window.SpeechSynthesisUtterance){
+    voixBtn.hidden = false;
+    voixBtn.addEventListener("click", function(){ basculerVoix(!state.voix); });
+    basculerVoix(recall("voix") === "1");
+  }
+  if(pageHote()){ vueBtn.hidden = false; }
+
   send.addEventListener("click", function(){
     var v = input.value.trim();
     if(v){ ask(v); }
   });
   document.addEventListener("keydown", function(e){
-    if(e.key === "Escape" && state.open){ shut(); }
+    if(e.key !== "Escape"){ return; }
+    if(Hud.actif()){
+      if($("hud-menu").classList.contains("ouvert")){ Hud.menu(false); }
+      else if(document.body.classList.contains("hud-clavier")){ Hud.clavier(false); }
+      else if(document.body.classList.contains("hud-transcription")){ Hud.transcription(false); }
+      else { shut(); }
+    } else if(state.open){ shut(); }
   });
 
   Array.prototype.forEach.call(document.querySelectorAll(".chip"), function(c){
@@ -1084,7 +2451,8 @@
   // donc l etat d ouverture, sans voler le focus au dashboard.
   pousser(false);
   boot().then(function(){
-    if(recall("open") === "1"){ open(false); }
+    // Jarvis se rouvre en mode J.A.R.V.I.S, sans rejouer le demarrage.
+    if(recall("open") === "1"){ Hud.entrer(true); }
   });
 })();
 </script>

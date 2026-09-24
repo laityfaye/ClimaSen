@@ -55,6 +55,15 @@
   /* Le prompt admin autorise titres, listes et tableaux: la console doit
      savoir les afficher, sinon elle rend du Markdown brut. */
   .msg.bot{white-space:normal}
+  /* Figures (Phase 8): rendues sur le fond des bulles (#1E293B, theme sombre). */
+  .fig{max-width:560px;margin:0 0 16px;padding:12px 14px 9px;background:var(--surface);border:1px solid var(--border);border-radius:12px}
+  .fig figcaption{font-size:13px;margin-bottom:8px}
+  .fig figcaption strong{display:block}
+  .fig figcaption span{display:block;color:var(--muted);font-size:12px;margin-top:2px}
+  .fig-img{color:var(--muted);font-size:12.5px;min-height:40px}
+  .fig-img img{display:block;width:100%;height:auto;border-radius:8px}
+  .fig-liens{text-align:right;margin-top:6px}
+  .fig-liens button{background:none;border:0;color:var(--turquoise);font-size:12px;cursor:pointer;text-decoration:underline;padding:0}
   .msg.bot h1,.msg.bot h2,.msg.bot h3{margin:16px 0 8px;font-weight:650;line-height:1.3}
   .msg.bot h1{font-size:16px} .msg.bot h2{font-size:15px} .msg.bot h3{font-size:14px}
   .msg.bot h1:first-child,.msg.bot h2:first-child,.msg.bot h3:first-child{margin-top:0}
@@ -97,6 +106,13 @@
   .bouton{width:auto;margin:0;padding:8px 16px;font-size:13px}
   .bouton.refuser{background:transparent;border:1px solid var(--border);color:var(--muted)}
   .action.traitee{opacity:.75;border-color:var(--border)}
+  .diff .meta{color:var(--muted)}
+  .diff-code{max-height:340px;white-space:pre;overflow:auto}
+  .sortie{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;margin:8px 0 0;
+    background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:8px 10px;
+    max-height:260px;overflow:auto;white-space:pre-wrap;color:var(--text)}
+  .action-bilan .lien{background:none;border:0;padding:0;margin-left:8px;cursor:pointer;
+    color:var(--corail);text-decoration:underline;font-size:12.5px}
   .action-bilan{padding:11px 15px;font-size:12.5px;color:var(--muted)}
   footer{border-top:1px solid var(--border);background:var(--surface);padding:12px 18px}
   .saisie{max-width:780px;margin:0 auto;display:flex;gap:10px;align-items:flex-end}
@@ -268,6 +284,54 @@
   }
   function defiler(){ var f = $("fil"); f.scrollTop = f.scrollHeight; }
 
+  /* ---------- Figures (Phase 8) ----------
+     Image telechargee par fetch (le jeton passe en en-tete), puis affichee
+     en URL data:, autorisee par la CSP (img-src 'self' data:). */
+  function figure(ref){
+    if(!ref || !ref.id){ return; }
+    var fig = document.createElement("figure");
+    fig.className = "fig";
+    var leg = document.createElement("figcaption");
+    var t = document.createElement("strong"); t.textContent = ref.titre || "Figure";
+    leg.appendChild(t);
+    if(ref.sous_titre){ var st = document.createElement("span"); st.textContent = ref.sous_titre; leg.appendChild(st); }
+    var cadre = document.createElement("div"); cadre.className = "fig-img";
+    cadre.textContent = "Chargement de la figure…";
+    var liens = document.createElement("div"); liens.className = "fig-liens";
+    var csv = document.createElement("button"); csv.type = "button"; csv.textContent = "Données (CSV)";
+    csv.addEventListener("click", function(){ csvFigure(ref); });
+    liens.appendChild(csv);
+    fig.appendChild(leg); fig.appendChild(cadre); fig.appendChild(liens);
+    $("messages").appendChild(fig);
+    defiler();
+    fetch(API + "/api/figures/" + encodeURIComponent(ref.id) + "?theme=sombre", {headers: entetes()})
+      .then(function(r){ if(!r.ok){ throw new Error("HTTP " + r.status); } return r.blob(); })
+      .then(function(b){
+        return new Promise(function(ok, ko){
+          var l = new FileReader(); l.onload = function(){ ok(l.result); }; l.onerror = ko; l.readAsDataURL(b);
+        });
+      })
+      .then(function(url){
+        cadre.textContent = "";
+        var img = document.createElement("img");
+        img.alt = (ref.titre || "Figure") + (ref.sous_titre ? " — " + ref.sous_titre : "");
+        img.src = url; img.addEventListener("load", defiler);
+        cadre.appendChild(img);
+      })
+      .catch(function(){ cadre.textContent = "Figure indisponible (expirée ou autre session)."; });
+  }
+  function csvFigure(ref){
+    fetch(API + "/api/figures/" + encodeURIComponent(ref.id) + "?format=csv", {headers: entetes()})
+      .then(function(r){ if(!r.ok){ throw new Error("HTTP " + r.status); } return r.blob(); })
+      .then(function(b){
+        var a = document.createElement("a");
+        a.href = URL.createObjectURL(b); a.download = "jarvis-figure.csv";
+        document.body.appendChild(a); a.click();
+        setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+      })
+      .catch(function(){ bulle("bot", "*Téléchargement impossible.*"); });
+  }
+
   function outil(libelle){
     var el = $("outil-en-cours");
     if(!el){
@@ -359,7 +423,7 @@
 
     var corps = {message: texte};
     if(etat.conv){ corps.conversation_id = etat.conv; }
-    var cible = null, tampon = "";
+    var cible = null, tampon = "", figures = [];
 
     fetch(API + "/api/chat", {method:"POST", headers: entetes(), body: JSON.stringify(corps)})
       .then(function(r){
@@ -393,6 +457,7 @@
       })
       .then(function(){
         retirerOutil();
+        figures.forEach(figure);
         etat.occupe = false; $("envoyer").disabled = false;
         // Une proposition a pu etre deposee pendant ce tour: on l'affiche
         // apres la reponse, pour que le contexte soit lu avant de decider.
@@ -403,6 +468,8 @@
       if(nom === "meta"){
         if(d.conversation_id){ etat.conv = d.conversation_id; }
         if(d.model){ $("modele").textContent = d.model; }
+      } else if(nom === "figure"){
+        figures.push(d);
       } else if(nom === "tool"){
         outil(d.label || "Consultation des données");
       } else if(nom === "delta"){
@@ -447,75 +514,172 @@
      clic, vers une route que le modele ne peut pas appeler. */
   var actionsAffichees = {};
 
-  function carteAction(a){
-    if(actionsAffichees[a.id]){ return; }
-    actionsAffichees[a.id] = true;
+  function diffColore(texte){
+    return String(texte || "").split("\n").map(function(l){
+      var c = (l.indexOf("+++") === 0 || l.indexOf("---") === 0 || l.indexOf("@@") === 0)
+        ? "meta" : (l.charAt(0) === "+" ? "add" : (l.charAt(0) === "-" ? "sup" : ""));
+      return '<span class="' + c + '">' + echapper(l) + '</span>';
+    }).join("\n");
+  }
 
-    var el = document.createElement("div");
-    el.className = "action";
-    el.id = "action-" + a.id;
-
+  function contenuAction(a){
     var d = a.details || {};
+    var raison = '<div class="action-raison">' + echapper(d.raison || "") + '</div>';
+    if(a.type === "code_modifier"){
+      return {
+        tete: '⚠ Modification du code — <b>' + echapper(d.fichier || "") + '</b>',
+        corps: raison + '<div class="diff diff-code">' + diffColore(d.diff) + '</div>' +
+          '<div class="action-raison">+' + (d.lignes_ajoutees || 0) + ' / −' +
+          (d.lignes_retirees || 0) + ' ligne(s)' + (d.diff_tronque ? ' (diff tronqué)' : '') +
+          '. Code compilé avant écriture, sauvegarde horodatée, annulable.</div>',
+        bouton: "Appliquer"
+      };
+    }
+    if(a.type === "tache_executer"){
+      return {
+        tete: '⚠ Exécution — <b>' + echapper(d.cible || "") + '</b>',
+        corps: raison + '<div class="action-raison">' + echapper(d.libelle || "") +
+          ' · durée max ' + Math.round((d.delai_max_s || 0) / 60) +
+          ' min · une tâche à la fois.</div>',
+        bouton: "Lancer"
+      };
+    }
     var diffs = (d.changements || []).slice(0, 3).map(function(c){
       return '<div class="diff"><span class="sup">− ' + echapper(c.avant) +
              '</span>\n<span class="add">+ ' + echapper(c.apres) + '</span></div>';
     }).join("");
     var reste = (d.n_occurrences || 0) - (d.changements || []).length;
-
-    el.innerHTML =
-      '<div class="action-tete">⚠ Proposition de modification — <b>' +
-        echapper(d.fichier || d.document || "document") + '</b></div>' +
-      '<div class="action-corps">' +
-        '<div class="action-raison">' + echapper(d.raison || "") + '</div>' +
-        diffs +
+    return {
+      tete: '⚠ Proposition de modification — <b>' +
+            echapper(d.fichier || d.document || "document") + '</b>',
+      corps: raison + diffs +
         (reste > 0 ? '<div class="action-raison">… et ' + reste +
                      ' autre(s) occurrence(s) identique(s).</div>' : '') +
         '<div class="action-raison">' + (d.n_occurrences || 0) +
         ' occurrence(s) seront remplacées. Une sauvegarde horodatée est ' +
-        'écrite avant modification.</div>' +
-      '</div>' +
+        'écrite avant modification.</div>',
+      bouton: "Appliquer"
+    };
+  }
+
+  function carteAction(a){
+    if(actionsAffichees[a.id]){ return; }
+    actionsAffichees[a.id] = true;
+    var c = contenuAction(a);
+    var el = document.createElement("div");
+    el.className = "action";
+    el.id = "action-" + a.id;
+    el.innerHTML =
+      '<div class="action-tete">' + c.tete + '</div>' +
+      '<div class="action-corps">' + c.corps + '</div>' +
       '<div class="action-pied">' +
-        '<button class="bouton" data-oui="' + a.id + '">Appliquer</button>' +
-        '<button class="bouton refuser" data-non="' + a.id + '">Refuser</button>' +
+        '<button class="bouton" data-oui="1">' + c.bouton + '</button>' +
+        '<button class="bouton refuser" data-non="1">Refuser</button>' +
         '<span class="delai">expire dans ' + Math.round((a.expire_dans || 0)/60) + ' min</span>' +
       '</div>';
-
     $("messages").appendChild(el);
-    el.querySelector("[data-oui]").addEventListener("click", function(){
-      trancher(a.id, "approve", el);
-    });
-    el.querySelector("[data-non]").addEventListener("click", function(){
-      trancher(a.id, "reject", el);
-    });
+    if(a.statut === "en_cours"){
+      bilan(el, "⏳ En cours…");
+      suivreTache(a.id, el);
+    } else {
+      el.querySelector("[data-oui]").addEventListener("click", function(){ trancher(a, "approve", el); });
+      el.querySelector("[data-non]").addEventListener("click", function(){ trancher(a, "reject", el); });
+    }
     defiler();
   }
 
-  function trancher(id, verdict, el){
+  function bilan(el, html){
+    var ancien = el.querySelector(".action-pied, .action-bilan");
+    var div = document.createElement("div");
+    div.className = "action-bilan";
+    div.innerHTML = html;
+    if(ancien){ ancien.parentNode.replaceChild(div, ancien); } else { el.appendChild(div); }
+    defiler();
+    return div;
+  }
+
+  function erreurDe(res){
+    return echapper((res.d && res.d.error && res.d.error.message) || "Échec.");
+  }
+
+  function trancher(a, verdict, el){
     el.querySelectorAll("button").forEach(function(b){ b.disabled = true; });
-    fetch(API + "/api/admin/actions/" + encodeURIComponent(id) + "/" + verdict,
+    fetch(API + "/api/admin/actions/" + encodeURIComponent(a.id) + "/" + verdict,
           {method:"POST", headers: entetes()})
-      .then(function(r){ return r.json().then(function(d){ return {ok:r.ok, d:d}; }); })
+      .then(function(r){ return r.json().then(function(d){ return {ok:r.ok, d:d, status:r.status}; }); })
       .then(function(res){
-        el.classList.add("traitee");
-        var pied = el.querySelector(".action-pied");
         if(!res.ok){
-          var m = (res.d && res.d.error && res.d.error.message) || "Échec.";
-          pied.outerHTML = '<div class="action-bilan">✕ ' + echapper(m) + '</div>';
+          if(res.status === 409 && a.type === "tache_executer"){
+            el.querySelectorAll("button").forEach(function(b){ b.disabled = false; });
+            bulle("bot", "*" + ((res.d.error && res.d.error.message) || "Tâche non lancée.") + "*");
+            return;
+          }
+          el.classList.add("traitee");
+          bilan(el, "✕ " + erreurDe(res));
           return;
         }
         if(verdict === "reject"){
-          pied.outerHTML = '<div class="action-bilan">✕ Proposition refusée. Rien n’a été modifié.</div>';
+          el.classList.add("traitee");
+          bilan(el, "✕ Proposition refusée. Rien n’a été modifié.");
           return;
         }
         var r2 = res.d.resultat || {};
-        pied.outerHTML = '<div class="action-bilan">✔ Appliquée — ' +
-          (r2.n_occurrences || 0) + ' remplacement(s) dans ' +
-          echapper(r2.fichier || "") + '. Sauvegarde : ' +
-          echapper(r2.sauvegarde || "") + '</div>';
+        if(a.type === "tache_executer"){
+          bilan(el, "⏳ Lancée — en cours…");
+          suivreTache(a.id, el);
+        } else if(a.type === "code_modifier"){
+          var b = bilan(el, "✔ Appliquée — " + echapper(r2.fichier || "") +
+            (r2.sauvegarde ? ". Sauvegarde : " + echapper(r2.sauvegarde) : " (fichier créé)") +
+            ' <button class="lien" data-annuler="1">Annuler la modification</button>');
+          b.querySelector("[data-annuler]").addEventListener("click", function(){ annuler(a.id, el); });
+        } else {
+          el.classList.add("traitee");
+          bilan(el, "✔ Appliquée — " + (r2.n_occurrences || 0) + " remplacement(s) dans " +
+            echapper(r2.fichier || "") + ". Sauvegarde : " + echapper(r2.sauvegarde || ""));
+        }
       })
       .catch(function(){
         el.querySelectorAll("button").forEach(function(b){ b.disabled = false; });
       });
+  }
+
+  function annuler(id, el){
+    var bouton = el.querySelector("[data-annuler]");
+    if(bouton){ bouton.disabled = true; }
+    fetch(API + "/api/admin/actions/" + encodeURIComponent(id) + "/revert",
+          {method:"POST", headers: entetes()})
+      .then(function(r){ return r.json().then(function(d){ return {ok:r.ok, d:d}; }); })
+      .then(function(res){
+        el.classList.add("traitee");
+        bilan(el, res.ok ? "↺ Modification annulée : fichier rétabli." : "✕ " + erreurDe(res));
+      })
+      .catch(function(){ if(bouton){ bouton.disabled = false; } });
+  }
+
+  function suivreTache(id, el){
+    var essais = 0;
+    function tour(){
+      essais += 1;
+      fetch(API + "/api/admin/actions", {headers: entetes()})
+        .then(function(r){ return r.ok ? r.json() : null; })
+        .then(function(d){
+          var a = d && (d.actions || []).filter(function(x){ return x.id === id; })[0];
+          if(!a || a.statut === "en_cours"){
+            if(essais < 1200){ setTimeout(tour, 3000); }
+            return;
+          }
+          var r = a.resultat || {};
+          el.classList.add("traitee");
+          var sortie = String(r.sortie_fin || "").split("\n").slice(-20).join("\n");
+          bilan(el, (a.statut === "terminee" ? "✔ Terminée" : "✕ Échec") + " en " +
+            (r.duree_s != null ? r.duree_s : "?") + " s" +
+            (r.code_retour != null ? " (code " + r.code_retour + ")" : "") +
+            (r.erreur ? " — " + echapper(r.erreur) : "") +
+            (sortie ? '<pre class="sortie">' + echapper(sortie) + '</pre>' : ""));
+        })
+        .catch(function(){ setTimeout(tour, 5000); });
+    }
+    setTimeout(tour, 2000);
   }
 
   function rafraichirActions(){
@@ -525,7 +689,7 @@
       .then(function(d){
         if(!d){ return; }
         (d.actions || []).forEach(function(a){
-          if(a.statut === "en_attente"){ carteAction(a); }
+          if(a.statut === "en_attente" || a.statut === "en_cours"){ carteAction(a); }
         });
       })
       .catch(function(){});

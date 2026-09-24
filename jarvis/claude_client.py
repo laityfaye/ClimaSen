@@ -80,6 +80,16 @@ def _translate(exc: Exception) -> UpstreamError:
                 "Contactez l'administrateur.",
                 code="upstream_workspace_required",
             )
+        if "credit balance" in str(exc).lower():
+            # Compte a court de credit: toutes les requetes echouent jusqu'au
+            # rechargement. Code distinct, sans quoi la panne se confond avec
+            # une question mal formee (constate le 24/09/2026).
+            log.error("Credit API Anthropic epuise: recharger le compte "
+                      "(console Anthropic, Plans & Billing).")
+            return UpstreamError(
+                "L'assistant est momentanement indisponible. Reessayez plus tard.",
+                code="upstream_billing",
+            )
         return UpstreamError(
             "Cette demande n'a pas pu etre traitee.",
             code="upstream_bad_request",
@@ -185,6 +195,12 @@ class ClaudeClient:
             return self.settings.model_admin
         return self.settings.model_public
 
+    def _tours_max(self, profile: str) -> int:
+        if profile == "admin":
+            return getattr(self.settings, "max_tool_rounds_admin",
+                           self.settings.max_tool_rounds)
+        return self.settings.max_tool_rounds
+
     def system_for(self, profile: str) -> str:
         name = "system_admin" if profile == "admin" else "system_public"
         if name not in self._system_cache:
@@ -249,7 +265,7 @@ class ClaudeClient:
         usage_total = {}
         outils_appeles = []
         stop_reason = None
-        tours_max = self.settings.max_tool_rounds if (tools and executor) else 0
+        tours_max = self._tours_max(profile) if (tools and executor) else 0
 
         for tour in range(tours_max + 1):
             # Au dernier tour on retire les outils: le modele doit conclure en
@@ -299,7 +315,7 @@ class ClaudeClient:
         outils_appeles = []
         textes = []
         stop_reason = None
-        tours_max = self.settings.max_tool_rounds if (tools and executor) else 0
+        tours_max = self._tours_max(profile) if (tools and executor) else 0
 
         for tour in range(tours_max + 1):
             outils_du_tour = tools if (tools and executor and tour < tours_max) else None

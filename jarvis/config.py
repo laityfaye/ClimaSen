@@ -59,11 +59,20 @@ class Settings(BaseSettings):
     # Nombre de tours d'outils autorises avant de forcer une reponse en texte.
     # Chaque tour est un appel API supplementaire: c'est le garde-fou de cout.
     max_tool_rounds: int = 3
+    # Profil admin (Phase 10): travailler sur le code demande d'enchainer
+    # lister, lire, chercher, proposer. Trois tours n'y suffisent pas.
+    max_tool_rounds_admin: int = 8
     # Plafond de taille d'un resultat d'outil injecte dans le contexte.
     tool_result_max_chars: int = 6000
     # Prechauffe les loaders au demarrage (3 a 4 s) pour que le premier
     # visiteur ne paie pas l'import de streamlit et la lecture des CSV.
     tools_preload: bool = True
+    # --- Code et taches (Phase 10) ---------------------------------------------
+    # Interrupteur des outils qui MODIFIENT le code ou LANCENT des scripts
+    # (toujours sous approbation). La lecture du code reste possible.
+    code_actions_enabled: bool = True
+    # Delai maximal d'une tache (script du pipeline ou tests), en secondes.
+    task_timeout_seconds: int = 1800
 
     # --- Profil admin (Phase 4) ----------------------------------------------
     # Seul le HACHE est stocke (voir jarvis/auth.py). Vide = profil admin
