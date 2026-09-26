@@ -163,7 +163,17 @@ def formater(contexte) -> str:
     return "\n".join(lignes)
 
 
-def message_utilisateur(question: str, contexte, blocs_vue=()) -> dict:
+# Texte FIXE, ecrit ici: le client ne fait que demander le mode (un booleen),
+# il ne peut rien glisser dans ce bloc.
+# Les regles du style oral sont dans le prompt systeme (partie en cache).
+CONSIGNE_ORALE = (
+    "<mode_oral>\n"
+    "La reponse sera lue a voix haute par ta voix de synthese.\n"
+    "</mode_oral>")
+
+
+def message_utilisateur(question: str, contexte, blocs_vue=(),
+                        oral: bool = False) -> dict:
     """Tour "user" envoye a l'API: contexte, vue capturee, puis la question.
 
     Des blocs distincts plutot qu'une concatenation: la question reste
@@ -172,6 +182,8 @@ def message_utilisateur(question: str, contexte, blocs_vue=()) -> dict:
     requetes multimodales.
     """
     blocs = []
+    if oral:
+        blocs.append({"type": "text", "text": CONSIGNE_ORALE})
     if contexte:
         blocs.append({"type": "text", "text": formater(contexte)})
     blocs.extend(blocs_vue or ())

@@ -609,6 +609,32 @@ npx esbuild entree.ts --bundle --format=iife --minify --legal-comments=inline \
 puis recopier le fichier dans `jarvis/hud/` en gardant l'en-tête de provenance. Sans WebGL, repli sur l'orbe 2D. En quittant (bouton ou
 Échap), l'orbe est détruite et l'iframe reprend sa place de bulle.
 
+## Capacités avancées (26/09/2026)
+
+| Capacité | Où | Principe |
+|---|---|---|
+| Recalcul à la demande | `recompute_correlation`, `jarvis/analyses.py` | Fonctions **importées** du script 04 : sur la période complète, le recalcul redonne les CSV au 1/10 000 (330/330 vérifiées). Exclure des années, restreindre la période, comparer deux moitiés, tester l'influence de chaque année. Aucun code du modèle n'est exécuté. |
+| Années analogues | `find_analog_years` | Distance sur indices standardisés (mois qui précèdent la phase). Porte **toujours** la compétence mesurée (validation croisée) : r ≈ 0,1-0,2, non significative. Jarvis doit dire que ce n'est pas une prévision. |
+| Pilotage du dashboard | `navigate_dashboard`, événement SSE `navigation` | Consigne validée par `page_context`, déposée par le widget dans un champ caché (`jarvis_nav_cmd`), appliquée par `appliquer_navigation()` avant la création des sélecteurs. |
+| Animation SST | `animate_sst_event`, archive `jarvis/cartes/sst_evenements.npz` | 30 événements (10 par phase), J-150 à J0 tous les 15 jours, GIF. Archive construite hors ligne par `scripts/17_build_jarvis_sst_evenements.py` (les 42 Go d'OISST ne sont pas sur le serveur). |
+| Comparaison | écran J.A.R.V.I.S | Bouton COMPARER ; deux cartes dans une même réponse s'affichent côte à côte. |
+| Mode soutenance | `jarvis/soutenance.py`, `/api/soutenance[/n]`, menu PRÉSENTATION | 8 étapes : page du dashboard, figure en grand, narration lue. **Narration composée par le code à partir des données** (aucun appel au modèle, rien d'inventé). Pause automatique quand le jury pose une question ; ← → espace pour piloter ; DASHBOARD montre la page à travers l'interface. |
+| Banc d'épreuve | `scripts/18_banc_epreuve_jarvis.py` | 16 questions à la vraie API (exactitude, pièges, sécurité, langue, capacités), attendus recalculés au lancement. Rapport dans `outputs/jarvis_banc/`. |
+
+**Changement d'intégration Streamlit.** Le contexte de page n'est plus inscrit
+dans le HTML du widget mais dans un élément caché (`#jarvis-page-ctx`), et le
+widget occupe le **premier** emplacement de la page (`jarvis_slot`). Le HTML
+étant identique d'une exécution à l'autre, Streamlit ne recharge plus l'iframe
+à chaque clic : Jarvis ne se coupe plus en pleine phrase. Deux pièges constatés
+en test de bout en bout : un emplacement en `position:fixed` enfermait l'iframe
+sous la barre latérale ; régler un filtre par `session_state` affichait un
+avertissement jaune (désactivé dans `.streamlit/config.toml`,
+`disableWidgetStateDuplicationWarning`).
+
+Après mise à jour : **redémarrer** Streamlit (le module `jarvis_widget` et la
+configuration sont lus au démarrage) et le service Jarvis, et déployer
+`jarvis/cartes/sst_evenements.npz`.
+
 ## Ajouter un outil
 
 1. Créer `jarvis/tools/<nom>.py` exposant `NAME`, `LABEL`, `PERMISSION`,

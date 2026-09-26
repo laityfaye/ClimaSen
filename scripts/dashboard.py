@@ -27,6 +27,15 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
+# ─── Emplacement de Jarvis ───────────────────────────────────────────────────
+# PREMIER element de la page, donc a une position stable d'une execution a
+# l'autre: Streamlit conserve alors l'iframe au lieu de la recharger quand on
+# change de page. Rempli en fin de script (voir JARVIS plus bas).
+try:
+    _jarvis_slot = st.container(key="jarvis_slot")
+except TypeError:  # Streamlit sans parametre key
+    _jarvis_slot = st.container()
+
 # ─── Anti-FOUC + Splash (injecte fond ET ecran de chargement immediatement) ───
 # S'execute des la premiere connexion WebSocket, avant tout autre rendu Python.
 # Utilise sessionStorage pour n'afficher le splash qu'au premier chargement de l'onglet.
@@ -134,6 +143,13 @@ if "dark_mode" not in st.session_state:
 # ─── Page transition state ────────────────────────────────────────────────────
 if "nav_page" not in st.session_state:
     st.session_state["nav_page"] = "Evenements"
+# Page et filtres demandes par Jarvis (outil navigate_dashboard): appliques
+# avant la barre laterale et les pages, qui creent leurs selecteurs.
+try:
+    import jarvis_widget as _jarvis_nav
+    _jarvis_nav.appliquer_navigation(st)
+except Exception:
+    pass
 if "prev_page" not in st.session_state:
     st.session_state.prev_page = None
 if "page_loading" not in st.session_state:
@@ -1868,7 +1884,9 @@ elif page == "Pipeline":
 # ne doit jamais empecher le dashboard de s'afficher.
 try:
     import jarvis_widget as _jarvis
-    if not _jarvis.render(dark_mode=st.session_state.dark_mode):
+    with _jarvis_slot:
+        _ok_jarvis = _jarvis.render(dark_mode=st.session_state.dark_mode)
+    if not _ok_jarvis:
         # L echec est trace dans la console du serveur, jamais affiche au
         # visiteur : le dashboard doit rester intact quoi qu il arrive.
         if _jarvis.derniere_erreur:

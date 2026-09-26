@@ -141,6 +141,112 @@ def contexte_page(etat) -> dict:
         return None
 
 
+# =============================================================================
+# Pilotage du dashboard par Jarvis (outil navigate_dashboard, mode soutenance)
+# =============================================================================
+# Le widget ecrit la consigne (JSON) dans un champ de saisie cache de la page
+# et la valide: Streamlit reexecute le script, et appliquer_navigation() regle
+# la page et les filtres AVANT que les pages ne creent leurs selecteurs
+# (Streamlit interdit de modifier la valeur d'un selecteur deja affiche).
+#
+# Pourquoi pas l'URL (?jarvis_nav=...): une fois qu'un parametre a ete ecrit
+# par l'application (?dm= du mode sombre), Streamlit ne relit plus l'adresse
+# du navigateur a la reexecution -- la consigne etait perdue (constate dans
+# le code de Streamlit 1.54, getQueryString).
+CLE_COMMANDE = "jarvis_nav_cmd"
+MAX_NAVIGATION = 2000
+
+# Cles de session a accompagner. La page Clustering remet le cluster a zero
+# des que la phase change (cl_shared_last_phase != phase): une consigne qui
+# regle phase ET cluster verrait son cluster efface. On note donc la phase
+# comme deja vue (constate en test de bout en bout).
+ACCOMPAGNEMENTS = {("Clustering", "phase"): "cl_shared_last_phase"}
+
+
+def _valeur_admise(valeur):
+    """Types simples seulement: la consigne vient de l'URL, donc de
+    n'importe qui (elle ne touche que la session de ce navigateur)."""
+    if isinstance(valeur, bool) or valeur is None:
+        return True
+    if isinstance(valeur, (int, float)):
+        return True
+    if isinstance(valeur, str):
+        return len(valeur) <= 40
+    if isinstance(valeur, list):
+        return len(valeur) <= 12 and all(
+            isinstance(v, (str, int, float)) and not isinstance(v, bool)
+            and (not isinstance(v, str) or len(v) <= 40) for v in valeur)
+    return False
+
+
+def lire_navigation(brut):
+    """{"page", "filtres": {cle_session: valeur}} ou None.
+
+    Seuls les filtres declares dans CLES_CONTEXTE pour la page sont retenus;
+    le reste est ignore. Pure: testable sans Streamlit.
+    """
+    import json
+    if not brut or len(brut) > MAX_NAVIGATION:
+        return None
+    try:
+        demande = json.loads(brut)
+    except ValueError:
+        return None
+    if not isinstance(demande, dict):
+        return None
+    page = demande.get("page")
+    if page not in CLES_CONTEXTE:
+        return None
+    filtres = demande.get("filtres") or {}
+    if not isinstance(filtres, dict):
+        filtres = {}
+    reglages = {}
+    for champ, valeur in filtres.items():
+        cle = CLES_CONTEXTE[page].get(champ)
+        if cle is None or not _valeur_admise(valeur):
+            continue
+        # Les curseurs a deux bornes attendent un tuple.
+        reglages[cle] = tuple(valeur) if champ == "annees" else valeur
+        compagnon = ACCOMPAGNEMENTS.get((page, champ))
+        if compagnon and "cluster" in filtres:
+            reglages[compagnon] = valeur
+    return {"page": page, "filtres": reglages}
+
+
+def appliquer_navigation(st) -> bool:
+    """A appeler tot dans dashboard.py, avant la barre laterale et les pages."""
+    try:
+        brut = st.session_state.get(CLE_COMMANDE)
+        if not brut:
+            return False
+        # Vide avant la creation du champ: la meme consigne pourra repartir.
+        st.session_state[CLE_COMMANDE] = ""
+        consigne = lire_navigation(brut)
+        if consigne is None:
+            return False
+        st.session_state["nav_page"] = consigne["page"]
+        for cle, valeur in consigne["filtres"].items():
+            st.session_state[cle] = valeur
+        return True
+    except Exception:                              # noqa: BLE001
+        return False
+
+
+def _contexte_cache(st, contexte) -> None:
+    """Contexte de page dans un element cache de la page hote.
+
+    Le widget le lit au moment de chaque question. Il n'est plus inscrit dans
+    le HTML du composant: ce HTML change alors a chaque filtre, et Streamlit
+    RECHARGEAIT l'iframe a chaque clic -- Jarvis s'interrompait en pleine
+    phrase des qu'il ouvrait lui-meme une page.
+    """
+    import html as html_mod
+    import json
+    texte = html_mod.escape(json.dumps(contexte, ensure_ascii=True)) if contexte else ""
+    st.markdown('<div id="jarvis-page-ctx" hidden>%s</div>' % texte,
+                unsafe_allow_html=True)
+
+
 derniere_erreur = None
 
 
@@ -160,9 +266,10 @@ def render(dark_mode: bool = True) -> bool:
 
         from jarvis.widget_html import render_widget
 
+        # HTML identique d'une execution a l'autre (pas de contexte dedans):
+        # l'iframe n'est pas rechargee quand on change de page ou de filtre.
         html = render_widget(api_base=_api_base(), dark_mode=bool(dark_mode),
-                             mode=_mode(),
-                             page_context=contexte_page(st.session_state))
+                             mode=_mode(), page_context=None)
         # Hauteur de la bulle repliee, et non 0.
         #
         # Arbitrage : avec 0, le composant ne reserve aucune place dans le flux,
@@ -172,6 +279,19 @@ def render(dark_mode: bool = True) -> bool:
         # bas de page. On garde donc une hauteur qui fonctionne meme sans
         # JavaScript, et l epinglage n est plus qu une amelioration.
         components.html(html, height=HAUTEUR_REPLIEE, scrolling=False)
+        _contexte_cache(st, contexte_page(st.session_state))
+        # Champ cache ou le widget depose ses consignes de navigation.
+        st.text_input("jarvis", key=CLE_COMMANDE, label_visibility="collapsed")
+        # Emplacement sans hauteur ni ecart: il est en tete de page. Surtout
+        # PAS de position:fixed ici: un ancetre fixe forme un contexte
+        # d'empilement, l'iframe (z-index 2147483000) y serait enfermee et la
+        # barre laterale de Streamlit passait DEVANT Jarvis (constate).
+        st.markdown(
+            "<style>.st-key-%s{display:none!important}"
+            ".st-key-jarvis_slot,div:has(>.st-key-jarvis_slot){max-height:0!important;"
+            "min-height:0!important;overflow:visible!important;gap:0!important}"
+            "div:has(>.st-key-jarvis_slot){margin-bottom:-1rem!important}"
+            "</style>" % CLE_COMMANDE, unsafe_allow_html=True)
         derniere_erreur = None
         return True
     except Exception as exc:                      # noqa: BLE001

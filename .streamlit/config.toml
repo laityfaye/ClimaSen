@@ -16,3 +16,10 @@ primaryColor = "#6366F1"
 backgroundColor = "#F1F5F9"
 secondaryBackgroundColor = "#FFFFFF"
 textColor = "#0F172A"
+
+[global]
+# Jarvis regle les filtres du dashboard (navigate_dashboard, mode soutenance)
+# en ecrivant st.session_state avant la creation des selecteurs. Sans cette
+# option, Streamlit affiche un avertissement jaune dans la page pour chaque
+# selecteur qui a aussi une valeur par defaut.
+disableWidgetStateDuplicationWarning = true

@@ -121,7 +121,7 @@
   #log::-webkit-scrollbar{width:7px}
   #log::-webkit-scrollbar-thumb{background:var(--border);border-radius:9px}
 
-  .msg{max-width:87%;padding:9px 12px;border-radius:14px;font-size:.82rem;line-height:1.52;white-space:pre-wrap;word-wrap:break-word;animation:rise .2s ease}
+  .msg{max-width:min(87%,720px);padding:9px 12px;border-radius:14px;font-size:.82rem;line-height:1.52;white-space:pre-wrap;word-wrap:break-word;animation:rise .2s ease}
   @keyframes rise{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
   .msg.user{align-self:flex-end;background:linear-gradient(135deg,var(--indigo),var(--turquoise));color:#fff;border-bottom-right-radius:5px}
   .msg.bot{align-self:flex-start;background:var(--bg);border:1px solid var(--border);border-bottom-left-radius:5px}
@@ -132,7 +132,7 @@
   .msg ul{margin:5px 0;padding-left:17px}
   /* Figures (Phase 8): sous la reponse, titre en HTML, image au fond de la
      bulle (le PNG est dessine sur ce meme fond, clair ou sombre). */
-  .fig{align-self:flex-start;width:94%;margin:0;padding:9px 10px 7px;background:var(--bg);border:1px solid var(--border);border-radius:14px;border-bottom-left-radius:5px;animation:rise .2s ease}
+  .fig{align-self:flex-start;width:min(94%,760px);margin:0;padding:9px 10px 7px;background:var(--bg);border:1px solid var(--border);border-radius:14px;border-bottom-left-radius:5px;animation:rise .2s ease}
   .fig figcaption{font-size:.78rem;line-height:1.35;margin-bottom:6px}
   .fig figcaption strong{display:block;color:var(--text)}
   .fig figcaption span{display:block;color:var(--muted);font-size:.7rem;margin-top:1px}
@@ -331,6 +331,94 @@
   body.admin .htitle{color:#FF8FA3;text-shadow:0 0 10px rgba(255,77,109,.7)}
 
   /* ---------- Mode J.A.R.V.I.S plein ecran ---------------------------- */
+  /* ---- Agencement des fenetres -------------------------------------------
+     Les fenetres (transcription, ecran, bandeau) ne se placent plus avec des
+     marges figees, qui se chevauchaient des qu'un sous-titre s'allongeait ou
+     que le clavier s'ouvrait. agencer() mesure ce qui occupe reellement le
+     haut (horloge, menu) et le bas (boutons, saisie, sous-titre) et publie
+     ces variables: les fenetres prennent tout l'espace restant, et le
+     suivent pendant la reponse. Les valeurs ci-dessous ne servent qu'avant
+     la premiere mesure. */
+  body.hud{--hud-haut:124px;--hud-bas:176px;--hud-pile:156px;--hud-marge:22px;
+    --hud-lat:min(440px,36vw);--hud-gap:14px;--hud-tete:40px;--hud-feuille:36vh}
+  body.mobile.hud{--hud-marge:8px}
+
+  /* ---- Ecran J.A.R.V.I.S: cartes et figures en grand format ------------- */
+  #hud-ecran{display:none}
+  body.hud.hud-ecran #hud-ecran{display:flex;flex-direction:column;position:fixed;
+    top:var(--hud-haut);bottom:var(--hud-bas);left:50%;transform:translateX(-50%);
+    width:min(1180px,calc(100vw - 2 * var(--hud-marge)));
+    z-index:3;padding:12px 16px 10px;
+    background:linear-gradient(180deg,rgba(9,24,34,.97),rgba(4,12,18,.97));
+    border:1px solid rgba(0,229,255,.38);
+    box-shadow:0 0 0 1px rgba(0,229,255,.05),0 24px 60px rgba(0,0,0,.55),0 0 44px rgba(0,229,255,.12),inset 0 0 70px rgba(0,229,255,.04);
+    animation:ecran-ouvre .5s cubic-bezier(.2,.8,.2,1);
+    transition:top .28s ease,bottom .28s ease,left .28s ease,width .28s ease}
+  @keyframes ecran-ouvre{from{clip-path:inset(49% 0 49% 0);opacity:.3}
+                         60%{clip-path:inset(0 0 0 0);opacity:.9}to{opacity:1}}
+  body.hud.hud-ecran #hud-orbe,body.hud.hud-ecran #hud-orbe2d{opacity:.25;transition:opacity .6s ease}
+  body.hud.hud-ecran #hud-astuce{display:none}
+  /* Transcription ouverte: l'ecran occupe tout ce qu'elle laisse a gauche. */
+  body.hud.hud-ecran.hud-transcription #hud-ecran{left:var(--hud-marge);transform:none;
+    width:calc(100vw - 2 * var(--hud-marge) - var(--hud-lat) - var(--hud-gap))}
+  /* Agrandi: toute la fenetre. Plus specifique que la regle precedente, qui
+     l'emportait et laissait la carte a demi-largeur. */
+  body.hud.hud-ecran.ec-zoom #hud-ecran{top:10px;bottom:10px;left:10px;transform:none;
+    width:calc(100vw - 20px);z-index:6}
+  /* L'ecran vit dans #hud (z 0), la transcription et la saisie dans #panel
+     (z 2): sans cela elles passaient devant la carte agrandie. */
+  body.hud.ec-zoom #log,body.hud.ec-zoom #tr-tete,body.hud.ec-zoom .compose,
+  body.hud.ec-zoom #log-suite{visibility:hidden}
+  /* Ecran bas de plafond (portable, telephone): l'horloge cede sa place a la
+     carte. agencer() remonte alors le haut des fenetres jusqu'au menu. */
+  @media (max-height:820px){ body.hud.hud-ecran #hud-horloge{display:none} }
+  #hud-ecran .hh-coin{border-color:var(--cyan)}
+  .ec-tete{display:flex;align-items:center;gap:14px;padding-bottom:9px;margin-bottom:8px;
+    border-bottom:1px solid rgba(0,229,255,.2)}
+  .ec-label{font-size:.55rem;letter-spacing:.24em;color:var(--cyan);white-space:nowrap;
+    padding:4px 9px;border:1px solid rgba(0,229,255,.32);background:rgba(0,229,255,.06);
+    border-radius:2px}
+  .ec-textes{flex:1;min-width:0}
+  #ec-titre{font-family:"Segoe UI",system-ui,sans-serif;font-weight:700;font-size:1.02rem;
+    color:#E0F7FF;letter-spacing:.02em;text-shadow:0 0 12px rgba(0,229,255,.35);
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  #ec-sous{font-family:"Segoe UI",system-ui,sans-serif;font-size:.74rem;color:#7FB8C8;margin-top:2px;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  #ec-pos{font-size:.6rem;letter-spacing:.2em;color:var(--cyan);white-space:nowrap}
+  #ec-image{flex:1;min-height:0;position:relative;display:flex;align-items:center;justify-content:center;
+    overflow:hidden;border-radius:2px;
+    background:radial-gradient(ellipse at 50% 50%,rgba(0,229,255,.05),transparent 70%)}
+  #ec-image img{max-width:100%;max-height:100%;object-fit:contain;cursor:zoom-in;
+    box-shadow:0 8px 28px rgba(0,0,0,.45);animation:ec-fondu .7s ease}
+  body.ec-zoom #ec-image img{cursor:zoom-out}
+  @keyframes ec-fondu{from{opacity:0;filter:blur(6px) saturate(.4)}to{opacity:1;filter:none}}
+  #ec-image::before{content:"";position:absolute;left:0;right:0;top:0;height:2px;z-index:1;
+    background:linear-gradient(90deg,transparent,rgba(0,229,255,.85),transparent);
+    box-shadow:0 0 14px rgba(0,229,255,.7);opacity:0;pointer-events:none}
+  #ec-image.balaye::before{animation:ec-balayage 1.1s ease-out 1}
+  @keyframes ec-balayage{0%{top:0;opacity:1}100%{top:100%;opacity:0}}
+  #ec-image.charge::after{content:"CHARGEMENT\2026";font-size:.66rem;letter-spacing:.24em;
+    color:var(--cyan);animation:ec-pulse 1.1s ease-in-out infinite}
+  @keyframes ec-pulse{50%{opacity:.35}}
+  .ec-pied{display:flex;align-items:center;gap:8px;padding-top:8px;margin-top:6px;
+    border-top:1px solid rgba(0,229,255,.15)}
+  #ec-source{flex:1;min-width:0;font-size:.55rem;letter-spacing:.12em;color:rgba(0,229,255,.45);
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .ec-pied button{padding:6px 11px;background:rgba(0,229,255,.04);border:1px solid rgba(0,229,255,.3);
+    color:#CFF7FF;font-family:var(--mono);font-weight:700;font-size:.6rem;letter-spacing:.12em;
+    cursor:pointer;border-radius:3px}
+  .ec-pied button:hover{background:rgba(0,229,255,.14);border-color:var(--cyan);color:#fff}
+  .ec-pied button:focus-visible{outline:1px solid var(--cyan);outline-offset:2px}
+  #ec-fermer:hover{background:rgba(255,77,109,.14);border-color:#FF4D6D;color:#FFD1DA}
+  .ec-pied button[hidden]{display:none}
+  body.mobile .ec-pied{flex-wrap:wrap;gap:6px}
+  body.mobile #ec-source{flex-basis:100%}
+  body.mobile #ec-source:empty{display:none}
+  body.mobile .ec-pied button{padding:7px 9px;letter-spacing:.06em}
+  body.mobile #ec-prec{margin-left:auto}
+  /* Dans la bulle: la figure reste dans le fil, et s'ouvre sur l'ecran. */
+  .fig .fig-img img{cursor:zoom-in;transition:filter .15s}
+  .fig .fig-img img:hover{filter:brightness(1.08)}
   #hud{display:none}
   body.hud #hud{display:block;position:fixed;inset:0;z-index:0;overflow:hidden;
     background:radial-gradient(ellipse at 50% 45%,#041018 0%,#020406 62%);font-family:var(--mono)}
@@ -347,11 +435,56 @@
   body.hud #log, body.hud .compose{display:none}
   body.hud.hud-transcription #log{display:flex}
   body.hud.hud-clavier .compose{display:flex}
-  body.hud #log{position:fixed;top:128px;right:22px;bottom:176px;width:min(430px,38vw);
-    border:1px solid rgba(0,229,255,.28);background:rgba(2,7,10,.80);
-    box-shadow:0 0 24px rgba(0,229,255,.08)}
-  body.hud #banner{position:fixed;top:122px;left:50%;transform:translateX(-50%);
-    width:min(520px,90vw);z-index:4}
+  /* Transcription: une vraie fenetre, avec son en-tete, collee au bord droit
+     et haute de tout l'espace libre entre l'horloge et les commandes. */
+  #tr-tete{display:none}
+  body.hud.hud-transcription #tr-tete{display:flex;align-items:center;gap:10px;position:fixed;
+    top:var(--hud-haut);right:var(--hud-marge);width:var(--hud-lat);height:var(--hud-tete);
+    padding:0 8px 0 14px;font-family:var(--mono);
+    background:linear-gradient(180deg,rgba(0,229,255,.10),rgba(0,229,255,.03)),rgba(2,7,10,.92);
+    border:1px solid rgba(0,229,255,.34);border-bottom-color:rgba(0,229,255,.2);
+    transition:top .28s ease}
+  #tr-tete::before{content:"";width:7px;height:7px;flex:none;background:var(--cyan);
+    box-shadow:0 0 8px var(--cyan);transform:rotate(45deg)}
+  .tr-titre{flex:1;min-width:0;font-size:.62rem;font-weight:700;letter-spacing:.22em;color:var(--cyan)}
+  #tr-nb{font-size:.56rem;letter-spacing:.14em;color:rgba(0,229,255,.5);white-space:nowrap}
+  #tr-fermer{width:26px;height:26px;flex:none;display:flex;align-items:center;justify-content:center;
+    background:transparent;border:1px solid rgba(0,229,255,.28);border-radius:2px;
+    color:var(--cyan);font-size:.72rem;cursor:pointer}
+  #tr-fermer:hover{background:rgba(255,77,109,.14);border-color:#FF4D6D;color:#FFD1DA}
+  body.hud #log{position:fixed;top:calc(var(--hud-haut) + var(--hud-tete));right:var(--hud-marge);
+    bottom:var(--hud-bas);width:var(--hud-lat);padding:14px 14px 18px;gap:12px;
+    border:1px solid rgba(0,229,255,.28);border-top:0;background:rgba(2,7,10,.86);
+    box-shadow:0 18px 40px rgba(0,0,0,.45),0 0 24px rgba(0,229,255,.07);
+    transition:top .28s ease,bottom .28s ease}
+  @supports (backdrop-filter:blur(4px)){
+    body.hud #log,body.hud.hud-transcription #tr-tete,body.hud .compose{backdrop-filter:blur(6px)}
+  }
+  /* Dans la transcription, on lit un echange: qui parle se voit d'un coup
+     d'oeil, et la reponse prend toute la largeur utile. */
+  body.hud .msg{max-width:100%}
+  body.hud .msg.user{max-width:88%}
+  body.hud .msg.user::before,body.hud .msg.bot::before{display:block;margin-bottom:5px;
+    font-family:var(--mono);font-size:.54rem;font-weight:700;letter-spacing:.22em;white-space:normal}
+  body.hud .msg.user::before{content:"VOUS";color:rgba(230,251,255,.55);text-align:right}
+  body.hud .msg.bot::before{content:"J.A.R.V.I.S";color:rgba(0,229,255,.6)}
+  body.hud .fig{width:100%}
+  /* Le bandeau passe au-dessus des fenetres: opaque, sinon il se lisait
+     a travers le titre de la carte. */
+  body.hud #banner{position:fixed;top:calc(var(--hud-haut) + 8px);left:50%;transform:translateX(-50%);
+    width:min(520px,90vw);z-index:4;background:rgba(26,6,12,.96);
+    border:1px solid rgba(255,77,109,.5);border-left:3px solid #FF4D6D;
+    box-shadow:0 12px 30px rgba(0,0,0,.55)}
+
+  /* Reponse qui arrive pendant qu'on relit plus haut: on ne ramene plus
+     l'utilisateur en bas de force, on le lui propose. */
+  #log-suite{display:none;position:fixed;z-index:5;transform:translateX(-50%);
+    padding:6px 13px;border-radius:14px;cursor:pointer;font-family:var(--mono);
+    font-size:.6rem;font-weight:700;letter-spacing:.12em;color:#E6FBFF;
+    background:rgba(3,16,22,.94);border:1px solid var(--cyan);
+    box-shadow:0 6px 18px rgba(0,0,0,.45),0 0 12px rgba(0,229,255,.35);animation:rise .2s ease}
+  #log-suite.on{display:block}
+  #log-suite:hover{background:rgba(0,229,255,.18)}
   body.hud .compose{position:fixed;left:50%;bottom:150px;transform:translateX(-50%);
     width:min(640px,92vw);background:rgba(2,7,10,.86);border:1px solid rgba(0,229,255,.3)}
   #hud-orbe,#hud-orbe2d{position:absolute;inset:0;width:100%;height:100%;display:block}
@@ -417,15 +550,22 @@
   #hud-statut{position:absolute;bottom:52px;left:0;right:0;text-align:center;z-index:1;
     font-family:"Segoe UI",system-ui,sans-serif;font-size:.8rem;letter-spacing:.14em;
     color:rgba(0,229,255,.6)}
-  #hud-soustitre{position:absolute;left:50%;bottom:156px;transform:translateX(-50%);z-index:1;
+  /* Sous-titre: pose juste au-dessus des commandes (--hud-pile), et plafonne
+     a quatre lignes (trois quand une carte est affichee). Pendant la reponse
+     on garde les DERNIERES lignes visibles: le bas du texte est colle au bas
+     du cadre, le debut s'efface en fondu. */
+  #hud-soustitre{position:absolute;left:50%;bottom:var(--hud-pile,156px);transform:translateX(-50%);z-index:1;
     width:min(760px,86vw);text-align:center;font-family:"Segoe UI",system-ui,sans-serif;
     font-size:.95rem;line-height:1.5;color:#CFF7FF;text-shadow:0 0 12px rgba(0,229,255,.45);
-    transition:opacity .4s ease}
+    max-height:6em;overflow:hidden;display:flex;flex-direction:column;justify-content:flex-end;
+    transition:opacity .4s ease,bottom .28s ease}
+  body.hud.hud-ecran #hud-soustitre{max-height:4.5em;font-size:.88rem}
+  #hud-soustitre.deborde{-webkit-mask-image:linear-gradient(180deg,transparent 0,#000 1.5em);
+    mask-image:linear-gradient(180deg,transparent 0,#000 1.5em)}
   #hud-soustitre:empty{opacity:0}
-  #hud-soustitre button{display:inline-block;margin-left:8px;background:none;border:0;
-    color:var(--cyan);font-family:var(--mono);font-size:.66rem;letter-spacing:.14em;
+  #hud-soustitre button{display:block;flex:none;align-self:center;margin-top:3px;background:none;border:0;
+    color:var(--cyan);font-family:var(--mono);font-size:.62rem;letter-spacing:.14em;
     cursor:pointer;text-decoration:underline}
-  body.hud.hud-clavier #hud-soustitre{bottom:214px}
   /* Transcription ouverte: le texte y est deja, le sous-titre la chevaucherait. */
   body.hud.hud-transcription #hud-soustitre{display:none}
   #hud-coin{position:absolute;top:18px;right:20px;z-index:1;display:flex;align-items:center;gap:12px}
@@ -478,13 +618,22 @@
   .hb-pct{width:min(680px,88vw);text-align:right;color:rgba(0,229,255,.5);font-size:.58rem;
     letter-spacing:.2em;margin-top:8px}
   @media (max-width:760px){
-    body.hud #log{top:auto;left:10px;right:10px;width:auto;height:34vh;bottom:174px}
+    /* Ecran etroit: la transcription devient une feuille en bas d'ecran, et
+       l'ecran de carte se loge au-dessus d'elle au lieu de la recouvrir. */
+    body.hud #log{top:auto;left:var(--hud-marge);right:var(--hud-marge);width:auto;
+      height:var(--hud-feuille)}
+    body.hud.hud-transcription #tr-tete{top:auto;left:var(--hud-marge);width:auto;
+      bottom:calc(var(--hud-bas) + var(--hud-feuille))}
+    body.hud.hud-ecran.hud-transcription #hud-ecran{left:50%;transform:translateX(-50%);
+      width:calc(100vw - 2 * var(--hud-marge));
+      bottom:calc(var(--hud-bas) + var(--hud-feuille) + var(--hud-tete) + 8px)}
+    body.hud.hud-ecran #hud-horloge{display:none}
     #hud-horloge{width:min(360px,70vw);height:74px;top:60px}
     #hud-astuce{display:none}
     #hud-lien{padding:4px 10px}
     #hud-coin{top:22px;gap:6px}
     #hud-coin .hud-icone{width:30px;height:30px}
-    #hud-soustitre{font-size:.85rem;bottom:150px}
+    #hud-soustitre{font-size:.85rem}
     #hud-pied{letter-spacing:.22em}
   }
   @media (prefers-reduced-motion: reduce){ .hb-anneau i{animation:none} }
@@ -509,13 +658,9 @@
   body.mobile #hud-coin{right:12px}
   body.mobile #hud-coin .hud-icone{width:38px;height:38px}
   body.mobile #hud-menu{left:12px;right:12px;width:auto}
+  body.mobile.hud.hud-ecran #hud-ecran{padding:8px 10px}
+  body.mobile .ec-label{display:none}
   body.mobile #hud-menu button{padding:12px 14px;font-size:.7rem}
-  /* Clavier visuel et transcription ouverts ensemble: la saisie (bas 150 px)
-     recouvrait le bas de la transcription (bas 174 px). */
-  body.mobile.hud.hud-clavier #log{bottom:216px}
-  /* L'horloge descend jusqu'a 134 px sur telephone: le bandeau d'erreur
-     (122 px) la recouvrait. */
-  body.mobile.hud #banner{top:142px}
   /* Le menu vit dans #hud (z-index 0), la transcription et la saisie dans
      #panel (z-index 2): ils passaient DEVANT le menu. Sur telephone le menu
      prend toute la largeur, on masque donc le panneau le temps du choix. */
@@ -528,16 +673,85 @@
     #hud-horloge, #hud-pied, #hud-astuce{display:none}
     #hud-boutons{bottom:36px}
     #hud-statut{bottom:12px}
-    #hud-soustitre{bottom:104px}
-    body.hud #log{top:62px;bottom:104px;height:auto}
+    /* Trop bas pour une feuille de 36vh: la transcription reprend toute
+       la hauteur libre. */
+    body.hud #log{top:calc(var(--hud-haut) + var(--hud-tete));height:auto}
+    body.hud.hud-transcription #tr-tete{top:var(--hud-haut);bottom:auto}
+    body.hud.hud-ecran.hud-transcription #hud-ecran{bottom:var(--hud-bas)}
     body.hud .compose{bottom:104px}
     body.hud.hud-clavier #hud-boutons, body.hud.hud-clavier #hud-statut{display:none}
     body.hud.hud-clavier .compose{bottom:10px}
-    body.hud.hud-clavier #log, body.mobile.hud.hud-clavier #log{bottom:70px}
-    body.hud.hud-clavier #hud-soustitre{bottom:70px}
     #hud-menu{max-height:calc(100vh - 70px)}
-    body.hud #banner, body.mobile.hud #banner{top:62px}
   }
+
+  /* =====================================================================
+     COMPARAISON, NAVIGATION, SOUTENANCE
+     ===================================================================== */
+  /* Deux figures cote a cote sur l'ecran: meme hauteur, legende propre. */
+  #ec-image.duo{gap:14px;align-items:stretch}
+  .ec-volet{flex:1;min-width:0;display:flex;flex-direction:column;gap:6px}
+  .ec-volet-titre{font-family:"Segoe UI",system-ui,sans-serif;font-size:.74rem;font-weight:600;
+    color:#CFF7FF;padding:4px 8px;border-left:2px solid var(--cyan);background:rgba(0,229,255,.05);
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .ec-volet-img{flex:1;min-height:0;display:flex;align-items:center;justify-content:center}
+  .ec-volet-img img{max-width:100%;max-height:100%;object-fit:contain;box-shadow:0 8px 28px rgba(0,0,0,.45)}
+  body.mobile #ec-image.duo{flex-direction:column}
+  #ec-comparer.on{border-color:var(--cyan);color:var(--cyan);box-shadow:0 0 10px rgba(0,229,255,.35)}
+
+  /* Page du dashboard ouverte par Jarvis: un bandeau discret, et en mode
+     J.A.R.V.I.S un bouton pour la regarder a travers l'interface. */
+  #nav-toast{position:fixed;left:50%;top:calc(var(--hud-haut, 124px) - 44px);transform:translateX(-50%);
+    z-index:7;display:none;align-items:center;gap:10px;padding:7px 8px 7px 14px;
+    font-family:var(--mono);font-size:.6rem;letter-spacing:.14em;color:#CFF7FF;
+    background:rgba(3,16,22,.95);border:1px solid rgba(0,229,255,.45);
+    box-shadow:0 8px 24px rgba(0,0,0,.5),0 0 14px rgba(0,229,255,.2);animation:rise .25s ease}
+  #nav-toast.on{display:flex}
+  #nav-toast b{color:var(--cyan);font-weight:700}
+  #nav-toast button{padding:5px 10px;background:rgba(0,229,255,.08);border:1px solid rgba(0,229,255,.4);
+    color:var(--cyan);font-family:var(--mono);font-size:.58rem;letter-spacing:.12em;cursor:pointer}
+  #nav-toast button:hover{background:rgba(0,229,255,.2)}
+  body:not(.hud) #nav-toast{top:auto;bottom:118px}
+
+  /* Apercu du dashboard: l'interface s'efface, la page reste visible
+     derriere l'iframe transparente. */
+  #apercu-retour{display:none}
+  body.hud.apercu #hud{background:transparent}
+  body.hud.apercu #hud > *:not(#sout-barre):not(#apercu-retour){visibility:hidden}
+  body.hud.apercu #panel{visibility:hidden}
+  body.hud.apercu #apercu-retour{display:block;visibility:visible;position:fixed;right:20px;bottom:20px;
+    z-index:8;padding:10px 16px;font-family:var(--mono);font-weight:700;font-size:.66rem;
+    letter-spacing:.14em;color:#E6FBFF;background:rgba(3,16,22,.94);border:1px solid var(--cyan);
+    box-shadow:0 0 18px rgba(0,229,255,.4);cursor:pointer}
+
+  /* Barre de soutenance: ou en est la presentation, et ses commandes. */
+  #sout-barre{display:none}
+  body.hud.soutenance #hud-horloge{display:none}
+  body.hud.soutenance #sout-barre{display:flex;flex-direction:column;gap:7px;position:absolute;top:14px;
+    left:50%;transform:translateX(-50%);z-index:5;width:min(720px,calc(100vw - 340px));
+    padding:9px 12px 10px;background:rgba(3,12,18,.94);border:1px solid rgba(0,229,255,.4);
+    box-shadow:0 10px 30px rgba(0,0,0,.5),0 0 22px rgba(0,229,255,.12);font-family:var(--mono)}
+  .sb-ligne{display:flex;align-items:center;gap:10px;min-width:0}
+  .sb-label{font-size:.54rem;letter-spacing:.22em;color:rgba(0,229,255,.65);white-space:nowrap}
+  #sb-titre{flex:1;min-width:0;font-family:"Segoe UI",system-ui,sans-serif;font-weight:700;font-size:.9rem;
+    color:#E0F7FF;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  #sb-num{font-size:.62rem;letter-spacing:.16em;color:var(--cyan);white-space:nowrap}
+  .sb-cmd{display:flex;gap:6px}
+  .sb-cmd button{min-width:32px;height:28px;padding:0 9px;background:rgba(0,229,255,.05);
+    border:1px solid rgba(0,229,255,.32);color:#CFF7FF;font-family:var(--mono);font-size:.62rem;
+    font-weight:700;letter-spacing:.08em;cursor:pointer;border-radius:2px}
+  .sb-cmd button:hover{background:rgba(0,229,255,.16);border-color:var(--cyan);color:#fff}
+  .sb-cmd button.on{border-color:var(--cyan);color:var(--cyan);box-shadow:0 0 10px rgba(0,229,255,.35)}
+  #sb-quitter:hover{background:rgba(255,77,109,.14);border-color:#FF4D6D;color:#FFD1DA}
+  #sb-etapes{display:flex;gap:4px}
+  #sb-etapes i{flex:1;height:4px;background:rgba(0,229,255,.14);cursor:pointer;position:relative;overflow:hidden}
+  #sb-etapes i.fait{background:rgba(0,229,255,.55)}
+  #sb-etapes i.courant{background:rgba(0,229,255,.18)}
+  #sb-etapes i.courant::after{content:"";position:absolute;inset:0;width:var(--avance,0%);
+    background:var(--cyan);box-shadow:0 0 8px var(--cyan);transition:width .25s linear}
+  #sb-etat{font-size:.54rem;letter-spacing:.16em;color:rgba(0,229,255,.55);white-space:nowrap}
+  body.mobile.hud.soutenance #sout-barre{top:62px;width:calc(100vw - 16px)}
+  body.mobile .sb-label{display:none}
+  @media (max-width:900px){ body.hud.soutenance #sout-barre{width:calc(100vw - 24px);top:60px} }
 </style>
 </head>
 <body class="collapsed">
@@ -557,8 +771,22 @@
     <button type="button" data-q="Quelles regions du Senegal concentrent les evenements extremes ?">REGIONS TOUCHEES</button>
     <button type="button" data-q="Les resultats de la plateforme sont-ils a jour ? Y a-t-il des etapes a relancer ?">ETAT DU PIPELINE</button>
     <button type="button" data-action="vue">ANALYSER LA PAGE AFFICHEE</button>
+    <div class="hm-section cyan">CARTES</div>
+    <button type="button" data-q="Montre-moi la carte du motif SST du cluster le plus frequent en pleine saison, et explique ce qu'il signifie.">MOTIF OCEANIQUE // PLEINE SAISON</button>
+    <button type="button" data-q="Ou les pluies extremes frappent-elles le plus souvent en pleine saison ? Montre la carte.">OU FRAPPENT LES EXTREMES</button>
+    <button type="button" data-q="Montre la carte de l'evenement extreme le plus intense du catalogue.">L'EVENEMENT LE PLUS INTENSE</button>
+    <button type="button" data-q="Compare sur deux cartes ou frappent les extremes en debut de saison et en pleine saison, et dis-moi ce qui change.">COMPARER // DEBUT VS PLEINE SAISON</button>
+    <button type="button" data-q="Montre-moi comment l'ocean a evolue pendant les mois qui precedent l'evenement extreme le plus intense de pleine saison.">ANIMATION // L'OCEAN AVANT UN EXTREME</button>
+    <div class="hm-section">ANALYSES AVANCEES</div>
+    <button type="button" data-q="Recalcule la correlation entre l'AMO et la pluie maximale de pleine saison au lag 4 sans l'annee 2020, montre le nuage de points, et dis-moi si le resultat repose sur une seule annee.">RECALCUL // SANS UNE ANNEE</button>
+    <button type="button" data-q="Le lien entre l'AMO et les pluies extremes de pleine saison est-il stable entre 1983-2002 et 2003-2023 ?">STABILITE DANS LE TEMPS</button>
+    <button type="button" data-q="Quelles annees ressemblent le plus a 2022 cote ocean avant la pleine saison, et qu'ont-elles donne ? La methode est-elle fiable ?">ANNEES ANALOGUES</button>
+    <button type="button" data-q="Ouvre la page Teleconnexions sur la pleine saison et dis-moi ce que je dois y regarder en premier.">OUVRIR // PAGE TELECONNEXIONS</button>
+    <div class="hm-section orange">PRESENTATION</div>
+    <button type="button" data-action="soutenance" id="hm-soutenance">&#9654; MODE SOUTENANCE</button>
     <div class="hm-section orange">VOIX &amp; INTERFACE</div>
     <button type="button" data-action="voix" id="hm-voix">LECTURE VOCALE : OFF</button>
+    <button type="button" data-action="soustitres" id="hm-soustitres">SOUS-TITRES : OFF</button>
     <button type="button" data-action="continu" id="hm-continu">ECOUTE CONTINUE : OFF</button>
     <button type="button" data-action="clavier" id="hm-clavier">CLAVIER VISUEL</button>
     <button type="button" data-action="transcription" id="hm-transcription">TRANSCRIPTION : OFF</button>
@@ -566,6 +794,22 @@
     <button type="button" data-action="admin" id="hm-admin">MODE ADMINISTRATEUR</button>
     <button type="button" data-action="sortir">&#8617; RETOUR AU DASHBOARD</button>
   </nav>
+  <section id="sout-barre" aria-label="Presentation guidee">
+    <div class="sb-ligne">
+      <span class="sb-label">&#9670; SOUTENANCE</span>
+      <span id="sb-titre"></span>
+      <span id="sb-num"></span>
+      <div class="sb-cmd">
+        <button type="button" id="sb-prec" title="Etape precedente (fleche gauche)" aria-label="Etape precedente">&#9664;</button>
+        <button type="button" id="sb-pause" title="Pause / reprendre (espace)" aria-label="Pause">&#10074;&#10074;</button>
+        <button type="button" id="sb-suiv" title="Etape suivante (fleche droite)" aria-label="Etape suivante">&#9654;</button>
+        <button type="button" id="sb-dash" title="Voir la page du dashboard" aria-pressed="false">DASHBOARD</button>
+        <button type="button" id="sb-quitter" title="Terminer la presentation">&#10005;</button>
+      </div>
+    </div>
+    <div class="sb-ligne"><div id="sb-etapes" style="flex:1"></div><span id="sb-etat"></span></div>
+  </section>
+  <button type="button" id="apercu-retour">&#9670; RETOUR A JARVIS</button>
   <div id="hud-horloge">
     <span class="hh-coin hh-hg"></span><span class="hh-coin hh-hd"></span>
     <span class="hh-coin hh-bg"></span><span class="hh-coin hh-bd"></span>
@@ -587,6 +831,26 @@
     </button>
     <div id="hud-lien" class="hors">&#9679; <span id="hud-lien-txt">connexion</span></div>
   </div>
+  <section id="hud-ecran" aria-label="Carte affichee par Jarvis">
+    <span class="hh-coin hh-hg"></span><span class="hh-coin hh-hd"></span>
+    <span class="hh-coin hh-bg"></span><span class="hh-coin hh-bd"></span>
+    <div class="ec-tete">
+      <div class="ec-label" id="ec-label">&#9670; AFFICHAGE // CARTE</div>
+      <div class="ec-textes"><div id="ec-titre"></div><div id="ec-sous"></div></div>
+      <div id="ec-pos"></div>
+    </div>
+    <div id="ec-image"></div>
+    <div class="ec-pied">
+      <div id="ec-source"></div>
+      <button type="button" id="ec-prec" title="Carte precedente" hidden>&#9664;</button>
+      <button type="button" id="ec-suiv" title="Carte suivante" hidden>&#9654;</button>
+      <button type="button" id="ec-comparer" title="Garder cette figure a gauche et comparer avec la suivante" aria-pressed="false">COMPARER</button>
+      <button type="button" id="ec-zoom" title="Agrandir (ou cliquez sur la carte)">AGRANDIR</button>
+      <button type="button" id="ec-png" title="Enregistrer l'image">PNG</button>
+      <button type="button" id="ec-csv" title="Donnees de la carte">CSV</button>
+      <button type="button" id="ec-fermer" title="Fermer (Echap)">&#10005; FERMER</button>
+    </div>
+  </section>
   <div id="hud-soustitre" aria-live="polite"></div>
   <div id="hud-boutons">
     <button class="hud-rond" id="hud-micro" type="button" title="Parler a Jarvis (la reconnaissance vocale du navigateur peut transmettre l'audio a son fournisseur)" aria-label="Parler a Jarvis" hidden>
@@ -632,6 +896,11 @@
     <button class="hclose" id="close" title="Fermer" aria-label="Fermer">&#10005;</button>
   </header>
 
+  <div id="tr-tete">
+    <span class="tr-titre">TRANSCRIPTION // SESSION</span>
+    <span id="tr-nb"></span>
+    <button type="button" id="tr-fermer" title="Fermer la transcription" aria-label="Fermer la transcription">&#10005;</button>
+  </div>
   <div id="log">
     <div class="intro" id="intro">
       <div class="big">&#127783;</div>
@@ -646,6 +915,7 @@
     </div>
   </div>
 
+  <button type="button" id="log-suite" title="Aller a la fin de la conversation">&#8595; SUITE DE LA REPONSE</button>
   <div id="banner"></div>
 
   <div class="compose">
@@ -662,6 +932,8 @@
   </div>
   <div class="legal">Reponses generees par IA &middot; a verifier avant tout usage decisionnel</div>
 </div>
+
+<div id="nav-toast" role="status" aria-live="polite"><span>&#9670; DASHBOARD // <b id="nav-toast-page"></b></span><button type="button" id="nav-toast-voir">VOIR</button></div>
 
 <div class="fab-wrap">
   <button id="fab" title="Ouvrir Jarvis" aria-label="Ouvrir l'assistant Jarvis">
@@ -747,7 +1019,9 @@
 
   var state = { open:false, busy:false, online:false, token:null, convId:null,
                admin:false, joindreVue:false, voix:false, continu:false,
-               requete:null, sante:null };
+               requete:null, sante:null,
+               // Sous-titres en plein ecran quand Jarvis parle: non par defaut.
+               soustitres: recall("soustitres") === "1" };
 
   /* ---------- Dimensionnement de l'iframe -------------------------------
      Le widget s'epingle lui-meme en bas a droite de la page hote. Si l'acces
@@ -996,7 +1270,8 @@
     el.className = "msg " + role;
     if(role === "bot"){ el.innerHTML = mini(text); } else { el.textContent = text; }
     log.appendChild(el);
-    scroll();
+    // Une question posee ramene toujours en bas: on veut voir la reponse.
+    scroll(role === "user");
     return el;
   }
 
@@ -1008,7 +1283,7 @@
     if(!ref || !ref.id) return;
     if(intro && intro.parentNode){ intro.parentNode.removeChild(intro); intro = null; }
     var fig = document.createElement("figure");
-    fig.className = "fig";
+    fig.className = ref.carte ? "fig carte" : "fig";
     var legende = document.createElement("figcaption");
     var titre = document.createElement("strong");
     titre.textContent = ref.titre || "Figure";
@@ -1038,8 +1313,13 @@
     return API + "/api/figures/" + encodeURIComponent(ref.id) + suite;
   }
 
-  function chargerFigure(ref, cadre){
-    fetch(urlFigure(ref, "?theme=hud"), {headers: headers()})
+  // Une figure = une URL data: (la CSP autorise data:, pas blob: pour img).
+  // Gardee en memoire: l'ecran et la bulle affichent la meme sans la
+  // retelecharger.
+  var imagesFigures = {};
+  function imageFigure(ref){
+    if(imagesFigures[ref.id]){ return imagesFigures[ref.id]; }
+    var p = fetch(urlFigure(ref, "?theme=hud"), {headers: headers()})
       .then(function(r){ if(!r.ok){ throw new Error("HTTP " + r.status); } return r.blob(); })
       .then(function(blob){
         return new Promise(function(ok, ko){
@@ -1048,13 +1328,24 @@
           lecteur.onerror = ko;
           lecteur.readAsDataURL(blob);
         });
-      })
+      });
+    p.catch(function(){ delete imagesFigures[ref.id]; });
+    imagesFigures[ref.id] = p;
+    return p;
+  }
+
+  function chargerFigure(ref, cadre){
+    imageFigure(ref)
       .then(function(url){
         cadre.textContent = "";
         var img = document.createElement("img");
         img.alt = (ref.titre || "Figure") + (ref.sous_titre ? " \u2014 " + ref.sous_titre : "");
         img.src = url;
-        img.addEventListener("load", scroll);
+        img.addEventListener("load", function(){ scroll(); });
+        // Carte ou graphique, une figure se lit en grand: clic = ecran
+        // J.A.R.V.I.S, qui prend tout l'espace libre.
+        img.title = "Afficher en grand";
+        img.addEventListener("click", function(){ Hud.entrer(true); Ecran.afficher(ref); });
         cadre.appendChild(img);
       })
       .catch(function(){
@@ -1075,6 +1366,501 @@
       })
       .catch(function(){ warn("T\u00e9l\u00e9chargement impossible.", "La figure a peut-\u00eatre expir\u00e9."); });
   }
+
+  /* ---------- Ecran J.A.R.V.I.S (cartes et figures) ------------------------
+     Les cartes de show_map s'affichent en grand au centre du HUD, des que
+     l'outil les a produites: pendant que Jarvis parle. Les dernieres restent
+     consultables (precedente / suivante). Rien d'autre que nos propres
+     images n'y est affiche.
+
+     Comparaison: COMPARER epingle la figure courante a gauche; la suivante
+     affichee vient a droite. Une reponse qui produit deux cartes (debut vs
+     pleine saison) les montre d'emblee cote a cote. */
+  var Ecran = (function(){
+    var liste = [], courant = -1, MAX = 8, epingle = null;
+
+    function indexDe(ref){
+      for(var i = 0; i < liste.length; i++){ if(liste[i].id === ref.id){ return i; } }
+      return -1;
+    }
+    function ajouter(ref){
+      var deja = indexDe(ref);
+      if(deja >= 0){ return deja; }
+      liste.push(ref);
+      if(liste.length > MAX){
+        var sortie = liste.shift();
+        if(epingle && epingle.id === sortie.id){ epingle = null; }
+      }
+      return liste.length - 1;
+    }
+
+    function afficher(ref){
+      if(!ref || !ref.id){ return; }
+      montrer(ajouter(ref));
+    }
+
+    // Deux figures cote a cote, la premiere epinglee a gauche.
+    function comparer(a, b){
+      if(!a || !b || !a.id || !b.id){ return; }
+      ajouter(a);
+      epingle = a;
+      majBoutonComparer();
+      afficher(b);
+    }
+
+    function genre(ref){ return ref.carte ? "CARTE" : "FIGURE"; }
+
+    function volet(ref, jeton){
+      var v = document.createElement("div");
+      v.className = "ec-volet";
+      var t = document.createElement("div");
+      t.className = "ec-volet-titre";
+      t.textContent = (ref.titre || genre(ref)) + (ref.sous_titre ? " \u00b7 " + ref.sous_titre : "");
+      t.title = t.textContent;
+      var cadre = document.createElement("div");
+      cadre.className = "ec-volet-img";
+      v.appendChild(t); v.appendChild(cadre);
+      imageFigure(ref).then(function(url){
+        if(jeton !== courant){ return; }
+        var img = document.createElement("img");
+        img.alt = t.textContent;
+        img.src = url;
+        img.addEventListener("click", function(){ zoom(); });
+        cadre.appendChild(img);
+      }, function(){ cadre.textContent = "INDISPONIBLE"; });
+      return v;
+    }
+
+    function montrer(i){
+      if(i < 0 || i >= liste.length){ return; }
+      courant = i;
+      var ref = liste[i];
+      var duo = epingle && epingle.id !== ref.id && indexDe(epingle) >= 0;
+      $("ec-label").textContent = "\u25c6 " + (duo ? "COMPARAISON" : "AFFICHAGE // " + genre(ref));
+      if(duo){
+        $("ec-titre").textContent = (epingle.titre || genre(epingle)) + "  \u2194  " + (ref.titre || genre(ref));
+        $("ec-sous").textContent = "gauche : figure \u00e9pingl\u00e9e \u00b7 droite : figure courante";
+      } else {
+        $("ec-titre").textContent = ref.titre || (ref.carte ? "Carte" : "Figure");
+        $("ec-sous").textContent = ref.sous_titre || "";
+      }
+      $("ec-source").textContent = "SOURCE // CHIRPS 1981-2023 \u00b7 OISST v2 \u00b7 CLIMAT-SEN";
+      $("ec-pos").textContent = liste.length > 1 ? (i + 1) + " / " + liste.length : "";
+      $("ec-prec").hidden = liste.length < 2;
+      $("ec-suiv").hidden = liste.length < 2;
+      var cadre = $("ec-image");
+      cadre.innerHTML = "";
+      cadre.classList.remove("balaye");
+      cadre.classList.toggle("duo", !!duo);
+      document.body.classList.add("hud-ecran");
+      if(duo){
+        cadre.classList.remove("charge");
+        cadre.appendChild(volet(epingle, i));
+        cadre.appendChild(volet(ref, i));
+        void cadre.offsetWidth;
+        cadre.classList.add("balaye");
+        return;
+      }
+      cadre.classList.add("charge");
+      imageFigure(ref).then(function(url){
+        if(courant !== i){ return; }
+        cadre.classList.remove("charge");
+        var img = document.createElement("img");
+        img.alt = (ref.titre || "Carte") + (ref.sous_titre ? " \u2014 " + ref.sous_titre : "");
+        img.src = url;
+        img.addEventListener("click", function(){ zoom(); });
+        cadre.appendChild(img);
+        void cadre.offsetWidth;                  // relance l'animation de balayage
+        cadre.classList.add("balaye");
+      }, function(){
+        cadre.classList.remove("charge");
+        cadre.textContent = "CARTE INDISPONIBLE // ELLE A EXPIRE OU APPARTIENT A UNE SESSION PRECEDENTE";
+      });
+    }
+
+    function majBoutonComparer(){
+      var b = $("ec-comparer");
+      if(!b){ return; }
+      b.classList.toggle("on", !!epingle);
+      b.setAttribute("aria-pressed", epingle ? "true" : "false");
+      b.textContent = epingle ? "FIN COMPARAISON" : "COMPARER";
+    }
+    function basculerComparaison(){
+      if(epingle){ epingle = null; }
+      else if(liste[courant]){ epingle = liste[courant]; }
+      majBoutonComparer();
+      if(courant >= 0){ montrer(courant); }
+    }
+
+    function ouvert(){ return document.body.classList.contains("hud-ecran"); }
+    function zoome(){ return document.body.classList.contains("ec-zoom"); }
+    function zoom(oui){
+      document.body.classList.toggle("ec-zoom", oui === undefined ? !zoome() : !!oui);
+      $("ec-zoom").textContent = zoome() ? "REDUIRE" : "AGRANDIR";
+    }
+    function fermer(){
+      zoom(false);
+      epingle = null;
+      majBoutonComparer();
+      document.body.classList.remove("hud-ecran");
+    }
+    function png(){
+      var ref = liste[courant];
+      if(!ref){ return; }
+      imageFigure(ref).then(function(url){
+        var lien = document.createElement("a");
+        lien.href = url;
+        // Une animation est un GIF: l'extension suit le type recu.
+        lien.download = url.indexOf("data:image/gif") === 0 ? "jarvis-animation.gif" : "jarvis-carte.png";
+        document.body.appendChild(lien);
+        lien.click();
+        setTimeout(function(){ lien.remove(); }, 500);
+      });
+    }
+    function precedente(){ montrer((courant - 1 + liste.length) % liste.length); }
+    function suivante(){ montrer((courant + 1) % liste.length); }
+
+    $("ec-prec").addEventListener("click", precedente);
+    $("ec-suiv").addEventListener("click", suivante);
+    $("ec-comparer").addEventListener("click", basculerComparaison);
+    $("ec-zoom").addEventListener("click", function(){ zoom(); });
+    $("ec-png").addEventListener("click", png);
+    $("ec-csv").addEventListener("click", function(){ if(liste[courant]){ telechargerCSV(liste[courant]); } });
+    $("ec-fermer").addEventListener("click", fermer);
+
+    return {afficher: afficher, comparer: comparer, fermer: fermer, ouvert: ouvert,
+            zoom: zoom, zoome: zoome, precedente: precedente, suivante: suivante,
+            nombre: function(){ return liste.length; }};
+  })();
+
+  /* ---------- Pilotage du dashboard ----------------------------------------
+     navigate_dashboard (et la soutenance) ouvrent une page du dashboard et
+     y reglent des filtres. La consigne, deja validee par le serveur, est
+     deposee dans un champ cache de la page hote (scripts/jarvis_widget.py),
+     comme si on y tapait puis validait: Streamlit reexecute son script, qui
+     applique page et filtres avant de dessiner les selecteurs. L'iframe de
+     Jarvis n'est pas rechargee (HTML stable, emplacement stable): la voix et
+     la reponse en cours continuent. */
+  var NOMS_PAGES = {"Evenements": "\u00c9V\u00c9NEMENTS", "Indices SST": "INDICES SST",
+                    "Teleconnexions": "T\u00c9L\u00c9CONNEXIONS", "Clustering": "CLUSTERING",
+                    "Pipeline": "PIPELINE"};
+  var Tableau = (function(){
+    var minuteur = null;
+
+    function champ(){
+      try{
+        if(window.parent && window.parent !== window){
+          return window.parent.document.querySelector(".st-key-jarvis_nav_cmd input");
+        }
+      }catch(e){}
+      return null;
+    }
+
+    function naviguer(nav){
+      var el = champ();
+      if(!el || !nav || !nav.page){ return false; }
+      // Horodatage: deux consignes identiques restent deux changements de
+      // valeur, donc deux reexecutions.
+      var consigne = JSON.stringify({page: nav.page, filtres: nav.filtres || {}, n: Date.now()});
+      try{
+        var fen = el.ownerDocument.defaultView;
+        // React suit la valeur du champ: il faut passer par le setter natif,
+        // sinon l'evenement input est ignore.
+        var setter = Object.getOwnPropertyDescriptor(fen.HTMLInputElement.prototype, "value").set;
+        setter.call(el, consigne);
+        el.dispatchEvent(new fen.Event("input", {bubbles: true}));
+        // Streamlit valide un champ texte sur keypress Entree (onKeyPress).
+        el.dispatchEvent(new fen.KeyboardEvent("keypress", {key: "Enter", code: "Enter",
+          keyCode: 13, charCode: 13, which: 13, bubbles: true}));
+      }catch(e){
+        trace("navigation impossible :", e && e.message);
+        return false;
+      }
+      annoncer(nav.page);
+      return true;
+    }
+
+    function annoncer(page){
+      var t = $("nav-toast");
+      if(!t){ return; }
+      $("nav-toast-page").textContent = NOMS_PAGES[page] || String(page).toUpperCase();
+      $("nav-toast-voir").hidden = !Hud.actif();
+      t.classList.add("on");
+      clearTimeout(minuteur);
+      minuteur = setTimeout(function(){ t.classList.remove("on"); }, 7000);
+    }
+
+    // Apercu: l'interface J.A.R.V.I.S s'efface, la page du dashboard se voit
+    // a travers l'iframe (transparente). Echap ou le bouton reviennent.
+    function enApercu(){ return document.body.classList.contains("apercu"); }
+    function apercu(oui){
+      var on = oui === undefined ? !enApercu() : !!oui;
+      document.body.classList.toggle("apercu", on && Hud.actif());
+      var b = $("sb-dash");
+      if(b){ b.classList.toggle("on", enApercu()); b.setAttribute("aria-pressed", enApercu() ? "true" : "false"); }
+      if(enApercu()){ $("nav-toast").classList.remove("on"); }
+    }
+
+    $("nav-toast-voir").addEventListener("click", function(){ apercu(true); });
+    $("apercu-retour").addEventListener("click", function(){ apercu(false); });
+
+    return {naviguer: naviguer, disponible: function(){ return !!champ(); },
+            apercu: apercu, enApercu: enApercu};
+  })();
+
+  /* ---------- Mode soutenance ------------------------------------------------
+     Presentation guidee: pour chaque etape, le serveur compose page, figure
+     et narration A PARTIR DES DONNEES (jarvis/soutenance.py, sans modele).
+     Le widget ouvre la page, affiche la figure en grand et lit la narration;
+     a la fin de la lecture, l'etape suivante part d'elle-meme. Une question
+     du jury met la presentation en pause; elle reprend au meme endroit.
+     L'etape courante survit a un rechargement de l'iframe. */
+  var Soutenance = (function(){
+    var plan = [], numero = 0, actif = false, enPause = false;
+    var minuteur = null, progression = null, jeton = 0;
+    var PAUSE_ENTRE_ETAPES = 1800;
+
+    function memoriser(){
+      remember("soutenance", actif ? JSON.stringify({n: numero}) : "");
+    }
+
+    function dessinerEtapes(){
+      var box = $("sb-etapes");
+      box.innerHTML = "";
+      plan.forEach(function(e, k){
+        var i = document.createElement("i");
+        i.title = (k + 1) + ". " + e.titre;
+        if(k + 1 < numero){ i.className = "fait"; }
+        else if(k + 1 === numero){ i.className = "courant"; }
+        i.addEventListener("click", function(){ aller(k + 1); });
+        box.appendChild(i);
+      });
+    }
+
+    function etat(texte){ $("sb-etat").textContent = texte; }
+    function avance(pct){
+      var c = document.querySelector("#sb-etapes i.courant");
+      if(c){ c.style.setProperty("--avance", Math.max(0, Math.min(100, pct)) + "%"); }
+    }
+
+    function arreterMinuteurs(){
+      clearTimeout(minuteur); minuteur = null;
+      clearInterval(progression); progression = null;
+    }
+
+    function majPause(){
+      var b = $("sb-pause");
+      b.innerHTML = enPause ? "&#9654;" : "&#10074;&#10074;";
+      b.title = enPause ? "Reprendre (espace)" : "Pause (espace)";
+      b.classList.toggle("on", enPause);
+      etat(enPause ? "EN PAUSE" : "EN COURS");
+    }
+
+    function demarrer(depuis){
+      if(!state.online || !state.token){
+        warn("Soutenance indisponible.", "Jarvis n'est pas connecte au serveur.");
+        return;
+      }
+      Hud.entrer(true);
+      Hud.menu(false);
+      actif = true;
+      document.body.classList.add("soutenance");
+      // La narration se lit: on active la voix si le navigateur en a une.
+      if(synthese && window.SpeechSynthesisUtterance && recall("voix") !== "0"){ basculerVoix(true); }
+      fetch(API + "/api/soutenance", {headers: headers()})
+        .then(function(r){ if(!r.ok){ throw new Error("plan " + r.status); } return r.json(); })
+        .then(function(d){
+          plan = d.etapes || [];
+          majPause();
+          aller(depuis || 1);
+        })
+        .catch(function(){
+          quitter();
+          warn("Soutenance indisponible.", "Le serveur n'a pas pu fournir le plan de la presentation.");
+        });
+    }
+
+    function aller(n){
+      if(!actif || n < 1 || n > plan.length){ return; }
+      arreterMinuteurs();
+      arreterLecture();
+      numero = n;
+      var moi = ++jeton;
+      memoriser();
+      $("sb-titre").textContent = plan[n - 1].titre;
+      $("sb-num").textContent = n + " / " + plan.length;
+      dessinerEtapes();
+      etat("PR\u00c9PARATION\u2026");
+      Orbe.etat("reflexion");
+      fetch(API + "/api/soutenance/" + n, {method: "POST", headers: headers()})
+        .then(function(r){ if(!r.ok){ throw new Error("etape " + r.status); } return r.json(); })
+        .then(function(e){ if(moi === jeton){ jouer(e, moi); } })
+        .catch(function(){
+          if(moi !== jeton){ return; }
+          orbeAuRepos();
+          etat("\u00c9TAPE INDISPONIBLE");
+          if(!enPause){ minuteur = setTimeout(suivante, 4000); }
+        });
+    }
+
+    function jouer(e, moi){
+      if(e.page){ Tableau.naviguer({page: e.page, filtres: e.filtres || {}}); }
+      if(e.figure){ Ecran.afficher(e.figure); } else { Ecran.fermer(); }
+      // La narration entre dans la transcription, comme une reponse.
+      var b = bubble("bot", "**" + e.numero + ". " + e.titre + "** \u2014 " + e.narration);
+      b._raw = e.narration;
+      if(e.figure){ figureBloc(e.figure); }
+      Hud.soustitre(e.narration, true);
+      orbeAuRepos();
+      majPause();
+      if(enPause){ return; }
+      lireNarration(e.narration, moi);
+    }
+
+    // Avec la voix: on enchaine a la fin de la lecture. Sans voix: au bout
+    // d'une duree de lecture estimee (~15 caracteres par seconde).
+    function lireNarration(texte, moi){
+      var duree = Math.max(8000, texte.length * 68);
+      var t0 = Date.now();
+      progression = setInterval(function(){ avance(100 * (Date.now() - t0) / duree); }, 250);
+      if(state.voix && synthese){
+        var L = nouvelleLecture();
+        L.surFin = function(){ if(moi === jeton){ terminerEtape(); } };
+        alimenterLecture(L, texte, true);
+      } else {
+        minuteur = setTimeout(function(){ if(moi === jeton){ terminerEtape(); } }, duree);
+      }
+    }
+
+    function terminerEtape(){
+      clearInterval(progression); progression = null;
+      avance(100);
+      if(!actif || enPause){ return; }
+      if(numero >= plan.length){
+        etat("TERMIN\u00c9E \u00b7 QUESTIONS DU JURY");
+        actif = false;
+        memoriser();
+        return;
+      }
+      etat("\u00c9TAPE SUIVANTE\u2026");
+      minuteur = setTimeout(suivante, PAUSE_ENTRE_ETAPES);
+    }
+
+    function suivante(){ aller(numero + 1); }
+    function precedente(){ aller(numero - 1); }
+
+    function pause(oui){
+      if(!document.body.classList.contains("soutenance")){ return; }
+      var voulu = oui === undefined ? !enPause : !!oui;
+      if(voulu === enPause){ return; }
+      enPause = voulu;
+      if(enPause){ arreterMinuteurs(); arreterLecture(); majPause(); return; }
+      actif = true;
+      majPause();
+      aller(numero || 1);                    // reprend l'etape courante
+    }
+
+    function quitter(){
+      arreterMinuteurs();
+      arreterLecture();
+      actif = false; enPause = false; ++jeton;
+      numero = 0;
+      memoriser();
+      document.body.classList.remove("soutenance");
+      Tableau.apercu(false);
+    }
+
+    $("sb-prec").addEventListener("click", precedente);
+    $("sb-suiv").addEventListener("click", suivante);
+    $("sb-pause").addEventListener("click", function(){ pause(); });
+    $("sb-dash").addEventListener("click", function(){ Tableau.apercu(); });
+    $("sb-quitter").addEventListener("click", quitter);
+
+    // Iframe rechargee pendant la presentation: on revient a la meme etape,
+    // en pause (pas de voix qui repart sans que l'orateur l'ait voulu).
+    function reprendreApresRechargement(){
+      var brut = recall("soutenance");
+      if(!brut){ return; }
+      try{
+        var s = JSON.parse(brut);
+        if(s && s.n){ enPause = true; demarrer(s.n); }
+      }catch(e){}
+    }
+
+    return {
+      demarrer: demarrer, quitter: quitter, pause: pause, suivante: suivante,
+      precedente: precedente, reprendreApresRechargement: reprendreApresRechargement,
+      // Visible = barre affichee (en cours, en pause ou terminee).
+      visible: function(){ return document.body.classList.contains("soutenance"); },
+      enCours: function(){ return actif && !enPause; }
+    };
+  })();
+
+  /* ---------- Agencement des fenetres HUD ---------------------------------
+     Mesure l'espace reellement libre et le publie en variables CSS:
+       --hud-pile : hauteur des commandes du bas (boutons, statut, saisie);
+                    le sous-titre se pose juste au-dessus;
+       --hud-bas  : pile + sous-titre: bas de la transcription et de l'ecran;
+       --hud-haut : sous l'horloge, ou sous le menu quand elle est masquee.
+     Recalcule a chaque changement d'etat (classes du body), a chaque
+     changement de taille d'un de ces elements (sous-titre qui s'allonge
+     pendant la reponse, saisie de plusieurs lignes) et au redimensionnement. */
+  var Agencement = (function(){
+    var prevu = false;
+    function rect(el){
+      if(!el || !el.getBoundingClientRect || !el.getClientRects || !el.getClientRects().length){ return null; }
+      var r = el.getBoundingClientRect();
+      return (r.width || r.height) ? r : null;
+    }
+    function poser(nom, px){
+      var st = document.body.style;
+      if(st && st.setProperty){ st.setProperty(nom, Math.round(px) + "px"); }
+    }
+    function agencer(){
+      prevu = false;
+      if(!document.body.classList.contains("hud")){ return; }
+      var H = window.innerHeight || document.documentElement.clientHeight || 0;
+      if(!H){ return; }
+      var pile = 0;
+      [$("hud-boutons"), $("hud-statut"),
+       document.body.classList.contains("hud-clavier") && document.querySelector ? document.querySelector(".compose") : null
+      ].forEach(function(el){
+        var r = rect(el);
+        if(r){ pile = Math.max(pile, H - r.top); }
+      });
+      pile += 10;
+      poser("--hud-pile", pile);
+      var st = $("hud-soustitre"), bas = pile + 6;
+      var rs = st && st.textContent ? rect(st) : null;
+      if(rs){
+        bas = pile + rs.height + 12;
+        st.classList.toggle("deborde", st.scrollHeight > st.clientHeight + 2);
+      }
+      poser("--hud-bas", bas);
+      var haut = 0;
+      [$("hud-horloge"), $("hud-menu-btn"), $("hud-coin"), $("sout-barre")].forEach(function(el){
+        var r = rect(el);
+        if(r){ haut = Math.max(haut, r.bottom); }
+      });
+      poser("--hud-haut", haut + 12);
+    }
+    function demander(){
+      if(prevu){ return; }
+      prevu = true;
+      (window.requestAnimationFrame || function(f){ setTimeout(f, 16); })(agencer);
+    }
+    if(typeof MutationObserver !== "undefined"){
+      new MutationObserver(demander).observe(document.body, {attributes: true, attributeFilter: ["class"]});
+    }
+    if(typeof ResizeObserver !== "undefined"){
+      var ro = new ResizeObserver(demander);
+      ["hud-soustitre", "hud-boutons", "hud-horloge", "input"].forEach(function(id){
+        var el = $(id); if(el){ ro.observe(el); }
+      });
+    }
+    window.addEventListener("resize", demander);
+    return {demander: demander};
+  })();
 
   /* ---------- Orbe (Phase 11) --------------------------------------------
      Reprise legere de l'orbe de JARVIS-pro: la meme idee (une sphere de
@@ -1174,7 +1960,7 @@
   var reco = null;
 
   function orbeAuRepos(){
-    Orbe.etat(state.busy ? "reflexion" : (synthese && synthese.speaking ? "parole" : "repos"));
+    Orbe.etat(state.busy ? "reflexion" : (parleEnCours() ? "parole" : "repos"));
   }
 
   function dicter(){
@@ -1242,27 +2028,186 @@
       .replace(/\s+/g, " ").trim().slice(0, 2000);
   }
 
+  // Chrome remplit getVoices() de facon asynchrone: vide au premier appel.
+  if(synthese){
+    try{ synthese.getVoices(); }catch(e){}
+    if(synthese.addEventListener){
+      synthese.addEventListener("voiceschanged", function(){ synthese.getVoices(); });
+    }
+  }
+
+  function choisirVoix(lang){
+    var voix = synthese.getVoices().filter(function(v){
+      return v.lang && v.lang.slice(0, 2) === lang.slice(0, 2);
+    });
+    // Preferer une voix locale de la bonne region (fr-FR): les voix reseau
+    // de Chrome se coupent sans erreur sur les textes longs.
+    var exacte = voix.filter(function(v){ return v.lang.replace("_", "-") === lang; });
+    var locale = exacte.filter(function(v){ return v.localService; });
+    return (locale[0] || exacte[0] || voix[0]) || null;
+  }
+
+  // Chrome interrompt en silence un enonce de plus de ~15 s: on lit phrase
+  // par phrase, en morceaux de 200 caracteres au plus.
+  function decouperPhrases(texte){
+    var morceaux = texte.match(/[^.!?;:]+[.!?;:]*\s*/g) || [texte];
+    var sortie = [], courant = "";
+    morceaux.forEach(function(m){
+      if((courant + m).length > 200 && courant){ sortie.push(courant.trim()); courant = ""; }
+      courant += m;
+    });
+    if(courant.trim()){ sortie.push(courant.trim()); }
+    return sortie;
+  }
+
+  var lectureNo = 0, enLecture = false, audioCourant = null;
+  function parleEnCours(){ return enLecture || !!(synthese && synthese.speaking); }
+
+  function finLecture(no){
+    if(no !== lectureNo){ return; }
+    enLecture = false; audioCourant = null;
+    orbeAuRepos(); relancerEcoute();
+  }
+
+  /* Lecture en flux: Jarvis parle PENDANT qu'il ecrit. Chaque phrase
+     terminee part dans une file des qu'elle arrive; la voix la joue pendant
+     que les suivantes se telechargent. Un texte complet (accueil) passe
+     par le meme chemin, en une fois. */
   function lireAVoixHaute(md){
     if(!synthese || !state.voix){ return; }
-    var texte = textePourLecture(md);
-    if(!texte){ return; }
-    synthese.cancel();
-    var phrase = new SpeechSynthesisUtterance(texte);
-    phrase.lang = langueDe(texte);
-    var voix = synthese.getVoices().filter(function(v){
-      return v.lang && v.lang.slice(0, 2) === phrase.lang.slice(0, 2);
-    });
-    if(voix.length){ phrase.voice = voix[0]; }
-    phrase.rate = 1.03;
-    phrase.onstart = function(){ Orbe.etat("parole"); };
-    phrase.onend = phrase.onerror = function(){ orbeAuRepos(); relancerEcoute(); };
-    synthese.speak(phrase);
+    var L = nouvelleLecture();
+    alimenterLecture(L, md, true);
+  }
+
+  function nouvelleLecture(){
+    arreterLecture();
+    enLecture = true;
+    return {no: lectureNo, file: [], fini: false, joue: false, consomme: 0,
+            lang: null,
+            // Voix neuronale du serveur (Henri, comme JARVIS-pro); celle du
+            // navigateur reste le repli, et la seule pour l'anglais.
+            neuronal: !!(state.sante && state.sante.tts && state.token)};
+  }
+
+  // `brut` est le texte CUMULE de la reponse; on ne lit que ce qui est neuf,
+  // jusqu'a la derniere fin de phrase (tout le reste si `fini`).
+  function alimenterLecture(L, brut, fini){
+    if(L.no !== lectureNo){ return; }
+    var reste = String(brut || "").slice(L.consomme);
+    var coupe = reste.length;
+    if(!fini){
+      // Fin de phrase = ponctuation suivie d'un blanc: "3.4" ou "0,42" ne
+      // coupent pas.
+      var re = /[.!?;:\n](?=\s)/g, m, derniere = -1;
+      while((m = re.exec(reste))){ derniere = m.index + 1; }
+      coupe = derniere;
+    }
+    if(coupe > 0){
+      L.consomme += coupe;
+      var texte = textePourLecture(reste.slice(0, coupe));
+      if(texte){
+        if(!L.lang){
+          L.lang = langueDe(texte);
+          if(L.lang !== "fr-FR"){ L.neuronal = false; }
+        }
+        decouperPhrases(texte).forEach(function(p){
+          // Telechargement lance tout de suite: pret quand son tour vient.
+          L.file.push({texte: p, audio: L.neuronal ? chargerAudio(p) : null});
+        });
+      }
+    }
+    if(fini){ L.fini = true; }
+    avancerLecture(L);
+  }
+
+  function chargerAudio(t){
+    var p = fetch(API + "/api/tts", {method:"POST", headers: headers(),
+                                     body: JSON.stringify({text: t})})
+      .then(function(r){ if(!r.ok){ throw new Error("tts " + r.status); } return r.blob(); });
+    p.catch(function(){});                       // traite a son tour
+    return p;
+  }
+
+  function avancerLecture(L){
+    if(L.no !== lectureNo || L.joue){ return; }
+    if(!L.file.length){
+      if(L.fini){
+        finLecture(L.no);
+        // Rappel de fin (mode soutenance: l'etape suivante part a la fin de
+        // la lecture). Jamais appele pour une lecture interrompue.
+        if(L.surFin){ var rappel = L.surFin; L.surFin = null; rappel(); }
+      }
+      return;                                    // la suite arrive avec le flux
+    }
+    var item = L.file.shift();
+    L.joue = true;
+    var suite = function(){ L.joue = false; avancerLecture(L); };
+    if(L.neuronal && item.audio){ jouerNeuronal(L, item, suite); }
+    else { jouerNavigateur(L, item.texte, suite); }
+  }
+
+  /* Au premier echec (service coupe, reseau lent, lecture refusee), toute
+     la suite passe a la voix du navigateur: pas de melange de voix. */
+  function jouerNeuronal(L, item, suite){
+    var abandonne = false;
+    function repli(){
+      if(abandonne){ return; }
+      abandonne = true;
+      trace("voix neuronale indisponible: repli sur la voix du navigateur");
+      L.neuronal = false;
+      if(L.no === lectureNo){ jouerNavigateur(L, item.texte, suite); }
+    }
+    // Reseau lent: mieux vaut la voix du navigateur que 20 s de silence.
+    var garde = setTimeout(repli, 5000);
+    item.audio.then(function(blob){
+      clearTimeout(garde);
+      if(abandonne || L.no !== lectureNo){ return; }
+      var url = URL.createObjectURL(blob);
+      var a = new Audio(url);
+      audioCourant = a;
+      a.onplaying = function(){ Orbe.etat("parole"); };
+      a.onended = function(){ URL.revokeObjectURL(url); if(L.no === lectureNo){ suite(); } };
+      a.onerror = function(){ URL.revokeObjectURL(url); repli(); };
+      var lancement = a.play();
+      if(lancement && lancement.catch){
+        lancement.catch(function(){ URL.revokeObjectURL(url); repli(); });
+      }
+    }, function(){ clearTimeout(garde); repli(); });
+  }
+
+  function jouerNavigateur(L, texte, suite){
+    var p = new SpeechSynthesisUtterance(texte);
+    p.lang = L.lang || "fr-FR";
+    var voix = choisirVoix(p.lang);
+    if(voix){ p.voice = voix; }
+    p.rate = 1.03;
+    p.onstart = function(){ Orbe.etat("parole"); };
+    p.onend = function(){ if(L.no === lectureNo){ suite(); } };
+    p.onerror = function(e){
+      if(e && (e.error === "interrupted" || e.error === "canceled")){ return; }
+      if(e && e.error === "not-allowed"){
+        warn("Lecture vocale bloquee.", "Cliquez une fois dans la fenetre Jarvis, puis reessayez.");
+      }
+      if(L.no === lectureNo){ suite(); }
+    };
+    // speak() juste apres cancel() est parfois ignore par Chrome; et une
+    // synthese restee en pause ne repart qu'avec resume().
+    setTimeout(function(){
+      if(L.no !== lectureNo){ return; }
+      try{ synthese.resume(); }catch(e){}
+      synthese.speak(p);
+    }, 60);
   }
 
   function arreterLecture(){
-    if(synthese && synthese.speaking){ synthese.cancel(); }
+    lectureNo++;
+    enLecture = false;
+    if(audioCourant){ try{ audioCourant.pause(); }catch(e){} audioCourant = null; }
+    if(synthese && (synthese.speaking || synthese.pending)){ synthese.cancel(); }
     orbeAuRepos();
   }
+
+  function sousTitresVisibles(){ return !state.voix || !!state.soustitres; }
 
   function basculerVoix(actif){
     state.voix = !!actif;
@@ -1281,7 +2226,7 @@
      iframe, jamais un conteneur de la page hote. */
   function relancerEcoute(){
     if(!state.continu || !Reconnaissance || state.busy || reco){ return; }
-    if(synthese && synthese.speaking){ return; }
+    if(parleEnCours()){ return; }
     setTimeout(function(){
       if(state.continu && !state.busy && !reco){ dicter(); }
     }, 400);
@@ -1364,6 +2309,10 @@
       $("hm-continu").classList.toggle("on", !!state.continu);
       $("hm-continu").hidden = !Reconnaissance;
       $("hm-voix").hidden = !synthese;
+      $("hm-soustitres").textContent = "SOUS-TITRES : " + (sousTitresVisibles() ? "ON" : "OFF");
+      $("hm-soustitres").classList.toggle("on", sousTitresVisibles());
+      // Sans voix, le sous-titre est le seul retour: l'option n'a pas de sens.
+      $("hm-soustitres").hidden = !state.voix;
       $("hm-admin").textContent = state.admin ? "QUITTER LE MODE ADMIN" : "MODE ADMINISTRATEUR";
       $("hud-continu").classList.toggle("on", !!state.continu);
       $("hud-continu").setAttribute("aria-pressed", state.continu ? "true" : "false");
@@ -1451,15 +2400,27 @@
       pleinEcran(true);
       tic();
       horloge = setInterval(tic, 1000);
+      // Interface "voix d'abord": Jarvis parle par defaut en plein ecran,
+      // sauf si l'utilisateur a coupe la lecture lui-meme.
+      if(synthese && window.SpeechSynthesisUtterance && recall("voix") !== "0"){
+        basculerVoix(true);
+      }
       majMenu();
       statut(Orbe.courant());
       $("hud-soustitre").textContent = "";
       $("hud-astuce").classList.remove("cache");
       setTimeout(function(){ $("hud-astuce").classList.add("cache"); }, 12000);
       remember("hud", "1");
+      var bootJoue = false;
       if(!sansDemarrage && recall("hudboot") !== "1"){
         remember("hudboot", "1");
         demarrage();
+        bootJoue = true;
+      }
+      // Accueil seulement quand l'utilisateur entre lui-meme: pas au
+      // remontage de l'iframe par Streamlit (sansDemarrage).
+      if(!sansDemarrage){
+        setTimeout(function(){ if(actif){ saluer(false); } }, bootJoue ? 2300 : 350);
       }
       var hud = $("hud");
       if(webgl()){
@@ -1485,6 +2446,8 @@
       if(!actif){ return; }
       actif = false;
       menu(false);
+      Ecran.fermer();
+      Soutenance.quitter();
       document.body.classList.remove("hud", "hud-transcription", "hud-clavier");
       clearInterval(horloge); horloge = null;
       if(volume){ clearInterval(volume); volume = null; }
@@ -1508,7 +2471,7 @@
       document.body.classList.toggle("hud-transcription",
         oui === undefined ? !document.body.classList.contains("hud-transcription") : !!oui);
       majMenu();
-      setTimeout(scroll, 30);
+      setTimeout(function(){ scroll(true); }, 30);
     }
 
     function clavier(oui){
@@ -1525,7 +2488,9 @@
       if(!el || !actif){ return; }
       var texte = textePourLecture(md);
       if(texte.length > 320){ texte = fini ? texte.slice(0, 320) + "\u2026" : "\u2026" + texte.slice(-320); }
-      el.textContent = texte;
+      // Quand Jarvis parle, il ne sous-titre pas (choix de Laity): seul le
+      // bouton TRANSCRIPTION reste, pour relire un chiffre au besoin.
+      el.textContent = sousTitresVisibles() ? texte : "";
       if(fini && md){
         var b = document.createElement("button");
         b.type = "button";
@@ -1533,6 +2498,7 @@
         b.addEventListener("click", function(){ transcription(true); });
         el.appendChild(b);
       }
+      Agencement.demander();
     }
 
     function plein(){
@@ -1551,6 +2517,11 @@
         basculerVue(true);
         if(!state.busy){ ask("Interprete la page affichee du dashboard : que faut-il en retenir ?"); }
       } else if(a === "voix"){ basculerVoix(!state.voix); majMenu(); }
+      else if(a === "soustitres"){
+        state.soustitres = !state.soustitres;
+        remember("soustitres", state.soustitres ? "1" : "0");
+        majMenu();
+      }
       else if(a === "continu"){ basculerContinu(!state.continu); }
       else if(a === "admin"){
         if(state.admin){ quitterAdmin(); }
@@ -1561,6 +2532,7 @@
       } else if(a === "sortir"){ shut(); }       // ferme tout: retour a l'orbe
       else if(a === "clavier"){ clavier(); }
       else if(a === "transcription"){ transcription(); }
+      else if(a === "soutenance"){ Soutenance.demarrer(); }
     }
 
     Orbe.abonner(etatOrbe);
@@ -1585,6 +2557,22 @@
   // l'image etait alors ecartee (constate sur la page Teleconnexions).
   var TYPES_CARTE = /^(scattermapbox|densitymapbox|choroplethmapbox|scattermap|densitymap|choroplethmap|scattergeo|choropleth)$/;
   function estCarte(t){ return TYPES_CARTE.test((t && t.type) || ""); }
+
+  /* Contexte de page (Phase 7): ecrit par le dashboard dans un element cache
+     (#jarvis-page-ctx), relu a chaque question. Il n'est plus inscrit dans le
+     HTML du widget, sans quoi l'iframe serait rechargee a chaque filtre. */
+  function contexteHote(){
+    try{
+      if(window.parent && window.parent !== window){
+        var el = window.parent.document.getElementById("jarvis-page-ctx");
+        if(el){
+          var t = (el.textContent || "").trim();
+          return t ? JSON.parse(t) : null;
+        }
+      }
+    }catch(e){}
+    return (PAGE_CTX && typeof PAGE_CTX === "object") ? PAGE_CTX : null;
+  }
 
   function pageHote(){
     try{
@@ -1823,7 +2811,38 @@
     } else if(!on && t){ t.parentNode.removeChild(t); }
   }
 
-  function scroll(){ log.scrollTop = log.scrollHeight; }
+  /* Defilement: on ne suit la reponse que si l'utilisateur est deja en bas.
+     S'il relit plus haut, un bouton "suite" apparait au bas de la fenetre au
+     lieu de le ramener de force a chaque fragment de texte. */
+  var enBas = true;
+  function scroll(force){
+    if(force === true || enBas){
+      log.scrollTop = log.scrollHeight;
+      enBas = true;
+      suite(false);
+    } else { suite(true); }
+    compterMessages();
+  }
+  function suite(montrer){
+    var b = $("log-suite");
+    if(!b || !b.classList){ return; }
+    b.classList.toggle("on", !!montrer);
+    if(montrer && log.getBoundingClientRect){
+      var r = log.getBoundingClientRect();
+      b.style.left = Math.round(r.left + r.width / 2) + "px";
+      b.style.top = Math.round(r.bottom - 42) + "px";
+    }
+  }
+  function compterMessages(){
+    var el = $("tr-nb");
+    if(!el || !log.querySelectorAll){ return; }
+    var n = log.querySelectorAll(".msg").length;
+    el.textContent = n ? n + (n > 1 ? " MESSAGES" : " MESSAGE") : "";
+  }
+  log.addEventListener("scroll", function(){
+    enBas = log.scrollHeight - log.scrollTop - log.clientHeight < 48;
+    if(enBas){ suite(false); }
+  });
 
   /* Repere "lecture des donnees en cours". Remplace par la reponse des que le
      premier fragment de texte arrive. */
@@ -1866,10 +2885,86 @@
     remember("conv", "");
     document.body.classList.add("admin");
     if(status){ status.textContent = "Session administrateur"; }
-    bubble("bot", "**Session administrateur ouverte.** Modele " +
-           (d.model || "admin") + ". Les outils de redaction sont disponibles : "
-           + "je peux chercher dans le memoire et l'article, et te *proposer* "
-           + "des corrections — que tu appliques toi-meme d'un clic.");
+    saluer(true, d.model);
+  }
+
+  /* ---------- Accueil ----------------------------------------------------
+     Texte LOCAL, sans appel au modele: instantane, gratuit, et fidele aux
+     outils reellement exposes a chaque profil (voir jarvis/tools/registry).
+     Presentation complete a la premiere entree de la session pour ce
+     profil, simple salut ensuite. */
+  function salutation(){
+    var h = new Date().getHours();
+    return (h >= 18 || h < 5) ? "Bonsoir" : "Bonjour";
+  }
+
+  function texteAccueil(admin, complet, modele){
+    var s = salutation();
+    // Texte accentue: sans accents, la synthese vocale francaise ecorche
+    // "memoire" ou "evenements".
+    if(!complet){
+      return admin ? s + " Laity. Session administrateur active. Que fait-on ?"
+                   : s + ", ravi de vous revoir. Que puis-je faire pour vous ?";
+    }
+    if(admin){
+      var enProd = state.sante && state.sante.env === "prod";
+      return s + " Laity. Session administrateur ouverte" +
+        (modele ? ", modèle " + modele : "") + ".\n\n" +
+        "En plus de tout ce que fait le profil public, je peux :\n" +
+        "- **Documents** : lister, chercher dans le mémoire et l'article, et te proposer des corrections.\n" +
+        "- **Code** : lire les scripts du projet et te proposer des modifications.\n" +
+        "- **Tâches** : lancer un script d'analyse du projet en arrière-plan et suivre son avancement.\n" +
+        "- **Pipeline** : repérer les étapes périmées à relancer.\n" +
+        "- **Esprit critique** : te contredire quand les données te contredisent.\n\n" +
+        (enProd ? "Documents et code ne sont accessibles que sur ton poste, pas sur ce serveur.\n\n" : "") +
+        "Rien n'est écrit ni exécuté sans ton approbation d'un clic.";
+    }
+    return s + ", je suis **Jarvis**, l'assistant de CLIMAT-SEN. Voici ce que je peux faire pour vous :\n\n" +
+      "- **Indices océaniques** : donner la valeur d'un indice SST (Niño 3.4, AMO, TNA, IOD...) pour une année ou un mois.\n" +
+      "- **Pluies extrêmes** : rechercher et analyser les événements de 1981 à 2023, par année, région ou phase de la saison.\n" +
+      "- **Téléconnexions** : dire quels indices sont liés aux pluies extrêmes, avec quel décalage, et si c'est significatif.\n" +
+      "- **Régimes océaniques** : expliquer les clusters K-Means.\n" +
+      "- **Cartes** : afficher en grand le motif océanique d'un cluster, un événement ou les zones les plus touchées.\n" +
+      "- **Graphiques** : tracer une figure à la demande.\n" +
+      "- **Méthode** : répondre à partir du mémoire et de l'article scientifique.\n" +
+      "- **Dashboard** : commenter la page que vous avez sous les yeux.\n\n" +
+      "Parlez-moi avec le micro, ou tapez votre question.";
+  }
+
+  function saluer(forcerComplet, modele){
+    // L'elevation admin arrive PENDANT le flux (busy): elle passe quand meme.
+    if(state.busy && !forcerComplet){ return; }
+    var profil = state.admin ? "admin" : "public";
+    var complet = forcerComplet || recall("salue_" + profil) !== "1";
+    remember("salue_" + profil, "1");
+    var texte = texteAccueil(state.admin, complet, modele);
+    bubble("bot", texte);
+    Hud.soustitre(texte, true);
+    scroll();
+    lireAVoixHaute(texteAccueilOral(state.admin, complet) || texte);
+  }
+
+  /* La liste affichee, lue telle quelle, sonne comme un sommaire recite.
+     A l'oral, les memes capacites en phrases. "Climat-Sen" et non
+     "CLIMAT-SEN", que la synthese epelerait. */
+  function texteAccueilOral(admin, complet){
+    if(!complet){ return null; }                 // le salut court se dit tel quel
+    var s = salutation();
+    if(admin){
+      return s + " Laity. Ta session administrateur est ouverte. " +
+        "En plus de tout ce que je fais pour les visiteurs, je peux chercher dans ton m\u00e9moire " +
+        "et ton article, et te proposer des corrections. Je peux aussi lire le code du projet, " +
+        "te proposer des modifications, lancer une analyse en arri\u00e8re-plan, et te dire quelles " +
+        "\u00e9tapes du pipeline sont \u00e0 relancer. Et je te contredirai si les donn\u00e9es te contredisent. " +
+        "Rien n'est \u00e9crit ni ex\u00e9cut\u00e9 sans ton accord. On commence par quoi ?";
+    }
+    return s + ", je suis Jarvis, l'assistant de Climat-Sen. " +
+      "Je peux vous donner la valeur des indices oc\u00e9aniques, retrouver et analyser les pluies " +
+      "extr\u00eames au S\u00e9n\u00e9gal depuis 1981, et vous dire quels oc\u00e9ans les influencent, avec quel " +
+      "d\u00e9calage dans le temps. Je peux aussi afficher des cartes, de l'oc\u00e9an mondial comme du " +
+      "S\u00e9n\u00e9gal, tracer un graphique, r\u00e9pondre sur la m\u00e9thode scientifique, ou commenter la " +
+      "page que vous regardez. " +
+      "Parlez-moi, ou \u00e9crivez-moi : que puis-je faire pour vous ?";
   }
 
   function quitterAdmin(){
@@ -2179,6 +3274,8 @@
 
   function ask(text){
     if(state.busy || !state.online) return;
+    // Question du jury: la presentation s'arrete ou elle en est.
+    if(Soutenance.visible()){ Soutenance.pause(true); }
     state.busy = true; refreshSend(); clearWarn();
     arreterLecture();
     Orbe.etat("reflexion");
@@ -2188,9 +3285,15 @@
 
     var body = {message: text};
     if(state.convId){ body.conversation_id = state.convId; }
-    if(PAGE_CTX && typeof PAGE_CTX === "object"){ body.page_context = PAGE_CTX; }
+    var ctxPage = contexteHote();
+    if(ctxPage){ body.page_context = ctxPage; }
+    // Reponse ecoutee: Jarvis parle au lieu d'ecrire (phrases courtes, sans
+    // liste ni symboles). Le serveur ajoute sa propre consigne, fixe.
+    if(state.voix && synthese){ body.oral = true; }
 
     var target = null, buffer = "", failed = false;
+    // Lecture a voix haute au fil du flux (creee au premier fragment).
+    var lecture = null;
     // Les figures annoncees pendant le flux s'affichent SOUS la reponse,
     // une fois celle-ci terminee.
     var figuresRecues = [];
@@ -2254,10 +3357,19 @@
         state.busy = false; refreshSend();
         state.requete = null;
         if(target && target._raw){ Hud.soustitre(target._raw, true); }
-        if(figuresRecues.length && Hud.actif()){ Hud.transcription(true); }
+        var autres = figuresRecues.filter(function(f){ return !f.carte; });
+        if(autres.length && Hud.actif()){ Hud.transcription(true); }
+        // Deux cartes dans la meme reponse (debut vs pleine saison...): on
+        // les montre cote a cote plutot que l'une apres l'autre.
+        var cartesRecues = figuresRecues.filter(function(f){ return f.carte; });
+        if(cartesRecues.length >= 2 && Hud.actif()){
+          Ecran.comparer(cartesRecues[cartesRecues.length - 2], cartesRecues[cartesRecues.length - 1]);
+        }
         figuresRecues.forEach(figureBloc);
         orbeAuRepos();
-        if(!failed && target && target._raw && state.voix){ lireAVoixHaute(target._raw); }
+        // La fin du texte (derniere phrase sans ponctuation finale) part
+        // maintenant; en cas d'echec, on laisse finir ce qui a ete dit.
+        if(lecture){ alimenterLecture(lecture, target ? target._raw : "", true); }
         else { relancerEcoute(); }
         // Une proposition a pu etre deposee pendant ce tour.
         rafraichirActions();
@@ -2277,6 +3389,12 @@
         passerEnAdmin(data);
       } else if(name === "figure"){
         figuresRecues.push(data);
+        // Une carte s'affiche tout de suite sur l'ecran, pendant la reponse.
+        if(data.carte && Hud.actif()){ Ecran.afficher(data); }
+      } else if(name === "navigation"){
+        // Page du dashboard demandee par navigate_dashboard (deja validee
+        // par le serveur): elle s'ouvre pendant que Jarvis en parle.
+        Tableau.naviguer(data);
       } else if(name === "tool"){
         typing(false);
         outil(data.label || "Consultation des donnees");
@@ -2285,6 +3403,10 @@
         clearOutil();
         if(target === null){ target = bubble("bot", ""); target._raw = ""; }
         target._raw += data.text;
+        if(state.voix && synthese){
+          if(!lecture){ lecture = nouvelleLecture(); }
+          alimenterLecture(lecture, target._raw, false);
+        }
         target.innerHTML = mini(target._raw);
         Hud.soustitre(target._raw, false);
         scroll();
@@ -2493,6 +3615,8 @@
   $("hud-stop").addEventListener("click", arreterTout);
   $("hud-clavier-btn").addEventListener("click", function(){ Hud.clavier(); });
   $("hud-transcription-btn").addEventListener("click", function(){ Hud.transcription(); });
+  $("tr-fermer").addEventListener("click", function(){ Hud.transcription(false); });
+  $("log-suite").addEventListener("click", function(){ scroll(true); });
   $("hud-plein-btn").addEventListener("click", function(){ Hud.plein(); });
   // En mode J.A.R.V.I.S, taper une lettre ouvre le clavier: pas besoin de
   // chercher le champ de saisie.
@@ -2500,6 +3624,8 @@
     if(!Hud.actif() || document.body.classList.contains("hud-clavier")){ return; }
     if(e.ctrlKey || e.metaKey || e.altKey || !e.key || e.key.length !== 1){ return; }
     if(e.target && (e.target.tagName === "TEXTAREA" || e.target.tagName === "INPUT")){ return; }
+    // Pendant la soutenance, l'espace met en pause: il n'ouvre pas le clavier.
+    if(e.key === " " && Soutenance.visible()){ return; }
     e.preventDefault();
     Hud.clavier(true);
     input.value += e.key;
@@ -2521,7 +3647,9 @@
   if(synthese && window.SpeechSynthesisUtterance){
     voixBtn.hidden = false;
     voixBtn.addEventListener("click", function(){ basculerVoix(!state.voix); });
-    basculerVoix(recall("voix") === "1");
+    // Sans choix enregistre, on n'ecrit rien: "0" voudrait dire "coupe par
+    // l'utilisateur" et empecherait le plein ecran de parler par defaut.
+    if(recall("voix") !== null){ basculerVoix(recall("voix") === "1"); }
   }
   if(pageHote()){ vueBtn.hidden = false; }
 
@@ -2530,18 +3658,36 @@
     if(v){ ask(v); }
   });
   document.addEventListener("keydown", function(e){
+    if(!Hud.actif() || e.ctrlKey || e.metaKey || e.altKey){ return; }
+    if(e.target && (e.target.tagName === "TEXTAREA" || e.target.tagName === "INPUT")){ return; }
+    if(Soutenance.visible()){
+      if(e.key === "ArrowRight"){ e.preventDefault(); Soutenance.suivante(); }
+      else if(e.key === "ArrowLeft"){ e.preventDefault(); Soutenance.precedente(); }
+      else if(e.key === " "){ e.preventDefault(); Soutenance.pause(); }
+      return;
+    }
+    if(Ecran.ouvert() && Ecran.nombre() > 1){
+      if(e.key === "ArrowRight"){ e.preventDefault(); Ecran.suivante(); }
+      else if(e.key === "ArrowLeft"){ e.preventDefault(); Ecran.precedente(); }
+    }
+  });
+  document.addEventListener("keydown", function(e){
     if(e.key !== "Escape"){ return; }
     if(Hud.actif()){
-      if($("hud-menu").classList.contains("ouvert")){ Hud.menu(false); }
+      if(Tableau.enApercu()){ Tableau.apercu(false); }
+      else if(Ecran.zoome()){ Ecran.zoom(false); }
+      else if(Ecran.ouvert()){ Ecran.fermer(); }
+      else if($("hud-menu").classList.contains("ouvert")){ Hud.menu(false); }
       else if(document.body.classList.contains("hud-clavier")){ Hud.clavier(false); }
       else if(document.body.classList.contains("hud-transcription")){ Hud.transcription(false); }
+      else if(Soutenance.visible()){ Soutenance.quitter(); }
       else { shut(); }
     } else if(state.open){ shut(); }
   });
 
   Array.prototype.forEach.call(document.querySelectorAll(".chip"), function(c){
     c.addEventListener("click", function(){
-      ask(c.textContent.replace(/ /g, " ").trim());
+      ask(c.textContent.replace(/\u00a0/g, " ").trim());
     });
   });
 
@@ -2556,6 +3702,7 @@
   boot().then(function(){
     // Jarvis se rouvre en mode J.A.R.V.I.S, sans rejouer le demarrage.
     if(recall("open") === "1"){ Hud.entrer(true); }
+    Soutenance.reprendreApresRechargement();
   });
 })();
 </script>

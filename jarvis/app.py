@@ -23,7 +23,8 @@ from fastapi.responses import (FileResponse, HTMLResponse, JSONResponse,
                                Response, StreamingResponse)
 
 from . import (__version__, actions, auth, code_ops, elevation, figures,
-               page_context, page_view, tools)
+               page_context, page_view, soutenance, tools, voix)
+from .tools import dataset as tools_dataset
 from .claude_client import ClaudeClient
 from .config import Settings, get_settings
 from .conversations import ConversationStore
@@ -31,7 +32,8 @@ from .errors import (AccessDeniedError, InvalidSessionError, JarvisError,
                      NotFoundError, PayloadTooLargeError, RateLimitedError)
 from .logging_conf import log_event, setup_logging
 from .models import (AdminLoginRequest, ChatRequest, ChatSyncResponse,
-                     ConversationResponse, HealthResponse, SessionResponse)
+                     ConversationResponse, HealthResponse, SessionResponse,
+                     TtsRequest)
 from .ratelimit import TokenBucket
 from .session import (JetonsRevoques, SessionInfo, issue_token,
                       verify_token)
@@ -91,6 +93,17 @@ class AppContext:
             capacity=settings.admin_rate_limit_capacity * 2,
             refill_per_second=settings.admin_rate_limit_refill_per_second * 2,
         )
+        # Synthese vocale: par ADRESSE, comme le plafond qu'on ne contourne
+        # pas en changeant de session. Seau distinct du chat: une reponse
+        # lue a voix haute fait plusieurs appels.
+        # Mode soutenance: etapes gratuites (pas de modele), mais chacune
+        # lit les donnees et depose une figure. Seau distinct du chat pour ne
+        # pas amputer le quota de questions du jury.
+        self.soutenance_bucket = TokenBucket(capacity=30, refill_per_second=0.5)
+        self.tts_bucket = TokenBucket(
+            capacity=settings.tts_rate_limit_capacity,
+            refill_per_second=settings.tts_rate_limit_refill_per_second,
+        )
         self.revoques = JetonsRevoques()
         # Propositions de modification en attente d'approbation (Phase 5).
         self.actions = actions.RegistreActions(
@@ -118,7 +131,7 @@ class AppContext:
         return tools.specs_for(profile) or None
 
     def tool_executor(self, profile: str, session_id: str = "",
-                      figures_produites=None):
+                      figures_produites=None, navigations=None):
         """Executeur lie au profil ET a la session.
 
         Les deux sont captures ici, cote serveur: le modele ne peut influencer
@@ -139,11 +152,21 @@ class AppContext:
                       ok=not resultat.get("is_error"),
                       duration_ms=resultat.get("duration_ms"),
                       chars=resultat.get("chars"))
-            if (figures_produites is not None and nom == "make_figure"
+            if (figures_produites is not None and nom in OUTILS_FIGURES
                     and not resultat.get("is_error")):
                 _noter_figure(resultat, figures_produites)
+            if (navigations is not None and nom in OUTILS_NAVIGATION
+                    and not resultat.get("is_error")):
+                _noter_navigation(resultat, navigations)
             return resultat
         return executer
+
+
+# Outils qui deposent une figure a annoncer au widget.
+OUTILS_FIGURES = ("make_figure", "show_map", "recompute_correlation",
+                  "animate_sst_event")
+# Outil dont le resultat porte une consigne de navigation pour le dashboard.
+OUTILS_NAVIGATION = ("navigate_dashboard",)
 
 
 def _noter_figure(resultat: dict, figures_produites: list) -> None:
@@ -160,7 +183,31 @@ def _noter_figure(resultat: dict, figures_produites: list) -> None:
     if charge.get("figure_id"):
         figures_produites.append({"id": charge["figure_id"],
                                   "titre": charge.get("titre", ""),
-                                  "sous_titre": charge.get("sous_titre", "")})
+                                  "sous_titre": charge.get("sous_titre", ""),
+                                  # Une carte s'affiche en grand dans le HUD.
+                                  "carte": bool(charge.get("carte"))})
+    # Figure secondaire d'un outil de calcul (recompute_correlation).
+    secondaire = charge.get("figure")
+    if isinstance(secondaire, dict) and secondaire.get("figure_id"):
+        figures_produites.append({"id": secondaire["figure_id"],
+                                  "titre": secondaire.get("titre", ""),
+                                  "sous_titre": secondaire.get("sous_titre", ""),
+                                  "carte": False})
+
+
+def _noter_navigation(resultat: dict, navigations: list) -> None:
+    """Releve la consigne de navigation, deja validee par l'outil.
+
+    Comme pour les figures, on la lit dans le RESULTAT de notre outil, jamais
+    dans le texte du modele.
+    """
+    try:
+        charge = json.loads(resultat.get("content") or "{}")
+    except ValueError:
+        return
+    nav = charge.get("navigation")
+    if isinstance(nav, dict) and nav.get("page"):
+        navigations.append({"page": nav["page"], "filtres": nav.get("filtres") or {}})
 
 
 class LimiteCorps:
@@ -335,6 +382,8 @@ def create_app(settings: Optional[Settings] = None) -> FastAPI:
            "script-src 'self' 'unsafe-inline'; "
            "style-src 'self' 'unsafe-inline'; "
            "img-src 'self' data:; "
+           # Voix neuronale: le MP3 recu par fetch est joue via une URL blob:.
+           "media-src 'self' blob:; "
            "connect-src 'self' " + " ".join(settings.origins) + "; "
            "object-src 'none'; base-uri 'none'; form-action 'none'; "
            # Le widget est legitimement dans une iframe Streamlit; la console
@@ -442,6 +491,7 @@ def create_app(settings: Optional[Settings] = None) -> FastAPI:
             configured=configured,
             env=c.settings.env,
             tools=len(c.tool_specs("public") or []),
+            tts=voix.disponible(c.settings),
         )
 
     @app.post("/jarvis/api/session", response_model=SessionResponse)
@@ -728,7 +778,8 @@ def create_app(settings: Optional[Settings] = None) -> FastAPI:
         contexte = page_context.nettoyer(payload.page_context)
         blocs_vue = page_view.blocs(payload.page_view)
         messages = conv.api_messages() + [
-            page_context.message_utilisateur(payload.message, contexte, blocs_vue)]
+            page_context.message_utilisateur(payload.message, contexte, blocs_vue,
+                                             oral=payload.oral)]
         return conv, messages, contexte
 
     def _commit(c: AppContext, conv, question: str, answer: str,
@@ -774,6 +825,8 @@ def create_app(settings: Optional[Settings] = None) -> FastAPI:
             outils = []
             produites = []
             annoncees = 0
+            navigations = []
+            nav_annoncees = 0
             try:
                 yield _sse("meta", {"conversation_id": conv.conversation_id,
                                     "model": c.claude.model_for(session.profile)})
@@ -781,7 +834,7 @@ def create_app(settings: Optional[Settings] = None) -> FastAPI:
                     messages, session.profile,
                     tools=c.tool_specs(session.profile),
                     executor=c.tool_executor(session.profile, session.session_id,
-                                             produites),
+                                             produites, navigations),
                 )
                 async for chunk in flux:
                     # Une figure deposee pendant le tour d'outils precedent
@@ -790,6 +843,11 @@ def create_app(settings: Optional[Settings] = None) -> FastAPI:
                     while annoncees < len(produites):
                         yield _sse("figure", produites[annoncees])
                         annoncees += 1
+                    # Idem pour une page du dashboard a ouvrir: elle s'ouvre
+                    # pendant que Jarvis commence a en parler.
+                    while nav_annoncees < len(navigations):
+                        yield _sse("navigation", navigations[nav_annoncees])
+                        nav_annoncees += 1
                     if isinstance(chunk, dict):
                         if chunk.get("type") == "tools":
                             # Sans ce signal, l'utilisateur voit plusieurs
@@ -830,6 +888,9 @@ def create_app(settings: Optional[Settings] = None) -> FastAPI:
             while annoncees < len(produites):
                 yield _sse("figure", produites[annoncees])
                 annoncees += 1
+            while nav_annoncees < len(navigations):
+                yield _sse("navigation", navigations[nav_annoncees])
+                nav_annoncees += 1
             answer = "".join(parts)
             _commit(c, conv, payload.message, answer, produites)
             log_event("jarvis.%s" % session.profile, "chat_stream_done",
@@ -860,11 +921,12 @@ def create_app(settings: Optional[Settings] = None) -> FastAPI:
 
         conv, messages, _ = _prepare(request, payload, session, c)
         produites = []
+        navigations = []
         result = await c.claude.complete(
             messages, session.profile,
             tools=c.tool_specs(session.profile),
             executor=c.tool_executor(session.profile, session.session_id,
-                                     produites),
+                                     produites, navigations),
         )
         _commit(c, conv, payload.message, result["text"], produites)
         log_event("jarvis.%s" % session.profile, "chat_sync_done",
@@ -878,7 +940,59 @@ def create_app(settings: Optional[Settings] = None) -> FastAPI:
             reply=result["text"],
             usage=result.get("usage", {}),
             figures=produites,
+            navigations=navigations,
         )
+
+    @app.post("/jarvis/api/tts")
+    async def tts(request: Request, payload: TtsRequest,
+                  session: SessionInfo = Depends(current_session),
+                  c: AppContext = Depends(ctx)):
+        """MP3 d'un morceau de reponse, voix neuronale (jarvis/voix.py).
+
+        Jeton exige et debit borne: sans cela, la route ferait de ce serveur
+        un service de synthese vocale gratuit pour n'importe qui.
+        """
+        if not voix.disponible(c.settings):
+            raise NotFoundError("Synthese vocale desactivee.")
+        ip = _client_ip(request, c.settings.trusted_proxy_hops, c.settings.proxies)
+        allowed, retry_after = c.tts_bucket.consume(ip)
+        if not allowed:
+            log_event("jarvis.%s" % session.profile, "rate_limited",
+                      motif="tts", session_id=session.session_id,
+                      retry_after=retry_after)
+            raise RateLimitedError(retry_after=retry_after)
+        audio = await voix.synthetiser(payload.text, c.settings.tts_voice,
+                                       c.settings.tts_rate)
+        return Response(audio, media_type="audio/mpeg",
+                        headers={"Cache-Control": "no-store"})
+
+    @app.get("/jarvis/api/soutenance")
+    async def soutenance_plan(session: SessionInfo = Depends(current_session)):
+        """Plan de la presentation guidee: titres des etapes."""
+        return {"etapes": soutenance.plan()}
+
+    @app.post("/jarvis/api/soutenance/{numero}")
+    async def soutenance_etape(numero: int, request: Request,
+                               session: SessionInfo = Depends(current_session),
+                               c: AppContext = Depends(ctx)):
+        """Une etape, composee a la demande: page a ouvrir, figure deposee
+        pour CETTE session, narration chiffree. Aucun appel au modele: rien
+        n'est facture, rien ne peut etre invente devant un jury."""
+        if not 1 <= numero <= len(soutenance.ETAPES):
+            raise NotFoundError("Etape inconnue.")
+        ip = _client_ip(request, c.settings.trusted_proxy_hops, c.settings.proxies)
+        allowed, retry_after = c.soutenance_bucket.consume(ip)
+        if not allowed:
+            raise RateLimitedError(retry_after=retry_after)
+        try:
+            donnees = await tools_dataset.load(soutenance.JEUX)
+        except tools_dataset.DataUnavailableError:
+            raise NotFoundError("Donnees de la plateforme indisponibles.")
+        contenu = await asyncio.to_thread(soutenance.etape, numero, donnees,
+                                          c.figures, session.session_id)
+        log_event("jarvis.%s" % session.profile, "soutenance_etape",
+                  session_id=session.session_id, etape=numero)
+        return contenu
 
     @app.get("/jarvis/api/figures/{figure_id}")
     async def figure(figure_id: str, theme: str = "clair", format: str = "png",
@@ -901,9 +1015,11 @@ def create_app(settings: Optional[Settings] = None) -> FastAPI:
                 'attachment; filename="figure-%s.csv"' % trouvee.spec["type"])
             return Response(texte.encode("utf-8-sig"), media_type="text/csv",
                             headers=entetes)
-        png = await asyncio.to_thread(figures.rendu_en_cache, trouvee,
-                                      theme if theme in figures.THEMES else "clair")
-        return Response(png, media_type="image/png", headers=entetes)
+        image = await asyncio.to_thread(figures.rendu_en_cache, trouvee,
+                                        theme if theme in figures.THEMES else "clair")
+        # Les animations sont des GIF: le widget lit le type de la reponse.
+        type_image = "image/gif" if image[:4] == b"GIF8" else "image/png"
+        return Response(image, media_type=type_image, headers=entetes)
 
     @app.get("/jarvis/admin", response_class=HTMLResponse)
     async def admin_console(c: AppContext = Depends(ctx)):

@@ -26,7 +26,9 @@ def test_les_outils_publics_sont_declares():
                     "get_teleconnection", "get_risk_cluster",
                     "search_documents", "analyze_teleconnections",
                     "analyze_extreme_events", "get_pipeline_status",
-                    "make_figure"}
+                    "make_figure", "show_map", "recompute_correlation",
+                    "find_analog_years", "navigate_dashboard",
+                    "animate_sst_event"}
 
 
 def test_chaque_declaration_est_complete():

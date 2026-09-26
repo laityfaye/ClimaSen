@@ -37,6 +37,9 @@ class ChatRequest(BaseModel):
     # Capture de la page (Phase 9): titres, indicateurs, donnees et images
     # des graphiques. Bornee champ par champ par VueDashboard.
     page_view: Optional[VueDashboard] = None
+    # La reponse sera ecoutee (voix active dans le widget): le modele parle
+    # au lieu d'ecrire. Ne change que la forme, jamais les regles.
+    oral: bool = False
 
     @field_validator("page_context")
     @classmethod
@@ -72,6 +75,7 @@ class FigureRef(BaseModel):
     id: str
     titre: str = ""
     sous_titre: str = ""
+    carte: bool = False
 
 
 class ChatSyncResponse(BaseModel):
@@ -79,6 +83,8 @@ class ChatSyncResponse(BaseModel):
     reply: str
     usage: dict = Field(default_factory=dict)
     figures: List[FigureRef] = Field(default_factory=list)
+    # Pages du dashboard ouvertes par navigate_dashboard pendant ce tour.
+    navigations: List[dict] = Field(default_factory=list)
 
 
 class ChatMessage(BaseModel):
@@ -100,3 +106,17 @@ class HealthResponse(BaseModel):
     configured: bool
     env: str
     tools: int = 0
+    # Voix neuronale servie par /api/tts (sinon voix du navigateur).
+    tts: bool = False
+
+
+class TtsRequest(BaseModel):
+    text: str = Field(min_length=1, max_length=500)   # voir jarvis/voix.py
+
+    @field_validator("text")
+    @classmethod
+    def _not_blank(cls, v: str) -> str:
+        v = v.strip()
+        if not v:
+            raise ValueError("Texte vide.")
+        return v

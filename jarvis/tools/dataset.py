@@ -168,4 +168,23 @@ def preload() -> None:
             get(nom)
         except Exception as exc:
             log.warning("Prechauffement de %s impossible: %s", nom, exc)
+    _prechauffer_cartes()
     log.info("Donnees de la plateforme prechargees.")
+
+
+def _prechauffer_cartes() -> None:
+    """Grilles CHIRPS, contours et matplotlib: 7 s au premier show_map
+    sinon (constate), pendant lesquelles l'ecran reste vide."""
+    try:
+        from .. import cartes, figures
+        cartes.grille()
+        cartes.senegal()
+        cartes.fond()
+        g = cartes.grille()
+        figures.rendre({"genre": "carte_senegal", "donnees": {
+            "lats": g["lats"], "lons": g["lons"],
+            "valeurs": [[0.0] * len(g["lons"]) for _ in g["lats"]],
+            "echelle": "pluie", "vmin": 0.0, "vmax": 1.0, "seuil": None,
+            "legende": "", "marqueurs": []}}, "hud")
+    except Exception as exc:
+        log.warning("Prechauffement des cartes impossible: %s", exc)

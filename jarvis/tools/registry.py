@@ -19,9 +19,9 @@ import json
 import logging
 import time
 
-from . import (analyse_evenements, analyse_teleconnexions, clusters, code,
-               documents, events, graphiques, pipeline_statut, redaction,
-               sst_index, teleconnections)
+from . import (analogues, analyse_evenements, analyse_teleconnexions, animation,
+               cartes, clusters, code, documents, events, graphiques, navigation,
+               pipeline_statut, recalcul, redaction, sst_index, teleconnections)
 from .common import ToolInputError
 from .dataset import DataUnavailableError
 from .dataset import load as charger_donnees
@@ -33,7 +33,8 @@ log = logging.getLogger("jarvis.tools")
 # le registre n'a pas a les distinguer.
 MODULES = (sst_index, events, teleconnections, clusters, documents,
            analyse_teleconnexions, analyse_evenements,
-           pipeline_statut, graphiques) + redaction.OUTILS + code.OUTILS
+           pipeline_statut, graphiques, cartes, recalcul, analogues, navigation,
+           animation) + redaction.OUTILS + code.OUTILS
 
 MAX_RESULT_CHARS = 6000
 

@@ -74,6 +74,15 @@ class Settings(BaseSettings):
     # Delai maximal d'une tache (script du pipeline ou tests), en secondes.
     task_timeout_seconds: int = 1800
 
+    # --- Voix neuronale (jarvis/voix.py) ---------------------------------------
+    # false = le widget utilise la voix du navigateur (plus robotique).
+    tts_enabled: bool = True
+    tts_voice: str = "fr-FR-HenriNeural"      # la voix de JARVIS-pro
+    tts_rate: str = "+5%"
+    # Par ADRESSE: une reponse orale fait 2 a 5 appels, l'accueil 3 a 6.
+    tts_rate_limit_capacity: int = 60
+    tts_rate_limit_refill_per_minute: float = 40.0
+
     # --- Profil admin (Phase 4) ----------------------------------------------
     # Seul le HACHE est stocke (voir jarvis/auth.py). Vide = profil admin
     # ferme: la route de connexion repond alors comme a un mauvais mot de
@@ -156,6 +165,10 @@ class Settings(BaseSettings):
     @property
     def rate_limit_ip_refill_per_second(self) -> float:
         return self.rate_limit_ip_refill_per_minute / 60.0
+
+    @property
+    def tts_rate_limit_refill_per_second(self) -> float:
+        return self.tts_rate_limit_refill_per_minute / 60.0
 
     @property
     def admin_rate_limit_refill_per_second(self) -> float:

@@ -82,7 +82,9 @@ class Figure:
 
     def vue_publique(self) -> dict:
         return {"id": self.id, "titre": self.spec.get("titre", ""),
-                "sous_titre": self.spec.get("sous_titre", "")}
+                "sous_titre": self.spec.get("sous_titre", ""),
+                "carte": self.spec.get("genre") in FORMATS_CARTES
+                or self.spec.get("genre") in GENRES_ANIMES}
 
 
 class FigureStore:
@@ -147,6 +149,20 @@ def en_csv(spec: dict) -> str:
     sortie = io.StringIO()
     ecrivain = csv.writer(sortie, lineterminator="\n")
     genre = spec["genre"]
+    if genre in GENRES_ANIMES:
+        from . import cartes
+        ecrivain.writerows(cartes.en_lignes_animation(spec))
+        return sortie.getvalue()
+    if genre == "nuage":
+        ecrivain.writerow(["annee", d.get("x_label", "x"), d.get("y_label", "y")])
+        ecrivain.writerows([list(pt) for pt in d["points"]])
+        return sortie.getvalue()
+    if genre in ("carte_sst", "carte_senegal"):
+        from . import cartes
+        lignes = (cartes.en_lignes_sst(spec) if genre == "carte_sst"
+                  else cartes.en_lignes_senegal(spec))
+        ecrivain.writerows(lignes)
+        return sortie.getvalue()
     if genre == "carte_chaleur":
         ecrivain.writerow([d.get("titre_lignes", "")] + [str(c) for c in d["colonnes"]])
         for nom, valeurs in zip(d["lignes"], d["valeurs"]):
@@ -341,7 +357,55 @@ def _carte_chaleur(fig, spec, p):
     barre.set_label(d.get("legende_couleur", "r"), color=p["encre2"], fontsize=7)
 
 
-_DESSINS = {"courbes": _courbes, "barres": _barres, "carte_chaleur": _carte_chaleur}
+def _nuage(fig, spec, p):
+    """Nuage annee par annee d'une correlation recalculee, avec la droite
+    de regression. Les annees les plus eloignees sont etiquetees: ce sont
+    elles qu'on cite ("2020 tire la correlation")."""
+    import numpy as np
+    d = spec["donnees"]
+    pts = [(a, x, y) for a, x, y in d["points"] if x is not None and y is not None]
+    ax = fig.add_subplot(111)
+    _preparer_axes(ax, p)
+    ax.grid(True, axis="x", color=p["grille"], linewidth=0.6)
+    xs = np.array([x for _, x, _ in pts])
+    ys = np.array([y for _, _, y in pts])
+    ax.axhline(0, color=p["zero"], linewidth=0.7, zorder=1)
+    ax.axvline(0, color=p["zero"], linewidth=0.7, zorder=1)
+    ax.scatter(xs, ys, s=14, color=p["series"][0], edgecolors=p["fond"],
+               linewidths=0.6, zorder=3)
+    if len(xs) > 2 and np.ptp(xs) > 0:
+        pente, origine = np.polyfit(xs, ys, 1)
+        bornes = np.array([xs.min(), xs.max()])
+        ax.plot(bornes, pente * bornes + origine, color=p["series"][1],
+                linewidth=1.3, zorder=4)
+    if len(xs):
+        zx = (xs - xs.mean()) / (xs.std() or 1)
+        zy = (ys - ys.mean()) / (ys.std() or 1)
+        for k in np.argsort(-(zx ** 2 + zy ** 2))[:4]:
+            ax.annotate(str(pts[k][0]), (xs[k], ys[k]), xytext=(3, 3),
+                        textcoords="offset points", fontsize=6, color=p["encre2"])
+    ax.set_xlabel(d.get("x_label", ""))
+    ax.set_ylabel(d.get("y_label", ""))
+
+
+_DESSINS = {"courbes": _courbes, "barres": _barres, "carte_chaleur": _carte_chaleur,
+            "nuage": _nuage}
+
+# Figures animees (GIF): l'ecran J.A.R.V.I.S les affiche comme une carte.
+GENRES_ANIMES = ("animation_sst",)
+
+# Cartes (jarvis/cartes): format large, mise en page geree par le dessin
+# lui-meme, et un theme qui porte aussi les couleurs de terre et d'ocean.
+FORMATS_CARTES = {"carte_sst": (7.2, 3.35), "carte_senegal": (6.0, 4.9)}
+DPI_CARTES = 220
+
+
+def _dessin_carte(genre):
+    def dessiner(fig, spec, p, theme):
+        from . import cartes
+        (cartes.dessiner_sst if genre == "carte_sst" else cartes.dessiner_senegal)(
+            fig, spec, theme)
+    return dessiner
 
 
 def rendre(spec: dict, theme: str = "clair") -> bytes:
@@ -353,17 +417,31 @@ def rendre(spec: dict, theme: str = "clair") -> bytes:
     if theme not in PALETTES:
         theme = "clair"
     p = PALETTES[theme]
-    hauteur = spec.get("hauteur_pouces", 2.5)
+    genre = spec["genre"]
+    if genre in GENRES_ANIMES:
+        from . import cartes
+        with _verrou_rendu:
+            return cartes.rendre_animation(spec, theme)
+    carte = genre in FORMATS_CARTES
+    largeur, hauteur = (FORMATS_CARTES[genre] if carte else
+                        (LARGEUR_POUCES, spec.get("hauteur_pouces", 2.5)))
     reglages = {"font.size": 7.5, "axes.labelsize": 7.5, "xtick.labelsize": 7,
                 "ytick.labelsize": 7, "font.family": "DejaVu Sans"}
     with _verrou_rendu, matplotlib.rc_context(reglages):
-        fig = FigureMpl(figsize=(LARGEUR_POUCES, hauteur), dpi=DPI,
-                        facecolor=p["fond"])
+        fond = p["fond"]
+        if carte:
+            from . import cartes
+            fond = cartes.STYLES[theme]["fond"]
+        fig = FigureMpl(figsize=(largeur, hauteur), dpi=DPI_CARTES if carte else DPI,
+                        facecolor=fond)
         FigureCanvasAgg(fig)
-        _DESSINS[spec["genre"]](fig, spec, p)
-        fig.tight_layout(pad=0.4)
+        if carte:
+            _dessin_carte(genre)(fig, spec, p, theme)
+        else:
+            _DESSINS[genre](fig, spec, p)
+            fig.tight_layout(pad=0.4)
         tampon = io.BytesIO()
-        fig.savefig(tampon, format="png", facecolor=p["fond"])
+        fig.savefig(tampon, format="png", facecolor=fond)
     return tampon.getvalue()
 
 
