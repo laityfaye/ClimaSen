@@ -1,0 +1,115 @@
+{
+  "protocole": "Evaluation des variantes de prevision Copernicus C3S pour la veille pre-saison.\n\nPROTOCOLE FIXE AVANT TOUT TELECHARGEMENT (27/09/2026). Toutes les variantes\nci-dessous sont rapportees, quel que soit leur resultat: on ne choisit pas\napres coup celle qui \"marche\".\n\nQuestion: une autre facon d'utiliser C3S distingue-t-elle mieux les annees\nextremes (veille.annees) que la reference ECMWF, emission avril, JAS\n(AUC LOYO 0,59 sur 1981-2016) ?\n\nModeles: le systeme courant de chacun des 8 centres C3S:\n  ecmwf 51, meteo_france 9, ukmo 604, dwd 22, cmcc 35, ncep 2, eccc 4, jma 3.\nPeriode commune de retro-prevision: 1993-2016 (24 saisons).\n\nVariantes:\n  V1  ECMWF seul,    emission avril, juillet-septembre (reference)\n  V2  multi-modele,  emission avril, juillet-septembre\n  V3  multi-modele,  emission mai,   juillet-septembre\n  V4  multi-modele,  emission mai,   aout-octobre\n  V5  ECMWF seul,    emission mai,   aout-octobre\n\nMulti-modele: moyenne a poids egaux des anomalies standardisees (z-score sur\n1993-2016) de la moyenne d'ensemble de chaque modele. Predicteur unique ->\ncalibration logistique et competence LOYO de veille.c3s.calibrer (seuil\nd'annee extreme reestime sans l'annee testee). Avec 24 saisons (~8 extremes),\nun p < 0,05 demande une AUC d'environ 0,75: le test manque de puissance,\net un resultat non significatif ne prouve pas l'absence de signal.\n\nUsage: py -3 scripts/21_evaluer_c3s_variantes.py\nSortie: outputs/veille/evaluation_c3s_variantes.json\n",
+  "annees": [
+    1993,
+    2016
+  ],
+  "resultats": [
+    {
+      "variante": "V1",
+      "libelle": "ECMWF seul, emission avril, juillet-septembre",
+      "modeles": [
+        "ecmwf"
+      ],
+      "n_modeles": 1,
+      "competence": {
+        "n": 24,
+        "annees_extremes": 8,
+        "auc": 0.547,
+        "p_permutation": 0.3725,
+        "brier_skill_score": -0.052,
+        "correlation_pluie_empreinte": 0.159
+      },
+      "coefficient": 0.255
+    },
+    {
+      "variante": "V2",
+      "libelle": "multi-modele, emission avril, juillet-septembre",
+      "modeles": [
+        "ecmwf",
+        "meteo_france",
+        "ukmo",
+        "dwd",
+        "cmcc",
+        "ncep",
+        "eccc",
+        "jma"
+      ],
+      "n_modeles": 8,
+      "competence": {
+        "n": 24,
+        "annees_extremes": 8,
+        "auc": 0.484,
+        "p_permutation": 0.538,
+        "brier_skill_score": -0.069,
+        "correlation_pluie_empreinte": 0.237
+      },
+      "coefficient": 0.184
+    },
+    {
+      "variante": "V3",
+      "libelle": "multi-modele, emission mai, juillet-septembre",
+      "modeles": [
+        "ecmwf",
+        "meteo_france",
+        "ukmo",
+        "dwd",
+        "cmcc",
+        "ncep",
+        "eccc",
+        "jma"
+      ],
+      "n_modeles": 8,
+      "competence": {
+        "n": 24,
+        "annees_extremes": 8,
+        "auc": 0.492,
+        "p_permutation": 0.525,
+        "brier_skill_score": -0.092,
+        "correlation_pluie_empreinte": 0.237
+      },
+      "coefficient": 0.1
+    },
+    {
+      "variante": "V4",
+      "libelle": "multi-modele, emission mai, aout-octobre",
+      "modeles": [
+        "ecmwf",
+        "meteo_france",
+        "ukmo",
+        "dwd",
+        "cmcc",
+        "ncep",
+        "eccc",
+        "jma"
+      ],
+      "n_modeles": 8,
+      "competence": {
+        "n": 24,
+        "annees_extremes": 8,
+        "auc": 0.492,
+        "p_permutation": 0.5275,
+        "brier_skill_score": -0.084,
+        "correlation_pluie_empreinte": 0.237
+      },
+      "coefficient": 0.133
+    },
+    {
+      "variante": "V5",
+      "libelle": "ECMWF seul, emission mai, aout-octobre",
+      "modeles": [
+        "ecmwf"
+      ],
+      "n_modeles": 1,
+      "competence": {
+        "n": 24,
+        "annees_extremes": 8,
+        "auc": 0.641,
+        "p_permutation": 0.149,
+        "brier_skill_score": 0.031,
+        "correlation_pluie_empreinte": 0.255
+      },
+      "coefficient": 0.526
+    }
+  ]
+}
