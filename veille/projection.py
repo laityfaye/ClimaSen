@@ -164,6 +164,11 @@ def profil_configurations(ctx, phase=PHASE_REFERENCE):
     table, s = mod_annees.classement(ctx.empreinte)
     ref = ctx.ref
     profil = {}
+    try:  # etat oceanique parent (veille.etats), facultatif
+        from . import etats
+        hier = etats.hierarchie(phase)["clusters"]
+    except Exception:                                   # noqa: BLE001
+        hier = {}
     for k, g in ref.groupby("cluster"):
         ans = g["year"].value_counts()
         profil[int(k)] = {
@@ -172,6 +177,8 @@ def profil_configurations(ctx, phase=PHASE_REFERENCE):
             "part_evenements_en_annee_extreme": round(float(
                 g["year"].map(table["extreme"]).fillna(False).mean()), 2),
         }
+        if int(k) in hier:
+            profil[int(k)]["etat_oceanique"] = hier[int(k)]["etat"]
     return profil
 
 

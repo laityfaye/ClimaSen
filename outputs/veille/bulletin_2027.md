@@ -1,6 +1,6 @@
 # Bulletin de veille pré-saison — saison des pluies 2027
 
-*CLIMAT-SEN · émis le 2026-09-26 · statut : partiel*
+*CLIMAT-SEN · émis le 2026-09-27 · statut : partiel*
 
 ## Niveau de risque d'année extrême : **INDÉTERMINÉ**
 
@@ -10,7 +10,7 @@ Saison 2027 : niveau de risque non déterminé, faute de prévision saisonnière
 
 ## Prévision saisonnière officielle (Copernicus C3S)
 
-Non disponible : non demandée
+Non disponible : prévision d'avril 2027 pas encore publiée (attendue le 13/04/2027)
 
 ## État océanique novembre-avril (configurations du mémoire)
 
@@ -19,6 +19,7 @@ Non disponible.
 ## Avertissements
 
 - Projection océanique indisponible : Etat novembre-avril incomplet pour 2027: manque 11/2026, 12/2026, 01/2027, 02/2027, 03/2027, 04/2027 (dernier mois du cube: 12/2023).
+- Prévision C3S : prévision d'avril 2027 pas encore publiée (attendue le 13/04/2027).
 - Les saisons 2024 à 2026 ne sont pas encore dans le catalogue CHIRPS : le modèle n'apprend que jusqu'à 2023.
 
 ---

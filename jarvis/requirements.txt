@@ -6,6 +6,7 @@ uvicorn[standard]>=0.30
 pydantic>=2.7
 pydantic-settings>=2.2
 edge-tts>=7.0         # voix neuronale (jarvis/voix.py), optionnelle
+python-docx>=1.1      # bulletin de veille diffusable (veille/diffusion.py)
 
 # Tests
 pytest>=8.0

@@ -307,9 +307,7 @@ def dessiner_sst(fig, spec, theme):
 
     s = STYLES.get(theme, STYLES["clair"])
     d = spec["donnees"]
-    z = centroides(d["phase"])[d["indice_cluster"]][::2, ::2]
-    lats, lons = axes_sst()
-    lats, lons = lats[::2], lons[::2]
+    z, lats, lons = _champ_sst(d, pas=2)
     vlim = d["vlim"]
 
     ax = fig.add_axes([0.055, 0.2, 0.92, 0.78])
@@ -456,16 +454,29 @@ def en_lignes_senegal(spec):
     return lignes
 
 
+def _champ_sst(d, pas=1):
+    """(grille, lats, lons) d'une carte SST: champ fourni dans la
+    specification (etat oceanique de la veille, grille 2 deg) ou centroide
+    d'un cluster (grille 0,25 deg, sous-echantillonnee de `pas`)."""
+    import numpy as np
+    if "grille" in d:
+        z = np.array(d["grille"], dtype="float64")
+        return z, np.asarray(d["lats"], dtype="float64"), np.asarray(d["lons"], dtype="float64")
+    z = centroides(d["phase"])[d["indice_cluster"]][::pas, ::pas]
+    lats, lons = axes_sst()
+    return z, lats[::pas], lons[::pas]
+
+
 def en_lignes_sst(spec):
     """Vue tableau d'une carte SST: grille a 2 deg (la grille native ferait
     700 000 lignes)."""
     import numpy as np
     d = spec["donnees"]
-    z = centroides(d["phase"])[d["indice_cluster"]]
-    lats, lons = axes_sst()
+    z, lats, lons = _champ_sst(d)
+    pas = 1 if "grille" in d else 8
     lignes = [["latitude", "longitude", "anomalie SST (degC)"]]
-    for i in range(0, 480, 8):
-        for j in range(0, 1440, 8):
+    for i in range(0, len(lats), pas):
+        for j in range(0, len(lons), pas):
             v = z[i, j]
             if not np.isnan(v):
                 lignes.append([round(float(lats[i]), 3), round(float(lons[j]), 3),

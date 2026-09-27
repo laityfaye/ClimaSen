@@ -182,4 +182,10 @@ def executer(settings, action: Action) -> dict:
             action.payload["avant"],
             action.payload["apres"],
         )
+    if action.type == "veille_diffusion":
+        # Seule l'annee vient de la proposition; les textes sont RECOMPOSES
+        # ici depuis le bulletin, comme dans l'apercu.
+        from .tools import common  # noqa: F401  (chemin du paquet veille)
+        from veille import diffusion
+        return diffusion.ecrire(int(action.payload["annee"]))
     raise ActionIntrouvable("Type d'action inconnu: %s" % action.type)

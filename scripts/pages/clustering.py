@@ -15,6 +15,36 @@ from dashboard_utils import (
     load_sst_centroid, _get_region_grid, _apply_geo_traces,
 )
 
+# Hierarchie etats oceaniques -> configurations (veille/etats.py): facultative,
+# la page reste utilisable sans les sorties du script 24.
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
+try:
+    from veille import etats as _etats
+except Exception:                                 # noqa: BLE001
+    _etats = None
+
+
+def _ligne_etat(hier, cid, muted, text):
+    """Ligne 'Etat : La Nina (91 %)' d'une carte de cluster (vide sans hierarchie)."""
+    if not hier or int(cid) not in hier["clusters"]:
+        return ""
+    c = hier["clusters"][int(cid)]
+    coul = next((e["couleur"] for e in hier["etats"] if e["nom"] == c["etat"]), muted)
+    return (f'<p style="font-size:0.72rem;color:{muted};margin:6px 0 0 0;">Etat&nbsp;: '
+            f'<span style="display:inline-block;width:8px;height:8px;border-radius:50%;'
+            f'background:{coul};margin-right:4px;"></span>'
+            f'<b style="color:{text};">{c["etat"]}</b> ({int(round(100 * c["part"]))} %)</p>')
+
+
+def _hierarchie(phase, events):
+    if _etats is None:
+        return None
+    try:
+        return _etats.hierarchie(phase, evenements=events[["cluster", "year", "phase"]])
+    except Exception:                             # noqa: BLE001
+        return None
+
+
 PHASE_LABELS_CL = {
     "Phase_1_debut":  "Debut saison  (Mai-Jun)",
     "Phase_2_pleine": "Pleine saison (Jul-Aou)",
@@ -402,6 +432,53 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
         )
         st.plotly_chart(fig_mo, use_container_width=True, key="cl_mo")
 
+    # ── Hierarchie : etats oceaniques -> configurations ──────────────────
+    hier = _hierarchie(sel_phase, events)
+    if hier:
+        st.markdown(
+            f'<h3 style="font-size:0.85rem;font-weight:700;color:{MUTED};text-transform:uppercase;'
+            f'letter-spacing:.07em;margin:4px 0 4px 2px;">Etats oceaniques &rarr; configurations</h3>'
+            f'<p style="font-size:0.74rem;color:{MUTED};margin:0 0 10px 2px;">'
+            f'Niveau 1 : 4 etats saisonniers robustes (composites par saison, significatifs face au '
+            f'hasard, script 24). Niveau 2 : les clusters d&#39;evenements ci-dessous, rattaches a l&#39;etat '
+            f'ou tombent au moins {int(100 * hier["seuil_rattachement"])} % de leurs evenements. '
+            f'V de Cramer = {hier["cramer_v"]} (1 = emboitement parfait).</p>',
+            unsafe_allow_html=True)
+        cols_e = st.columns(len(hier["etats"]))
+        for col, e in zip(cols_e, hier["etats"]):
+            enfants = ", ".join("C%d" % k for k in e["clusters"]) or "&mdash;"
+            annees = ", ".join(str(a) for a in e["annees"][:8]) + (" &hellip;" if len(e["annees"]) > 8 else "")
+            col.markdown(
+                f'<div style="background:{CARD};border:1px solid {BORDER};border-top:4px solid {e["couleur"]};'
+                f'border-radius:14px;padding:14px 16px;height:100%;">'
+                f'<p style="font-size:0.85rem;font-weight:800;color:{TEXT};margin:0;">{e["nom"]}</p>'
+                f'<p style="font-size:0.7rem;color:{MUTED};margin:4px 0 8px 0;line-height:1.4;">{e["description"]}</p>'
+                f'<p style="font-size:0.72rem;color:{MUTED};margin:0;">Configurations : '
+                f'<b style="color:{TEXT};">{enfants}</b></p>'
+                f'<p style="font-size:0.72rem;color:{MUTED};margin:2px 0;">Evenements : '
+                f'<b style="color:{TEXT};">{e["n_evenements"]}</b> &middot; Nino 3.4 : '
+                f'<b style="color:{TEXT};">{e["indices_moyens"]["Nino34"]:+.2f}</b></p>'
+                f'<p style="font-size:0.68rem;color:{MUTED};margin:4px 0 0 0;">{annees}</p>'
+                f'</div>', unsafe_allow_html=True)
+        # Repartition des evenements de chaque cluster entre les etats
+        noms_e = [e["nom"] for e in hier["etats"]]
+        coul_e = {e["nom"]: e["couleur"] for e in hier["etats"]}
+        ks = sorted(hier["tableau"])
+        fig_h = go.Figure()
+        for nom in noms_e:
+            fig_h.add_trace(go.Bar(
+                y=["C%d" % k for k in ks], x=[hier["tableau"][k].get(nom, 0) for k in ks],
+                name=nom, orientation="h", marker=dict(color=coul_e[nom], line=dict(width=1, color=CARD)),
+                hovertemplate="<b>%{y}</b> : %{x} evenements en " + nom + "<extra></extra>"))
+        fig_h.update_layout(
+            barmode="stack", height=max(220, 34 * len(ks) + 90),
+            paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+            font=dict(color=MUTED, size=11), margin=dict(l=10, r=10, t=10, b=10),
+            legend=dict(orientation="h", y=-0.18, x=0.5, xanchor="center"),
+            xaxis=dict(title="evenements", gridcolor=BORDER), yaxis=dict(autorange="reversed"))
+        st.plotly_chart(fig_h, use_container_width=True, config={"displayModeBar": False},
+                        key="cl_hierarchie")
+
     # ── Row 4 : per-cluster summary cards ────────────────────────────────
     st.markdown(
         f'<h3 style="font-size:0.85rem;font-weight:700;color:{MUTED};text-transform:uppercase;'
@@ -468,6 +545,7 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
                     f'<p style="font-size:0.72rem;color:{MUTED};margin:2px 0;">Precip moy.&nbsp;: <b style="color:{TEXT};">{mp}</b></p>'
                     f'<p style="font-size:0.72rem;color:{MUTED};margin:2px 0;">Couverture moy.&nbsp;: <b style="color:{TEXT};">{cov}</b></p>'
                     f'<p style="font-size:0.72rem;color:{MUTED};margin:2px 0;">Anomalie moy.&nbsp;: <b style="color:{TEXT};">{anom}</b></p>'
+                    f'{_ligne_etat(hier, cid, MUTED, TEXT)}'
                     f'</div>',
                     unsafe_allow_html=True,
                 )

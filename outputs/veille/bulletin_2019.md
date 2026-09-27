@@ -8,7 +8,7 @@ Probabilité : **21 %** (référence : 33 %) · source : c3s · confiance : faib
 
 ## Synthèse
 
-Saison 2019 : risque d'année extrême normal (probabilité 21 %, contre 33 % en moyenne), d'après la prévision saisonnière Copernicus C3S. Confiance faible. Le modèle ECMWF prévoit pour juillet-septembre une pluie en dessous de la normale (anomalie -1,1 écart-type) ; 10 % des membres sont dans le tiers le plus humide. De novembre à avril, l'océan ressemble surtout à la configuration C1 du mémoire (corrélation 0,20), celle des années 2015, 1992, 1997. Années les plus ressemblantes : 2015, 2016, 2003, 2017, 1987 ; 1 sur 5 ont été des années extrêmes (dont 2003, inondations documentées). Indication expérimentale de la projection : 31 %. Cette méthode n'a pas de compétence démontrée en prévision réelle (AUC 0,53 en conditions réelles de prévision) ; elle ne fixe pas le niveau de risque. Contexte : 3 des 10 dernières saisons observées (2009-2018) ont été extrêmes, pour une fréquence de référence d'une sur trois. Vérification : la saison 2019 a été non extrême (empreinte 525, rang 36).
+Saison 2019 : risque d'année extrême normal (probabilité 21 %, contre 33 % en moyenne), d'après la prévision saisonnière Copernicus C3S. Confiance faible. Le modèle ECMWF prévoit pour juillet-septembre une pluie en dessous de la normale (anomalie -1,1 écart-type) ; 10 % des membres sont dans le tiers le plus humide. De novembre à avril, l'océan ressemble surtout à la configuration C1 du mémoire (corrélation 0,20), une variante de l'état El Niño, celle des années 2015, 1992, 1997. Années les plus ressemblantes : 2015, 2016, 2003, 2017, 1987 ; 1 sur 5 ont été des années extrêmes (dont 2003, inondations documentées). Indication expérimentale de la projection : 31 %. Cette méthode n'a pas de compétence démontrée en prévision réelle (AUC 0,53 en conditions réelles de prévision) ; elle ne fixe pas le niveau de risque. Contexte : 3 des 10 dernières saisons observées (2009-2018) ont été extrêmes, pour une fréquence de référence d'une sur trois. Vérification : la saison 2019 a été non extrême (empreinte 525, rang 36).
 
 ## Prévision saisonnière officielle (Copernicus C3S)
 
@@ -23,11 +23,11 @@ Saison 2019 : risque d'année extrême normal (probabilité 21 %, contre 33 % en
 
 ## État océanique novembre-avril (configurations du mémoire)
 
-| Configuration | Corrélation | Années principales | Part d'événements en année extrême |
-|---|---|---|---|
-| C1 | 0,20 | 2015, 1992, 1997 | 0 % |
-| C4 | 0,16 | 1987, 1997, 1983 | 33 % |
-| C7 | 0,13 | 2003, 2005, 2009, 2002, 1994 | 32 % |
+| Configuration | État océanique | Corrélation | Années principales | Part d'événements en année extrême |
+|---|---|---|---|---|
+| C1 | El Niño | 0,20 | 2015, 1992, 1997 | 0 % |
+| C4 | El Niño | 0,16 | 1987, 1997, 1983 | 33 % |
+| C7 | Neutre | 0,13 | 2003, 2005, 2009, 2002, 1994 | 32 % |
 
 **Années analogues** : 2015 (normale), 2016 (normale), 2003 (extrême), 2017 (normale), 1987 (normale)
 

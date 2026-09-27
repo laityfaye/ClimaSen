@@ -79,7 +79,8 @@
         "annees_principales": [
           1989
         ],
-        "part_evenements_en_annee_extreme": 1.0
+        "part_evenements_en_annee_extreme": 1.0,
+        "etat_oceanique": "La Niña"
       },
       {
         "configuration": 2,
@@ -90,14 +91,16 @@
           1985,
           1988
         ],
-        "part_evenements_en_annee_extreme": 0.39
+        "part_evenements_en_annee_extreme": 0.39,
+        "etat_oceanique": "La Niña"
       },
       {
         "configuration": 8,
         "correlation": 0.115,
         "n_evenements": 76,
         "annees_principales": [],
-        "part_evenements_en_annee_extreme": 0.66
+        "part_evenements_en_annee_extreme": 0.66,
+        "etat_oceanique": "La Niña"
       }
     ],
     "toutes_configurations": [
@@ -174,6 +177,50 @@
         "extreme": true,
         "inondation_documentee": true
       }
+    ],
+    "trajectoire": [
+      {
+        "jusqu_a": "2005-11",
+        "n_mois": 1,
+        "probabilite_experimentale": 0.388,
+        "configuration": 2,
+        "correlation": 0.408
+      },
+      {
+        "jusqu_a": "2005-12",
+        "n_mois": 2,
+        "probabilite_experimentale": 0.387,
+        "configuration": 2,
+        "correlation": 0.347
+      },
+      {
+        "jusqu_a": "2006-01",
+        "n_mois": 3,
+        "probabilite_experimentale": 0.387,
+        "configuration": 2,
+        "correlation": 0.268
+      },
+      {
+        "jusqu_a": "2006-02",
+        "n_mois": 4,
+        "probabilite_experimentale": 0.388,
+        "configuration": 2,
+        "correlation": 0.185
+      },
+      {
+        "jusqu_a": "2006-03",
+        "n_mois": 5,
+        "probabilite_experimentale": 0.389,
+        "configuration": 5,
+        "correlation": 0.147
+      },
+      {
+        "jusqu_a": "2006-04",
+        "n_mois": 6,
+        "probabilite_experimentale": 0.388,
+        "configuration": 5,
+        "correlation": 0.152
+      }
     ]
   },
   "competence_projection": {
@@ -214,5 +261,5 @@
     "inondation_documentee": false,
     "seuil": 745.8
   },
-  "synthese": "Saison 2006 : risque d'année extrême élevé (probabilité 48 %, contre 33 % en moyenne), d'après la prévision saisonnière Copernicus C3S. Confiance faible. Le modèle ECMWF prévoit pour juillet-septembre une pluie au-dessus de la normale (anomalie +1,1 écart-type) ; 48 % des membres sont dans le tiers le plus humide. De novembre à avril, l'océan ressemble surtout à la configuration C5 du mémoire (corrélation 0,15), celle des années 1989. Années les plus ressemblantes : 2001, 1996, 1989, 2004, 1999 ; 2 sur 5 ont été des années extrêmes (dont 1999, inondations documentées). Indication expérimentale de la projection : 39 %. Cette méthode n'a pas de compétence démontrée en prévision réelle (AUC 0,53 en conditions réelles de prévision) ; elle ne fixe pas le niveau de risque. Contexte : 5 des 10 dernières saisons observées (1996-2005) ont été extrêmes, pour une fréquence de référence d'une sur trois. Vérification : la saison 2006 a été non extrême (empreinte 552, rang 32)."
+  "synthese": "Saison 2006 : risque d'année extrême élevé (probabilité 48 %, contre 33 % en moyenne), d'après la prévision saisonnière Copernicus C3S. Confiance faible. Le modèle ECMWF prévoit pour juillet-septembre une pluie au-dessus de la normale (anomalie +1,1 écart-type) ; 48 % des membres sont dans le tiers le plus humide. De novembre à avril, l'océan ressemble surtout à la configuration C5 du mémoire (corrélation 0,15), une variante de l'état La Niña, celle des années 1989. Années les plus ressemblantes : 2001, 1996, 1989, 2004, 1999 ; 2 sur 5 ont été des années extrêmes (dont 1999, inondations documentées). Indication expérimentale de la projection : 39 %. Cette méthode n'a pas de compétence démontrée en prévision réelle (AUC 0,53 en conditions réelles de prévision) ; elle ne fixe pas le niveau de risque. Contexte : 5 des 10 dernières saisons observées (1996-2005) ont été extrêmes, pour une fréquence de référence d'une sur trois. Vérification : la saison 2006 a été non extrême (empreinte 552, rang 32)."
 }

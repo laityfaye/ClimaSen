@@ -77,14 +77,16 @@
         "correlation": 0.213,
         "n_evenements": 76,
         "annees_principales": [],
-        "part_evenements_en_annee_extreme": 0.66
+        "part_evenements_en_annee_extreme": 0.66,
+        "etat_oceanique": "La Niña"
       },
       {
         "configuration": 3,
         "correlation": 0.15,
         "n_evenements": 47,
         "annees_principales": [],
-        "part_evenements_en_annee_extreme": 1.0
+        "part_evenements_en_annee_extreme": 1.0,
+        "etat_oceanique": "Neutre"
       },
       {
         "configuration": 7,
@@ -93,7 +95,8 @@
         "annees_principales": [
           1994
         ],
-        "part_evenements_en_annee_extreme": 0.32
+        "part_evenements_en_annee_extreme": 0.32,
+        "etat_oceanique": "Neutre"
       }
     ],
     "toutes_configurations": [
@@ -170,6 +173,50 @@
         "extreme": false,
         "inondation_documentee": false
       }
+    ],
+    "trajectoire": [
+      {
+        "jusqu_a": "2001-11",
+        "n_mois": 1,
+        "probabilite_experimentale": 0.353,
+        "configuration": 2,
+        "correlation": 0.191
+      },
+      {
+        "jusqu_a": "2001-12",
+        "n_mois": 2,
+        "probabilite_experimentale": 0.361,
+        "configuration": 8,
+        "correlation": 0.217
+      },
+      {
+        "jusqu_a": "2002-01",
+        "n_mois": 3,
+        "probabilite_experimentale": 0.359,
+        "configuration": 8,
+        "correlation": 0.216
+      },
+      {
+        "jusqu_a": "2002-02",
+        "n_mois": 4,
+        "probabilite_experimentale": 0.357,
+        "configuration": 8,
+        "correlation": 0.232
+      },
+      {
+        "jusqu_a": "2002-03",
+        "n_mois": 5,
+        "probabilite_experimentale": 0.35,
+        "configuration": 8,
+        "correlation": 0.222
+      },
+      {
+        "jusqu_a": "2002-04",
+        "n_mois": 6,
+        "probabilite_experimentale": 0.343,
+        "configuration": 8,
+        "correlation": 0.213
+      }
     ]
   },
   "competence_projection": {
@@ -210,5 +257,5 @@
     "inondation_documentee": false,
     "seuil": 745.8
   },
-  "synthese": "Saison 2002 : risque d'année extrême normal (probabilité 31 %, contre 33 % en moyenne), d'après la prévision saisonnière Copernicus C3S. Confiance faible. Le modèle ECMWF prévoit pour juillet-septembre une pluie en dessous de la normale (anomalie -0,2 écart-type) ; 20 % des membres sont dans le tiers le plus humide. De novembre à avril, l'océan ressemble surtout à la configuration C8 du mémoire (corrélation 0,21), celle des années . Années les plus ressemblantes : 2000, 1996, 1997, 2001, 1990 ; 1 sur 5 ont été des années extrêmes. Indication expérimentale de la projection : 34 %. Cette méthode n'a pas de compétence démontrée en prévision réelle (AUC 0,53 en conditions réelles de prévision) ; elle ne fixe pas le niveau de risque. Contexte : 2 des 10 dernières saisons observées (1992-2001) ont été extrêmes, pour une fréquence de référence d'une sur trois. Vérification : la saison 2002 a été extrême (empreinte 905, rang 7)."
+  "synthese": "Saison 2002 : risque d'année extrême normal (probabilité 31 %, contre 33 % en moyenne), d'après la prévision saisonnière Copernicus C3S. Confiance faible. Le modèle ECMWF prévoit pour juillet-septembre une pluie en dessous de la normale (anomalie -0,2 écart-type) ; 20 % des membres sont dans le tiers le plus humide. De novembre à avril, l'océan ressemble surtout à la configuration C8 du mémoire (corrélation 0,21), une variante de l'état La Niña, celle des années . Années les plus ressemblantes : 2000, 1996, 1997, 2001, 1990 ; 1 sur 5 ont été des années extrêmes. Indication expérimentale de la projection : 34 %. Cette méthode n'a pas de compétence démontrée en prévision réelle (AUC 0,53 en conditions réelles de prévision) ; elle ne fixe pas le niveau de risque. Contexte : 2 des 10 dernières saisons observées (1992-2001) ont été extrêmes, pour une fréquence de référence d'une sur trois. Vérification : la saison 2002 a été extrême (empreinte 905, rang 7)."
 }

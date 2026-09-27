@@ -99,11 +99,10 @@ const frame = {
 };
 
 // Second argument : "ouvert" pour simuler une restauration apres une
-// reexecution Streamlit, panneau precedemment ouvert en mode J.A.R.V.I.S;
-// "fenetre" : ouvert dans la PETITE fenetre (mode par defaut de la bulle).
+// reexecution Streamlit, panneau precedemment ouvert (toujours en plein
+// ecran J.A.R.V.I.S depuis le 27/09/2026).
 const OUVERT = OPTIONS.includes("ouvert");
-const FENETRE = OPTIONS.includes("fenetre");
-const stockage = OUVERT ? { jarvis_open: "1", jarvis_hud: FENETRE ? "0" : "1" } : {};
+const stockage = OUVERT ? { jarvis_open: "1", jarvis_hud: "1" } : {};
 const elements = {};
 ["panel", "log", "intro", "input", "send", "fab", "banner", "dot", "status", "close",
  "typing"].forEach((id) => { elements[id] = element(id); });
@@ -174,12 +173,7 @@ setTimeout(() => {
            apres.position === "fixed" && parseInt(apres.height, 10) >= 50,
            "style apres controle : " + JSON.stringify(apres));
 
-  if (OUVERT && FENETRE) {
-    // Ouvert dans la petite fenetre : il s'y rouvre, sans plein ecran.
-    verifier("Jarvis est rouvert dans la petite fenetre",
-             parseInt(apres.height, 10) >= 300 && apres.width !== "100vw",
-             JSON.stringify(apres));
-  } else if (OUVERT) {
+  if (OUVERT) {
     // Jarvis etait en mode J.A.R.V.I.S avant la reexecution Streamlit : il
     // doit s'y rouvrir, en PLEIN ECRAN. L'iframe couvre alors toute la
     // fenetre hote.

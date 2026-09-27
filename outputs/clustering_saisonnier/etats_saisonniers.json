@@ -1,0 +1,736 @@
+{
+ "source": "scripts/24_clustering_saisonnier.py (K-Means, Toutes phases, k=4)",
+ "regle_de_nommage": ", par une regle fixe sur les indices (pas a la main):\n  - le Nino 3.4 moyen le plus eleve: \"El Nino\";\n  - le suivant: \"Neutre\";\n  - des deux restants, celui dont l'ocean Indien (IOBM) est le plus chaud:\n    \"Transition apres El Nino\" (le bassin indien reste chaud l'annee qui suit\n    un fort El Nino), l'autre: \"La Nina\".",
+ "etats": [
+  {
+   "id": 2,
+   "nom": "El Niño",
+   "description": "Pacifique équatorial est et central nettement plus chaud que la normale",
+   "couleur": "#EF4444",
+   "indices_moyens": {
+    "Nino34": 1.39,
+    "TNA": 0.49,
+    "TSA": -0.23,
+    "IOBM": 0.42,
+    "AMO": 0.42
+   },
+   "n_saisons": 14,
+   "annees": [
+    1983,
+    1987,
+    1992,
+    1997,
+    2015,
+    2023
+   ]
+  },
+  {
+   "id": 1,
+   "nom": "Neutre",
+   "description": "Pacifique proche de la normale, légèrement chaud au centre",
+   "couleur": "#94A3B8",
+   "indices_moyens": {
+    "Nino34": 0.41,
+    "TNA": 0.12,
+    "TSA": -0.05,
+    "IOBM": 0.09,
+    "AMO": 0.21
+   },
+   "n_saisons": 53,
+   "annees": [
+    1986,
+    1987,
+    1990,
+    1991,
+    1992,
+    1993,
+    1994,
+    1995,
+    2002,
+    2003,
+    2004,
+    2005,
+    2006,
+    2007,
+    2009,
+    2012,
+    2013,
+    2014,
+    2017,
+    2018,
+    2019
+   ]
+  },
+  {
+   "id": 3,
+   "nom": "La Niña",
+   "description": "Pacifique équatorial froid, Atlantique tropical nord légèrement chaud",
+   "couleur": "#2563EB",
+   "indices_moyens": {
+    "Nino34": -0.56,
+    "TNA": 0.18,
+    "TSA": 0.16,
+    "IOBM": -0.0,
+    "AMO": 0.3
+   },
+   "n_saisons": 49,
+   "annees": [
+    1984,
+    1985,
+    1988,
+    1989,
+    1995,
+    1996,
+    1999,
+    2000,
+    2001,
+    2005,
+    2007,
+    2008,
+    2010,
+    2011,
+    2013,
+    2017,
+    2020,
+    2021,
+    2022
+   ]
+  },
+  {
+   "id": 0,
+   "nom": "Transition après El Niño",
+   "description": "Pacifique est qui se refroidit, océan Indien et Pacifique ouest chauds",
+   "couleur": "#F59E0B",
+   "indices_moyens": {
+    "Nino34": -0.66,
+    "TNA": 0.25,
+    "TSA": 0.18,
+    "IOBM": 0.09,
+    "AMO": 0.43
+   },
+   "n_saisons": 7,
+   "annees": [
+    1983,
+    1998,
+    2016
+   ]
+  }
+ ],
+ "saisons": [
+  {
+   "annee": 1983,
+   "phase": "Phase_1_debut",
+   "etat": 2
+  },
+  {
+   "annee": 1983,
+   "phase": "Phase_2_pleine",
+   "etat": 2
+  },
+  {
+   "annee": 1983,
+   "phase": "Phase_3_fin",
+   "etat": 0
+  },
+  {
+   "annee": 1984,
+   "phase": "Phase_1_debut",
+   "etat": 3
+  },
+  {
+   "annee": 1984,
+   "phase": "Phase_2_pleine",
+   "etat": 3
+  },
+  {
+   "annee": 1984,
+   "phase": "Phase_3_fin",
+   "etat": 3
+  },
+  {
+   "annee": 1985,
+   "phase": "Phase_1_debut",
+   "etat": 3
+  },
+  {
+   "annee": 1985,
+   "phase": "Phase_2_pleine",
+   "etat": 3
+  },
+  {
+   "annee": 1985,
+   "phase": "Phase_3_fin",
+   "etat": 3
+  },
+  {
+   "annee": 1986,
+   "phase": "Phase_1_debut",
+   "etat": 1
+  },
+  {
+   "annee": 1986,
+   "phase": "Phase_2_pleine",
+   "etat": 1
+  },
+  {
+   "annee": 1986,
+   "phase": "Phase_3_fin",
+   "etat": 1
+  },
+  {
+   "annee": 1987,
+   "phase": "Phase_1_debut",
+   "etat": 1
+  },
+  {
+   "annee": 1987,
+   "phase": "Phase_2_pleine",
+   "etat": 2
+  },
+  {
+   "annee": 1987,
+   "phase": "Phase_3_fin",
+   "etat": 2
+  },
+  {
+   "annee": 1988,
+   "phase": "Phase_1_debut",
+   "etat": 3
+  },
+  {
+   "annee": 1988,
+   "phase": "Phase_2_pleine",
+   "etat": 3
+  },
+  {
+   "annee": 1988,
+   "phase": "Phase_3_fin",
+   "etat": 3
+  },
+  {
+   "annee": 1989,
+   "phase": "Phase_1_debut",
+   "etat": 3
+  },
+  {
+   "annee": 1989,
+   "phase": "Phase_2_pleine",
+   "etat": 3
+  },
+  {
+   "annee": 1989,
+   "phase": "Phase_3_fin",
+   "etat": 3
+  },
+  {
+   "annee": 1990,
+   "phase": "Phase_1_debut",
+   "etat": 1
+  },
+  {
+   "annee": 1990,
+   "phase": "Phase_2_pleine",
+   "etat": 1
+  },
+  {
+   "annee": 1990,
+   "phase": "Phase_3_fin",
+   "etat": 1
+  },
+  {
+   "annee": 1991,
+   "phase": "Phase_1_debut",
+   "etat": 1
+  },
+  {
+   "annee": 1991,
+   "phase": "Phase_2_pleine",
+   "etat": 1
+  },
+  {
+   "annee": 1991,
+   "phase": "Phase_3_fin",
+   "etat": 1
+  },
+  {
+   "annee": 1992,
+   "phase": "Phase_1_debut",
+   "etat": 2
+  },
+  {
+   "annee": 1992,
+   "phase": "Phase_2_pleine",
+   "etat": 1
+  },
+  {
+   "annee": 1992,
+   "phase": "Phase_3_fin",
+   "etat": 1
+  },
+  {
+   "annee": 1993,
+   "phase": "Phase_1_debut",
+   "etat": 1
+  },
+  {
+   "annee": 1993,
+   "phase": "Phase_2_pleine",
+   "etat": 1
+  },
+  {
+   "annee": 1993,
+   "phase": "Phase_3_fin",
+   "etat": 1
+  },
+  {
+   "annee": 1994,
+   "phase": "Phase_1_debut",
+   "etat": 1
+  },
+  {
+   "annee": 1994,
+   "phase": "Phase_2_pleine",
+   "etat": 1
+  },
+  {
+   "annee": 1994,
+   "phase": "Phase_3_fin",
+   "etat": 1
+  },
+  {
+   "annee": 1995,
+   "phase": "Phase_1_debut",
+   "etat": 1
+  },
+  {
+   "annee": 1995,
+   "phase": "Phase_2_pleine",
+   "etat": 1
+  },
+  {
+   "annee": 1995,
+   "phase": "Phase_3_fin",
+   "etat": 3
+  },
+  {
+   "annee": 1996,
+   "phase": "Phase_1_debut",
+   "etat": 3
+  },
+  {
+   "annee": 1996,
+   "phase": "Phase_2_pleine",
+   "etat": 3
+  },
+  {
+   "annee": 1996,
+   "phase": "Phase_3_fin",
+   "etat": 3
+  },
+  {
+   "annee": 1997,
+   "phase": "Phase_1_debut",
+   "etat": 2
+  },
+  {
+   "annee": 1997,
+   "phase": "Phase_2_pleine",
+   "etat": 2
+  },
+  {
+   "annee": 1997,
+   "phase": "Phase_3_fin",
+   "etat": 2
+  },
+  {
+   "annee": 1998,
+   "phase": "Phase_1_debut",
+   "etat": 0
+  },
+  {
+   "annee": 1998,
+   "phase": "Phase_2_pleine",
+   "etat": 0
+  },
+  {
+   "annee": 1998,
+   "phase": "Phase_3_fin",
+   "etat": 0
+  },
+  {
+   "annee": 1999,
+   "phase": "Phase_1_debut",
+   "etat": 3
+  },
+  {
+   "annee": 1999,
+   "phase": "Phase_2_pleine",
+   "etat": 3
+  },
+  {
+   "annee": 1999,
+   "phase": "Phase_3_fin",
+   "etat": 3
+  },
+  {
+   "annee": 2000,
+   "phase": "Phase_1_debut",
+   "etat": 3
+  },
+  {
+   "annee": 2000,
+   "phase": "Phase_2_pleine",
+   "etat": 3
+  },
+  {
+   "annee": 2000,
+   "phase": "Phase_3_fin",
+   "etat": 3
+  },
+  {
+   "annee": 2001,
+   "phase": "Phase_1_debut",
+   "etat": 3
+  },
+  {
+   "annee": 2001,
+   "phase": "Phase_2_pleine",
+   "etat": 3
+  },
+  {
+   "annee": 2001,
+   "phase": "Phase_3_fin",
+   "etat": 3
+  },
+  {
+   "annee": 2002,
+   "phase": "Phase_1_debut",
+   "etat": 1
+  },
+  {
+   "annee": 2002,
+   "phase": "Phase_2_pleine",
+   "etat": 1
+  },
+  {
+   "annee": 2002,
+   "phase": "Phase_3_fin",
+   "etat": 1
+  },
+  {
+   "annee": 2003,
+   "phase": "Phase_1_debut",
+   "etat": 1
+  },
+  {
+   "annee": 2003,
+   "phase": "Phase_2_pleine",
+   "etat": 1
+  },
+  {
+   "annee": 2003,
+   "phase": "Phase_3_fin",
+   "etat": 1
+  },
+  {
+   "annee": 2004,
+   "phase": "Phase_1_debut",
+   "etat": 1
+  },
+  {
+   "annee": 2004,
+   "phase": "Phase_2_pleine",
+   "etat": 1
+  },
+  {
+   "annee": 2004,
+   "phase": "Phase_3_fin",
+   "etat": 1
+  },
+  {
+   "annee": 2005,
+   "phase": "Phase_1_debut",
+   "etat": 1
+  },
+  {
+   "annee": 2005,
+   "phase": "Phase_2_pleine",
+   "etat": 1
+  },
+  {
+   "annee": 2005,
+   "phase": "Phase_3_fin",
+   "etat": 3
+  },
+  {
+   "annee": 2006,
+   "phase": "Phase_1_debut",
+   "etat": 1
+  },
+  {
+   "annee": 2006,
+   "phase": "Phase_2_pleine",
+   "etat": 1
+  },
+  {
+   "annee": 2006,
+   "phase": "Phase_3_fin",
+   "etat": 1
+  },
+  {
+   "annee": 2007,
+   "phase": "Phase_1_debut",
+   "etat": 1
+  },
+  {
+   "annee": 2007,
+   "phase": "Phase_2_pleine",
+   "etat": 3
+  },
+  {
+   "annee": 2007,
+   "phase": "Phase_3_fin",
+   "etat": 3
+  },
+  {
+   "annee": 2008,
+   "phase": "Phase_1_debut",
+   "etat": 3
+  },
+  {
+   "annee": 2008,
+   "phase": "Phase_2_pleine",
+   "etat": 3
+  },
+  {
+   "annee": 2008,
+   "phase": "Phase_3_fin",
+   "etat": 3
+  },
+  {
+   "annee": 2009,
+   "phase": "Phase_1_debut",
+   "etat": 1
+  },
+  {
+   "annee": 2009,
+   "phase": "Phase_2_pleine",
+   "etat": 1
+  },
+  {
+   "annee": 2009,
+   "phase": "Phase_3_fin",
+   "etat": 1
+  },
+  {
+   "annee": 2010,
+   "phase": "Phase_1_debut",
+   "etat": 3
+  },
+  {
+   "annee": 2010,
+   "phase": "Phase_2_pleine",
+   "etat": 3
+  },
+  {
+   "annee": 2010,
+   "phase": "Phase_3_fin",
+   "etat": 3
+  },
+  {
+   "annee": 2011,
+   "phase": "Phase_1_debut",
+   "etat": 3
+  },
+  {
+   "annee": 2011,
+   "phase": "Phase_2_pleine",
+   "etat": 3
+  },
+  {
+   "annee": 2011,
+   "phase": "Phase_3_fin",
+   "etat": 3
+  },
+  {
+   "annee": 2012,
+   "phase": "Phase_1_debut",
+   "etat": 1
+  },
+  {
+   "annee": 2012,
+   "phase": "Phase_2_pleine",
+   "etat": 1
+  },
+  {
+   "annee": 2012,
+   "phase": "Phase_3_fin",
+   "etat": 1
+  },
+  {
+   "annee": 2013,
+   "phase": "Phase_1_debut",
+   "etat": 3
+  },
+  {
+   "annee": 2013,
+   "phase": "Phase_2_pleine",
+   "etat": 3
+  },
+  {
+   "annee": 2013,
+   "phase": "Phase_3_fin",
+   "etat": 1
+  },
+  {
+   "annee": 2014,
+   "phase": "Phase_1_debut",
+   "etat": 1
+  },
+  {
+   "annee": 2014,
+   "phase": "Phase_2_pleine",
+   "etat": 1
+  },
+  {
+   "annee": 2014,
+   "phase": "Phase_3_fin",
+   "etat": 1
+  },
+  {
+   "annee": 2015,
+   "phase": "Phase_1_debut",
+   "etat": 2
+  },
+  {
+   "annee": 2015,
+   "phase": "Phase_2_pleine",
+   "etat": 2
+  },
+  {
+   "annee": 2015,
+   "phase": "Phase_3_fin",
+   "etat": 2
+  },
+  {
+   "annee": 2016,
+   "phase": "Phase_1_debut",
+   "etat": 0
+  },
+  {
+   "annee": 2016,
+   "phase": "Phase_2_pleine",
+   "etat": 0
+  },
+  {
+   "annee": 2016,
+   "phase": "Phase_3_fin",
+   "etat": 0
+  },
+  {
+   "annee": 2017,
+   "phase": "Phase_1_debut",
+   "etat": 1
+  },
+  {
+   "annee": 2017,
+   "phase": "Phase_2_pleine",
+   "etat": 1
+  },
+  {
+   "annee": 2017,
+   "phase": "Phase_3_fin",
+   "etat": 3
+  },
+  {
+   "annee": 2018,
+   "phase": "Phase_1_debut",
+   "etat": 1
+  },
+  {
+   "annee": 2018,
+   "phase": "Phase_2_pleine",
+   "etat": 1
+  },
+  {
+   "annee": 2018,
+   "phase": "Phase_3_fin",
+   "etat": 1
+  },
+  {
+   "annee": 2019,
+   "phase": "Phase_1_debut",
+   "etat": 1
+  },
+  {
+   "annee": 2019,
+   "phase": "Phase_2_pleine",
+   "etat": 1
+  },
+  {
+   "annee": 2019,
+   "phase": "Phase_3_fin",
+   "etat": 1
+  },
+  {
+   "annee": 2020,
+   "phase": "Phase_1_debut",
+   "etat": 3
+  },
+  {
+   "annee": 2020,
+   "phase": "Phase_2_pleine",
+   "etat": 3
+  },
+  {
+   "annee": 2020,
+   "phase": "Phase_3_fin",
+   "etat": 3
+  },
+  {
+   "annee": 2021,
+   "phase": "Phase_1_debut",
+   "etat": 3
+  },
+  {
+   "annee": 2021,
+   "phase": "Phase_2_pleine",
+   "etat": 3
+  },
+  {
+   "annee": 2021,
+   "phase": "Phase_3_fin",
+   "etat": 3
+  },
+  {
+   "annee": 2022,
+   "phase": "Phase_1_debut",
+   "etat": 3
+  },
+  {
+   "annee": 2022,
+   "phase": "Phase_2_pleine",
+   "etat": 3
+  },
+  {
+   "annee": 2022,
+   "phase": "Phase_3_fin",
+   "etat": 3
+  },
+  {
+   "annee": 2023,
+   "phase": "Phase_1_debut",
+   "etat": 2
+  },
+  {
+   "annee": 2023,
+   "phase": "Phase_2_pleine",
+   "etat": 2
+  },
+  {
+   "annee": 2023,
+   "phase": "Phase_3_fin",
+   "etat": 2
+  }
+ ]
+}

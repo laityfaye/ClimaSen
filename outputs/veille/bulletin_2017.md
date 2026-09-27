@@ -8,7 +8,7 @@ Probabilité : **22 %** (référence : 33 %) · source : c3s · confiance : faib
 
 ## Synthèse
 
-Saison 2017 : risque d'année extrême normal (probabilité 22 %, contre 33 % en moyenne), d'après la prévision saisonnière Copernicus C3S. Confiance faible. Le modèle ECMWF prévoit pour juillet-septembre une pluie en dessous de la normale (anomalie -1,0 écart-type) ; 14 % des membres sont dans le tiers le plus humide. De novembre à avril, l'océan ressemble surtout à la configuration C6 du mémoire (corrélation 0,13), celle des années 2016, 1998. Années les plus ressemblantes : 2006, 2004, 2013, 2015, 2001 ; 0 sur 5 ont été des années extrêmes. Indication expérimentale de la projection : 34 %. Cette méthode n'a pas de compétence démontrée en prévision réelle (AUC 0,53 en conditions réelles de prévision) ; elle ne fixe pas le niveau de risque. Contexte : 4 des 10 dernières saisons observées (2007-2016) ont été extrêmes, pour une fréquence de référence d'une sur trois. Vérification : la saison 2017 a été non extrême (empreinte 746, rang 15).
+Saison 2017 : risque d'année extrême normal (probabilité 22 %, contre 33 % en moyenne), d'après la prévision saisonnière Copernicus C3S. Confiance faible. Le modèle ECMWF prévoit pour juillet-septembre une pluie en dessous de la normale (anomalie -1,0 écart-type) ; 14 % des membres sont dans le tiers le plus humide. De novembre à avril, l'océan ressemble surtout à la configuration C6 du mémoire (corrélation 0,13), une variante de l'état Transition après El Niño, celle des années 2016, 1998. Années les plus ressemblantes : 2006, 2004, 2013, 2015, 2001 ; 0 sur 5 ont été des années extrêmes. Indication expérimentale de la projection : 34 %. Cette méthode n'a pas de compétence démontrée en prévision réelle (AUC 0,53 en conditions réelles de prévision) ; elle ne fixe pas le niveau de risque. Contexte : 4 des 10 dernières saisons observées (2007-2016) ont été extrêmes, pour une fréquence de référence d'une sur trois. Vérification : la saison 2017 a été non extrême (empreinte 746, rang 15).
 
 ## Prévision saisonnière officielle (Copernicus C3S)
 
@@ -23,11 +23,11 @@ Saison 2017 : risque d'année extrême normal (probabilité 22 %, contre 33 % en
 
 ## État océanique novembre-avril (configurations du mémoire)
 
-| Configuration | Corrélation | Années principales | Part d'événements en année extrême |
-|---|---|---|---|
-| C6 | 0,13 | 2016, 1998 | 0 % |
-| C4 | 0,03 | 1987, 1997, 1983 | 33 % |
-| C7 | -0,01 | 2003, 2005, 2009, 2002, 1994 | 32 % |
+| Configuration | État océanique | Corrélation | Années principales | Part d'événements en année extrême |
+|---|---|---|---|---|
+| C6 | Transition après El Niño | 0,13 | 2016, 1998 | 0 % |
+| C4 | El Niño | 0,03 | 1987, 1997, 1983 | 33 % |
+| C7 | Neutre | -0,01 | 2003, 2005, 2009, 2002, 1994 | 32 % |
 
 **Années analogues** : 2006 (normale), 2004 (normale), 2013 (normale), 2015 (normale), 2001 (normale)
 

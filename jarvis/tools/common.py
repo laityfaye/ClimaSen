@@ -7,9 +7,17 @@ acceptees: ...") permet a Claude de se corriger au tour suivant, la ou une
 trace de validation anglaise le laisserait tourner en rond.
 """
 import math
+import sys
 import unicodedata
 
 import pandas as pd
+
+from ..config import PROJECT_DIR
+
+# Le paquet de la veille pre-saison (veille/) vit a la racine du projet,
+# a cote de jarvis/: importable quel que soit le dossier de lancement.
+if str(PROJECT_DIR) not in sys.path:
+    sys.path.append(str(PROJECT_DIR))
 
 
 class ToolInputError(ValueError):

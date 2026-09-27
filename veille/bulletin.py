@@ -193,9 +193,11 @@ def synthese(b):
         conf = p.get("configurations") or []
         if conf:
             c = conf[0]
+            etat = c.get("etat_oceanique")
             phrases.append("De novembre à avril, l'océan ressemble surtout à la configuration C%d "
-                           "du mémoire (corrélation %.2f), celle des années %s." % (
+                           "du mémoire (corrélation %.2f)%s, celle des années %s." % (
                                c["configuration"], c["correlation"],
+                               (", une variante de l'état %s" % etat) if etat and etat != "mixte" else "",
                                ", ".join(str(a) for a in c.get("annees_principales", [])[:3])))
         ana = p.get("analogues") or []
         if ana:
@@ -269,11 +271,11 @@ def markdown(b):
     p = b.get("projection")
     lignes += ["## État océanique novembre-avril (configurations du mémoire)", ""]
     if p:
-        lignes += ["| Configuration | Corrélation | Années principales | Part d'événements en année extrême |",
-                   "|---|---|---|---|"]
+        lignes += ["| Configuration | État océanique | Corrélation | Années principales | Part d'événements en année extrême |",
+                   "|---|---|---|---|---|"]
         for c in (p.get("configurations") or [])[:3]:
-            lignes.append("| C%d | %.2f | %s | %s |" % (
-                c["configuration"], c["correlation"],
+            lignes.append("| C%d | %s | %.2f | %s | %s |" % (
+                c["configuration"], c.get("etat_oceanique") or "—", c["correlation"],
                 ", ".join(str(a) for a in c.get("annees_principales", [])[:5]),
                 _pct(c.get("part_evenements_en_annee_extreme", 0))))
         lignes += ["", "**Années analogues** : " + ", ".join(

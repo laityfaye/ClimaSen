@@ -79,7 +79,8 @@
         "annees_principales": [
           1998
         ],
-        "part_evenements_en_annee_extreme": 0.0
+        "part_evenements_en_annee_extreme": 0.0,
+        "etat_oceanique": "Transition après El Niño"
       },
       {
         "configuration": 3,
@@ -88,7 +89,8 @@
         "annees_principales": [
           2012
         ],
-        "part_evenements_en_annee_extreme": 1.0
+        "part_evenements_en_annee_extreme": 1.0,
+        "etat_oceanique": "Neutre"
       },
       {
         "configuration": 2,
@@ -100,7 +102,8 @@
           1985,
           1988
         ],
-        "part_evenements_en_annee_extreme": 0.39
+        "part_evenements_en_annee_extreme": 0.39,
+        "etat_oceanique": "La Niña"
       }
     ],
     "toutes_configurations": [
@@ -177,6 +180,50 @@
         "extreme": true,
         "inondation_documentee": true
       }
+    ],
+    "trajectoire": [
+      {
+        "jusqu_a": "2012-11",
+        "n_mois": 1,
+        "probabilite_experimentale": 0.3,
+        "configuration": 3,
+        "correlation": 0.291
+      },
+      {
+        "jusqu_a": "2012-12",
+        "n_mois": 2,
+        "probabilite_experimentale": 0.331,
+        "configuration": 3,
+        "correlation": 0.187
+      },
+      {
+        "jusqu_a": "2013-01",
+        "n_mois": 3,
+        "probabilite_experimentale": 0.35,
+        "configuration": 3,
+        "correlation": 0.127
+      },
+      {
+        "jusqu_a": "2013-02",
+        "n_mois": 4,
+        "probabilite_experimentale": 0.358,
+        "configuration": 3,
+        "correlation": 0.093
+      },
+      {
+        "jusqu_a": "2013-03",
+        "n_mois": 5,
+        "probabilite_experimentale": 0.359,
+        "configuration": 3,
+        "correlation": 0.087
+      },
+      {
+        "jusqu_a": "2013-04",
+        "n_mois": 6,
+        "probabilite_experimentale": 0.357,
+        "configuration": 6,
+        "correlation": 0.087
+      }
     ]
   },
   "competence_projection": {
@@ -217,5 +264,5 @@
     "inondation_documentee": false,
     "seuil": 745.8
   },
-  "synthese": "Saison 2013 : risque d'année extrême élevé (probabilité 40 %, contre 33 % en moyenne), d'après la prévision saisonnière Copernicus C3S. Confiance faible. Le modèle ECMWF prévoit pour juillet-septembre une pluie au-dessus de la normale (anomalie +0,5 écart-type) ; 40 % des membres sont dans le tiers le plus humide. De novembre à avril, l'océan ressemble surtout à la configuration C6 du mémoire (corrélation 0,09), celle des années 1998. Années les plus ressemblantes : 2012, 2010, 2008, 2007, 2009 ; 4 sur 5 ont été des années extrêmes (dont 2012, 2010, 2009, inondations documentées). Indication expérimentale de la projection : 36 %. Cette méthode n'a pas de compétence démontrée en prévision réelle (AUC 0,53 en conditions réelles de prévision) ; elle ne fixe pas le niveau de risque. Contexte : 6 des 10 dernières saisons observées (2003-2012) ont été extrêmes, pour une fréquence de référence d'une sur trois. Vérification : la saison 2013 a été non extrême (empreinte 571, rang 29)."
+  "synthese": "Saison 2013 : risque d'année extrême élevé (probabilité 40 %, contre 33 % en moyenne), d'après la prévision saisonnière Copernicus C3S. Confiance faible. Le modèle ECMWF prévoit pour juillet-septembre une pluie au-dessus de la normale (anomalie +0,5 écart-type) ; 40 % des membres sont dans le tiers le plus humide. De novembre à avril, l'océan ressemble surtout à la configuration C6 du mémoire (corrélation 0,09), une variante de l'état Transition après El Niño, celle des années 1998. Années les plus ressemblantes : 2012, 2010, 2008, 2007, 2009 ; 4 sur 5 ont été des années extrêmes (dont 2012, 2010, 2009, inondations documentées). Indication expérimentale de la projection : 36 %. Cette méthode n'a pas de compétence démontrée en prévision réelle (AUC 0,53 en conditions réelles de prévision) ; elle ne fixe pas le niveau de risque. Contexte : 6 des 10 dernières saisons observées (2003-2012) ont été extrêmes, pour une fréquence de référence d'une sur trois. Vérification : la saison 2013 a été non extrême (empreinte 571, rang 29)."
 }

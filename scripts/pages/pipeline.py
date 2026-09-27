@@ -257,6 +257,57 @@ PIPELINE_STEPS = [
             ],
         },
     },
+    # ── Veille pre-saison (hors "pipeline complet": telechargements lourds,
+    #    rythme annuel ou mensuel). Lancables une a une, et par Jarvis admin
+    #    apres approbation (jarvis/code_ops.scripts_autorises).
+    {
+        "id": "19", "num": 9, "veille": True,
+        "label": "Veille — cube SST compact",
+        "script": "19_build_sst_cube.py",
+        "desc": "Extrait des 42 Go OISST les moyennes mensuelles et les jours d'evenements (1 deg)",
+        "category": "Veille pre-saison", "color": ROSE,
+        "outputs": ["data/processed/sst_cube_1deg.npz"],
+        "exports": {},
+    },
+    {
+        "id": "20", "num": 10, "veille": True,
+        "label": "Veille — bulletin de la prochaine saison",
+        "script": "20_veille_presaison.py",
+        "desc": "Bulletin d'avril: niveau de risque (C3S), projection nov-avr, analogues",
+        "category": "Veille pre-saison", "color": ROSE,
+        "outputs": ["outputs/veille/competence_projection.json"],
+        "exports": {
+            "report": [
+                {"path": "outputs/veille/classement_annees.csv",
+                 "label": "Classement des saisons (empreinte)", "fmt": "csv"},
+                {"path": "outputs/veille/competence_projection.json",
+                 "label": "Competence de la projection", "fmt": "json"},
+            ],
+        },
+    },
+    {
+        "id": "21", "num": 11, "veille": True,
+        "label": "Veille — evaluation des variantes C3S",
+        "script": "21_evaluer_c3s_variantes.py",
+        "desc": "8 modeles Copernicus, protocole fixe a l'avance, retro-previsions 1993-2016",
+        "category": "Veille pre-saison", "color": ROSE,
+        "outputs": ["outputs/veille/evaluation_c3s_variantes.json"],
+        "exports": {
+            "report": [
+                {"path": "outputs/veille/evaluation_c3s_variantes.json",
+                 "label": "Evaluation des variantes C3S", "fmt": "json"},
+            ],
+        },
+    },
+    {
+        "id": "22", "num": 12, "veille": True,
+        "label": "Veille — mise a jour mensuelle (nov-avr)",
+        "script": "22_veille_mensuelle.py",
+        "desc": "Telecharge les mois ecoules, met le cube a jour, bulletin provisoire",
+        "category": "Veille pre-saison", "color": ROSE,
+        "outputs": [],
+        "exports": {},
+    },
 ]
 
 
@@ -798,11 +849,13 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
             if has_any:
                 st.markdown("</div>", unsafe_allow_html=True)
 
+        # Le pipeline complet exclut la veille pre-saison (telechargements).
+        _complet = [s for s in PIPELINE_STEPS if not s.get("veille")]
         _n_done  = sum(
-            1 for s in PIPELINE_STEPS
+            1 for s in _complet
             if s.get("outputs") and all((BASE / o).exists() for o in s["outputs"])
         )
-        _n_total = len(PIPELINE_STEPS)
+        _n_total = len(_complet)
         _pct_done = int(_n_done / _n_total * 100) if _n_total else 0
 
         st.markdown(f"""
@@ -831,11 +884,11 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
             overall_bar = st.progress(0, text="Demarrage...")
             all_ok = True
             results_container = st.container()
-            for i, step in enumerate(PIPELINE_STEPS):
+            for i, step in enumerate(_complet):
                 script_path = SCRIPTS_DIR / step["script"]
                 overall_bar.progress(
-                    int(i / len(PIPELINE_STEPS) * 100),
-                    text=f"Etape {step['num']}/{len(PIPELINE_STEPS)} : {step['label']}",
+                    int(i / len(_complet) * 100),
+                    text=f"Etape {step['num']}/{len(_complet)} : {step['label']}",
                 )
                 if not script_path.exists():
                     with results_container:

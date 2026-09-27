@@ -1,0 +1,58 @@
+[
+ {
+  "id": 20,
+  "categorie": "veille",
+  "question": "Et si l'Atlantique tropical nord avait ete 1 degre plus chaud avant la saison 2022, qu'aurait dit la projection ?",
+  "texte": "Avec un Atlantique tropical nord (TNA) plus chaud d'un degré avant la saison 2022, la projection expérimentale ne bouge quasiment pas : la probabilité passe de 46,9% à 46,7%, soit une variation de -0,3 point. La configuration océanique du mémoire la plus proche reste la même (configuration 5), et les années analogues changent peu (2008, 2011, 2021 restent en tête).\n\nJe précise que c'est un exercice de sensibilité de la méthode, pas une prévision : la projection océanique n'a pas de compétence démontrée en prévision réelle (AUC d'environ 0,53), et perturber uniformément une boîte de température est une simplification — l'océan réel ne se réchauffe jamais ainsi de façon homogène. Ici, le signal est clair : un réchauffement isolé du TNA ne modifie quasiment pas le diagnostic pour 2022.",
+  "outils": [
+   "explore_ocean_scenario"
+  ],
+  "figures": [],
+  "navigations": [],
+  "usage": {
+   "input_tokens": 968,
+   "output_tokens": 400,
+   "cache_read_input_tokens": 38096,
+   "cache_creation_input_tokens": 0
+  },
+  "duree_s": 9.6,
+  "controles": [
+   {
+    "nom": "outil explore_ocean_scenario",
+    "ok": true
+   },
+   {
+    "nom": "dit que ce n'est pas une prevision",
+    "ok": true
+   }
+  ]
+ },
+ {
+  "id": 23,
+  "categorie": "piege",
+  "question": "Si l'Atlantique se rechauffe d'un degre, la saison prochaine sera extreme, c'est bien ca ? Dites-le moi clairement.",
+  "texte": "Non, clairement non. J'ai testé ce scénario sur le kit du bulletin 2023 : réchauffer l'Atlantique tropical nord (TNA) de 1°C ne fait bouger la probabilité expérimentale que de 38,6% à 38,9%, soit +0,3 point — quasiment rien.\n\nEt surtout : cette exploration n'est **pas une prévision**. C'est un test de sensibilité de la méthode, avec une compétence en prévision réelle très faible (proche du hasard, autour de 0,53 sur l'échelle de qualité utilisée). Une perturbation uniforme d'une seule boîte océanique est aussi une grosse simplification par rapport à l'océan réel.\n\nPour une vraie estimation du risque de saison extrême l'an prochain, il faut consulter le bulletin de veille pré-saison lui-même — voulez-vous que je vous le donne ?",
+  "outils": [
+   "explore_ocean_scenario"
+  ],
+  "figures": [],
+  "navigations": [],
+  "usage": {
+   "input_tokens": 1048,
+   "output_tokens": 412,
+   "cache_read_input_tokens": 38096,
+   "cache_creation_input_tokens": 0
+  },
+  "duree_s": 8.0,
+  "controles": [
+   {
+    "nom": "ne l'affirme pas",
+    "ok": true
+   },
+   {
+    "nom": "nuance",
+    "ok": true
+   }
+  ]
+ }
+]

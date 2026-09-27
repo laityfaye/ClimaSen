@@ -1,0 +1,1239 @@
+{
+ "protocole": "Classification des configurations oceaniques, version corrigee (saisonniere).\n\nPourquoi ce script (27/09/2026): le script 11 classe les 1263 EVENEMENTS.\nDiagnostic sur ses sorties:\n  - silhouettes 0,06-0,09 aux k retenus (structure quasi absente);\n  - le vote designait k=15, la borne testee, dans les 4 phases (k force a la main);\n  - 90 % des paires d'evenements d'une meme annee tombent dans le meme cluster\n    (22 % au hasard): les evenements d'une saison partagent le meme ocean\n    (persistance des SST), les clusters reconnaissent surtout l'ANNEE;\n  - stabilite bootstrap ARI ~0,40-0,45;\n  - pas de ponderation par la latitude, 90 % de variance = 413 composantes.\n\nProtocole corrige, FIXE AVANT d'en voir les resultats:\n  1. Unite = SAISON: composite (moyenne) des champs SST du jour des evenements\n     extremes d'une annee et d'une phase. Par phase ~41 saisons independantes;\n     \"Toutes phases\" = unites annee x phase.\n  2. Detrend lineaire par pixel (sur l'annee), domaine tropical 30S-40N,\n     ponderation sqrt(cos lat), SANS normalisation par pixel (EOF de covariance,\n     usage standard: les regions de faible variance ne sont pas amplifiees).\n  3. ACP: 10 composantes (sensibilite 5 et 20).\n  4. K-Means et Ward (hierarchique), k = 2..8.\n  5. Significativite: silhouette comparee a 200 jeux gaussiens de memes\n     variances par composante (aucune structure de clusters par construction):\n     p = part des jeux nuls qui font aussi bien.\n  6. Stabilite: 100 sous-echantillonnages a 80 %, ARI avec la partition complete.\n  7. k retenu = le plus stable parmi les k significatifs (p < 0,05, apres\n     correction de Holm sur les 7 k testes). Aucun significatif -> on le dit.\n  8. Physique: les configurations different-elles par l'intensite des extremes\n     de la saison (empreinte = somme des couvertures, pluie max) ? Kruskal-Wallis.\n\nEntree: data/processed/sst_cube_1deg.npz (scripts/19), catalogue des evenements.\nSortie: outputs/clustering_saisonnier/ (JSON, CSV, figures, rapport.md).\n\nUsage: py -3 scripts/24_clustering_saisonnier.py\n",
+ "resultats": {
+  "Phase_1_debut": {
+   "n_saisons": 41,
+   "variance_expliquee_10_eof": 0.618,
+   "methodes": {
+    "kmeans": {
+     "k_retenu": null,
+     "tableau": [
+      {
+       "k": 2,
+       "silhouette": 0.183,
+       "silhouette_nulle": 0.182,
+       "p": 0.3781,
+       "stabilite_ari": 0.82,
+       "stabilite_ari_p5": 0.38,
+       "taille_min": 16,
+       "p_holm": 1.0
+      },
+      {
+       "k": 3,
+       "silhouette": 0.109,
+       "silhouette_nulle": 0.149,
+       "p": 0.9801,
+       "stabilite_ari": 0.481,
+       "stabilite_ari_p5": 0.266,
+       "taille_min": 9,
+       "p_holm": 1.0
+      },
+      {
+       "k": 4,
+       "silhouette": 0.138,
+       "silhouette_nulle": 0.14,
+       "p": 0.4876,
+       "stabilite_ari": 0.354,
+       "stabilite_ari_p5": 0.138,
+       "taille_min": 4,
+       "p_holm": 1.0
+      },
+      {
+       "k": 5,
+       "silhouette": 0.097,
+       "silhouette_nulle": 0.136,
+       "p": 0.9801,
+       "stabilite_ari": 0.41,
+       "stabilite_ari_p5": 0.165,
+       "taille_min": 3,
+       "p_holm": 1.0
+      },
+      {
+       "k": 6,
+       "silhouette": 0.117,
+       "silhouette_nulle": 0.131,
+       "p": 0.7711,
+       "stabilite_ari": 0.415,
+       "stabilite_ari_p5": 0.195,
+       "taille_min": 2,
+       "p_holm": 1.0
+      },
+      {
+       "k": 7,
+       "silhouette": 0.097,
+       "silhouette_nulle": 0.129,
+       "p": 0.9751,
+       "stabilite_ari": 0.444,
+       "stabilite_ari_p5": 0.216,
+       "taille_min": 1,
+       "p_holm": 1.0
+      },
+      {
+       "k": 8,
+       "silhouette": 0.101,
+       "silhouette_nulle": 0.132,
+       "p": 0.9652,
+       "stabilite_ari": 0.346,
+       "stabilite_ari_p5": 0.187,
+       "taille_min": 1,
+       "p_holm": 1.0
+      }
+     ]
+    },
+    "ward": {
+     "k_retenu": null,
+     "tableau": [
+      {
+       "k": 2,
+       "silhouette": 0.247,
+       "silhouette_nulle": 0.176,
+       "p": 0.0299,
+       "stabilite_ari": 0.695,
+       "stabilite_ari_p5": 0.046,
+       "taille_min": 8,
+       "p_holm": 0.2093
+      },
+      {
+       "k": 3,
+       "silhouette": 0.099,
+       "silhouette_nulle": 0.138,
+       "p": 0.99,
+       "stabilite_ari": 0.483,
+       "stabilite_ari_p5": 0.223,
+       "taille_min": 8,
+       "p_holm": 1.0
+      },
+      {
+       "k": 4,
+       "silhouette": 0.1,
+       "silhouette_nulle": 0.13,
+       "p": 0.9154,
+       "stabilite_ari": 0.529,
+       "stabilite_ari_p5": 0.298,
+       "taille_min": 8,
+       "p_holm": 1.0
+      },
+      {
+       "k": 5,
+       "silhouette": 0.113,
+       "silhouette_nulle": 0.126,
+       "p": 0.7562,
+       "stabilite_ari": 0.545,
+       "stabilite_ari_p5": 0.32,
+       "taille_min": 4,
+       "p_holm": 1.0
+      },
+      {
+       "k": 6,
+       "silhouette": 0.117,
+       "silhouette_nulle": 0.131,
+       "p": 0.806,
+       "stabilite_ari": 0.582,
+       "stabilite_ari_p5": 0.358,
+       "taille_min": 1,
+       "p_holm": 1.0
+      },
+      {
+       "k": 7,
+       "silhouette": 0.096,
+       "silhouette_nulle": 0.133,
+       "p": 0.99,
+       "stabilite_ari": 0.623,
+       "stabilite_ari_p5": 0.406,
+       "taille_min": 1,
+       "p_holm": 1.0
+      },
+      {
+       "k": 8,
+       "silhouette": 0.091,
+       "silhouette_nulle": 0.136,
+       "p": 1.0,
+       "stabilite_ari": 0.582,
+       "stabilite_ari_p5": 0.374,
+       "taille_min": 1,
+       "p_holm": 1.0
+      }
+     ]
+    }
+   }
+  },
+  "Phase_2_pleine": {
+   "n_saisons": 41,
+   "variance_expliquee_10_eof": 0.664,
+   "methodes": {
+    "kmeans": {
+     "k_retenu": 2,
+     "tableau": [
+      {
+       "k": 2,
+       "silhouette": 0.318,
+       "silhouette_nulle": 0.201,
+       "p": 0.005,
+       "stabilite_ari": 0.663,
+       "stabilite_ari_p5": -0.041,
+       "taille_min": 5,
+       "p_holm": 0.035
+      },
+      {
+       "k": 3,
+       "silhouette": 0.158,
+       "silhouette_nulle": 0.158,
+       "p": 0.4279,
+       "stabilite_ari": 0.949,
+       "stabilite_ari_p5": 0.69,
+       "taille_min": 5,
+       "p_holm": 1.0
+      },
+      {
+       "k": 4,
+       "silhouette": 0.171,
+       "silhouette_nulle": 0.147,
+       "p": 0.0945,
+       "stabilite_ari": 0.754,
+       "stabilite_ari_p5": 0.389,
+       "taille_min": 2,
+       "p_holm": 0.567
+      },
+      {
+       "k": 5,
+       "silhouette": 0.129,
+       "silhouette_nulle": 0.14,
+       "p": 0.7612,
+       "stabilite_ari": 0.536,
+       "stabilite_ari_p5": 0.315,
+       "taille_min": 2,
+       "p_holm": 1.0
+      },
+      {
+       "k": 6,
+       "silhouette": 0.144,
+       "silhouette_nulle": 0.136,
+       "p": 0.3234,
+       "stabilite_ari": 0.502,
+       "stabilite_ari_p5": 0.282,
+       "taille_min": 1,
+       "p_holm": 1.0
+      },
+      {
+       "k": 7,
+       "silhouette": 0.122,
+       "silhouette_nulle": 0.133,
+       "p": 0.7363,
+       "stabilite_ari": 0.486,
+       "stabilite_ari_p5": 0.295,
+       "taille_min": 1,
+       "p_holm": 1.0
+      },
+      {
+       "k": 8,
+       "silhouette": 0.099,
+       "silhouette_nulle": 0.132,
+       "p": 0.9552,
+       "stabilite_ari": 0.35,
+       "stabilite_ari_p5": 0.196,
+       "taille_min": 1,
+       "p_holm": 1.0
+      }
+     ],
+     "lien_extremes": {
+      "empreinte": {
+       "p_kruskal": 0.4491,
+       "moyenne_par_cluster": {
+        "0": 262.3,
+        "1": 224.8
+       }
+      },
+      "pluie_max": {
+       "p_kruskal": 0.2646,
+       "moyenne_par_cluster": {
+        "0": 93.4,
+        "1": 78.1
+       }
+      }
+     },
+     "saisons_par_cluster": {
+      "0": [
+       "1984",
+       "1985",
+       "1986",
+       "1988",
+       "1989",
+       "1990",
+       "1991",
+       "1992",
+       "1993",
+       "1994",
+       "1995",
+       "1996",
+       "1998",
+       "1999",
+       "2000",
+       "2001",
+       "2002",
+       "2003",
+       "2004",
+       "2005",
+       "2006",
+       "2007",
+       "2008",
+       "2009",
+       "2010",
+       "2011",
+       "2012",
+       "2013",
+       "2014",
+       "2016",
+       "2017",
+       "2018",
+       "2019",
+       "2020",
+       "2021",
+       "2022"
+      ],
+      "1": [
+       "1983",
+       "1987",
+       "1997",
+       "2015",
+       "2023"
+      ]
+     }
+    },
+    "ward": {
+     "k_retenu": null,
+     "tableau": [
+      {
+       "k": 2,
+       "silhouette": 0.318,
+       "silhouette_nulle": 0.195,
+       "p": 0.0149,
+       "stabilite_ari": 0.841,
+       "stabilite_ari_p5": -0.025,
+       "taille_min": 5,
+       "p_holm": 0.1043
+      },
+      {
+       "k": 3,
+       "silhouette": 0.149,
+       "silhouette_nulle": 0.146,
+       "p": 0.3881,
+       "stabilite_ari": 0.744,
+       "stabilite_ari_p5": 0.372,
+       "taille_min": 5,
+       "p_holm": 1.0
+      },
+      {
+       "k": 4,
+       "silhouette": 0.165,
+       "silhouette_nulle": 0.139,
+       "p": 0.1244,
+       "stabilite_ari": 0.775,
+       "stabilite_ari_p5": 0.5,
+       "taille_min": 2,
+       "p_holm": 0.7464
+      },
+      {
+       "k": 5,
+       "silhouette": 0.154,
+       "silhouette_nulle": 0.135,
+       "p": 0.204,
+       "stabilite_ari": 0.699,
+       "stabilite_ari_p5": 0.378,
+       "taille_min": 2,
+       "p_holm": 1.0
+      },
+      {
+       "k": 6,
+       "silhouette": 0.114,
+       "silhouette_nulle": 0.136,
+       "p": 0.9303,
+       "stabilite_ari": 0.657,
+       "stabilite_ari_p5": 0.403,
+       "taille_min": 2,
+       "p_holm": 1.0
+      },
+      {
+       "k": 7,
+       "silhouette": 0.115,
+       "silhouette_nulle": 0.137,
+       "p": 0.8756,
+       "stabilite_ari": 0.651,
+       "stabilite_ari_p5": 0.397,
+       "taille_min": 2,
+       "p_holm": 1.0
+      },
+      {
+       "k": 8,
+       "silhouette": 0.126,
+       "silhouette_nulle": 0.137,
+       "p": 0.7662,
+       "stabilite_ari": 0.649,
+       "stabilite_ari_p5": 0.454,
+       "taille_min": 2,
+       "p_holm": 1.0
+      }
+     ]
+    }
+   }
+  },
+  "Phase_3_fin": {
+   "n_saisons": 41,
+   "variance_expliquee_10_eof": 0.67,
+   "methodes": {
+    "kmeans": {
+     "k_retenu": null,
+     "tableau": [
+      {
+       "k": 2,
+       "silhouette": 0.251,
+       "silhouette_nulle": 0.255,
+       "p": 0.5473,
+       "stabilite_ari": 0.882,
+       "stabilite_ari_p5": 0.765,
+       "taille_min": 17,
+       "p_holm": 1.0
+      },
+      {
+       "k": 3,
+       "silhouette": 0.228,
+       "silhouette_nulle": 0.185,
+       "p": 0.0796,
+       "stabilite_ari": 0.911,
+       "stabilite_ari_p5": 0.773,
+       "taille_min": 4,
+       "p_holm": 0.5572
+      },
+      {
+       "k": 4,
+       "silhouette": 0.159,
+       "silhouette_nulle": 0.167,
+       "p": 0.6318,
+       "stabilite_ari": 0.722,
+       "stabilite_ari_p5": 0.502,
+       "taille_min": 4,
+       "p_holm": 1.0
+      },
+      {
+       "k": 5,
+       "silhouette": 0.168,
+       "silhouette_nulle": 0.155,
+       "p": 0.2488,
+       "stabilite_ari": 0.717,
+       "stabilite_ari_p5": 0.547,
+       "taille_min": 4,
+       "p_holm": 1.0
+      },
+      {
+       "k": 6,
+       "silhouette": 0.165,
+       "silhouette_nulle": 0.148,
+       "p": 0.194,
+       "stabilite_ari": 0.633,
+       "stabilite_ari_p5": 0.413,
+       "taille_min": 2,
+       "p_holm": 1.0
+      },
+      {
+       "k": 7,
+       "silhouette": 0.124,
+       "silhouette_nulle": 0.143,
+       "p": 0.8507,
+       "stabilite_ari": 0.495,
+       "stabilite_ari_p5": 0.301,
+       "taille_min": 2,
+       "p_holm": 1.0
+      },
+      {
+       "k": 8,
+       "silhouette": 0.112,
+       "silhouette_nulle": 0.141,
+       "p": 0.9303,
+       "stabilite_ari": 0.438,
+       "stabilite_ari_p5": 0.284,
+       "taille_min": 3,
+       "p_holm": 1.0
+      }
+     ]
+    },
+    "ward": {
+     "k_retenu": null,
+     "tableau": [
+      {
+       "k": 2,
+       "silhouette": 0.251,
+       "silhouette_nulle": 0.243,
+       "p": 0.4279,
+       "stabilite_ari": 0.709,
+       "stabilite_ari_p5": 0.095,
+       "taille_min": 17,
+       "p_holm": 1.0
+      },
+      {
+       "k": 3,
+       "silhouette": 0.216,
+       "silhouette_nulle": 0.179,
+       "p": 0.1095,
+       "stabilite_ari": 0.823,
+       "stabilite_ari_p5": 0.299,
+       "taille_min": 4,
+       "p_holm": 0.7665
+      },
+      {
+       "k": 4,
+       "silhouette": 0.153,
+       "silhouette_nulle": 0.155,
+       "p": 0.4876,
+       "stabilite_ari": 0.709,
+       "stabilite_ari_p5": 0.514,
+       "taille_min": 4,
+       "p_holm": 1.0
+      },
+      {
+       "k": 5,
+       "silhouette": 0.169,
+       "silhouette_nulle": 0.15,
+       "p": 0.194,
+       "stabilite_ari": 0.723,
+       "stabilite_ari_p5": 0.484,
+       "taille_min": 3,
+       "p_holm": 1.0
+      },
+      {
+       "k": 6,
+       "silhouette": 0.14,
+       "silhouette_nulle": 0.147,
+       "p": 0.6468,
+       "stabilite_ari": 0.63,
+       "stabilite_ari_p5": 0.435,
+       "taille_min": 3,
+       "p_holm": 1.0
+      },
+      {
+       "k": 7,
+       "silhouette": 0.134,
+       "silhouette_nulle": 0.145,
+       "p": 0.7264,
+       "stabilite_ari": 0.565,
+       "stabilite_ari_p5": 0.367,
+       "taille_min": 3,
+       "p_holm": 1.0
+      },
+      {
+       "k": 8,
+       "silhouette": 0.127,
+       "silhouette_nulle": 0.144,
+       "p": 0.806,
+       "stabilite_ari": 0.568,
+       "stabilite_ari_p5": 0.39,
+       "taille_min": 3,
+       "p_holm": 1.0
+      }
+     ]
+    }
+   }
+  },
+  "Toutes_phases": {
+   "n_saisons": 123,
+   "variance_expliquee_10_eof": 0.544,
+   "methodes": {
+    "kmeans": {
+     "k_retenu": 4,
+     "tableau": [
+      {
+       "k": 2,
+       "silhouette": 0.205,
+       "silhouette_nulle": 0.206,
+       "p": 0.5025,
+       "stabilite_ari": 0.675,
+       "stabilite_ari_p5": 0.251,
+       "taille_min": 50,
+       "p_holm": 0.5025
+      },
+      {
+       "k": 3,
+       "silhouette": 0.174,
+       "silhouette_nulle": 0.142,
+       "p": 0.01,
+       "stabilite_ari": 0.945,
+       "stabilite_ari_p5": 0.831,
+       "taille_min": 16,
+       "p_holm": 0.05
+      },
+      {
+       "k": 4,
+       "silhouette": 0.188,
+       "silhouette_nulle": 0.131,
+       "p": 0.005,
+       "stabilite_ari": 0.731,
+       "stabilite_ari_p5": 0.503,
+       "taille_min": 7,
+       "p_holm": 0.035
+      },
+      {
+       "k": 5,
+       "silhouette": 0.135,
+       "silhouette_nulle": 0.123,
+       "p": 0.1244,
+       "stabilite_ari": 0.599,
+       "stabilite_ari_p5": 0.404,
+       "taille_min": 13,
+       "p_holm": 0.2488
+      },
+      {
+       "k": 6,
+       "silhouette": 0.145,
+       "silhouette_nulle": 0.118,
+       "p": 0.005,
+       "stabilite_ari": 0.476,
+       "stabilite_ari_p5": 0.298,
+       "taille_min": 5,
+       "p_holm": 0.035
+      },
+      {
+       "k": 7,
+       "silhouette": 0.131,
+       "silhouette_nulle": 0.116,
+       "p": 0.0647,
+       "stabilite_ari": 0.406,
+       "stabilite_ari_p5": 0.307,
+       "taille_min": 5,
+       "p_holm": 0.1941
+      },
+      {
+       "k": 8,
+       "silhouette": 0.134,
+       "silhouette_nulle": 0.113,
+       "p": 0.01,
+       "stabilite_ari": 0.428,
+       "stabilite_ari_p5": 0.279,
+       "taille_min": 7,
+       "p_holm": 0.05
+      }
+     ],
+     "lien_extremes": {
+      "empreinte": {
+       "p_kruskal": 0.3202,
+       "moyenne_par_cluster": {
+        "0": 169.0,
+        "1": 216.6,
+        "2": 229.5,
+        "3": 253.6
+       }
+      },
+      "pluie_max": {
+       "p_kruskal": 0.8681,
+       "moyenne_par_cluster": {
+        "0": 60.4,
+        "1": 64.4,
+        "2": 60.0,
+        "3": 69.8
+       }
+      }
+     },
+     "saisons_par_cluster": {
+      "0": [
+       "1983-P3",
+       "1998-P1",
+       "1998-P2",
+       "1998-P3",
+       "2016-P1",
+       "2016-P2",
+       "2016-P3"
+      ],
+      "1": [
+       "1986-P1",
+       "1986-P2",
+       "1986-P3",
+       "1987-P1",
+       "1990-P1",
+       "1990-P2",
+       "1990-P3",
+       "1991-P1",
+       "1991-P2",
+       "1991-P3",
+       "1992-P2",
+       "1992-P3",
+       "1993-P1",
+       "1993-P2",
+       "1993-P3",
+       "1994-P1",
+       "1994-P2",
+       "1994-P3",
+       "1995-P1",
+       "1995-P2",
+       "2002-P1",
+       "2002-P2",
+       "2002-P3",
+       "2003-P1",
+       "2003-P2",
+       "2003-P3",
+       "2004-P1",
+       "2004-P2",
+       "2004-P3",
+       "2005-P1",
+       "2005-P2",
+       "2006-P1",
+       "2006-P2",
+       "2006-P3",
+       "2007-P1",
+       "2009-P1",
+       "2009-P2",
+       "2009-P3",
+       "2012-P1",
+       "2012-P2",
+       "2012-P3",
+       "2013-P3",
+       "2014-P1",
+       "2014-P2",
+       "2014-P3",
+       "2017-P1",
+       "2017-P2",
+       "2018-P1",
+       "2018-P2",
+       "2018-P3",
+       "2019-P1",
+       "2019-P2",
+       "2019-P3"
+      ],
+      "2": [
+       "1983-P1",
+       "1983-P2",
+       "1987-P2",
+       "1987-P3",
+       "1992-P1",
+       "1997-P1",
+       "1997-P2",
+       "1997-P3",
+       "2015-P1",
+       "2015-P2",
+       "2015-P3",
+       "2023-P1",
+       "2023-P2",
+       "2023-P3"
+      ],
+      "3": [
+       "1984-P1",
+       "1984-P2",
+       "1984-P3",
+       "1985-P1",
+       "1985-P2",
+       "1985-P3",
+       "1988-P1",
+       "1988-P2",
+       "1988-P3",
+       "1989-P1",
+       "1989-P2",
+       "1989-P3",
+       "1995-P3",
+       "1996-P1",
+       "1996-P2",
+       "1996-P3",
+       "1999-P1",
+       "1999-P2",
+       "1999-P3",
+       "2000-P1",
+       "2000-P2",
+       "2000-P3",
+       "2001-P1",
+       "2001-P2",
+       "2001-P3",
+       "2005-P3",
+       "2007-P2",
+       "2007-P3",
+       "2008-P1",
+       "2008-P2",
+       "2008-P3",
+       "2010-P1",
+       "2010-P2",
+       "2010-P3",
+       "2011-P1",
+       "2011-P2",
+       "2011-P3",
+       "2013-P1",
+       "2013-P2",
+       "2017-P3",
+       "2020-P1",
+       "2020-P2",
+       "2020-P3",
+       "2021-P1",
+       "2021-P2",
+       "2021-P3",
+       "2022-P1",
+       "2022-P2",
+       "2022-P3"
+      ]
+     }
+    },
+    "ward": {
+     "k_retenu": 4,
+     "tableau": [
+      {
+       "k": 2,
+       "silhouette": 0.181,
+       "silhouette_nulle": 0.188,
+       "p": 0.6119,
+       "stabilite_ari": 0.384,
+       "stabilite_ari_p5": 0.02,
+       "taille_min": 61,
+       "p_holm": 0.6119
+      },
+      {
+       "k": 3,
+       "silhouette": 0.149,
+       "silhouette_nulle": 0.125,
+       "p": 0.0746,
+       "stabilite_ari": 0.632,
+       "stabilite_ari_p5": 0.275,
+       "taille_min": 16,
+       "p_holm": 0.1492
+      },
+      {
+       "k": 4,
+       "silhouette": 0.17,
+       "silhouette_nulle": 0.108,
+       "p": 0.005,
+       "stabilite_ari": 0.628,
+       "stabilite_ari_p5": 0.362,
+       "taille_min": 7,
+       "p_holm": 0.035
+      },
+      {
+       "k": 5,
+       "silhouette": 0.171,
+       "silhouette_nulle": 0.101,
+       "p": 0.005,
+       "stabilite_ari": 0.625,
+       "stabilite_ari_p5": 0.33,
+       "taille_min": 7,
+       "p_holm": 0.035
+      },
+      {
+       "k": 6,
+       "silhouette": 0.157,
+       "silhouette_nulle": 0.098,
+       "p": 0.005,
+       "stabilite_ari": 0.561,
+       "stabilite_ari_p5": 0.364,
+       "taille_min": 7,
+       "p_holm": 0.035
+      },
+      {
+       "k": 7,
+       "silhouette": 0.158,
+       "silhouette_nulle": 0.097,
+       "p": 0.005,
+       "stabilite_ari": 0.516,
+       "stabilite_ari_p5": 0.363,
+       "taille_min": 7,
+       "p_holm": 0.035
+      },
+      {
+       "k": 8,
+       "silhouette": 0.123,
+       "silhouette_nulle": 0.097,
+       "p": 0.01,
+       "stabilite_ari": 0.456,
+       "stabilite_ari_p5": 0.307,
+       "taille_min": 7,
+       "p_holm": 0.035
+      }
+     ],
+     "lien_extremes": {
+      "empreinte": {
+       "p_kruskal": 0.2294,
+       "moyenne_par_cluster": {
+        "0": 254.6,
+        "1": 223.1,
+        "2": 212.2,
+        "3": 169.0
+       }
+      },
+      "pluie_max": {
+       "p_kruskal": 0.9043,
+       "moyenne_par_cluster": {
+        "0": 69.0,
+        "1": 59.9,
+        "2": 64.9,
+        "3": 60.4
+       }
+      }
+     },
+     "saisons_par_cluster": {
+      "0": [
+       "1984-P1",
+       "1984-P2",
+       "1984-P3",
+       "1985-P1",
+       "1985-P2",
+       "1985-P3",
+       "1988-P1",
+       "1988-P2",
+       "1988-P3",
+       "1989-P1",
+       "1989-P2",
+       "1989-P3",
+       "1995-P2",
+       "1995-P3",
+       "1996-P1",
+       "1996-P2",
+       "1996-P3",
+       "1999-P1",
+       "1999-P2",
+       "1999-P3",
+       "2000-P1",
+       "2000-P2",
+       "2000-P3",
+       "2001-P1",
+       "2001-P2",
+       "2001-P3",
+       "2005-P3",
+       "2007-P1",
+       "2007-P2",
+       "2007-P3",
+       "2008-P1",
+       "2008-P2",
+       "2008-P3",
+       "2010-P1",
+       "2010-P2",
+       "2010-P3",
+       "2011-P1",
+       "2011-P2",
+       "2011-P3",
+       "2012-P1",
+       "2012-P2",
+       "2012-P3",
+       "2013-P1",
+       "2013-P2",
+       "2013-P3",
+       "2017-P3",
+       "2020-P1",
+       "2020-P2",
+       "2020-P3",
+       "2021-P1",
+       "2021-P2",
+       "2021-P3",
+       "2022-P1",
+       "2022-P2",
+       "2022-P3"
+      ],
+      "1": [
+       "1983-P1",
+       "1983-P2",
+       "1987-P1",
+       "1987-P2",
+       "1987-P3",
+       "1992-P1",
+       "1997-P1",
+       "1997-P2",
+       "1997-P3",
+       "2014-P1",
+       "2015-P1",
+       "2015-P2",
+       "2015-P3",
+       "2023-P1",
+       "2023-P2",
+       "2023-P3"
+      ],
+      "2": [
+       "1986-P1",
+       "1986-P2",
+       "1986-P3",
+       "1990-P1",
+       "1990-P2",
+       "1990-P3",
+       "1991-P1",
+       "1991-P2",
+       "1991-P3",
+       "1992-P2",
+       "1992-P3",
+       "1993-P1",
+       "1993-P2",
+       "1993-P3",
+       "1994-P1",
+       "1994-P2",
+       "1994-P3",
+       "1995-P1",
+       "2002-P1",
+       "2002-P2",
+       "2002-P3",
+       "2003-P1",
+       "2003-P2",
+       "2003-P3",
+       "2004-P1",
+       "2004-P2",
+       "2004-P3",
+       "2005-P1",
+       "2005-P2",
+       "2006-P1",
+       "2006-P2",
+       "2006-P3",
+       "2009-P1",
+       "2009-P2",
+       "2009-P3",
+       "2014-P2",
+       "2014-P3",
+       "2017-P1",
+       "2017-P2",
+       "2018-P1",
+       "2018-P2",
+       "2018-P3",
+       "2019-P1",
+       "2019-P2",
+       "2019-P3"
+      ],
+      "3": [
+       "1983-P3",
+       "1998-P1",
+       "1998-P2",
+       "1998-P3",
+       "2016-P1",
+       "2016-P2",
+       "2016-P3"
+      ]
+     }
+    }
+   }
+  }
+ },
+ "sensibilite": [
+  {
+   "phase": "Phase_1_debut",
+   "domaine": "tropical",
+   "n_eof": 5,
+   "k_significatifs": [],
+   "silhouette_max": 0.25,
+   "p_holm_min": 1.0,
+   "k_retenu": null
+  },
+  {
+   "phase": "Phase_1_debut",
+   "domaine": "tropical",
+   "n_eof": 10,
+   "k_significatifs": [],
+   "silhouette_max": 0.183,
+   "p_holm_min": 1.0,
+   "k_retenu": null
+  },
+  {
+   "phase": "Phase_1_debut",
+   "domaine": "tropical",
+   "n_eof": 20,
+   "k_significatifs": [],
+   "silhouette_max": 0.138,
+   "p_holm_min": 1.0,
+   "k_retenu": null
+  },
+  {
+   "phase": "Phase_1_debut",
+   "domaine": "global",
+   "n_eof": 5,
+   "k_significatifs": [],
+   "silhouette_max": 0.243,
+   "p_holm_min": 1.0,
+   "k_retenu": null
+  },
+  {
+   "phase": "Phase_1_debut",
+   "domaine": "global",
+   "n_eof": 10,
+   "k_significatifs": [],
+   "silhouette_max": 0.171,
+   "p_holm_min": 1.0,
+   "k_retenu": null
+  },
+  {
+   "phase": "Phase_1_debut",
+   "domaine": "global",
+   "n_eof": 20,
+   "k_significatifs": [],
+   "silhouette_max": 0.109,
+   "p_holm_min": 1.0,
+   "k_retenu": null
+  },
+  {
+   "phase": "Phase_2_pleine",
+   "domaine": "tropical",
+   "n_eof": 5,
+   "k_significatifs": [
+    2
+   ],
+   "silhouette_max": 0.368,
+   "p_holm_min": 0.035,
+   "k_retenu": 2
+  },
+  {
+   "phase": "Phase_2_pleine",
+   "domaine": "tropical",
+   "n_eof": 10,
+   "k_significatifs": [
+    2
+   ],
+   "silhouette_max": 0.318,
+   "p_holm_min": 0.035,
+   "k_retenu": 2
+  },
+  {
+   "phase": "Phase_2_pleine",
+   "domaine": "tropical",
+   "n_eof": 20,
+   "k_significatifs": [
+    2
+   ],
+   "silhouette_max": 0.27,
+   "p_holm_min": 0.035,
+   "k_retenu": 2
+  },
+  {
+   "phase": "Phase_2_pleine",
+   "domaine": "global",
+   "n_eof": 5,
+   "k_significatifs": [],
+   "silhouette_max": 0.242,
+   "p_holm_min": 0.4879,
+   "k_retenu": null
+  },
+  {
+   "phase": "Phase_2_pleine",
+   "domaine": "global",
+   "n_eof": 10,
+   "k_significatifs": [],
+   "silhouette_max": 0.146,
+   "p_holm_min": 1.0,
+   "k_retenu": null
+  },
+  {
+   "phase": "Phase_2_pleine",
+   "domaine": "global",
+   "n_eof": 20,
+   "k_significatifs": [],
+   "silhouette_max": 0.1,
+   "p_holm_min": 1.0,
+   "k_retenu": null
+  },
+  {
+   "phase": "Phase_3_fin",
+   "domaine": "tropical",
+   "n_eof": 5,
+   "k_significatifs": [],
+   "silhouette_max": 0.326,
+   "p_holm_min": 0.2786,
+   "k_retenu": null
+  },
+  {
+   "phase": "Phase_3_fin",
+   "domaine": "tropical",
+   "n_eof": 10,
+   "k_significatifs": [],
+   "silhouette_max": 0.251,
+   "p_holm_min": 0.5572,
+   "k_retenu": null
+  },
+  {
+   "phase": "Phase_3_fin",
+   "domaine": "tropical",
+   "n_eof": 20,
+   "k_significatifs": [],
+   "silhouette_max": 0.194,
+   "p_holm_min": 0.6615,
+   "k_retenu": null
+  },
+  {
+   "phase": "Phase_3_fin",
+   "domaine": "global",
+   "n_eof": 5,
+   "k_significatifs": [],
+   "silhouette_max": 0.292,
+   "p_holm_min": 0.2093,
+   "k_retenu": null
+  },
+  {
+   "phase": "Phase_3_fin",
+   "domaine": "global",
+   "n_eof": 10,
+   "k_significatifs": [],
+   "silhouette_max": 0.202,
+   "p_holm_min": 0.5222,
+   "k_retenu": null
+  },
+  {
+   "phase": "Phase_3_fin",
+   "domaine": "global",
+   "n_eof": 20,
+   "k_significatifs": [],
+   "silhouette_max": 0.145,
+   "p_holm_min": 1.0,
+   "k_retenu": null
+  },
+  {
+   "phase": "Toutes_phases",
+   "domaine": "tropical",
+   "n_eof": 5,
+   "k_significatifs": [
+    5,
+    6,
+    7,
+    8
+   ],
+   "silhouette_max": 0.266,
+   "p_holm_min": 0.035,
+   "k_retenu": 5
+  },
+  {
+   "phase": "Toutes_phases",
+   "domaine": "tropical",
+   "n_eof": 10,
+   "k_significatifs": [
+    4,
+    6
+   ],
+   "silhouette_max": 0.205,
+   "p_holm_min": 0.035,
+   "k_retenu": 4
+  },
+  {
+   "phase": "Toutes_phases",
+   "domaine": "tropical",
+   "n_eof": 20,
+   "k_significatifs": [
+    3,
+    4,
+    5,
+    6
+   ],
+   "silhouette_max": 0.168,
+   "p_holm_min": 0.035,
+   "k_retenu": 3
+  },
+  {
+   "phase": "Toutes_phases",
+   "domaine": "global",
+   "n_eof": 5,
+   "k_significatifs": [
+    5
+   ],
+   "silhouette_max": 0.231,
+   "p_holm_min": 0.035,
+   "k_retenu": 5
+  },
+  {
+   "phase": "Toutes_phases",
+   "domaine": "global",
+   "n_eof": 10,
+   "k_significatifs": [
+    5
+   ],
+   "silhouette_max": 0.17,
+   "p_holm_min": 0.035,
+   "k_retenu": 5
+  },
+  {
+   "phase": "Toutes_phases",
+   "domaine": "global",
+   "n_eof": 20,
+   "k_significatifs": [],
+   "silhouette_max": 0.13,
+   "p_holm_min": 0.07,
+   "k_retenu": null
+  }
+ ]
+}

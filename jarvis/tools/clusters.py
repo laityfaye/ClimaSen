@@ -30,7 +30,17 @@ DESCRIPTION = (
     "couverture spatiale, regions ou ces evenements se sont produits. Peut "
     "aussi indiquer a quel regime appartient l evenement d une date donnee. "
     "Ces regimes decrivent l etat de l ocean, PAS un decoupage geographique du "
-    "Senegal."
+    "Senegal. Chaque regime est rattache a l'un des 4 ETATS oceaniques "
+    "saisonniers robustes (El Nino, La Nina, neutre, transition apres El "
+    "Nino): cite cet etat, c'est lui qui donne le sens physique du regime."
+)
+
+ROBUSTESSE = (
+    "Deux niveaux. Les 4 etats saisonniers sont robustes (significatifs face "
+    "au hasard, stables). Les regimes du K-Means par evenement sont une "
+    "typologie descriptive: silhouette faible, et ils regroupent surtout les "
+    "evenements d'une meme saison. Presente un regime comme une variante de "
+    "son etat, pas comme un regime independant."
 )
 
 NATURE = (
@@ -69,7 +79,16 @@ SCHEMA = {
 _CLES_DATASET = {"Toutes phases": "All_phases"}
 
 
-def _profil(ligne, regions):
+def _hierarchie(cle, evenements_clusters):
+    """Rattachement des clusters aux etats saisonniers (None si indisponible)."""
+    try:
+        from veille import etats
+        return etats.hierarchie(cle, evenements=evenements_clusters[["cluster", "year", "phase"]])
+    except Exception:                                   # noqa: BLE001
+        return None
+
+
+def _profil(ligne, regions, hier=None):
     numero = int(ligne["cluster"])
     profil = {
         "cluster": numero,
@@ -85,6 +104,10 @@ def _profil(ligne, regions):
     }
     if regions is not None:
         profil["regions_principales"] = regions.get(numero, [])
+    if hier and numero in hier["clusters"]:
+        c = hier["clusters"][numero]
+        profil["etat_oceanique"] = c["etat"]
+        profil["part_evenements_dans_cet_etat"] = c["part"]
     return profil
 
 
@@ -143,7 +166,8 @@ def run(params, data):
         if avec_regions else None
 
     lignes = chars if numero is None else chars[chars["cluster"] == numero]
-    profils = [_profil(ligne, regions) for _, ligne in lignes.iterrows()]
+    hier = _hierarchie(cle, evenements_clusters)
+    profils = [_profil(ligne, regions, hier) for _, ligne in lignes.iterrows()]
 
     resultat = {
         "phase": phase,
@@ -157,11 +181,22 @@ def run(params, data):
         },
         "clusters": profils,
         "nature": NATURE,
+        "robustesse": ROBUSTESSE,
         "source": SOURCE_CLUSTERING,
     }
 
+    if hier:
+        resultat["etats_oceaniques"] = [
+            {"etat": e["nom"], "description": e["description"], "clusters": e["clusters"],
+             "nino34_moyen": e["indices_moyens"]["Nino34"], "annees": e["annees"]}
+            for e in hier["etats"]]
+        resultat["emboitement_cramer_v"] = hier["cramer_v"]
     if date_demandee is not None:
         resultat["evenement"] = _evenement(evenements_clusters, date_demandee, phase)
+        if hier and resultat["evenement"].get("trouve"):
+            c = hier["clusters"].get(resultat["evenement"]["cluster"])
+            if c:
+                resultat["evenement"]["etat_oceanique"] = c["etat"]
     return resultat
 
 

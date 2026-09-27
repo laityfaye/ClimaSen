@@ -79,7 +79,8 @@
         "annees_principales": [
           1989
         ],
-        "part_evenements_en_annee_extreme": 1.0
+        "part_evenements_en_annee_extreme": 1.0,
+        "etat_oceanique": "La Niña"
       },
       {
         "configuration": 2,
@@ -91,7 +92,8 @@
           1985,
           1988
         ],
-        "part_evenements_en_annee_extreme": 0.39
+        "part_evenements_en_annee_extreme": 0.39,
+        "etat_oceanique": "La Niña"
       },
       {
         "configuration": 0,
@@ -102,7 +104,8 @@
           2000,
           1998
         ],
-        "part_evenements_en_annee_extreme": 0.88
+        "part_evenements_en_annee_extreme": 0.88,
+        "etat_oceanique": "La Niña"
       }
     ],
     "toutes_configurations": [
@@ -179,6 +182,50 @@
         "extreme": true,
         "inondation_documentee": true
       }
+    ],
+    "trajectoire": [
+      {
+        "jusqu_a": "2017-11",
+        "n_mois": 1,
+        "probabilite_experimentale": 0.397,
+        "configuration": 2,
+        "correlation": 0.292
+      },
+      {
+        "jusqu_a": "2017-12",
+        "n_mois": 2,
+        "probabilite_experimentale": 0.416,
+        "configuration": 5,
+        "correlation": 0.258
+      },
+      {
+        "jusqu_a": "2018-01",
+        "n_mois": 3,
+        "probabilite_experimentale": 0.43,
+        "configuration": 5,
+        "correlation": 0.244
+      },
+      {
+        "jusqu_a": "2018-02",
+        "n_mois": 4,
+        "probabilite_experimentale": 0.433,
+        "configuration": 5,
+        "correlation": 0.231
+      },
+      {
+        "jusqu_a": "2018-03",
+        "n_mois": 5,
+        "probabilite_experimentale": 0.439,
+        "configuration": 5,
+        "correlation": 0.235
+      },
+      {
+        "jusqu_a": "2018-04",
+        "n_mois": 6,
+        "probabilite_experimentale": 0.436,
+        "configuration": 5,
+        "correlation": 0.226
+      }
     ]
   },
   "competence_projection": {
@@ -219,5 +266,5 @@
     "inondation_documentee": false,
     "seuil": 745.8
   },
-  "synthese": "Saison 2018 : risque d'année extrême faible (probabilité 20 %, contre 33 % en moyenne), d'après la prévision saisonnière Copernicus C3S. Confiance faible. Le modèle ECMWF prévoit pour juillet-septembre une pluie en dessous de la normale (anomalie -1,2 écart-type) ; 18 % des membres sont dans le tiers le plus humide. De novembre à avril, l'océan ressemble surtout à la configuration C5 du mémoire (corrélation 0,23), celle des années 1989. Années les plus ressemblantes : 2011, 2014, 2008, 2015, 2009 ; 2 sur 5 ont été des années extrêmes (dont 2009, inondations documentées). Indication expérimentale de la projection : 44 %. Cette méthode n'a pas de compétence démontrée en prévision réelle (AUC 0,53 en conditions réelles de prévision) ; elle ne fixe pas le niveau de risque. Contexte : 4 des 10 dernières saisons observées (2008-2017) ont été extrêmes, pour une fréquence de référence d'une sur trois. Vérification : la saison 2018 a été non extrême (empreinte 580, rang 28)."
+  "synthese": "Saison 2018 : risque d'année extrême faible (probabilité 20 %, contre 33 % en moyenne), d'après la prévision saisonnière Copernicus C3S. Confiance faible. Le modèle ECMWF prévoit pour juillet-septembre une pluie en dessous de la normale (anomalie -1,2 écart-type) ; 18 % des membres sont dans le tiers le plus humide. De novembre à avril, l'océan ressemble surtout à la configuration C5 du mémoire (corrélation 0,23), une variante de l'état La Niña, celle des années 1989. Années les plus ressemblantes : 2011, 2014, 2008, 2015, 2009 ; 2 sur 5 ont été des années extrêmes (dont 2009, inondations documentées). Indication expérimentale de la projection : 44 %. Cette méthode n'a pas de compétence démontrée en prévision réelle (AUC 0,53 en conditions réelles de prévision) ; elle ne fixe pas le niveau de risque. Contexte : 4 des 10 dernières saisons observées (2008-2017) ont été extrêmes, pour une fréquence de référence d'une sur trois. Vérification : la saison 2018 a été non extrême (empreinte 580, rang 28)."
 }

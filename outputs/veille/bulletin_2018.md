@@ -8,7 +8,7 @@ Probabilité : **20 %** (référence : 33 %) · source : c3s · confiance : faib
 
 ## Synthèse
 
-Saison 2018 : risque d'année extrême faible (probabilité 20 %, contre 33 % en moyenne), d'après la prévision saisonnière Copernicus C3S. Confiance faible. Le modèle ECMWF prévoit pour juillet-septembre une pluie en dessous de la normale (anomalie -1,2 écart-type) ; 18 % des membres sont dans le tiers le plus humide. De novembre à avril, l'océan ressemble surtout à la configuration C5 du mémoire (corrélation 0,23), celle des années 1989. Années les plus ressemblantes : 2011, 2014, 2008, 2015, 2009 ; 2 sur 5 ont été des années extrêmes (dont 2009, inondations documentées). Indication expérimentale de la projection : 44 %. Cette méthode n'a pas de compétence démontrée en prévision réelle (AUC 0,53 en conditions réelles de prévision) ; elle ne fixe pas le niveau de risque. Contexte : 4 des 10 dernières saisons observées (2008-2017) ont été extrêmes, pour une fréquence de référence d'une sur trois. Vérification : la saison 2018 a été non extrême (empreinte 580, rang 28).
+Saison 2018 : risque d'année extrême faible (probabilité 20 %, contre 33 % en moyenne), d'après la prévision saisonnière Copernicus C3S. Confiance faible. Le modèle ECMWF prévoit pour juillet-septembre une pluie en dessous de la normale (anomalie -1,2 écart-type) ; 18 % des membres sont dans le tiers le plus humide. De novembre à avril, l'océan ressemble surtout à la configuration C5 du mémoire (corrélation 0,23), une variante de l'état La Niña, celle des années 1989. Années les plus ressemblantes : 2011, 2014, 2008, 2015, 2009 ; 2 sur 5 ont été des années extrêmes (dont 2009, inondations documentées). Indication expérimentale de la projection : 44 %. Cette méthode n'a pas de compétence démontrée en prévision réelle (AUC 0,53 en conditions réelles de prévision) ; elle ne fixe pas le niveau de risque. Contexte : 4 des 10 dernières saisons observées (2008-2017) ont été extrêmes, pour une fréquence de référence d'une sur trois. Vérification : la saison 2018 a été non extrême (empreinte 580, rang 28).
 
 ## Prévision saisonnière officielle (Copernicus C3S)
 
@@ -23,11 +23,11 @@ Saison 2018 : risque d'année extrême faible (probabilité 20 %, contre 33 % en
 
 ## État océanique novembre-avril (configurations du mémoire)
 
-| Configuration | Corrélation | Années principales | Part d'événements en année extrême |
-|---|---|---|---|
-| C5 | 0,23 | 1989 | 100 % |
-| C2 | 0,15 | 2008, 1984, 1985, 1988 | 39 % |
-| C0 | 0,12 | 1999, 2000, 1998 | 88 % |
+| Configuration | État océanique | Corrélation | Années principales | Part d'événements en année extrême |
+|---|---|---|---|---|
+| C5 | La Niña | 0,23 | 1989 | 100 % |
+| C2 | La Niña | 0,15 | 2008, 1984, 1985, 1988 | 39 % |
+| C0 | La Niña | 0,12 | 1999, 2000, 1998 | 88 % |
 
 **Années analogues** : 2011 (normale), 2014 (normale), 2008 (extrême), 2015 (normale), 2009 (extrême)
 

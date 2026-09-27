@@ -21,7 +21,8 @@ import time
 
 from . import (analogues, analyse_evenements, analyse_teleconnexions, animation,
                cartes, clusters, code, documents, events, graphiques, navigation,
-               pipeline_statut, recalcul, redaction, sst_index, teleconnections, veille)
+               pipeline_statut, recalcul, redaction, sst_index, teleconnections, veille,
+               veille_briefing, veille_diffusion, veille_fiabilite, veille_scenario)
 from .common import ToolInputError
 from .dataset import DataUnavailableError
 from .dataset import load as charger_donnees
@@ -34,7 +35,8 @@ log = logging.getLogger("jarvis.tools")
 MODULES = (sst_index, events, teleconnections, clusters, documents,
            analyse_teleconnexions, analyse_evenements,
            pipeline_statut, graphiques, cartes, recalcul, analogues, navigation,
-           animation, veille) + redaction.OUTILS + code.OUTILS
+           animation, veille, veille_briefing, veille_fiabilite, veille_scenario,
+           veille_diffusion) + redaction.OUTILS + code.OUTILS
 
 MAX_RESULT_CHARS = 6000
 

@@ -81,7 +81,8 @@
           1997,
           1983
         ],
-        "part_evenements_en_annee_extreme": 0.33
+        "part_evenements_en_annee_extreme": 0.33,
+        "etat_oceanique": "El Niño"
       },
       {
         "configuration": 1,
@@ -91,14 +92,16 @@
           1992,
           1997
         ],
-        "part_evenements_en_annee_extreme": 0.0
+        "part_evenements_en_annee_extreme": 0.0,
+        "etat_oceanique": "El Niño"
       },
       {
         "configuration": 3,
         "correlation": 0.186,
         "n_evenements": 47,
         "annees_principales": [],
-        "part_evenements_en_annee_extreme": 1.0
+        "part_evenements_en_annee_extreme": 1.0,
+        "etat_oceanique": "Neutre"
       }
     ],
     "toutes_configurations": [
@@ -175,6 +178,50 @@
         "extreme": false,
         "inondation_documentee": false
       }
+    ],
+    "trajectoire": [
+      {
+        "jusqu_a": "2006-11",
+        "n_mois": 1,
+        "probabilite_experimentale": 0.315,
+        "configuration": 4,
+        "correlation": 0.456
+      },
+      {
+        "jusqu_a": "2006-12",
+        "n_mois": 2,
+        "probabilite_experimentale": 0.315,
+        "configuration": 4,
+        "correlation": 0.424
+      },
+      {
+        "jusqu_a": "2007-01",
+        "n_mois": 3,
+        "probabilite_experimentale": 0.321,
+        "configuration": 4,
+        "correlation": 0.386
+      },
+      {
+        "jusqu_a": "2007-02",
+        "n_mois": 4,
+        "probabilite_experimentale": 0.327,
+        "configuration": 4,
+        "correlation": 0.339
+      },
+      {
+        "jusqu_a": "2007-03",
+        "n_mois": 5,
+        "probabilite_experimentale": 0.331,
+        "configuration": 4,
+        "correlation": 0.286
+      },
+      {
+        "jusqu_a": "2007-04",
+        "n_mois": 6,
+        "probabilite_experimentale": 0.332,
+        "configuration": 4,
+        "correlation": 0.261
+      }
     ]
   },
   "competence_projection": {
@@ -215,5 +262,5 @@
     "inondation_documentee": false,
     "seuil": 745.8
   },
-  "synthese": "Saison 2007 : risque d'année extrême normal (probabilité 32 %, contre 33 % en moyenne), d'après la prévision saisonnière Copernicus C3S. Confiance faible. Le modèle ECMWF prévoit pour juillet-septembre une pluie proche de la normale (anomalie -0,2 écart-type) ; 36 % des membres sont dans le tiers le plus humide. De novembre à avril, l'océan ressemble surtout à la configuration C4 du mémoire (corrélation 0,26), celle des années 1987, 1997, 1983. Années les plus ressemblantes : 2005, 2004, 2003, 1998, 1995 ; 2 sur 5 ont été des années extrêmes (dont 2005, 2003, inondations documentées). Indication expérimentale de la projection : 33 %. Cette méthode n'a pas de compétence démontrée en prévision réelle (AUC 0,53 en conditions réelles de prévision) ; elle ne fixe pas le niveau de risque. Contexte : 5 des 10 dernières saisons observées (1997-2006) ont été extrêmes, pour une fréquence de référence d'une sur trois. Vérification : la saison 2007 a été non extrême (empreinte 490, rang 38)."
+  "synthese": "Saison 2007 : risque d'année extrême normal (probabilité 32 %, contre 33 % en moyenne), d'après la prévision saisonnière Copernicus C3S. Confiance faible. Le modèle ECMWF prévoit pour juillet-septembre une pluie proche de la normale (anomalie -0,2 écart-type) ; 36 % des membres sont dans le tiers le plus humide. De novembre à avril, l'océan ressemble surtout à la configuration C4 du mémoire (corrélation 0,26), une variante de l'état El Niño, celle des années 1987, 1997, 1983. Années les plus ressemblantes : 2005, 2004, 2003, 1998, 1995 ; 2 sur 5 ont été des années extrêmes (dont 2005, 2003, inondations documentées). Indication expérimentale de la projection : 33 %. Cette méthode n'a pas de compétence démontrée en prévision réelle (AUC 0,53 en conditions réelles de prévision) ; elle ne fixe pas le niveau de risque. Contexte : 5 des 10 dernières saisons observées (1997-2006) ont été extrêmes, pour une fréquence de référence d'une sur trois. Vérification : la saison 2007 a été non extrême (empreinte 490, rang 38)."
 }

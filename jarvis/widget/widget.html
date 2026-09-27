@@ -492,6 +492,38 @@
     left:50%;top:50%;transform:translate(-50%,-55%)}
   #hud.sans3d #hud-orbe{display:none}
   #hud.sans3d #hud-orbe2d{display:block}
+  /* Fond d'ecran: planisphere en points, graticule, balises des indices
+     oceaniques, Senegal (SVG genere par scripts/23_build_jarvis_fond_hud.py).
+     Discret: il ne doit jamais disputer la lecture a l'orbe ni aux ecrans. */
+  #hud-fond{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;
+    opacity:.9;animation:hf-apparition 2.4s ease both}
+  #hud-fond .hf-graticule{fill:none;stroke:rgba(0,229,255,.07);stroke-width:.6;
+    vector-effect:non-scaling-stroke}
+  #hud-fond .hf-terres{fill:url(#hf-points);stroke:rgba(0,229,255,.22);stroke-width:.7;
+    vector-effect:non-scaling-stroke}
+  #hud-fond pattern circle{fill:rgba(0,229,255,.34)}
+  #hud-fond .hf-balayage{fill:url(#hf-balayage);animation:hf-balayage 16s linear infinite}
+  #hud-fond .hf-point{fill:#00E5FF;filter:drop-shadow(0 0 1.5px #00E5FF)}
+  #hud-fond .hf-onde{fill:none;stroke:#00E5FF;stroke-width:.35;opacity:0;
+    transform-box:fill-box;transform-origin:center;animation:hf-onde 5s ease-out infinite}
+  #hud-fond text{font-family:var(--mono);font-size:2.3px;letter-spacing:.35px;
+    fill:rgba(165,243,252,.55)}
+  #hud-fond .hf-senegal .hf-point{fill:#FFB020;filter:drop-shadow(0 0 2px #FFB020)}
+  #hud-fond .hf-senegal .hf-onde{stroke:#FFB020;animation-duration:3.2s}
+  #hud-fond .hf-senegal text{fill:rgba(255,196,90,.8);font-weight:700}
+  @keyframes hf-apparition{from{opacity:0}to{opacity:.9}}
+  @keyframes hf-balayage{from{transform:translateX(0)}to{transform:translateX(420px)}}
+  @keyframes hf-onde{0%{opacity:.9;transform:scale(.4)}100%{opacity:0;transform:scale(3.4)}}
+  /* Lisibilite: un ecran ou une presentation ouverts estompent le decor. */
+  body.hud.hud-ecran #hud-fond, body.hud.soutenance #hud-fond{opacity:.35;transition:opacity .6s}
+  /* Tuiles d'accueil affichees: les etiquettes du decor s'effacent. */
+  #hud-fond text{transition:opacity .6s}
+  body.hud.hud-accueil-visible #hud-fond text{opacity:0}
+  @media (max-width:900px){ #hud-fond text{display:none} #hud-fond{opacity:.6} }
+  @media (prefers-reduced-motion:reduce){
+    #hud-fond, #hud-fond *{animation:none !important}
+    #hud-fond .hf-balayage{display:none}
+  }
   .hud-grille{position:absolute;inset:0;pointer-events:none;opacity:.35;
     background-image:linear-gradient(rgba(0,229,255,.05) 1px,transparent 1px),
                      linear-gradient(90deg,rgba(0,229,255,.05) 1px,transparent 1px);
@@ -502,6 +534,33 @@
     box-shadow:0 0 12px rgba(0,229,255,.18)}
   #hud-menu-btn:hover,#hud-menu-btn.ouvert{background:rgba(0,229,255,.14);box-shadow:0 0 18px rgba(0,229,255,.4)}
   #hud-astuce.cache{opacity:0;pointer-events:none}
+  /* Accueil en plein ecran: quatre tuiles autour de l'orbe, qui disent ce que
+     Jarvis sait faire et lancent un exemple d'un clic. Elles s'effacent des
+     la premiere question. */
+  body.hud #hud-accueil{position:absolute;inset:0;z-index:1;pointer-events:none;
+    display:flex;justify-content:space-between;align-items:center;padding:0 max(3vw,28px)}
+  body.hud #hud-accueil[hidden]{display:none}
+  body.hud #hud-accueil .ha-col{display:flex;flex-direction:column;gap:18px;width:min(300px,24vw)}
+  body.hud #hud-accueil .ha-tuile{pointer-events:auto;text-align:left;cursor:pointer;font:inherit;
+    display:flex;flex-direction:column;gap:5px;padding:13px 16px 13px 18px;
+    background:rgba(0,229,255,.04);border:1px solid rgba(0,229,255,.22);border-left:3px solid var(--cyan);
+    color:#CFFAFE;box-shadow:0 0 18px rgba(0,229,255,.06);transition:background .2s,border-color .2s,transform .2s;
+    animation:ha-entree .7s ease both}
+  body.hud #hud-accueil .ha-tuile:hover, body.hud #hud-accueil .ha-tuile:focus-visible{
+    background:rgba(0,229,255,.1);border-color:var(--cyan);transform:translateX(2px);outline:none}
+  body.hud #hud-accueil .ha-d .ha-tuile:hover{transform:translateX(-2px)}
+  body.hud #hud-accueil .ha-titre{font-family:var(--mono);font-weight:900;letter-spacing:.18em;font-size:.68rem;
+    color:var(--cyan);text-shadow:0 0 8px rgba(0,229,255,.6)}
+  body.hud #hud-accueil .ha-txt{font-size:.8rem;line-height:1.45;color:#E0F7FA}
+  body.hud #hud-accueil .ha-ex{font-size:.72rem;line-height:1.4;color:rgba(165,243,252,.7);font-style:italic}
+  body.hud #hud-accueil .ha-col .ha-tuile:nth-child(2){animation-delay:.15s}
+  body.hud #hud-accueil .ha-d .ha-tuile:nth-child(1){animation-delay:.3s}
+  body.hud #hud-accueil .ha-d .ha-tuile:nth-child(2){animation-delay:.45s}
+  @keyframes ha-entree{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+  body.hud.hud-ecran #hud-accueil, body.hud.hud-transcription #hud-accueil,
+  body.hud.hud-menu-ouvert #hud-accueil, body.hud.soutenance #hud-accueil,
+  body.hud.hud-boot #hud-accueil{display:none}
+  @media (max-width:900px){ body.hud #hud-accueil{display:none} }
   #hud-astuce{transition:opacity .8s ease;position:absolute;top:58px;left:20px;z-index:1;max-width:min(430px,42vw);
     padding:9px 14px 9px 20px;border-left:3px solid var(--cyan);background:rgba(0,229,255,.05);
     color:var(--cyan);font-weight:900;letter-spacing:.1em;font-size:.7rem;
@@ -757,11 +816,40 @@
 <body class="collapsed">
 
 <div id="hud">
+  <!-- FOND_HUD:DEBUT -->
+  <svg id="hud-fond" viewBox="-180 -80 360 140" preserveAspectRatio="xMidYMid meet" aria-hidden="true" focusable="false"><defs><pattern id="hf-points" width="1.5" height="1.5" patternUnits="userSpaceOnUse"><circle cx=".75" cy=".75" r=".34"/></pattern><linearGradient id="hf-balayage" x1="0" x2="1" y1="0" y2="0"><stop offset="0" stop-color="#00E5FF" stop-opacity="0"/><stop offset=".85" stop-color="#00E5FF" stop-opacity=".07"/><stop offset="1" stop-color="#00E5FF" stop-opacity=".13"/></linearGradient></defs><path class="hf-graticule" d="M-150 -80 V60M-120 -80 V60M-90 -80 V60M-60 -80 V60M-30 -80 V60M0 -80 V60M30 -80 V60M60 -80 V60M90 -80 V60M120 -80 V60M150 -80 V60M180 -80 V60M-180 60 H180M-180 30 H180M-180 0 H180M-180 -30 H180M-180 -60 H180"/><path class="hf-terres" d="M-67.8 53.9L-65 54.7 -68.2 55.6 -72.3 54.5 -74.7 52.8 -71.1 54.1 -70.3 52.9 -68.6 52.6ZM-58.5 51.1L-57.8 51.5 -58 51.9 -59.9 51.9 -60.7 52.3 -61.2 51.9 -60 51.2 -59.1 51.5ZM144.7 40.7L148.3 40.9 147.9 43.2 146.1 43.5ZM172.8 40.5L173.2 41.3 174 40.9 174.2 41.8 172.7 43.4 173.1 43.9 171.4 44.2 170.6 45.9 169.3 46.6 166.5 45.9 168.3 44.1 170.5 43ZM174.6 36.2L175.3 37.2 175.4 36.5 175.8 36.8 176 37.6 178.5 37.7 178 39.2 177.2 39.1 176 41.3 175.2 41.7 174.7 41.3 175.2 40.5 173.8 39.5 174.6 38.8 174.7 37.4 172.6 34.5 174.3 35.3ZM50.1 13.6L50.4 15.7 49.7 15.7 49.8 16.9 47.1 24.9 45.4 25.6 44 25 43.4 21.3 44.4 20.1 44 17.4 44.5 16.2 46.3 15.8 47.7 14.6 49.2 12ZM143.6 13.8L143.9 14.6 144.6 14.2 145.4 15 146.4 19 148.8 20.4 149.7 22.3 150.7 22.4 150.9 23.5 152.9 25.3 153.6 28.1 152.9 31.6 151.7 33 150 37.4 149.4 37.8 148.3 37.8 146.3 39 144.9 38.4 145 37.9 143.6 38.8 140.6 38 139.6 36.1 138.1 35.6 138.2 34.4 136.8 35.3 137.9 33.6 137.8 32.9 136 34.9 135.2 34.5 134.3 32.6 131.3 31.5 126.2 32.2 124.2 33 123.7 33.9 119.9 34 118 35.1 116.6 35 115 34.2 115 33.6 115.7 33.3 115.7 31.6 114.2 28.1 113.3 26.1 113.8 26.6 113.4 25.6 114.2 26.3 113.4 24.4 114.2 21.8 114.2 22.5 116.7 20.7 120.9 19.7 122.2 18.2 122.3 17.2 123 16.4 123.4 17.3 123.9 17.1 123.8 16.1 124.3 16.3 125.7 14.2 127.1 13.8 128.4 14.9 129.6 15 129.4 14.4 130.6 12.5 132.6 12.1 132.6 11.6 131.8 11.3 132.4 11.1 135.3 12.2 136.5 11.9 136.9 12.3 135.5 15 140.2 17.7 140.9 17.4 141.7 15 142.1 11 142.5 10.7ZM124.4 10.1L123.5 10.2 125.1 8.7 127.3 8.4ZM108.6 6.8L110.5 6.9 110.8 6.5 115.7 8.4 114.6 8.8 111.5 8.3 105.4 6.8 106 5.9ZM152 5.5L150.2 6.3 148.3 5.8 148.4 5.4 149.8 5.5 150.1 5 150.8 5.5 151.7 4.8 151.5 4.2 152.3 4.3ZM130.5 3.1L130.8 3.9 127.9 3.4 128.1 2.8ZM134 0.8L134.4 2.8 135.5 3.4 136.3 2.3 138.3 1.7 144.6 3.9 146 5.5 147.7 6.1 147.9 6.6 147 6.7 147.2 7.4 150.7 10.6 147.9 10.1 146.1 8.1 144.7 7.6 143.3 8.2 143.4 9 142.6 9.3 139.1 8.1 137.6 8.4 138.7 7.3 137.9 5.4 133.7 3.5 133 4.1 132 2.8 133.7 2.2 132.2 2.2 130.5 0.9 132.4 0.4ZM125.2 -1.4L123.7 -0.2 120.2 -0.2 120 0.5 120.9 1.4 123.3 0.6 123.3 1.1 122.8 0.9 121.5 1.9 123.2 4.7 123.2 5.3 122.2 5.3 122.7 4.5 121.5 4.6 121 2.6 120.3 2.9 120.4 5.5 119.4 5.4 119.5 3.5 118.8 2.8 120 -0.6 120.9 -1.3 124.1 -0.9ZM128.6 -1.5L128.1 0.9 127.4 -1 127.9 -2.2 128 -1.6ZM105.8 5.8L104.7 5.9 102.6 4.2 98.6 -1.8 95.3 -5.5 97.5 -5.2 100.6 -2.1 101.7 -2.1 103.8 -0.1 103.4 0.7 104.4 1.1 104.9 2.3 106.1 3.1ZM117.9 -1.8L119 -0.9 117.8 -0.8 117.5 0.8 116.6 1.5 116.2 4 114.9 4.1 113.3 3.1 112.1 3.5 111.7 3 110.2 2.9 110.1 1.6 109.1 0.5 109.1 -1.3 109.7 -2 111.2 -1.9 111.4 -2.7 113 -3.1 116.7 -6.9 119.2 -5.4 117.3 -3.2ZM126.2 -9.3L126.5 -7.2 126.2 -6.3 125.8 -7.3 125.4 -6.8 125.4 -5.6 124.2 -6.2 124.2 -7.4 123.6 -7.8 123.3 -7.4 122.1 -6.9 122.3 -8 125.5 -9 125.4 -9.8ZM81.6 -6.5L80.3 -6 79.7 -8.2 80.2 -9.8 80.8 -9.3 81.8 -7.5ZM124 -10.3L123 -9 122.4 -9.7 123 -10.9 123.5 -10.9 123.3 -10.3 124.1 -11.2ZM125.2 -12.5L125.8 -11.1 125 -11.3 125.3 -10.4 124.8 -10.1 124.8 -10.8 124.3 -11.5 124.9 -11.4 124.9 -11.8 124.3 -12.6ZM120.7 -18.5L122.2 -18.5 122.5 -17.1 121.7 -15.9 121.7 -14.3 124 -13.8 124.1 -12.5 122.9 -13.6 122.7 -13.2 120.6 -13.9 121 -14.5 120.1 -15 119.9 -16.4 120.3 -16ZM-73.2 -19.9L-70.8 -19.9 -69.2 -19.3 -68.3 -18.6 -68.7 -18.2 -71 -18.3 -71.4 -17.6 -72.4 -18.2 -74.5 -18.3 -74.4 -18.7 -72.3 -18.7ZM110.3 -18.7L109.5 -18.2 108.7 -18.5 108.6 -19.4 110.8 -20.1ZM-80.6 -23.1L-78.3 -22.5 -75.7 -20.7 -74.2 -20.3 -77.8 -19.9 -77.1 -20.4 -78.1 -20.7 -78.7 -21.6 -81.8 -22.6 -85 -21.9 -83.8 -22.8ZM122 -25L120.8 -22 120.1 -23.6 121.5 -25.3ZM134.6 -34.1L134.2 -33.2 133.3 -33.3 133 -32.7 132.4 -33 132.9 -34.1ZM15.5 -38.2L15.1 -36.6 12.4 -37.6 12.6 -38.1ZM9.2 -41.2L9.8 -40.5 9.7 -39.2 8.8 -38.9 8.2 -41ZM141 -37.1L140.2 -35.1 137.2 -34.6 135.8 -33.5 135.1 -33.9 135.1 -34.6 131 -33.9 132 -33.1 130.7 -31 130.2 -31.4 130.4 -32.3 129.8 -32.6 129.4 -33.3 132.6 -35.4 135.7 -35.5 136.7 -37.3 137.4 -36.8 139.4 -38.2 140.3 -41.2 141.4 -41.4 141.9 -40ZM143.1 -44.5L144.6 -44 145.3 -44.4 145.5 -43.3 144.1 -43 143.2 -42 141.6 -42.7 141.1 -41.6 140 -41.6 139.8 -42.6 140.3 -43.3 141.4 -43.4 142 -45.5ZM-123.5 -48.5L-125.7 -48.8 -128.4 -50.5 -125.8 -50.3ZM-55.4 -51.6L-56.8 -49.8 -56.1 -50.1 -55.5 -49.9 -55.8 -49.6 -53.5 -49.2 -53.8 -48.5 -53.1 -48.7 -52.6 -47.5 -53.1 -46.7 -54.2 -46.8 -54 -47.6 -55.4 -46.9 -56 -46.9 -55.3 -47.4 -56.2 -47.6 -59.3 -47.6 -58.8 -48.2 -59.2 -48.5 -57.4 -50.7ZM-133.2 -54.2L-131.8 -54.1 -132.1 -53 -131.2 -52.2 -133.1 -53.4ZM143.2 -51.8L144.7 -49 143.2 -49.3 142.6 -47.9 143.5 -46.1 142.8 -46.7 142.1 -46 141.9 -48.9 142.2 -51 141.6 -51.9 141.7 -53.3 142.7 -54.4ZM-6.8 -52.3L-10 -51.8 -9.2 -52.9 -9.7 -53.9 -7.6 -55.1 -6.7 -55.2 -5.7 -54.5 -6.2 -53.9 -6 -53.1ZM-152.1 -57.6L-154 -56.7 -154.7 -57.5 -153.2 -58ZM-3 -58.6L-4.1 -57.5 -2 -57.7 -3.1 -56 -2.1 -55.9 -1.1 -54.6 -0.4 -54.5 0.5 -52.9 1.7 -52.7 1.1 -51.8 1.4 -51.3 0.6 -50.8 -5.8 -50.2 -3.4 -51.4 -5.3 -52 -4.2 -52.3 -4.8 -52.8 -4.6 -53.5 -3.1 -53.4 -3 -54 -4.8 -54.8 -5 -55.8 -5.6 -55.3 -5.6 -56.3 -6.2 -56.8 -5 -58.6ZM-85.2 -65.7L-85 -65.2 -80.8 -64.1 -80.1 -63.7 -81 -63.4 -83.1 -64.1 -85.5 -63 -85.9 -63.6 -87.2 -63.5 -86.3 -64 -85.9 -65.7ZM-14.5 -66.5L-14.7 -65.8 -13.6 -65.1 -18.7 -63.5 -22.8 -64 -21.8 -64.4 -24 -64.9 -22.2 -65.1 -24.3 -65.6 -23.6 -66.3 -22.1 -66.4 -20.6 -65.7 -19.1 -66.3 -17.8 -66ZM-75.9 -67.2L-77 -67.1 -76.8 -68.2 -75.1 -68 -75.2 -67.4ZM-175 -66.6L-174.3 -66.3 -174.6 -67.1 -171.9 -66.9 -169.9 -66 -172.5 -65.4 -173 -64.2 -176 -64.9 -176.2 -65.4 -178.4 -65.4 -178.7 -66.1 -179.9 -65.9 -179.4 -65.4 -180 -65 -180 -69 -174.9 -67.2ZM-95.7 -69.1L-98.4 -69 -99.8 -69.4 -98.2 -70.1ZM-90.5 -69.5L-90.5 -68.5 -89.2 -69.3 -88 -68.6 -88.3 -67.9 -87.3 -67.2 -85.6 -68.8 -85.5 -69.9 -82.6 -69.7 -81.3 -69.2 -81.2 -68.7 -82 -68.1 -81.3 -67.6 -81.4 -67.1 -83.3 -66.4 -85.8 -66.6 -87.3 -64.8 -89.9 -64 -90.8 -63 -93.2 -62 -94.2 -60.9 -94.7 -59 -93.2 -58.8 -92.3 -57.1 -90.9 -57.3 -85 -55.3 -82.3 -55.1 -82.1 -53.3 -79.9 -51.2 -79.1 -51.5 -78.6 -52.6 -79.8 -54.7 -78.2 -55.1 -76.5 -56.5 -76.6 -57.2 -78.5 -58.8 -77.3 -59.9 -78.1 -62.3 -73.8 -62.4 -71.4 -61.1 -69.6 -61.1 -69.3 -59 -67.7 -58.2 -64.6 -60.3 -61.4 -57 -61.8 -56.3 -57.3 -54.6 -55.8 -53.3 -55.7 -52.1 -60 -50.2 -66.4 -50.2 -71.1 -46.8 -68.7 -48.3 -65.1 -49.2 -64.2 -48.7 -65.1 -48.1 -64.5 -46.2 -63.2 -45.7 -61.5 -45.9 -60.5 -47 -60.5 -46.3 -59.8 -45.9 -65.4 -43.5 -66.1 -43.6 -66.2 -44.5 -64.4 -45.3 -67.1 -45.1 -70.7 -43 -70.8 -42.3 -70 -41.6 -74 -40.8 -74.9 -38.9 -75.5 -39.5 -75.1 -38.4 -75.9 -37.2 -76.3 -39.1 -76.3 -38.1 -77 -38.2 -76.3 -37.9 -75.7 -35.5 -79.1 -33.5 -81.3 -31.4 -81.5 -30.7 -80.1 -26.9 -80.4 -25.2 -81.2 -25.2 -82.9 -27.9 -82.9 -29.1 -84.1 -30.1 -85.1 -29.6 -86.4 -30.4 -89.2 -30.3 -89.6 -30.2 -89.2 -29.3 -90.2 -29.1 -91.6 -29.7 -93.8 -29.7 -96.6 -28.3 -97.4 -27.4 -97.1 -25.9 -97.9 -22.4 -96.3 -19.3 -94.4 -18.1 -90.8 -19.3 -90.3 -21 -87 -21.5 -86.8 -20.9 -87.8 -18.3 -88.3 -18.5 -88.4 -16.5 -88.9 -15.9 -85 -16 -83.4 -15.3 -83.8 -11.1 -82.2 -9 -81.4 -8.8 -79.6 -9.6 -76.8 -8.6 -75.7 -9.4 -74.9 -11.1 -73.4 -11.2 -71.8 -12.4 -71.1 -12.1 -72 -11.4 -71.7 -9.1 -71 -9.9 -71.4 -11 -70.2 -11.4 -69.9 -12.2 -68.2 -10.6 -66.2 -10.7 -64.9 -10.1 -64.3 -10.6 -61.9 -10.7 -62.7 -10.4 -62.4 -9.9 -60.8 -9.4 -60.7 -8.6 -59.1 -8 -58.5 -6.8 -57.1 -6 -54 -5.8 -51.3 -4.2 -50.5 -1.9 -50 -1.7 -50.7 -0.2 -50.4 0.1 -48.6 0.2 -48.6 1.2 -47.8 0.6 -44.9 1.6 -44.4 2.1 -44.6 2.7 -43.4 2.4 -40 2.9 -35.2 5.5 -34.7 7.3 -35.1 9 -39 13.8 -39.3 17.9 -40.9 21.9 -42 23 -44.6 23.4 -47.6 24.9 -48.5 25.9 -48.9 28.7 -53.8 34.4 -54.9 35 -56.2 34.9 -58.4 33.9 -58.5 34.4 -57.2 35.3 -57.4 36 -56.7 36.4 -56.8 36.9 -57.8 38.2 -59.2 38.7 -62.3 38.8 -62.1 40.7 -65.1 41.1 -65 42.1 -64.3 42.4 -63.8 42 -63.5 42.6 -65.2 43.5 -65.6 45 -67.3 45.5 -67.6 46.3 -65.6 47.2 -66 48.1 -69.1 50.7 -68.2 52.4 -70.8 52.9 -71 53.8 -75 52.3 -75.3 51.6 -75 51 -75.6 48.7 -74.1 46.9 -75.6 46.6 -74.7 45.8 -74.3 44.1 -73.2 44.5 -72.7 42.4 -73.4 42.1 -73.7 43.4 -74.3 43.2 -73.2 39.3 -73.6 37.2 -71.4 32.4 -71.5 28.9 -70.9 27.6 -70.1 21.4 -70.4 18.4 -76 14.7 -79.8 7.2 -81.2 6.1 -80.9 5.7 -81.4 4.7 -79.8 2.7 -80 2.2 -80.4 2.7 -81 2.2 -80.9 1.1 -80.1 -0.8 -78.9 -1.4 -78.7 -2.3 -77.1 -3.9 -78.2 -8.3 -79.6 -8.9 -80.5 -8.1 -80 -7.5 -80.9 -7.2 -81.7 -8.1 -83.5 -8.4 -83.6 -9.1 -85 -10.1 -85.1 -9.6 -85.7 -9.9 -85.7 -11.1 -87.7 -12.9 -87.5 -13.3 -91.2 -13.9 -94.7 -16.2 -96.6 -15.7 -103.5 -18.3 -105.5 -19.9 -105.3 -21.4 -106 -22.8 -109.3 -25.6 -109.3 -26.4 -110.6 -27.9 -112.2 -28.9 -113.2 -31.2 -114.8 -31.8 -114.7 -30.2 -111.6 -26.7 -110.7 -24.3 -109.4 -23.2 -110 -22.8 -112.2 -24.7 -112.3 -26 -115.1 -27.7 -114.6 -27.7 -114.2 -28.6 -115.5 -29.6 -117.3 -33 -118.5 -34 -120.6 -34.6 -124.4 -40.3 -123.9 -45.5 -124.7 -48.2 -123.1 -48 -122.6 -47.1 -122.8 -49 -127.4 -50.8 -127.8 -52.3 -129.1 -52.8 -129.3 -53.6 -132 -55.5 -132.2 -56.4 -134.1 -58.1 -136.6 -58.2 -139.9 -59.5 -147.1 -60.9 -148.2 -60.7 -148 -60 -151.7 -59.2 -151.9 -59.8 -151.4 -60.7 -150.3 -61 -150.6 -61.3 -154 -59.4 -153.3 -58.9 -154.2 -58.1 -158.4 -56 -164.8 -54.4 -157.7 -57.6 -157 -58.9 -159.1 -58.4 -160.4 -59.1 -162 -58.7 -161.9 -59.6 -163.8 -59.8 -166.1 -61.5 -164.6 -63.1 -160.8 -63.8 -161.5 -64.4 -160.8 -64.8 -162.8 -64.3 -165 -64.5 -168.1 -65.7 -164.5 -66.6 -163.7 -66.6 -163.8 -66.1 -161.7 -66.1 -166.8 -68.4 -166.2 -68.9 -164.4 -68.9 -161.9 -70.3 -156.6 -71.4 -154.3 -70.7 -143.6 -70.2 -136.5 -68.9 -129.8 -70.2 -129.1 -69.8 -128.1 -70.5 -125.8 -69.5 -124.4 -70.2 -124.3 -69.4 -121.5 -69.8 -115.2 -68.9 -113.9 -68.4 -115.3 -67.9 -110 -68 -108.9 -67.4 -107.8 -67.9 -108.8 -68.3 -108.2 -68.7 -106.2 -68.8 -101.5 -67.7 -98.4 -67.8 -98.6 -68.4 -97.7 -68.6 -96.1 -68.2 -96.1 -67.3 -95.5 -68.1 -94.7 -68.1 -94.2 -69.1 -96.5 -70.1 -96.4 -71.2 -95.2 -71.9 -92.9 -71.3 -91.5 -70.2 -92.4 -69.7ZM-114.2 -73.1L-114.7 -72.7 -112.4 -73 -111 -72.5 -109.9 -73 -108.2 -71.7 -107.7 -72.1 -108.4 -73.1 -106.5 -73.1 -105.4 -72.7 -104.5 -71 -101 -70 -101.1 -69.6 -102.7 -69.5 -102.1 -69.1 -113.3 -68.5 -113.8 -69 -116.1 -69.2 -117.3 -70 -112.4 -70.4 -117.9 -70.5 -118.4 -70.9 -116.1 -71.3 -119.4 -71.6 -117.9 -72.7ZM-76.3 -73.1L-79.5 -72.7 -80.9 -73.3 -80.3 -73.8ZM-86.6 -73.2L-85.8 -72.5 -84.8 -73.3 -82.3 -73.8 -80.6 -72.7 -80.8 -72.1 -77.8 -72.8 -74.2 -71.8 -74.1 -71.3 -72.2 -71.6 -67.9 -70.1 -67 -69.2 -68.8 -68.7 -64.9 -67.8 -63.4 -66.9 -61.9 -66.9 -63.9 -65 -66.7 -66.4 -68 -66.3 -68.1 -65.7 -65.3 -64.4 -64.7 -63.4 -65 -62.7 -68.8 -63.8 -66.2 -61.9 -71 -62.9 -74.8 -64.7 -77.7 -64.2 -78.6 -64.6 -77.9 -65.3 -74 -65.5 -74.3 -65.8 -72.7 -67.3 -72.9 -67.7 -76.9 -68.9 -76.2 -69.2 -79 -70.2 -81.3 -69.7 -88.7 -70.4 -89.5 -70.8 -88.5 -71.2 -89.9 -71.2 -90.2 -72.2 -88.4 -73.5 -85.8 -73.8ZM-100.4 -73.8L-97.4 -73.8 -97.1 -73.5 -98 -73 -96.5 -72.6 -96.7 -71.7 -99.3 -71.4 -102.5 -72.5 -100.4 -72.7 -101.5 -73.4ZM143.6 -73.2L139.9 -73.4 140.8 -73.8 142.1 -73.9ZM-93.2 -72.8L-94.3 -72 -95.4 -72.1 -96 -73.4 -94.5 -74.1 -90.5 -73.9ZM-120.5 -71.4L-123.1 -70.9 -125.9 -71.9 -123.9 -73.7 -124.9 -74.3 -117.6 -74.2 -115.5 -73.5 -119.2 -72.5ZM-93.6 -75L-94.2 -74.6 -96.8 -74.9 -94.8 -75.7ZM145.1 -75.6L144.3 -74.8 139 -74.6 137 -75.3 137.5 -76 138.8 -76.1ZM-98.5 -76.7L-97.7 -76.3 -98.2 -75 -99.8 -74.9 -100.9 -75.1 -100.9 -75.6 -102.5 -75.6 -102.6 -76.3ZM-108.5 -76.7L-107.8 -75.8 -105.9 -76 -105.7 -75.5 -106.3 -75 -113.7 -74.4 -113.9 -74.7 -111.8 -75.2 -117.7 -75.2 -116.3 -76.2 -115.4 -76.5 -109.1 -75.5 -110.5 -76.4ZM57.5 -70.7L53.7 -70.8 51.6 -71.5 51.5 -72 52.5 -72.2 52.4 -72.8 54.4 -73.6 53.5 -73.8 55.9 -74.6 55.6 -75.1 61.2 -76.2 68.2 -76.9 68.8 -76.5 58.5 -74.3 55.4 -72.4 55.6 -71.5ZM-94.7 -77.1L-91.6 -76.8 -90.7 -76.5 -91 -76.1 -89.2 -75.6 -81.1 -75.7 -79.8 -74.9 -82 -74.4 -92.4 -74.8 -92.9 -75.9 -97.1 -76.8 -96.8 -77.2ZM-116.2 -77.7L-116.3 -76.9 -117.1 -76.5 -121.5 -75.9 -122.8 -76.1 -119.1 -77.5ZM107 -77L107.2 -76.5 111.1 -76.7 114.1 -75.8 113.9 -75.3 109.4 -74.2 113 -74 113.5 -73.3 115.6 -73.8 118.8 -73.6 119 -73.1 123.2 -73 123.3 -73.7 127 -73.6 128.6 -73 129.1 -72.4 128.5 -72 129.7 -71.2 131.3 -70.8 132.2 -71.8 139.9 -71.5 139.2 -72.4 140.5 -72.8 149.5 -72.2 153 -70.8 159 -70.9 159.8 -70.5 159.7 -69.7 160.9 -69.4 167.8 -69.6 169.6 -68.7 170.8 -69 170 -69.7 170.4 -70.1 175.7 -69.9 180 -69 180 -65 177.4 -64.6 179.4 -63 179.2 -62.3 177.4 -62.5 173.7 -61.6 170.3 -59.9 168.9 -60.6 166.3 -59.8 165.8 -60.2 164.9 -59.7 163.5 -59.9 162 -58.2 163.2 -57.6 163.1 -56.2 162.1 -56.1 161.7 -55.3 162.1 -54.9 160.4 -54.3 160 -53.2 158.5 -53 158.2 -51.9 156.8 -51 155.4 -55.4 155.9 -56.8 156.8 -57.8 158.4 -58.1 163.7 -61.1 164.5 -62.5 163.3 -62.5 162.7 -61.6 160.1 -60.5 159.3 -61.8 156.7 -61.4 154.2 -59.8 155 -59.1 151.3 -58.8 151.3 -59.5 149.8 -59.7 148.5 -59.2 142.2 -59 135.1 -54.7 136.7 -54.6 138.2 -53.8 139.9 -54.2 141.3 -53.1 141.4 -52.2 140.6 -51.2 140.1 -48.5 138.2 -46.3 134.9 -43.4 133.5 -42.8 132.3 -43.3 130.4 -42.3 129.7 -40.9 127.5 -39.8 127.4 -39.2 129.5 -36.8 129.1 -35.1 126.5 -34.4 126.1 -36.7 126.9 -36.9 126.2 -37.8 124.7 -38.1 125.3 -39.5 124.3 -39.9 121 -38.9 122.2 -40.4 121.6 -41 119 -39.2 118 -39.2 117.5 -38.7 118.9 -37.5 119.7 -37.2 120.8 -37.9 122.4 -37.5 122.5 -36.9 121.1 -36.6 119.2 -34.9 120.2 -34.4 121.9 -31.7 121.9 -30.9 121.3 -30.7 122.1 -29.8 121.7 -28.2 121.1 -28.1 118.7 -24.6 115.9 -22.8 114.2 -22.2 113.8 -22.6 110.8 -21.4 110.4 -20.3 109.9 -20.3 109.9 -21.4 108.5 -21.7 105.9 -19.8 105.7 -19.1 108.9 -15.3 109.2 -11.7 105.2 -8.6 104.8 -9.2 105.1 -9.9 103.5 -10.6 102.6 -12.2 100.8 -12.6 101 -13.4 100.1 -13.4 99.2 -9.2 99.9 -9.2 100.5 -7.4 103.4 -4.9 103.5 -2.8 104.2 -1.3 103.5 -1.2 101.4 -2.8 100.1 -6.5 98.5 -8.4 98.3 -7.8 98.8 -11.4 97.2 -16.9 95.4 -15.7 94.2 -16 94.5 -17.3 93.7 -19.7 92.4 -20.7 91.4 -22.8 90.5 -22.8 90.3 -21.8 89 -22.1 88.9 -21.7 87 -21.5 86.5 -20.1 85.1 -19.5 82.2 -16.6 80.3 -15.9 79.9 -10.4 79.3 -10.3 79.2 -9.2 77.5 -8 76.6 -8.9 73.5 -16 72.6 -21.4 70.5 -20.9 69.2 -22.1 69.6 -22.4 69.3 -22.8 67.4 -23.9 66.4 -25.4 61.5 -25.1 57.4 -25.7 57 -27 54.7 -26.5 53.5 -26.8 51.5 -27.9 50.1 -30.1 48 -30 48.8 -27.7 50.1 -26.7 50.8 -24.8 51 -26 51.6 -25.8 51.8 -24 54 -24.1 56.4 -26.4 56.9 -24.2 58.7 -23.6 59.8 -22.3 58.5 -20.4 57.8 -20.2 57.7 -18.9 56.6 -18.6 55.3 -17.2 52.4 -16.4 52.2 -15.6 48.7 -14 43.5 -12.6 42.6 -16.8 39.1 -21.3 38.5 -23.7 37.5 -24.3 35.1 -28.1 34.6 -28.1 34.9 -29.5 33.9 -27.6 32.4 -29.9 35.7 -23.9 35.5 -23.1 36.9 -22 37.5 -18.6 38.4 -18 39.3 -15.9 43.3 -12.4 42.7 -11.7 44.6 -10.4 51.1 -12 51 -10.6 49.5 -6.8 47.7 -4.2 40.3 2.6 39.2 4.7 38.7 5.9 39.4 6.8 39.2 8.5 40.5 10.8 40.8 14.7 39.5 16.7 37.4 17.6 34.8 19.8 35.6 23.7 32.6 25.7 32.9 26.2 32.2 28.8 27.5 33.2 19.6 34.8 18.4 34.1 17.9 32.6 18.2 31.7 15.2 27.1 14.3 22.1 11.8 18.1 11.8 15.8 13.6 12 13.7 10.7 11.9 5 8.8 1.1 9.8 -3.1 9.4 -3.7 8.5 -4.8 5.9 -4.3 4.3 -6.3 1.9 -6.1 -2 -4.7 -4.7 -5.2 -7.5 -4.3 -9 -4.8 -12.9 -7.8 -14.8 -10.9 -16.6 -12.2 -16.7 -13.6 -17.6 -14.7 -16.5 -16.1 -16.1 -18.1 -17 -21.9 -14.4 -26.2 -9.6 -29.9 -9.3 -32.6 -6.9 -34.1 -5.9 -35.8 -2.2 -35.2 1.5 -36.6 9.5 -37.4 10.2 -37.2 10.2 -36.7 11.1 -36.9 10.6 -36.4 10.8 -34.8 10.3 -33.8 15.2 -32.3 15.7 -31.4 19.1 -30.3 20.1 -31 20.1 -32.2 21.5 -32.8 28.9 -30.9 31 -31.6 32 -30.9 32.2 -31.3 33.8 -31 34.6 -31.6 36 -34.6 35.8 -36.3 36.2 -36.6 34.7 -36.8 34 -36.2 32.5 -36.1 30.6 -36.7 29.7 -36.1 27.6 -36.7 26.3 -38.2 26.8 -39 26.2 -39.5 27.3 -40.4 28.8 -40.5 29.2 -41.2 31.1 -41.1 33.5 -42 38.4 -41 41.5 -41.5 41.5 -42.6 36.7 -45.2 38.2 -46.2 37.7 -46.6 39.1 -47.3 35 -46.3 35 -45.6 36.5 -45.5 36.3 -45.1 33.9 -44.4 32.5 -45.3 33.6 -45.9 30.8 -46.6 29.6 -45 28.8 -44.9 27.7 -42.6 28.8 -41 27.6 -41 26.4 -40.1 26.1 -40.8 24.9 -41 23.7 -40.7 24.4 -40.1 22.6 -40.3 24 -37.7 23.1 -37.9 23.1 -36.4 22.5 -36.4 19.4 -40.2 19.5 -41.7 18.9 -42.3 16 -43.5 14.9 -45.1 13.9 -44.8 13.9 -45.6 13.1 -45.7 12.3 -45.4 12.6 -44.1 15.1 -42 15.9 -42 15.9 -41.5 18.5 -40.2 18.3 -39.8 16.9 -40.4 16.4 -39.8 17.2 -39.4 17.1 -38.9 16.1 -38 15.7 -37.9 16.1 -39 15.4 -40 12.1 -41.7 10.5 -42.9 10.2 -43.9 8.9 -44.4 6.5 -43.1 3.1 -43.1 3 -41.9 0.8 -41 -0.3 -39.3 0.1 -38.7 -2.1 -36.7 -4.4 -36.7 -5.9 -36 -6.5 -36.9 -8.9 -36.9 -8.8 -38.3 -9.5 -38.7 -8.8 -40.8 -9.4 -43 -8 -43.8 -1.9 -43.4 -1.4 -44 -1.2 -46 -3 -47.6 -4.5 -48 -4.6 -48.7 -1.6 -48.6 -1.9 -49.8 -1 -49.4 1.3 -50.1 1.6 -51 3.8 -51.6 4.7 -53.1 8.1 -53.5 8.8 -54 8.1 -55.5 8.5 -57.1 10.6 -57.7 10.2 -56.9 10.9 -56.5 9.7 -55.5 9.9 -54.6 10.9 -54 12.5 -54.5 14.1 -53.8 17.6 -54.9 19.7 -54.4 19.9 -54.9 21.3 -55.2 21.1 -56.8 21.6 -57.4 22.5 -57.8 23.3 -57 24.1 -57 24.4 -58.4 23.4 -58.6 23.3 -59.2 29.1 -60 28.1 -60.5 22.9 -59.9 21.3 -60.7 21.1 -62.6 21.5 -63.2 25.4 -65.1 23.9 -66 22.2 -65.7 21.2 -65 21.4 -64.4 17.9 -62.8 17.1 -61.3 18.8 -60.1 17.9 -59 16.8 -58.7 15.9 -56.1 14.7 -56.2 14.1 -55.4 12.9 -55.4 10.4 -59.5 8.4 -58.3 7 -58.1 5.7 -58.6 5 -62 10.5 -64.5 14.8 -67.8 19.2 -69.8 23 -70.2 24.6 -71 28.2 -71.2 31.3 -70.5 30 -70.2 31.1 -69.6 32.1 -69.9 36.5 -69.1 41.1 -67.5 41.1 -66.8 38.4 -66 33.2 -66.6 34.8 -65.9 34.9 -64.4 37 -63.9 36.5 -64.8 37.2 -65.1 39.6 -64.5 40.4 -64.8 39.8 -65.5 42.1 -66.5 44 -66.1 44.5 -66.8 43.7 -67.3 44.2 -68 43.5 -68.6 46.2 -68.2 46.8 -67.7 45.6 -67.6 45.6 -67 46.4 -66.7 53.7 -68.9 54.5 -68.8 53.5 -68.2 58.8 -68.9 59.9 -68.3 61.1 -68.9 60 -69.5 60.5 -69.8 68.5 -68.1 69.2 -68.6 66.9 -69.5 67.3 -69.9 66.7 -71 69.9 -73 72.6 -72.8 72.8 -72.2 71.8 -71.4 72.8 -70.4 72.6 -69 73.7 -68.4 71.3 -66.3 72.4 -66.2 75 -67.8 74.5 -68.3 74.9 -69 73.8 -69.1 73.6 -69.6 74.4 -70.6 73.1 -71.5 74.9 -72.1 74.7 -72.8 75.7 -72.3 75.3 -71.3 76.4 -71.2 75.9 -71.9 77.6 -72.3 81.5 -71.8 80.6 -72.6 80.5 -73.7 86.8 -73.9 86 -74.5 87.2 -75.1 100.8 -76.4 102 -77.3 104.3 -77.7 106.1 -77.4 104.7 -77.1ZM47.5 -43L50.4 -40.3 49.6 -40.2 48.9 -38.8 49.2 -37.6 50.8 -36.9 53.8 -37 53.9 -39 53.1 -39.3 53.4 -40 52.7 -40 52.9 -40.9 53.9 -40.6 54.7 -41 53.7 -42.1 52.9 -41.9 52.8 -41.1 52.5 -42.8 51.3 -43.1 50.3 -44.6 53 -45.3 53 -46.9 51.2 -47 47.7 -45.6 46.7 -44.6 47.6 -43.7ZM24.7 -77.8L22.5 -77.4 20.7 -77.7 21.4 -77.9 20.8 -78.2 22.9 -78.5ZM-95.8 -78.1L-97.3 -77.8 -98.5 -78.5 -98.6 -78.9 -96.8 -78.8 -95.6 -78.4ZM-100.8 -78.8L-99.7 -77.9 -105.2 -78.4 -104.2 -78.7 -105.5 -79.3ZM105.1 -78.3L99.4 -77.9 101.3 -79.2 105.4 -78.7ZM17 -80L21.5 -79 19 -78.6 17.1 -76.8 13.8 -77.4 14.7 -77.7 11.2 -78.9 10.4 -79.7ZM22.9 -80.7L27.4 -80.1 25.9 -79.5 19.9 -79.8 17.4 -80.3ZM51.5 -80.7L47.6 -80 46.5 -80.2 47.1 -80.6 44.9 -80.6ZM99.9 -78.9L95 -79 91.2 -80.3 95.9 -81.2 100.2 -79.8ZM-87 -79.7L-85.8 -79.3 -90.8 -78.2 -94 -78.8 -93.2 -79.4 -95 -79.4 -96.7 -80.2 -94.3 -81 -94.7 -81.2 -92.4 -81.3ZM-68.5 -83.1L-61.9 -82.4 -67.7 -81.5 -65.5 -81.5 -71.2 -79.8 -76.9 -79.3 -75.5 -79.2 -76.2 -79 -75.4 -78.5 -79.8 -77.2 -77.9 -76.8 -80.6 -76.2 -86.1 -76.3 -89.5 -76.5 -89.6 -77 -87.8 -77.2 -88.3 -77.9 -85 -77.5 -88 -78.4 -85.1 -79.3 -86.9 -80.2 -81.8 -80.5 -87.6 -80.5 -91.6 -81.9 -85.5 -82.7 -83.2 -82.3 -82.4 -82.9 -79.3 -83.1ZM-27.1 -83.5L-20.9 -82.7 -31.4 -82 -22.9 -82.1 -22.1 -81.7 -23.2 -81.2 -15.8 -81.9 -12.2 -81.3 -20.1 -80.2 -17.7 -80.1 -19.7 -78.8 -19.7 -77.6 -18.5 -77 -21.7 -76.6 -19.8 -76.1 -19.6 -75.2 -20.7 -75.2 -19.4 -74.3 -21.6 -74.2 -20.4 -73.8 -20.8 -73.5 -23.6 -73.3 -22.3 -72.2 -24.8 -72.3 -22.1 -71.5 -21.8 -70.7 -23.5 -70.5 -25.5 -71.4 -25.2 -70.8 -26.4 -70.2 -22.4 -70.1 -27.8 -68.5 -31.8 -68.1 -34.2 -66.7 -39.8 -65.5 -41.2 -63.5 -42.8 -62.7 -42.4 -61.9 -43.4 -60.1 -48.3 -60.9 -51.6 -63.6 -52.3 -65.2 -53.7 -66.1 -53.3 -66.8 -54 -67.2 -53 -68.4 -51.5 -68.7 -50.9 -69.9 -53.5 -69.3 -54.7 -69.6 -54.4 -70.8 -51.4 -70.6 -55.8 -71.7 -54.7 -72.6 -58.6 -75.5 -61.3 -76.1 -68.5 -76.1 -71.4 -77 -66.8 -77.4 -71 -77.6 -73.3 -78 -73.2 -78.4 -65.7 -79.4 -65.3 -79.8 -68 -80.1 -62.2 -81.3 -62.6 -81.8 -53 -81.9 -50.4 -82.4 -44.5 -81.7 -46.9 -82.2 -46.8 -82.6 -43.4 -83.2Z"/><rect class="hf-balayage" x="-200" y="-80" width="40" height="140"/><g class="hf-balise" transform="translate(-145 0)"><circle class="hf-onde" r="1.2" style="animation-delay:0.0s"/><circle class="hf-point" r=".75"/><text x="2.2" y="-1.6">NI&#209;O 3.4</text></g><g class="hf-balise" transform="translate(-85 5)"><circle class="hf-onde" r="1.2" style="animation-delay:0.6s"/><circle class="hf-point" r=".75"/><text x="2.2" y="-1.6">NI&#209;O 1+2</text></g><g class="hf-balise" transform="translate(170 0)"><circle class="hf-onde" r="1.2" style="animation-delay:1.1s"/><circle class="hf-point" r=".75"/><text x="-2.2" y="-1.6" text-anchor="end">NI&#209;O 4</text></g><g class="hf-balise" transform="translate(-35 -14)"><circle class="hf-onde" r="1.2" style="animation-delay:1.7s"/><circle class="hf-point" r=".75"/><text x="2.2" y="-1.6">TNA</text></g><g class="hf-balise" transform="translate(-10 10)"><circle class="hf-onde" r="1.2" style="animation-delay:2.2s"/><circle class="hf-point" r=".75"/><text x="2.2" y="-1.6">TSA</text></g><g class="hf-balise" transform="translate(-10 0)"><circle class="hf-onde" r="1.2" style="animation-delay:2.8s"/><circle class="hf-point" r=".75"/><text x="2.2" y="-1.6">ATL3</text></g><g class="hf-balise" transform="translate(-40 -40)"><circle class="hf-onde" r="1.2" style="animation-delay:3.3s"/><circle class="hf-point" r=".75"/><text x="2.2" y="-1.6">AMO</text></g><g class="hf-balise" transform="translate(60 0)"><circle class="hf-onde" r="1.2" style="animation-delay:3.9s"/><circle class="hf-point" r=".75"/><text x="2.2" y="-1.6">IOD-O</text></g><g class="hf-balise" transform="translate(100 5)"><circle class="hf-onde" r="1.2" style="animation-delay:4.4s"/><circle class="hf-point" r=".75"/><text x="2.2" y="-1.6">IOD-E</text></g><g class="hf-senegal" transform="translate(-14.5 -14.4)"><circle class="hf-onde" r="1.6"/><circle class="hf-point" r="1"/><text x="2.6" y="3.8">S&#201;N&#201;GAL</text></g></svg>
+  <!-- FOND_HUD:FIN -->
   <canvas id="hud-orbe" aria-hidden="true"></canvas>
   <canvas id="hud-orbe2d" class="orbe" aria-hidden="true"></canvas>
   <div class="hud-grille"></div>
   <button id="hud-menu-btn" type="button" aria-expanded="false">&#9670; MENU</button>
   <div id="hud-astuce">DEMANDEZ : "JARVIS, QUE MONTRE CETTE PAGE ?"</div>
+  <div id="hud-accueil" hidden>
+    <div class="ha-col ha-g">
+      <button type="button" class="ha-tuile" data-q="Quels oceans influencent le plus les pluies extremes de pleine saison au Senegal, et avec quel decalage ?">
+        <span class="ha-titre">01 // COMPRENDRE</span>
+        <span class="ha-txt">Pluies extr&ecirc;mes, indices oc&eacute;aniques, t&eacute;l&eacute;connexions, r&eacute;gimes oc&eacute;aniques.</span>
+        <span class="ha-ex">&laquo;&nbsp;Quels oc&eacute;ans influencent les pluies extr&ecirc;mes&nbsp;?&nbsp;&raquo;</span>
+      </button>
+      <button type="button" class="ha-tuile" data-q="Montre-moi l'ocean de novembre a avril avant la saison 2022 et compare-le a la configuration du memoire la plus proche.">
+        <span class="ha-titre">02 // VOIR</span>
+        <span class="ha-txt">Cartes de l'oc&eacute;an et du S&eacute;n&eacute;gal, animations, graphiques, pages du dashboard.</span>
+        <span class="ha-ex">&laquo;&nbsp;Montre-moi l'oc&eacute;an avant la saison 2022&nbsp;&raquo;</span>
+      </button>
+    </div>
+    <div class="ha-col ha-d">
+      <button type="button" class="ha-tuile" data-q="Quel est le niveau de risque du dernier bulletin de veille pre-saison, et peut-on s'y fier ?">
+        <span class="ha-titre">03 // ANTICIPER</span>
+        <span class="ha-txt">Le bulletin de veille pr&eacute;-saison&nbsp;: risque d'ann&eacute;e extr&ecirc;me, fiabilit&eacute; r&eacute;elle, sc&eacute;narios &laquo;&nbsp;et si&nbsp;&raquo;.</span>
+        <span class="ha-ex">&laquo;&nbsp;Quel risque pour la prochaine saison&nbsp;?&nbsp;&raquo;</span>
+      </button>
+      <button type="button" class="ha-tuile" data-action="briefing">
+        <span class="ha-titre">04 // PR&Eacute;SENTER</span>
+        <span class="ha-txt">Briefing vocal du bulletin, ou pr&eacute;sentation compl&egrave;te du travail depuis le menu.</span>
+        <span class="ha-ex">&#9654;&nbsp;Lancer le briefing du dernier bulletin</span>
+      </button>
+    </div>
+  </div>
   <nav id="hud-menu" aria-label="Commandes de Jarvis">
     <div class="hm-titre">&#9670; CONTROLES_SYSTEME // CLIMATSEN</div>
     <div class="hm-section">ANALYSES CLIMATIQUES</div>
@@ -784,6 +872,12 @@
     <button type="button" data-q="Ouvre la page Teleconnexions sur la pleine saison et dis-moi ce que je dois y regarder en premier.">OUVRIR // PAGE TELECONNEXIONS</button>
     <div class="hm-section orange">PRESENTATION</div>
     <button type="button" data-action="soutenance" id="hm-soutenance">&#9654; MODE SOUTENANCE</button>
+    <button type="button" data-action="briefing" id="hm-briefing">&#9654; BRIEFING VEILLE PRE-SAISON</button>
+    <div class="hm-section">VEILLE PRE-SAISON</div>
+    <button type="button" data-q="Quel est le niveau de risque du dernier bulletin de veille pre-saison, et peut-on s'y fier ?">BULLETIN // NIVEAU DE RISQUE</button>
+    <button type="button" data-q="Montre-moi l'ocean de novembre a avril avant la saison 2022 et compare-le a la configuration du memoire la plus proche.">CARTE // OCEAN NOV-AVR</button>
+    <button type="button" data-q="Le bulletin de veille s'est-il trompe en 2020 ? Donne le bilan de fiabilite depuis 1998.">CARNET // FIABILITE</button>
+    <button type="button" data-q="Et si l'Atlantique tropical nord etait 1 degre plus chaud avant la saison 2022, que dirait la projection ?">SCENARIO // ET SI</button>
     <div class="hm-section orange">VOIX &amp; INTERFACE</div>
     <button type="button" data-action="voix" id="hm-voix">LECTURE VOCALE : OFF</button>
     <button type="button" data-action="soustitres" id="hm-soustitres">SOUS-TITRES : OFF</button>
@@ -796,7 +890,7 @@
   </nav>
   <section id="sout-barre" aria-label="Presentation guidee">
     <div class="sb-ligne">
-      <span class="sb-label">&#9670; SOUTENANCE</span>
+      <span class="sb-label" id="sb-label">&#9670; SOUTENANCE</span>
       <span id="sb-titre"></span>
       <span id="sb-num"></span>
       <div class="sb-cmd">
@@ -905,12 +999,13 @@
     <div class="intro" id="intro">
       <div class="big">&#127783;</div>
       <h4>Bonjour, je suis Jarvis</h4>
-      <p>Je reponds a vos questions sur CLIMAT-SEN&nbsp;: la demarche scientifique,<br>les indices oceaniques et les cinq modules de la plateforme.</p>
+      <p>L'assistant de CLIMAT-SEN&nbsp;: les pluies extr&ecirc;mes au S&eacute;n&eacute;gal,<br>
+      les oc&eacute;ans qui les influencent, et la veille avant chaque saison.</p>
       <div class="chips">
-        <button class="chip">Qu'est-ce qu'une teleconnexion&nbsp;?</button>
-        <button class="chip">A quoi sert l'indice TSA&nbsp;?</button>
-        <button class="chip">Que contient le module Clustering&nbsp;?</button>
-        <button class="chip">Pourquoi des lags de 0 a 5 mois&nbsp;?</button>
+        <button class="chip">Quel risque pour la prochaine saison&nbsp;?</button>
+        <button class="chip">Quels oc&eacute;ans influencent les pluies extr&ecirc;mes&nbsp;?</button>
+        <button class="chip">Montre-moi l'oc&eacute;an avant la saison 2022</button>
+        <button class="chip">Pr&eacute;sente-moi le bulletin 2022</button>
       </div>
     </div>
   </div>
@@ -1378,6 +1473,11 @@
      pleine saison) les montre d'emblee cote a cote. */
   var Ecran = (function(){
     var liste = [], courant = -1, MAX = 8, epingle = null;
+    // Jeton de rendu: une image dont le chargement se termine apres un
+    // nouvel affichage (carte seule, puis comparaison sur le meme index)
+    // ne doit pas s'inserer dans le cadre. L'index courant ne suffit pas:
+    // il est le meme dans les deux modes (constate le 27/09/2026).
+    var rendu = 0;
 
     function indexDe(ref){
       for(var i = 0; i < liste.length; i++){ if(liste[i].id === ref.id){ return i; } }
@@ -1421,7 +1521,7 @@
       cadre.className = "ec-volet-img";
       v.appendChild(t); v.appendChild(cadre);
       imageFigure(ref).then(function(url){
-        if(jeton !== courant){ return; }
+        if(jeton !== rendu){ return; }
         var img = document.createElement("img");
         img.alt = t.textContent;
         img.src = url;
@@ -1434,6 +1534,7 @@
     function montrer(i){
       if(i < 0 || i >= liste.length){ return; }
       courant = i;
+      var jeton = ++rendu;
       var ref = liste[i];
       var duo = epingle && epingle.id !== ref.id && indexDe(epingle) >= 0;
       $("ec-label").textContent = "\u25c6 " + (duo ? "COMPARAISON" : "AFFICHAGE // " + genre(ref));
@@ -1455,15 +1556,15 @@
       document.body.classList.add("hud-ecran");
       if(duo){
         cadre.classList.remove("charge");
-        cadre.appendChild(volet(epingle, i));
-        cadre.appendChild(volet(ref, i));
+        cadre.appendChild(volet(epingle, jeton));
+        cadre.appendChild(volet(ref, jeton));
         void cadre.offsetWidth;
         cadre.classList.add("balaye");
         return;
       }
       cadre.classList.add("charge");
       imageFigure(ref).then(function(url){
-        if(courant !== i){ return; }
+        if(jeton !== rendu){ return; }
         cadre.classList.remove("charge");
         var img = document.createElement("img");
         img.alt = (ref.titre || "Carte") + (ref.sous_titre ? " \u2014 " + ref.sous_titre : "");
@@ -1473,6 +1574,7 @@
         void cadre.offsetWidth;                  // relance l'animation de balayage
         cadre.classList.add("balaye");
       }, function(){
+        if(jeton !== rendu){ return; }
         cadre.classList.remove("charge");
         cadre.textContent = "CARTE INDISPONIBLE // ELLE A EXPIRE OU APPARTIENT A UNE SESSION PRECEDENTE";
       });
@@ -1528,7 +1630,16 @@
     $("ec-csv").addEventListener("click", function(){ if(liste[courant]){ telechargerCSV(liste[courant]); } });
     $("ec-fermer").addEventListener("click", fermer);
 
+    // Comparaison demandee dans une question SUIVANTE: la carte deja a
+    // l'ecran (la derniere regardee) passe a gauche, la nouvelle a droite.
+    function comparerAvecCourante(ref){
+      var avant = liste[courant];
+      if(avant && avant.id !== ref.id){ comparer(avant, ref); }
+      else { afficher(ref); }
+    }
+
     return {afficher: afficher, comparer: comparer, fermer: fermer, ouvert: ouvert,
+            comparerAvecCourante: comparerAvecCourante,
             zoom: zoom, zoome: zoome, precedente: precedente, suivante: suivante,
             nombre: function(){ return liste.length; }};
   })();
@@ -1619,10 +1730,18 @@
   var Soutenance = (function(){
     var plan = [], numero = 0, actif = false, enPause = false;
     var minuteur = null, progression = null, jeton = 0;
+    // Programme joue: la soutenance, ou le briefing d'un bulletin de veille
+    // (meme mecanique, autres etapes: jarvis/briefing.py).
+    var SOUTENANCE = {chemin: "soutenance", annee: null};
+    var prog = SOUTENANCE;
+    function url(suffixe){
+      return API + "/api/" + prog.chemin + (suffixe || "") +
+        (prog.annee ? "?annee=" + encodeURIComponent(prog.annee) : "");
+    }
     var PAUSE_ENTRE_ETAPES = 1800;
 
     function memoriser(){
-      remember("soutenance", actif ? JSON.stringify({n: numero}) : "");
+      remember("soutenance", actif ? JSON.stringify({n: numero, prog: prog}) : "");
     }
 
     function dessinerEtapes(){
@@ -1657,7 +1776,11 @@
       etat(enPause ? "EN PAUSE" : "EN COURS");
     }
 
-    function demarrer(depuis){
+    function demarrer(depuis, programme){
+      prog = (programme && programme.chemin === "briefing")
+        ? {chemin: "briefing", annee: programme.annee || null} : SOUTENANCE;
+      $("sb-label").textContent = prog.chemin === "briefing"
+        ? "\u25c6 BRIEFING VEILLE" : "\u25c6 SOUTENANCE";
       if(!state.online || !state.token){
         warn("Soutenance indisponible.", "Jarvis n'est pas connecte au serveur.");
         return;
@@ -1668,7 +1791,7 @@
       document.body.classList.add("soutenance");
       // La narration se lit: on active la voix si le navigateur en a une.
       if(synthese && window.SpeechSynthesisUtterance && recall("voix") !== "0"){ basculerVoix(true); }
-      fetch(API + "/api/soutenance", {headers: headers()})
+      fetch(url(), {headers: headers()})
         .then(function(r){ if(!r.ok){ throw new Error("plan " + r.status); } return r.json(); })
         .then(function(d){
           plan = d.etapes || [];
@@ -1693,7 +1816,7 @@
       dessinerEtapes();
       etat("PR\u00c9PARATION\u2026");
       Orbe.etat("reflexion");
-      fetch(API + "/api/soutenance/" + n, {method: "POST", headers: headers()})
+      fetch(url("/" + n), {method: "POST", headers: headers()})
         .then(function(r){ if(!r.ok){ throw new Error("etape " + r.status); } return r.json(); })
         .then(function(e){ if(moi === jeton){ jouer(e, moi); } })
         .catch(function(){
@@ -1738,7 +1861,8 @@
       avance(100);
       if(!actif || enPause){ return; }
       if(numero >= plan.length){
-        etat("TERMIN\u00c9E \u00b7 QUESTIONS DU JURY");
+        etat(prog.chemin === "briefing" ? "BRIEFING TERMIN\u00c9 \u00b7 QUESTIONS"
+                                         : "TERMIN\u00c9E \u00b7 QUESTIONS DU JURY");
         actif = false;
         memoriser();
         return;
@@ -1784,7 +1908,7 @@
       if(!brut){ return; }
       try{
         var s = JSON.parse(brut);
-        if(s && s.n){ enPause = true; demarrer(s.n); }
+        if(s && s.n){ enPause = true; demarrer(s.n, s.prog); }
       }catch(e){}
     }
 
@@ -2333,6 +2457,12 @@
       $("hud-etat").textContent = state.online ? "ONLINE" : "OFFLINE";
     }
 
+    function accueil(montrer){
+      var el = $("hud-accueil");
+      if(el){ el.hidden = !montrer; }
+      document.body.classList.toggle("hud-accueil-visible", !!montrer);
+    }
+
     function menu(ouvrir){
       var m = $("hud-menu");
       var ouvert = (ouvrir === undefined) ? !m.classList.contains("ouvert") : !!ouvrir;
@@ -2409,6 +2539,8 @@
       majMenu();
       statut(Orbe.courant());
       $("hud-soustitre").textContent = "";
+      // Tuiles d'accueil: seulement si aucune question n'a encore ete posee.
+      accueil(!log.querySelector(".msg.user"));
       $("hud-astuce").classList.remove("cache");
       setTimeout(function(){ $("hud-astuce").classList.add("cache"); }, 12000);
       remember("hud", "1");
@@ -2534,13 +2666,14 @@
       else if(a === "clavier"){ clavier(); }
       else if(a === "transcription"){ transcription(); }
       else if(a === "soutenance"){ Soutenance.demarrer(); }
+      else if(a === "briefing"){ Soutenance.demarrer(1, {chemin: "briefing", annee: null}); }
     }
 
     Orbe.abonner(etatOrbe);
     Orbe.abonner(statut);
 
     return {
-      entrer: entrer, sortir: sortir, menu: menu, majMenu: majMenu, action: action,
+      entrer: entrer, sortir: sortir, menu: menu, majMenu: majMenu, action: action, accueil: accueil,
       transcription: transcription, clavier: clavier, soustitre: soustitre, plein: plein,
       actif: function(){ return actif; },
       micro: function(on){ var b = $("hud-micro"); if(b){ b.classList.toggle("on", !!on); } }
@@ -2911,25 +3044,26 @@
       var enProd = state.sante && state.sante.env === "prod";
       return s + " Laity. Session administrateur ouverte" +
         (modele ? ", modèle " + modele : "") + ".\n\n" +
-        "En plus de tout ce que fait le profil public, je peux :\n" +
-        "- **Documents** : lister, chercher dans le mémoire et l'article, et te proposer des corrections.\n" +
-        "- **Code** : lire les scripts du projet et te proposer des modifications.\n" +
-        "- **Tâches** : lancer un script d'analyse du projet en arrière-plan et suivre son avancement.\n" +
-        "- **Pipeline** : repérer les étapes périmées à relancer.\n" +
+        "En plus de tout ce que fait le profil public :\n" +
+        "- **Documents** : chercher dans le mémoire et l'article, te proposer des corrections.\n" +
+        "- **Code** : lire les scripts du projet, te proposer des modifications.\n" +
+        "- **Tâches** : lancer une analyse en arrière-plan, repérer les étapes du pipeline à relancer.\n" +
+        "- **Veille** : tenir la veille mois par mois de novembre à avril, préparer la diffusion du bulletin (SMS, résumé, document Word).\n" +
         "- **Esprit critique** : te contredire quand les données te contredisent.\n\n" +
         (enProd ? "Documents et code ne sont accessibles que sur ton poste, pas sur ce serveur.\n\n" : "") +
-        "Rien n'est écrit ni exécuté sans ton approbation d'un clic.";
+        "Rien n'est écrit, exécuté ni diffusé sans ton approbation d'un clic.";
     }
-    return s + ", je suis **Jarvis**, l'assistant de CLIMAT-SEN. Voici ce que je peux faire pour vous :\n\n" +
-      "- **Indices océaniques** : donner la valeur d'un indice SST (Niño 3.4, AMO, TNA, IOD...) pour une année ou un mois.\n" +
-      "- **Pluies extrêmes** : rechercher et analyser les événements de 1981 à 2023, par année, région ou phase de la saison.\n" +
-      "- **Téléconnexions** : dire quels indices sont liés aux pluies extrêmes, avec quel décalage, et si c'est significatif.\n" +
-      "- **Régimes océaniques** : expliquer les clusters K-Means.\n" +
-      "- **Cartes** : afficher en grand le motif océanique d'un cluster, un événement ou les zones les plus touchées.\n" +
-      "- **Graphiques** : tracer une figure à la demande.\n" +
-      "- **Méthode** : répondre à partir du mémoire et de l'article scientifique.\n" +
-      "- **Dashboard** : commenter la page que vous avez sous les yeux.\n\n" +
-      "Parlez-moi avec le micro, ou tapez votre question.";
+    return s + ", je suis **Jarvis**, l'assistant de CLIMAT-SEN. Je travaille sur les pluies extrêmes " +
+      "au Sénégal depuis 1981 et sur les océans qui les influencent.\n\n" +
+      "- **Comprendre** : les événements extrêmes, les indices océaniques, les **Téléconnexions** et les " +
+      "régimes océaniques, chiffres tirés des données et sources citées.\n" +
+      "- **Voir** : des cartes de l'océan et du Sénégal, des animations, des graphiques ; j'ouvre aussi " +
+      "pour vous la bonne page du dashboard.\n" +
+      "- **Anticiper** : le bulletin de veille pré-saison, le risque d'une année extrême, sa fiabilité " +
+      "réelle, et des scénarios « et si ».\n" +
+      "- **Présenter** : un briefing vocal du bulletin, ou la présentation complète du travail.\n\n" +
+      "Quand les données ne permettent pas de conclure, je vous le dirai.\n\n" +
+      "Essayez : « Présente-moi le bulletin 2022 ». Parlez-moi avec le micro, ou tapez votre question.";
   }
 
   function saluer(forcerComplet, modele){
@@ -2952,20 +3086,9 @@
     if(!complet){ return null; }                 // le salut court se dit tel quel
     var s = salutation();
     if(admin){
-      return s + " Laity. Ta session administrateur est ouverte. " +
-        "En plus de tout ce que je fais pour les visiteurs, je peux chercher dans ton m\u00e9moire " +
-        "et ton article, et te proposer des corrections. Je peux aussi lire le code du projet, " +
-        "te proposer des modifications, lancer une analyse en arri\u00e8re-plan, et te dire quelles " +
-        "\u00e9tapes du pipeline sont \u00e0 relancer. Et je te contredirai si les donn\u00e9es te contredisent. " +
-        "Rien n'est \u00e9crit ni ex\u00e9cut\u00e9 sans ton accord. On commence par quoi ?";
+      return s + " Laity. Ta session administrateur est ouverte. En plus de tout ce que je fais pour les visiteurs, je peux chercher dans ton m\u00e9moire et te proposer des corrections, lire le code du projet, lancer une analyse, tenir la veille mois par mois, et pr\u00e9parer la diffusion du bulletin. Rien n'est \u00e9crit ni envoy\u00e9 sans ton accord. On commence par quoi ?";
     }
-    return s + ", je suis Jarvis, l'assistant de Climat-Sen. " +
-      "Je peux vous donner la valeur des indices oc\u00e9aniques, retrouver et analyser les pluies " +
-      "extr\u00eames au S\u00e9n\u00e9gal depuis 1981, et vous dire quels oc\u00e9ans les influencent, avec quel " +
-      "d\u00e9calage dans le temps. Je peux aussi afficher des cartes, de l'oc\u00e9an mondial comme du " +
-      "S\u00e9n\u00e9gal, tracer un graphique, r\u00e9pondre sur la m\u00e9thode scientifique, ou commenter la " +
-      "page que vous regardez. " +
-      "Parlez-moi, ou \u00e9crivez-moi : que puis-je faire pour vous ?";
+    return s + ", je suis Jarvis, l'assistant de Climat-Sen. Je vous aide \u00e0 comprendre les pluies extr\u00eames au S\u00e9n\u00e9gal et les oc\u00e9ans qui les influencent, cartes \u00e0 l'appui. Je tiens aussi la veille avant chaque saison : je peux vous dire quel risque elle annonce, et \u00e0 quel point on peut s'y fier. Et si vous le voulez, je vous pr\u00e9sente le bulletin \u00e0 voix haute. Parlez-moi, ou \u00e9crivez-moi : que puis-je faire pour vous ?";
   }
 
   function quitterAdmin(){
@@ -3274,6 +3397,7 @@
   }
 
   function ask(text){
+    try{ Hud.accueil(false); }catch(e){}
     if(state.busy || !state.online) return;
     // Question du jury: la presentation s'arrete ou elle en est.
     if(Soutenance.visible()){ Soutenance.pause(true); }
@@ -3298,6 +3422,8 @@
     // Les figures annoncees pendant le flux s'affichent SOUS la reponse,
     // une fois celle-ci terminee.
     var figuresRecues = [];
+    // Presentation guidee demandee par un outil: lancee a la fin de la reponse.
+    var presentationDemandee = null;
 
     var controleur = window.AbortController ? new AbortController() : null;
     state.requete = controleur;
@@ -3372,6 +3498,18 @@
         // maintenant; en cas d'echec, on laisse finir ce qui a ete dit.
         if(lecture){ alimenterLecture(lecture, target ? target._raw : "", true); }
         else { relancerEcoute(); }
+        // Briefing demande: il demarre quand Jarvis a fini sa phrase d'annonce.
+        if(presentationDemandee && !failed){
+          var programme = {chemin: presentationDemandee.programme, annee: presentationDemandee.annee};
+          var lance = false;
+          var lancer = function(){ if(!lance){ lance = true; Soutenance.demarrer(1, programme); } };
+          // Filet: une lecture qui echoue n'appelle jamais surFin.
+          setTimeout(lancer, 20000);
+          if(lecture){
+            var suite = lecture.surFin;
+            lecture.surFin = function(){ if(suite){ suite(); } lancer(); };
+          } else { lancer(); }
+        }
         // Une proposition a pu etre deposee pendant ce tour.
         rafraichirActions();
         if(!failed && target === null){ /* flux vide: rien a afficher */ }
@@ -3391,11 +3529,15 @@
       } else if(name === "figure"){
         figuresRecues.push(data);
         // Une carte s'affiche tout de suite sur l'ecran, pendant la reponse.
-        if(data.carte && Hud.actif()){ Ecran.afficher(data); }
+        if(data.carte && Hud.actif()){
+          if(data.comparer){ Ecran.comparerAvecCourante(data); } else { Ecran.afficher(data); }
+        }
       } else if(name === "navigation"){
         // Page du dashboard demandee par navigate_dashboard (deja validee
         // par le serveur): elle s'ouvre pendant que Jarvis en parle.
-        Tableau.naviguer(data);
+        // Une presentation (briefing) attend, elle, la fin de la reponse.
+        if(data.presentation){ presentationDemandee = data.presentation; }
+        else { Tableau.naviguer(data); }
       } else if(name === "tool"){
         typing(false);
         outil(data.label || "Consultation des donnees");
@@ -3684,6 +3826,10 @@
       else if(Soutenance.visible()){ Soutenance.quitter(); }
       else { shut(); }
     } else if(state.open){ shut(); }
+  });
+
+  Array.prototype.forEach.call(document.querySelectorAll("#hud-accueil .ha-tuile"), function(t){
+    t.addEventListener("click", function(){ Hud.accueil(false); Hud.action(t); });
   });
 
   Array.prototype.forEach.call(document.querySelectorAll(".chip"), function(c){

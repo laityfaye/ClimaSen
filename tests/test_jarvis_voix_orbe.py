@@ -159,29 +159,58 @@ def test_jarvis_parle_pendant_qu_il_ecrit():
     assert r"/[.!?;:\n](?=\s)/g" in SOURCE
 
 
-def test_la_bulle_ouvre_la_petite_fenetre_d_abord():
-    """Choix de Laity: la bulle ouvre la petite fenetre; le plein ecran
-    J.A.R.V.I.S s'ouvre par son bouton. Echap y ramene a la petite fenetre."""
+def test_la_bulle_ouvre_le_plein_ecran_directement():
+    """Choix de Laity (27/09/2026): la bulle ouvre directement le plein ecran
+    J.A.R.V.I.S; il s'y rouvre apres une reexecution Streamlit, et Echap,
+    une fois ecrans et panneaux refermes, ferme Jarvis."""
     fab = SOURCE[SOURCE.index('fab.addEventListener("click"'):]
     fab = fab[:fab.index("});") + 3]
-    assert "open();" in fab and "Hud.entrer" not in fab
-    assert '$("hud-btn").addEventListener("click", function(){ Hud.entrer(); });' in SOURCE
-    assert 'if(recall("hud") === "1"){ Hud.entrer(true); } else { open(false); }' in SOURCE
-    assert "else { Hud.sortir(); }" in SOURCE
-    # Un seul accueil par ouverture.
-    assert "if(!forcerComplet && state.salueCetteOuverture){ return; }" in SOURCE
+    assert "Hud.entrer()" in fab
+    assert 'if(recall("open") === "1"){ Hud.entrer(true); }' in SOURCE
+    echap = SOURCE[SOURCE.index('if(e.key !== "Escape"){ return; }'):]
+    echap = echap[:echap.index("});")]
+    lignes = [l.strip() for l in echap.splitlines()]
+    soutenance = lignes.index("else if(Soutenance.visible()){ Soutenance.quitter(); }")
+    assert lignes[soutenance + 1] == "else { shut(); }"
 
 
-def test_style_jarvis_reserve_au_plein_ecran():
-    """Choix de Laity (26/09/2026): la petite fenetre garde le style
-    ClimatSen d'origine; le noir/cyan J.A.R.V.I.S ne vaut qu'en plein ecran."""
-    debut = SOURCE.index("INTERFACE J.A.R.V.I.S -- reprise de JARVIS-pro")
-    bloc = SOURCE[debut:SOURCE.index("/* ---------- Mode J.A.R.V.I.S plein ecran")]
-    assert ':root, html[data-dark="true"], html[data-dark="false"]{' not in bloc
-    assert "body.hud{" in bloc
-    for ligne in bloc.splitlines():
-        if ligne.startswith("  ") and "{" in ligne and not ligne.startswith("   "):
-            sel = ligne.strip()
-            assert sel.startswith(("body.hud", "#hud-btn")), sel
-    # Dans la petite fenetre, l'accueil reprend la carte d'origine.
-    assert "if(intro && intro.parentNode){ accueilDansIntro(state.admin); }" in SOURCE
+def test_accueil_plein_ecran_par_tuiles():
+    """A l'ouverture, quatre tuiles autour de l'orbe disent ce que Jarvis sait
+    faire et lancent un exemple; elles s'effacent a la premiere question et
+    ne masquent jamais une carte, un briefing, le menu ou la transcription."""
+    bloc = SOURCE[SOURCE.index('<div id="hud-accueil" hidden>'):]
+    fin = bloc.index("</button>", bloc.index('data-action="briefing"'))
+    bloc = bloc[:fin]
+    tuiles = bloc.count('class="ha-tuile"')
+    assert tuiles == 4
+    assert bloc.count("data-q=") == 3 and 'data-action="briefing"' in bloc
+    for titre in ("COMPRENDRE", "VOIR", "ANTICIPER", "PR&Eacute;SENTER"):
+        assert titre in bloc
+    # Affichees a l'entree seulement si aucune question n'a ete posee.
+    assert 'accueil(!log.querySelector(".msg.user"));' in SOURCE
+    # Effacees par toute question, qu'elle vienne d'une tuile ou non.
+    ask = SOURCE[SOURCE.index("function ask(text){"):][:200]
+    assert "Hud.accueil(false)" in ask
+    for etat in ("hud-ecran", "hud-transcription", "hud-menu-ouvert", "soutenance", "hud-boot"):
+        assert "body.hud.%s #hud-accueil" % etat in SOURCE
+    # Style limite au plein ecran: la petite fenetre n'est pas touchee.
+    css = SOURCE[SOURCE.index("<style>"):SOURCE.index("</style>")]
+    style = [l.strip() for l in css.splitlines() if "#hud-accueil" in l and "{" in l]
+    assert style and all(l.startswith(("body.hud", "@media")) for l in style), style
+
+
+def test_fond_d_ecran_du_hud():
+    """Planisphere en points genere par scripts/23 (27/09/2026): present,
+    autonome (aucune ressource externe), sous l'orbe, sans animation pour
+    qui demande moins de mouvement."""
+    debut = SOURCE.index("<!-- FOND_HUD:DEBUT -->")
+    fond = SOURCE[debut:SOURCE.index("<!-- FOND_HUD:FIN -->")]
+    assert '<svg id="hud-fond"' in fond and 'aria-hidden="true"' in fond
+    assert fond.count('class="hf-balise"') == 9 and "S&#201;N&#201;GAL" in fond
+    assert len(fond) > 15000                      # le trait des cotes est bien la
+    assert "http" not in fond and "href" not in fond
+    # Avant l'orbe dans le DOM: il est peint dessous.
+    assert debut < SOURCE.index('<canvas id="hud-orbe"')
+    css = SOURCE[SOURCE.index("<style>"):SOURCE.index("</style>")]
+    assert "@media (prefers-reduced-motion:reduce)" in css
+    assert "body.hud.hud-accueil-visible #hud-fond text{opacity:0}" in css

@@ -81,7 +81,8 @@
           2002,
           1994
         ],
-        "part_evenements_en_annee_extreme": 0.32
+        "part_evenements_en_annee_extreme": 0.32,
+        "etat_oceanique": "Neutre"
       },
       {
         "configuration": 1,
@@ -91,7 +92,8 @@
           1992,
           1997
         ],
-        "part_evenements_en_annee_extreme": 0.0
+        "part_evenements_en_annee_extreme": 0.0,
+        "etat_oceanique": "El Niño"
       },
       {
         "configuration": 4,
@@ -102,7 +104,8 @@
           1997,
           1983
         ],
-        "part_evenements_en_annee_extreme": 0.33
+        "part_evenements_en_annee_extreme": 0.33,
+        "etat_oceanique": "El Niño"
       }
     ],
     "toutes_configurations": [
@@ -179,6 +182,50 @@
         "extreme": false,
         "inondation_documentee": false
       }
+    ],
+    "trajectoire": [
+      {
+        "jusqu_a": "2004-11",
+        "n_mois": 1,
+        "probabilite_experimentale": 0.301,
+        "configuration": 4,
+        "correlation": 0.342
+      },
+      {
+        "jusqu_a": "2004-12",
+        "n_mois": 2,
+        "probabilite_experimentale": 0.304,
+        "configuration": 7,
+        "correlation": 0.298
+      },
+      {
+        "jusqu_a": "2005-01",
+        "n_mois": 3,
+        "probabilite_experimentale": 0.304,
+        "configuration": 7,
+        "correlation": 0.265
+      },
+      {
+        "jusqu_a": "2005-02",
+        "n_mois": 4,
+        "probabilite_experimentale": 0.31,
+        "configuration": 7,
+        "correlation": 0.216
+      },
+      {
+        "jusqu_a": "2005-03",
+        "n_mois": 5,
+        "probabilite_experimentale": 0.312,
+        "configuration": 7,
+        "correlation": 0.185
+      },
+      {
+        "jusqu_a": "2005-04",
+        "n_mois": 6,
+        "probabilite_experimentale": 0.311,
+        "configuration": 7,
+        "correlation": 0.192
+      }
     ]
   },
   "competence_projection": {
@@ -219,5 +266,5 @@
     "inondation_documentee": true,
     "seuil": 745.8
   },
-  "synthese": "Saison 2005 : risque d'année extrême normal (probabilité 37 %, contre 33 % en moyenne), d'après la prévision saisonnière Copernicus C3S. Confiance faible. Le modèle ECMWF prévoit pour juillet-septembre une pluie au-dessus de la normale (anomalie +0,3 écart-type) ; 36 % des membres sont dans le tiers le plus humide. De novembre à avril, l'océan ressemble surtout à la configuration C7 du mémoire (corrélation 0,19), celle des années 2003, 2002, 1994. Années les plus ressemblantes : 2004, 2003, 1993, 1992, 1987 ; 1 sur 5 ont été des années extrêmes (dont 2003, inondations documentées). Indication expérimentale de la projection : 31 %. Cette méthode n'a pas de compétence démontrée en prévision réelle (AUC 0,53 en conditions réelles de prévision) ; elle ne fixe pas le niveau de risque. Contexte : 4 des 10 dernières saisons observées (1995-2004) ont été extrêmes, pour une fréquence de référence d'une sur trois. Vérification : la saison 2005 a été extrême (empreinte 1098, rang 2), inondations documentées."
+  "synthese": "Saison 2005 : risque d'année extrême normal (probabilité 37 %, contre 33 % en moyenne), d'après la prévision saisonnière Copernicus C3S. Confiance faible. Le modèle ECMWF prévoit pour juillet-septembre une pluie au-dessus de la normale (anomalie +0,3 écart-type) ; 36 % des membres sont dans le tiers le plus humide. De novembre à avril, l'océan ressemble surtout à la configuration C7 du mémoire (corrélation 0,19), une variante de l'état Neutre, celle des années 2003, 2002, 1994. Années les plus ressemblantes : 2004, 2003, 1993, 1992, 1987 ; 1 sur 5 ont été des années extrêmes (dont 2003, inondations documentées). Indication expérimentale de la projection : 31 %. Cette méthode n'a pas de compétence démontrée en prévision réelle (AUC 0,53 en conditions réelles de prévision) ; elle ne fixe pas le niveau de risque. Contexte : 4 des 10 dernières saisons observées (1995-2004) ont été extrêmes, pour une fréquence de référence d'une sur trois. Vérification : la saison 2005 a été extrême (empreinte 1098, rang 2), inondations documentées."
 }

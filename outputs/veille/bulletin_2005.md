@@ -8,7 +8,7 @@ Probabilité : **37 %** (référence : 33 %) · source : c3s · confiance : faib
 
 ## Synthèse
 
-Saison 2005 : risque d'année extrême normal (probabilité 37 %, contre 33 % en moyenne), d'après la prévision saisonnière Copernicus C3S. Confiance faible. Le modèle ECMWF prévoit pour juillet-septembre une pluie au-dessus de la normale (anomalie +0,3 écart-type) ; 36 % des membres sont dans le tiers le plus humide. De novembre à avril, l'océan ressemble surtout à la configuration C7 du mémoire (corrélation 0,19), celle des années 2003, 2002, 1994. Années les plus ressemblantes : 2004, 2003, 1993, 1992, 1987 ; 1 sur 5 ont été des années extrêmes (dont 2003, inondations documentées). Indication expérimentale de la projection : 31 %. Cette méthode n'a pas de compétence démontrée en prévision réelle (AUC 0,53 en conditions réelles de prévision) ; elle ne fixe pas le niveau de risque. Contexte : 4 des 10 dernières saisons observées (1995-2004) ont été extrêmes, pour une fréquence de référence d'une sur trois. Vérification : la saison 2005 a été extrême (empreinte 1098, rang 2), inondations documentées.
+Saison 2005 : risque d'année extrême normal (probabilité 37 %, contre 33 % en moyenne), d'après la prévision saisonnière Copernicus C3S. Confiance faible. Le modèle ECMWF prévoit pour juillet-septembre une pluie au-dessus de la normale (anomalie +0,3 écart-type) ; 36 % des membres sont dans le tiers le plus humide. De novembre à avril, l'océan ressemble surtout à la configuration C7 du mémoire (corrélation 0,19), une variante de l'état Neutre, celle des années 2003, 2002, 1994. Années les plus ressemblantes : 2004, 2003, 1993, 1992, 1987 ; 1 sur 5 ont été des années extrêmes (dont 2003, inondations documentées). Indication expérimentale de la projection : 31 %. Cette méthode n'a pas de compétence démontrée en prévision réelle (AUC 0,53 en conditions réelles de prévision) ; elle ne fixe pas le niveau de risque. Contexte : 4 des 10 dernières saisons observées (1995-2004) ont été extrêmes, pour une fréquence de référence d'une sur trois. Vérification : la saison 2005 a été extrême (empreinte 1098, rang 2), inondations documentées.
 
 ## Prévision saisonnière officielle (Copernicus C3S)
 
@@ -23,11 +23,11 @@ Saison 2005 : risque d'année extrême normal (probabilité 37 %, contre 33 % en
 
 ## État océanique novembre-avril (configurations du mémoire)
 
-| Configuration | Corrélation | Années principales | Part d'événements en année extrême |
-|---|---|---|---|
-| C7 | 0,19 | 2003, 2002, 1994 | 32 % |
-| C1 | 0,17 | 1992, 1997 | 0 % |
-| C4 | 0,15 | 1987, 1997, 1983 | 33 % |
+| Configuration | État océanique | Corrélation | Années principales | Part d'événements en année extrême |
+|---|---|---|---|---|
+| C7 | Neutre | 0,19 | 2003, 2002, 1994 | 32 % |
+| C1 | El Niño | 0,17 | 1992, 1997 | 0 % |
+| C4 | El Niño | 0,15 | 1987, 1997, 1983 | 33 % |
 
 **Années analogues** : 2004 (normale), 2003 (extrême), 1993 (normale), 1992 (normale), 1987 (normale)
 

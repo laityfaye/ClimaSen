@@ -442,7 +442,9 @@ def test_la_poussee_est_desactivee_sur_ecran_etroit():
     assert "vue().w < LARGEUR_MINI_POUSSEE" in source
 
 
-@pytest.mark.parametrize("scenario", ["replie", "ouvert", "fenetre_ouvert",
+# Plus de scenario "fenetre_ouvert": depuis le 27/09/2026, Jarvis s'ouvre et
+# se rouvre toujours en plein ecran (choix de Laity).
+@pytest.mark.parametrize("scenario", ["replie", "ouvert",
                                       "mobile_replie", "mobile_ouvert"])
 def test_le_widget_s_affiche_reellement(scenario, tmp_path):
     """Execute le JavaScript du widget dans un DOM simule (tests/widget_harness.js).

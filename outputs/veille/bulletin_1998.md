@@ -8,7 +8,7 @@ Probabilité : **31 %** (référence : 33 %) · source : c3s · confiance : faib
 
 ## Synthèse
 
-Saison 1998 : risque d'année extrême normal (probabilité 31 %, contre 33 % en moyenne), d'après la prévision saisonnière Copernicus C3S. Confiance faible. Le modèle ECMWF prévoit pour juillet-septembre une pluie proche de la normale (anomalie -0,2 écart-type) ; 32 % des membres sont dans le tiers le plus humide. De novembre à avril, l'océan ressemble surtout à la configuration C4 du mémoire (corrélation 0,50), celle des années 1987, 1997, 1983. Années les plus ressemblantes : 1988, 1987, 1992, 1995, 1993 ; 0 sur 5 ont été des années extrêmes. Indication expérimentale de la projection : 36 %. Cette méthode n'a pas de compétence démontrée en prévision réelle (AUC 0,53 en conditions réelles de prévision) ; elle ne fixe pas le niveau de risque. Contexte : 1 des 10 dernières saisons observées (1988-1997) ont été extrêmes, pour une fréquence de référence d'une sur trois. Vérification : la saison 1998 a été non extrême (empreinte 556, rang 30).
+Saison 1998 : risque d'année extrême normal (probabilité 31 %, contre 33 % en moyenne), d'après la prévision saisonnière Copernicus C3S. Confiance faible. Le modèle ECMWF prévoit pour juillet-septembre une pluie proche de la normale (anomalie -0,2 écart-type) ; 32 % des membres sont dans le tiers le plus humide. De novembre à avril, l'océan ressemble surtout à la configuration C4 du mémoire (corrélation 0,50), une variante de l'état El Niño, celle des années 1987, 1997, 1983. Années les plus ressemblantes : 1988, 1987, 1992, 1995, 1993 ; 0 sur 5 ont été des années extrêmes. Indication expérimentale de la projection : 36 %. Cette méthode n'a pas de compétence démontrée en prévision réelle (AUC 0,53 en conditions réelles de prévision) ; elle ne fixe pas le niveau de risque. Contexte : 1 des 10 dernières saisons observées (1988-1997) ont été extrêmes, pour une fréquence de référence d'une sur trois. Vérification : la saison 1998 a été non extrême (empreinte 556, rang 30).
 
 ## Prévision saisonnière officielle (Copernicus C3S)
 
@@ -23,11 +23,11 @@ Saison 1998 : risque d'année extrême normal (probabilité 31 %, contre 33 % en
 
 ## État océanique novembre-avril (configurations du mémoire)
 
-| Configuration | Corrélation | Années principales | Part d'événements en année extrême |
-|---|---|---|---|
-| C4 | 0,50 | 1987, 1997, 1983 | 33 % |
-| C1 | 0,29 | 1992, 1997 | 0 % |
-| C6 | 0,17 |  | 0 % |
+| Configuration | État océanique | Corrélation | Années principales | Part d'événements en année extrême |
+|---|---|---|---|---|
+| C4 | El Niño | 0,50 | 1987, 1997, 1983 | 33 % |
+| C1 | El Niño | 0,29 | 1992, 1997 | 0 % |
+| C6 | Transition après El Niño | 0,17 |  | 0 % |
 
 **Années analogues** : 1988 (normale), 1987 (normale), 1992 (normale), 1995 (normale), 1993 (normale)
 

@@ -635,6 +635,27 @@ Après mise à jour : **redémarrer** Streamlit (le module `jarvis_widget` et la
 configuration sont lus au démarrage) et le service Jarvis, et déployer
 `jarvis/cartes/sst_evenements.npz`.
 
+## Veille pré-saison (27/09/2026)
+
+Le bulletin d'avril (« la saison à venir sera-t-elle une année extrême ? ») est
+produit hors ligne par le paquet `veille/` (scripts 19 à 22) ; Jarvis ne lit
+que ses sorties dans `outputs/veille/`.
+
+| Capacité | Où | Principe |
+|---|---|---|
+| Bulletin | `get_seasonal_outlook` | Niveau de risque (fixé par Copernicus C3S calibré sur CHIRPS), projection océanique **expérimentale**, compétences mesurées. Seule source autorisée sur la saison à venir. |
+| Carte de l'océan nov-avr | `show_map` type `etat_oceanique`, `outputs/veille/etats/` | Anomalie brute à 2°, 12 Ko par saison. Avec `sst_cluster` dans la même réponse : comparaison côte à côte. |
+| Briefing vocal | `present_bulletin_briefing`, `jarvis/briefing.py`, `/api/briefing[/n]?annee=`, menu PRÉSENTATION | Même moteur que la soutenance (programme `briefing`), 8 étapes. **Narration composée par le code.** Lancé par l'outil via l'événement SSE `navigation` (`presentation`, programme en liste fermée `app.PROGRAMMES`), à la fin de la phrase d'annonce. |
+| Carnet de fiabilité | `get_bulletin_reliability`, `veille/fiabilite.py` | Bulletins rétrospectifs 1998-2023 confrontés à CHIRPS : détections, fausses alertes, manquées, AUC, Brier ; comparaison de deux saisons. |
+| Scénario « et si » | `explore_ocean_scenario`, `outputs/veille/scenarios/kit_<annee>.npz` | Perturbation uniforme (±2 °C max) dans des boîtes d'indices, reprojection en numpy pur (ms). Exploration de sensibilité, **jamais** une prévision. Kits (3,5 Mo) seulement pour la saison prospective et les années demandées (`--kit`). |
+| Veille mensuelle | `scripts/22_veille_mensuelle.py`, étape 22 du Pipeline | Nov-avr : télécharge les mois écoulés, met le cube à jour, bulletin provisoire avec trajectoire mois par mois. Proposable par `propose_task` (admin). |
+| Diffusion | `draft_bulletin_release` (admin), action `veille_diffusion` | SMS ≤ 320 car., résumé d'une page, document Word, composés par le code. L'outil **dépose** une proposition ; les fichiers ne sont écrits qu'après approbation dans la console. Rien n'est envoyé. Dépendance : `python-docx`. |
+
+**Accueil et fond (27/09/2026).** La bulle ouvre directement le plein écran : quatre tuiles autour de l'orbe (comprendre, voir, anticiper, présenter), effacées à la première question. Fond d'écran : planisphère en points, graticule, balises des indices et Sénégal, SVG inline (~22 Ko) régénéré par `py -3 scripts/23_build_jarvis_fond_hud.py` entre les marqueurs `FOND_HUD` du widget ; animations coupées si `prefers-reduced-motion`.
+
+Déployer : `outputs/veille/` (bulletins, états, kits) et `pip install python-docx`
+dans le venv, puis redémarrer Jarvis et Streamlit.
+
 ## Ajouter un outil
 
 1. Créer `jarvis/tools/<nom>.py` exposant `NAME`, `LABEL`, `PERMISSION`,

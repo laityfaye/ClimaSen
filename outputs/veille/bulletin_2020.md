@@ -8,7 +8,7 @@ Probabilité : **32 %** (référence : 33 %) · source : c3s · confiance : faib
 
 ## Synthèse
 
-Saison 2020 : risque d'année extrême normal (probabilité 32 %, contre 33 % en moyenne), d'après la prévision saisonnière Copernicus C3S. Confiance faible. Le modèle ECMWF prévoit pour juillet-septembre une pluie proche de la normale (anomalie -0,0 écart-type) ; 33 % des membres sont dans le tiers le plus humide. De novembre à avril, l'océan ressemble surtout à la configuration C7 du mémoire (corrélation 0,17), celle des années 2003, 2005, 2009. Années les plus ressemblantes : 2005, 2019, 2013, 2014, 2003 ; 2 sur 5 ont été des années extrêmes (dont 2005, 2003, inondations documentées). Indication expérimentale de la projection : 32 %. Cette méthode n'a pas de compétence démontrée en prévision réelle (AUC 0,53 en conditions réelles de prévision) ; elle ne fixe pas le niveau de risque. Contexte : 2 des 10 dernières saisons observées (2010-2019) ont été extrêmes, pour une fréquence de référence d'une sur trois. Vérification : la saison 2020 a été extrême (empreinte 1054, rang 4), inondations documentées.
+Saison 2020 : risque d'année extrême normal (probabilité 32 %, contre 33 % en moyenne), d'après la prévision saisonnière Copernicus C3S. Confiance faible. Le modèle ECMWF prévoit pour juillet-septembre une pluie proche de la normale (anomalie -0,0 écart-type) ; 33 % des membres sont dans le tiers le plus humide. De novembre à avril, l'océan ressemble surtout à la configuration C7 du mémoire (corrélation 0,17), une variante de l'état Neutre, celle des années 2003, 2005, 2009. Années les plus ressemblantes : 2005, 2019, 2013, 2014, 2003 ; 2 sur 5 ont été des années extrêmes (dont 2005, 2003, inondations documentées). Indication expérimentale de la projection : 32 %. Cette méthode n'a pas de compétence démontrée en prévision réelle (AUC 0,53 en conditions réelles de prévision) ; elle ne fixe pas le niveau de risque. Contexte : 2 des 10 dernières saisons observées (2010-2019) ont été extrêmes, pour une fréquence de référence d'une sur trois. Vérification : la saison 2020 a été extrême (empreinte 1054, rang 4), inondations documentées.
 
 ## Prévision saisonnière officielle (Copernicus C3S)
 
@@ -23,11 +23,11 @@ Saison 2020 : risque d'année extrême normal (probabilité 32 %, contre 33 % en
 
 ## État océanique novembre-avril (configurations du mémoire)
 
-| Configuration | Corrélation | Années principales | Part d'événements en année extrême |
-|---|---|---|---|
-| C7 | 0,17 | 2003, 2005, 2009, 2002, 1994 | 32 % |
-| C2 | 0,09 | 2008, 1984, 1985, 1988 | 39 % |
-| C6 | 0,08 | 2016, 1998 | 0 % |
+| Configuration | État océanique | Corrélation | Années principales | Part d'événements en année extrême |
+|---|---|---|---|---|
+| C7 | Neutre | 0,17 | 2003, 2005, 2009, 2002, 1994 | 32 % |
+| C2 | La Niña | 0,09 | 2008, 1984, 1985, 1988 | 39 % |
+| C6 | Transition après El Niño | 0,08 | 2016, 1998 | 0 % |
 
 **Années analogues** : 2005 (extrême), 2019 (normale), 2013 (normale), 2014 (normale), 2003 (extrême)
 

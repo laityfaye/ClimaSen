@@ -32,6 +32,8 @@ DEPENDANCES = {
     "04": ["01", "sst"],
     "11": ["01"],
     "14": ["11"],
+    "19": ["01"],
+    "20": ["01", "19"],
 }
 
 # Un meme lancement ecrit les sorties de plusieurs etapes a quelques secondes

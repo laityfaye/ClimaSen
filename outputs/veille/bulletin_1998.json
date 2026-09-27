@@ -81,7 +81,8 @@
           1997,
           1983
         ],
-        "part_evenements_en_annee_extreme": 0.33
+        "part_evenements_en_annee_extreme": 0.33,
+        "etat_oceanique": "El Niño"
       },
       {
         "configuration": 1,
@@ -91,14 +92,16 @@
           1992,
           1997
         ],
-        "part_evenements_en_annee_extreme": 0.0
+        "part_evenements_en_annee_extreme": 0.0,
+        "etat_oceanique": "El Niño"
       },
       {
         "configuration": 6,
         "correlation": 0.172,
         "n_evenements": 41,
         "annees_principales": [],
-        "part_evenements_en_annee_extreme": 0.0
+        "part_evenements_en_annee_extreme": 0.0,
+        "etat_oceanique": "Transition après El Niño"
       }
     ],
     "toutes_configurations": [
@@ -175,6 +178,50 @@
         "extreme": false,
         "inondation_documentee": false
       }
+    ],
+    "trajectoire": [
+      {
+        "jusqu_a": "1997-11",
+        "n_mois": 1,
+        "probabilite_experimentale": 0.357,
+        "configuration": 4,
+        "correlation": 0.586
+      },
+      {
+        "jusqu_a": "1997-12",
+        "n_mois": 2,
+        "probabilite_experimentale": 0.358,
+        "configuration": 4,
+        "correlation": 0.545
+      },
+      {
+        "jusqu_a": "1998-01",
+        "n_mois": 3,
+        "probabilite_experimentale": 0.357,
+        "configuration": 4,
+        "correlation": 0.542
+      },
+      {
+        "jusqu_a": "1998-02",
+        "n_mois": 4,
+        "probabilite_experimentale": 0.358,
+        "configuration": 4,
+        "correlation": 0.524
+      },
+      {
+        "jusqu_a": "1998-03",
+        "n_mois": 5,
+        "probabilite_experimentale": 0.359,
+        "configuration": 4,
+        "correlation": 0.509
+      },
+      {
+        "jusqu_a": "1998-04",
+        "n_mois": 6,
+        "probabilite_experimentale": 0.36,
+        "configuration": 4,
+        "correlation": 0.498
+      }
     ]
   },
   "competence_projection": {
@@ -215,5 +262,5 @@
     "inondation_documentee": false,
     "seuil": 745.8
   },
-  "synthese": "Saison 1998 : risque d'année extrême normal (probabilité 31 %, contre 33 % en moyenne), d'après la prévision saisonnière Copernicus C3S. Confiance faible. Le modèle ECMWF prévoit pour juillet-septembre une pluie proche de la normale (anomalie -0,2 écart-type) ; 32 % des membres sont dans le tiers le plus humide. De novembre à avril, l'océan ressemble surtout à la configuration C4 du mémoire (corrélation 0,50), celle des années 1987, 1997, 1983. Années les plus ressemblantes : 1988, 1987, 1992, 1995, 1993 ; 0 sur 5 ont été des années extrêmes. Indication expérimentale de la projection : 36 %. Cette méthode n'a pas de compétence démontrée en prévision réelle (AUC 0,53 en conditions réelles de prévision) ; elle ne fixe pas le niveau de risque. Contexte : 1 des 10 dernières saisons observées (1988-1997) ont été extrêmes, pour une fréquence de référence d'une sur trois. Vérification : la saison 1998 a été non extrême (empreinte 556, rang 30)."
+  "synthese": "Saison 1998 : risque d'année extrême normal (probabilité 31 %, contre 33 % en moyenne), d'après la prévision saisonnière Copernicus C3S. Confiance faible. Le modèle ECMWF prévoit pour juillet-septembre une pluie proche de la normale (anomalie -0,2 écart-type) ; 32 % des membres sont dans le tiers le plus humide. De novembre à avril, l'océan ressemble surtout à la configuration C4 du mémoire (corrélation 0,50), une variante de l'état El Niño, celle des années 1987, 1997, 1983. Années les plus ressemblantes : 1988, 1987, 1992, 1995, 1993 ; 0 sur 5 ont été des années extrêmes. Indication expérimentale de la projection : 36 %. Cette méthode n'a pas de compétence démontrée en prévision réelle (AUC 0,53 en conditions réelles de prévision) ; elle ne fixe pas le niveau de risque. Contexte : 1 des 10 dernières saisons observées (1988-1997) ont été extrêmes, pour une fréquence de référence d'une sur trois. Vérification : la saison 1998 a été non extrême (empreinte 556, rang 30)."
 }

@@ -28,7 +28,8 @@ LABEL = "Préparation d'une carte"
 PERMISSION = "public"
 DATASETS = ("events",)
 
-TYPES = ["sst_cluster", "cluster_senegal", "evenement", "frequence_extremes"]
+TYPES = ["sst_cluster", "cluster_senegal", "evenement", "frequence_extremes",
+         "etat_oceanique"]
 VARIABLES = ["precipitation", "anomalie"]
 SEUIL = 2.0
 
@@ -43,7 +44,12 @@ DESCRIPTION = (
     "evenement extreme du catalogue, date AAAA-MM-JJ requise; trouve la date "
     "avec search_extreme_events si besoin), frequence_extremes (part des "
     "jours d'evenement ou chaque pixel depasse 2 sigma, par phase ou toutes "
-    "phases). variable: precipitation (mm/jour) ou anomalie (sigma). Le "
+    "phases), etat_oceanique (VEILLE PRE-SAISON: anomalie SST moyenne de "
+    "novembre a avril avant la saison 'year', celle que le bulletin projette "
+    "sur les configurations du memoire; pour la comparer a la configuration "
+    "la plus proche, appelle aussi sst_cluster phase 'Toutes phases' avec le "
+    "cluster indique dans le resume: l'ecran les montre cote a cote). "
+    "variable: precipitation (mm/jour) ou anomalie (sigma). Le "
     "resultat contient un resume chiffre: commente a partir de lui, pas de "
     "memoire. Utilise-la quand l'utilisateur demande une carte, ou qu'une "
     "question porte sur OU (repartition spatiale, regions touchees, motif "
@@ -60,6 +66,15 @@ SCHEMA = {
                                  "requise; frequence_extremes: defaut toutes)."},
         "cluster": {"type": "integer", "description": "Numero du cluster K-Means."},
         "date": {"type": "string", "description": "evenement: date AAAA-MM-JJ."},
+        "year": {"type": "integer",
+                 "description": "etat_oceanique: saison du bulletin de veille."},
+        "compare_with_displayed": {
+            "type": "boolean",
+            "description": "true quand l'utilisateur demande de COMPARER cette carte avec "
+                           "celle deja affichee a l'ecran par une reponse precedente "
+                           "(ex. 'compare-la a la configuration du memoire'): l'ecran les "
+                           "montre alors cote a cote. Inutile si les deux cartes sont "
+                           "produites dans la meme reponse."},
         "variable": {"type": "string", "enum": VARIABLES,
                      "description": "precipitation (defaut) ou anomalie."},
     },
@@ -198,8 +213,11 @@ def _sst_cluster(params, data):
         "donnees": {"phase": phase, "indice_cluster": indice, "vlim": vlim},
         "source": SOURCE_CLUSTERING,
     }
+    from veille import etats
+    etat, part = etats.etat_du_cluster(numero, phase)
     resume = {
         "phase": phase, "cluster": numero, "n_evenements": n,
+        "etat_oceanique": ({"etat": etat, "part_evenements": part} if etat else None),
         "anomalie_moyenne_par_boite_degC": boites,
         "boite_la_plus_froide": tri[0][1] if tri else None,
         "boite_la_plus_chaude": tri[-1][1] if tri else None,
@@ -335,6 +353,57 @@ def _frequence_extremes(params, data):
     return spec, resume
 
 
+def _etat_oceanique(params, data):
+    """Etat oceanique novembre-avril d'une saison (veille pre-saison)."""
+    from veille import artefacts, production  # chemin garanti par common
+
+    annee = champ_entier(params, "year", mini=1984, maxi=2100)
+    if annee is None:
+        raise ToolInputError("year (saison du bulletin) est requis pour etat_oceanique.")
+    try:
+        z, lats, lons, mois = artefacts.charger_etat(annee)
+    except artefacts.ArtefactIndisponible:
+        dispo = [a for a in production.bulletins_disponibles()
+                 if (artefacts.DOSSIER_ETATS / ("etat_%d.npz" % a)).is_file()]
+        raise ToolInputError("Pas d'etat oceanique pour %d. Saisons disponibles: %s."
+                             % (annee, ", ".join(str(a) for a in sorted(dispo)) or "aucune"))
+    haut = max(abs(float(np.nanpercentile(z, 2))), abs(float(np.nanpercentile(z, 98))))
+    vlim = round(min(max(haut, 0.5), 3.0), 2)
+    boites = {nom: arrondir(artefacts.moyenne_boites(z, lats, lons, b), 2)
+              for nom, b in artefacts.BOITES_SCENARIO.items()}
+    tri = sorted((v, k) for k, v in boites.items() if v is not None)
+    b = production.lire_bulletin(annee) or {}
+    conf = ((b.get("projection") or {}).get("configurations") or [{}])[0]
+    premier, dernier = str(mois[0]), str(mois[-1])
+    periode = "%s %s à %s %s" % (MOIS_FR[int(premier[5:]) - 1], premier[:4],
+                                 MOIS_FR[int(dernier[5:]) - 1], dernier[:4])
+    spec = {
+        "genre": "carte_sst",
+        "titre": "L'océan avant la saison %d" % annee,
+        "sous_titre": "anomalie SST moyenne, %s · %d mois · 60°S-60°N" % (periode, len(mois)),
+        "donnees": {"grille": _liste(z, 2), "lats": [round(float(v), 2) for v in lats],
+                    "lons": [round(float(v), 2) for v in lons], "vlim": vlim},
+        "source": "NOAA OISST v2 (anomalies journalieres), moyenne novembre-avril; "
+                  "veille pre-saison CLIMAT-SEN",
+    }
+    resume = {
+        "saison": annee, "mois": [str(m) for m in mois],
+        "anomalie_moyenne_par_boite_degC": boites,
+        "boite_la_plus_froide": tri[0][1] if tri else None,
+        "boite_la_plus_chaude": tri[-1][1] if tri else None,
+        "libelles_boites": artefacts.LIBELLES_BOITES,
+        "echelle_couleurs_degC": [-vlim, vlim],
+        "configuration_la_plus_proche": ({"cluster": conf.get("configuration"),
+                                          "correlation": conf.get("correlation")}
+                                         if conf else None),
+        "pour_comparer": ("show_map type sst_cluster, phase 'Toutes phases', cluster %s"
+                          % conf.get("configuration")) if conf else None,
+        "rappel": ("anomalie BRUTE (rechauffement compris); la projection du bulletin "
+                   "travaille sur l'etat detrende"),
+    }
+    return spec, resume
+
+
 MOIS_FR = ["janvier", "février", "mars", "avril", "mai", "juin", "juillet",
            "août", "septembre", "octobre", "novembre", "décembre"]
 
@@ -349,6 +418,7 @@ _TYPES = {
     "cluster_senegal": _cluster_senegal,
     "evenement": _evenement,
     "frequence_extremes": _frequence_extremes,
+    "etat_oceanique": _etat_oceanique,
 }
 
 
@@ -373,6 +443,8 @@ def run(params, data, figures=None, session_id=""):
     return {
         "figure_id": figure.id,
         "carte": True,
+        # Consigne d'affichage pour le widget, relayee par app._noter_figure.
+        "comparer": params.get("compare_with_displayed") is True,
         "type": spec["type"],
         "titre": spec["titre"],
         "sous_titre": spec["sous_titre"],

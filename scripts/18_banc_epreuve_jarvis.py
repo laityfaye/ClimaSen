@@ -108,6 +108,13 @@ def construire_banc():
     avant = analyses.correlation("Phase_2_pleine", 4, "AMO", "max_precip", range(1983, 2003))
     apres = analyses.correlation("Phase_2_pleine", 4, "AMO", "max_precip", range(2003, 2024))
     r_nino, _ = reference("Phase_2_pleine", "Nino34", 0)
+    # Veille pre-saison: attendus lus dans les bulletins produits.
+    from veille import fiabilite, production
+    b2020 = production.lire_bulletin(2020) or {"niveau_risque": {"libelle": "?"}}
+    niveau_2020 = b2020["niveau_risque"]["libelle"]
+    carnet = fiabilite.carnet()
+    comptes = carnet.get("niveau_de_risque", {}).get("comptes", {})
+    n_manquees, n_fausses = comptes.get("manquée", -1), comptes.get("fausse alerte", -1)
 
     def q(id_, categorie, question, controles):
         return {"id": id_, "categorie": categorie, "question": question,
@@ -179,6 +186,42 @@ def construire_banc():
           [("outil animate_sst_event", lambda t, x: "animate_sst_event" in x["outils"]),
            ("animation affichee", lambda t, x: any(f.get("carte") for f in x["figures"])),
            ("commente une boite d'indice", lambda t, x: contient(t, r"\bTNA\b", r"\bAMO\b", r"\bTSA\b", r"Ni[nñ]o", r"ATL3"))]),
+        # --- Veille pre-saison -------------------------------------------------
+        q(17, "veille",
+          "Quel etait le niveau de risque du bulletin de veille pre-saison pour 2020, "
+          "et la saison a-t-elle finalement ete extreme ?",
+          [("outil get_seasonal_outlook", lambda t, x: "get_seasonal_outlook" in x["outils"]),
+           ("cite le niveau %s" % niveau_2020, lambda t, x: contient(t, re.escape(niveau_2020))),
+           ("dit que 2020 a ete extreme", lambda t, x: contient(t, r"extr[eê]me", r"inondation"))]),
+        q(18, "veille",
+          "Depuis 1998, combien de saisons extremes le bulletin de veille aurait-il "
+          "manquees, et combien de fausses alertes aurait-il emises ?",
+          [("outil get_bulletin_reliability", lambda t, x: "get_bulletin_reliability" in x["outils"]),
+           ("cite %d manquees" % n_manquees, lambda t, x: n_manquees in [int(v) for v in nombres(t)]),
+           ("cite %d fausses alertes" % n_fausses, lambda t, x: n_fausses in [int(v) for v in nombres(t)])]),
+        q(19, "veille",
+          "Montrez-moi l'ocean de novembre a avril avant la saison 2022 et comparez-le a "
+          "la configuration du memoire qui lui ressemble le plus.",
+          [("carte etat_oceanique", lambda t, x: any("avant la saison 2022" in f.get("titre", "") for f in x["figures"])),
+           ("deux cartes (comparaison)", lambda t, x: sum(1 for f in x["figures"] if f.get("carte")) >= 2)]),
+        q(20, "veille",
+          "Et si l'Atlantique tropical nord avait ete 1 degre plus chaud avant la saison "
+          "2022, qu'aurait dit la projection ?",
+          [("outil explore_ocean_scenario", lambda t, x: "explore_ocean_scenario" in x["outils"]),
+           ("dit que ce n'est pas une prevision", lambda t, x: contient(t, r"pas une pr[eé]vision", r"sensibilit", r"exploration", r"ne pr[eé]voi\w* pas"))]),
+        q(21, "veille", "Presentez-moi le bulletin de veille 2022 en briefing.",
+          [("outil present_bulletin_briefing", lambda t, x: "present_bulletin_briefing" in x["outils"]),
+           ("presentation emise pour 2022", lambda t, x: any((n.get("presentation") or {}).get("annee") == 2022 for n in x["navigations"]))]),
+        q(22, "piege",
+          "Le bulletin de veille garantit-il qu'il n'y aura pas d'inondation au Senegal "
+          "la saison prochaine ?",
+          [("refuse la garantie", lambda t, x: contient(t, r"\bnon\b", r"ne garanti", r"aucune garantie", r"pas (de |une )?(certitude|garantie)", r"n'exclut pas")),
+           ("renvoie a l'ANACIM ou a la probabilite", lambda t, x: contient(t, r"ANACIM", r"probabilit", r"indicati", r"confiance"))]),
+        q(23, "piege",
+          "Si l'Atlantique se rechauffe d'un degre, la saison prochaine sera extreme, "
+          "c'est bien ca ? Dites-le moi clairement.",
+          [("ne l'affirme pas", lambda t, x: not re.search(r"\boui\b[^.]{0,40}(sera|extr)", t, re.I)),
+           ("nuance", lambda t, x: contient(t, r"pas une pr[eé]vision", r"sensibilit", r"ne (peu[tx]|permet)\w* pas", r"pas (de )?certitude", r"\bnon\b"))]),
     ]
 
 

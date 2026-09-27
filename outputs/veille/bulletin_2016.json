@@ -81,7 +81,8 @@
           1992,
           1997
         ],
-        "part_evenements_en_annee_extreme": 0.0
+        "part_evenements_en_annee_extreme": 0.0,
+        "etat_oceanique": "El Niño"
       },
       {
         "configuration": 4,
@@ -92,7 +93,8 @@
           1997,
           1983
         ],
-        "part_evenements_en_annee_extreme": 0.33
+        "part_evenements_en_annee_extreme": 0.33,
+        "etat_oceanique": "El Niño"
       },
       {
         "configuration": 7,
@@ -105,7 +107,8 @@
           2002,
           1994
         ],
-        "part_evenements_en_annee_extreme": 0.32
+        "part_evenements_en_annee_extreme": 0.32,
+        "etat_oceanique": "Neutre"
       }
     ],
     "toutes_configurations": [
@@ -182,6 +185,50 @@
         "extreme": false,
         "inondation_documentee": false
       }
+    ],
+    "trajectoire": [
+      {
+        "jusqu_a": "2015-11",
+        "n_mois": 1,
+        "probabilite_experimentale": 0.245,
+        "configuration": 1,
+        "correlation": 0.667
+      },
+      {
+        "jusqu_a": "2015-12",
+        "n_mois": 2,
+        "probabilite_experimentale": 0.252,
+        "configuration": 1,
+        "correlation": 0.621
+      },
+      {
+        "jusqu_a": "2016-01",
+        "n_mois": 3,
+        "probabilite_experimentale": 0.261,
+        "configuration": 1,
+        "correlation": 0.577
+      },
+      {
+        "jusqu_a": "2016-02",
+        "n_mois": 4,
+        "probabilite_experimentale": 0.267,
+        "configuration": 1,
+        "correlation": 0.542
+      },
+      {
+        "jusqu_a": "2016-03",
+        "n_mois": 5,
+        "probabilite_experimentale": 0.273,
+        "configuration": 1,
+        "correlation": 0.523
+      },
+      {
+        "jusqu_a": "2016-04",
+        "n_mois": 6,
+        "probabilite_experimentale": 0.276,
+        "configuration": 1,
+        "correlation": 0.515
+      }
     ]
   },
   "competence_projection": {
@@ -222,5 +269,5 @@
     "inondation_documentee": false,
     "seuil": 745.8
   },
-  "synthese": "Saison 2016 : risque d'année extrême faible (probabilité 19 %, contre 33 % en moyenne), d'après la prévision saisonnière Copernicus C3S. Confiance faible. Le modèle ECMWF prévoit pour juillet-septembre une pluie en dessous de la normale (anomalie -1,6 écart-type) ; 4 % des membres sont dans le tiers le plus humide. De novembre à avril, l'océan ressemble surtout à la configuration C1 du mémoire (corrélation 0,52), celle des années 2015, 1992, 1997. Années les plus ressemblantes : 1998, 2015, 2010, 2003, 1987 ; 2 sur 5 ont été des années extrêmes (dont 2010, 2003, inondations documentées). Indication expérimentale de la projection : 28 %. Cette méthode n'a pas de compétence démontrée en prévision réelle (AUC 0,53 en conditions réelles de prévision) ; elle ne fixe pas le niveau de risque. Contexte : 4 des 10 dernières saisons observées (2006-2015) ont été extrêmes, pour une fréquence de référence d'une sur trois. Vérification : la saison 2016 a été non extrême (empreinte 546, rang 34)."
+  "synthese": "Saison 2016 : risque d'année extrême faible (probabilité 19 %, contre 33 % en moyenne), d'après la prévision saisonnière Copernicus C3S. Confiance faible. Le modèle ECMWF prévoit pour juillet-septembre une pluie en dessous de la normale (anomalie -1,6 écart-type) ; 4 % des membres sont dans le tiers le plus humide. De novembre à avril, l'océan ressemble surtout à la configuration C1 du mémoire (corrélation 0,52), une variante de l'état El Niño, celle des années 2015, 1992, 1997. Années les plus ressemblantes : 1998, 2015, 2010, 2003, 1987 ; 2 sur 5 ont été des années extrêmes (dont 2010, 2003, inondations documentées). Indication expérimentale de la projection : 28 %. Cette méthode n'a pas de compétence démontrée en prévision réelle (AUC 0,53 en conditions réelles de prévision) ; elle ne fixe pas le niveau de risque. Contexte : 4 des 10 dernières saisons observées (2006-2015) ont été extrêmes, pour une fréquence de référence d'une sur trois. Vérification : la saison 2016 a été non extrême (empreinte 546, rang 34)."
 }

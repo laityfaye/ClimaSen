@@ -80,7 +80,8 @@
           1992,
           1997
         ],
-        "part_evenements_en_annee_extreme": 0.0
+        "part_evenements_en_annee_extreme": 0.0,
+        "etat_oceanique": "El Niño"
       },
       {
         "configuration": 4,
@@ -91,14 +92,16 @@
           1997,
           1983
         ],
-        "part_evenements_en_annee_extreme": 0.33
+        "part_evenements_en_annee_extreme": 0.33,
+        "etat_oceanique": "El Niño"
       },
       {
         "configuration": 3,
         "correlation": 0.088,
         "n_evenements": 47,
         "annees_principales": [],
-        "part_evenements_en_annee_extreme": 1.0
+        "part_evenements_en_annee_extreme": 1.0,
+        "etat_oceanique": "Neutre"
       }
     ],
     "toutes_configurations": [
@@ -175,6 +178,50 @@
         "extreme": false,
         "inondation_documentee": false
       }
+    ],
+    "trajectoire": [
+      {
+        "jusqu_a": "2009-11",
+        "n_mois": 1,
+        "probabilite_experimentale": 0.279,
+        "configuration": 1,
+        "correlation": 0.331
+      },
+      {
+        "jusqu_a": "2009-12",
+        "n_mois": 2,
+        "probabilite_experimentale": 0.278,
+        "configuration": 1,
+        "correlation": 0.34
+      },
+      {
+        "jusqu_a": "2010-01",
+        "n_mois": 3,
+        "probabilite_experimentale": 0.28,
+        "configuration": 1,
+        "correlation": 0.314
+      },
+      {
+        "jusqu_a": "2010-02",
+        "n_mois": 4,
+        "probabilite_experimentale": 0.284,
+        "configuration": 1,
+        "correlation": 0.297
+      },
+      {
+        "jusqu_a": "2010-03",
+        "n_mois": 5,
+        "probabilite_experimentale": 0.289,
+        "configuration": 1,
+        "correlation": 0.277
+      },
+      {
+        "jusqu_a": "2010-04",
+        "n_mois": 6,
+        "probabilite_experimentale": 0.291,
+        "configuration": 1,
+        "correlation": 0.272
+      }
     ]
   },
   "competence_projection": {
@@ -215,5 +262,5 @@
     "inondation_documentee": true,
     "seuil": 745.8
   },
-  "synthese": "Saison 2010 : risque d'année extrême élevé (probabilité 42 %, contre 33 % en moyenne), d'après la prévision saisonnière Copernicus C3S. Confiance faible. Le modèle ECMWF prévoit pour juillet-septembre une pluie au-dessus de la normale (anomalie +0,9 écart-type) ; 52 % des membres sont dans le tiers le plus humide. De novembre à avril, l'océan ressemble surtout à la configuration C1 du mémoire (corrélation 0,27), celle des années 1992, 1997. Années les plus ressemblantes : 2003, 2007, 1988, 1998, 1987 ; 1 sur 5 ont été des années extrêmes (dont 2003, inondations documentées). Indication expérimentale de la projection : 29 %. Cette méthode n'a pas de compétence démontrée en prévision réelle (AUC 0,53 en conditions réelles de prévision) ; elle ne fixe pas le niveau de risque. Contexte : 6 des 10 dernières saisons observées (2000-2009) ont été extrêmes, pour une fréquence de référence d'une sur trois. Vérification : la saison 2010 a été extrême (empreinte 1152, rang 1), inondations documentées."
+  "synthese": "Saison 2010 : risque d'année extrême élevé (probabilité 42 %, contre 33 % en moyenne), d'après la prévision saisonnière Copernicus C3S. Confiance faible. Le modèle ECMWF prévoit pour juillet-septembre une pluie au-dessus de la normale (anomalie +0,9 écart-type) ; 52 % des membres sont dans le tiers le plus humide. De novembre à avril, l'océan ressemble surtout à la configuration C1 du mémoire (corrélation 0,27), une variante de l'état El Niño, celle des années 1992, 1997. Années les plus ressemblantes : 2003, 2007, 1988, 1998, 1987 ; 1 sur 5 ont été des années extrêmes (dont 2003, inondations documentées). Indication expérimentale de la projection : 29 %. Cette méthode n'a pas de compétence démontrée en prévision réelle (AUC 0,53 en conditions réelles de prévision) ; elle ne fixe pas le niveau de risque. Contexte : 6 des 10 dernières saisons observées (2000-2009) ont été extrêmes, pour une fréquence de référence d'une sur trois. Vérification : la saison 2010 a été extrême (empreinte 1152, rang 1), inondations documentées."
 }

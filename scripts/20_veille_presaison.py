@@ -54,6 +54,8 @@ def main():
     p.add_argument("--partiel", action="store_true",
                    help="accepter un etat novembre-avril incomplet (bulletin provisoire)")
     p.add_argument("--sans-c3s", action="store_true", help="ne pas interroger Copernicus")
+    p.add_argument("--kit", action="store_true",
+                   help="deposer le kit de scenario (defaut: saison non observee seulement)")
     p.add_argument("--competence", action="store_true",
                    help="recalculer la competence de la projection (plusieurs minutes)")
     args = p.parse_args()
@@ -74,7 +76,8 @@ def main():
         annees = []
     for annee in annees:
         journal("== Bulletin %d" % annee)
-        b = production.produire(annee, avec_c3s=avec_c3s, partiel=args.partiel, journal=journal)
+        b = production.produire(annee, avec_c3s=avec_c3s, partiel=args.partiel, journal=journal,
+                                kit=True if args.kit else None)
         n = b["niveau_risque"]
         journal("   niveau: %s | statut: %s | source: %s" % (n["libelle"], b["statut"], n["source"]))
         for a in b["avertissements"]:

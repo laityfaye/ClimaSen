@@ -79,7 +79,8 @@
         "annees_principales": [
           1989
         ],
-        "part_evenements_en_annee_extreme": 1.0
+        "part_evenements_en_annee_extreme": 1.0,
+        "etat_oceanique": "La Niña"
       },
       {
         "configuration": 2,
@@ -92,7 +93,8 @@
           1985,
           1988
         ],
-        "part_evenements_en_annee_extreme": 0.39
+        "part_evenements_en_annee_extreme": 0.39,
+        "etat_oceanique": "La Niña"
       },
       {
         "configuration": 0,
@@ -103,7 +105,8 @@
           2000,
           1998
         ],
-        "part_evenements_en_annee_extreme": 0.88
+        "part_evenements_en_annee_extreme": 0.88,
+        "etat_oceanique": "La Niña"
       }
     ],
     "toutes_configurations": [
@@ -180,6 +183,50 @@
         "extreme": true,
         "inondation_documentee": false
       }
+    ],
+    "trajectoire": [
+      {
+        "jusqu_a": "2020-11",
+        "n_mois": 1,
+        "probabilite_experimentale": 0.366,
+        "configuration": 2,
+        "correlation": 0.507
+      },
+      {
+        "jusqu_a": "2020-12",
+        "n_mois": 2,
+        "probabilite_experimentale": 0.374,
+        "configuration": 2,
+        "correlation": 0.477
+      },
+      {
+        "jusqu_a": "2021-01",
+        "n_mois": 3,
+        "probabilite_experimentale": 0.397,
+        "configuration": 5,
+        "correlation": 0.446
+      },
+      {
+        "jusqu_a": "2021-02",
+        "n_mois": 4,
+        "probabilite_experimentale": 0.409,
+        "configuration": 5,
+        "correlation": 0.41
+      },
+      {
+        "jusqu_a": "2021-03",
+        "n_mois": 5,
+        "probabilite_experimentale": 0.416,
+        "configuration": 5,
+        "correlation": 0.373
+      },
+      {
+        "jusqu_a": "2021-04",
+        "n_mois": 6,
+        "probabilite_experimentale": 0.421,
+        "configuration": 5,
+        "correlation": 0.37
+      }
     ]
   },
   "competence_projection": {
@@ -220,5 +267,5 @@
     "inondation_documentee": false,
     "seuil": 745.8
   },
-  "synthese": "Saison 2021 : risque d'année extrême normal (probabilité 32 %, contre 33 % en moyenne), d'après la prévision saisonnière Copernicus C3S. Confiance faible. Le modèle ECMWF prévoit pour juillet-septembre une pluie proche de la normale (anomalie -0,0 écart-type) ; 26 % des membres sont dans le tiers le plus humide. De novembre à avril, l'océan ressemble surtout à la configuration C5 du mémoire (corrélation 0,37), celle des années 1989. Années les plus ressemblantes : 2008, 1989, 2018, 2011, 2000 ; 3 sur 5 ont été des années extrêmes. Indication expérimentale de la projection : 42 %. Cette méthode n'a pas de compétence démontrée en prévision réelle (AUC 0,53 en conditions réelles de prévision) ; elle ne fixe pas le niveau de risque. Contexte : 2 des 10 dernières saisons observées (2011-2020) ont été extrêmes, pour une fréquence de référence d'une sur trois. Vérification : la saison 2021 a été extrême (empreinte 791, rang 12)."
+  "synthese": "Saison 2021 : risque d'année extrême normal (probabilité 32 %, contre 33 % en moyenne), d'après la prévision saisonnière Copernicus C3S. Confiance faible. Le modèle ECMWF prévoit pour juillet-septembre une pluie proche de la normale (anomalie -0,0 écart-type) ; 26 % des membres sont dans le tiers le plus humide. De novembre à avril, l'océan ressemble surtout à la configuration C5 du mémoire (corrélation 0,37), une variante de l'état La Niña, celle des années 1989. Années les plus ressemblantes : 2008, 1989, 2018, 2011, 2000 ; 3 sur 5 ont été des années extrêmes. Indication expérimentale de la projection : 42 %. Cette méthode n'a pas de compétence démontrée en prévision réelle (AUC 0,53 en conditions réelles de prévision) ; elle ne fixe pas le niveau de risque. Contexte : 2 des 10 dernières saisons observées (2011-2020) ont été extrêmes, pour une fréquence de référence d'une sur trois. Vérification : la saison 2021 a été extrême (empreinte 791, rang 12)."
 }

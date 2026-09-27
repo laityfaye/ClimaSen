@@ -22,7 +22,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import (FileResponse, HTMLResponse, JSONResponse,
                                Response, StreamingResponse)
 
-from . import (__version__, actions, auth, code_ops, elevation, figures,
+from . import (__version__, actions, auth, briefing, code_ops, elevation, figures,
                page_context, page_view, soutenance, tools, voix)
 from .tools import dataset as tools_dataset
 from .claude_client import ClaudeClient
@@ -166,7 +166,9 @@ class AppContext:
 OUTILS_FIGURES = ("make_figure", "show_map", "recompute_correlation",
                   "animate_sst_event")
 # Outil dont le resultat porte une consigne de navigation pour le dashboard.
-OUTILS_NAVIGATION = ("navigate_dashboard",)
+OUTILS_NAVIGATION = ("navigate_dashboard", "present_bulletin_briefing")
+# Presentations guidees qu'un outil peut lancer (liste fermee).
+PROGRAMMES = ("briefing",)
 
 
 def _noter_figure(resultat: dict, figures_produites: list) -> None:
@@ -185,7 +187,9 @@ def _noter_figure(resultat: dict, figures_produites: list) -> None:
                                   "titre": charge.get("titre", ""),
                                   "sous_titre": charge.get("sous_titre", ""),
                                   # Une carte s'affiche en grand dans le HUD.
-                                  "carte": bool(charge.get("carte"))})
+                                  "carte": bool(charge.get("carte")),
+                                  # A comparer avec la carte deja a l'ecran.
+                                  "comparer": charge.get("comparer") is True})
     # Figure secondaire d'un outil de calcul (recompute_correlation).
     secondaire = charge.get("figure")
     if isinstance(secondaire, dict) and secondaire.get("figure_id"):
@@ -208,6 +212,13 @@ def _noter_navigation(resultat: dict, navigations: list) -> None:
     nav = charge.get("navigation")
     if isinstance(nav, dict) and nav.get("page"):
         navigations.append({"page": nav["page"], "filtres": nav.get("filtres") or {}})
+    # Presentation guidee a lancer a la fin de la reponse (briefing de veille).
+    pres = charge.get("presentation")
+    if isinstance(pres, dict) and pres.get("programme") in PROGRAMMES:
+        annee = pres.get("annee")
+        navigations.append({"presentation": {
+            "programme": pres["programme"],
+            "annee": annee if isinstance(annee, int) and not isinstance(annee, bool) else None}})
 
 
 class LimiteCorps:
@@ -992,6 +1003,35 @@ def create_app(settings: Optional[Settings] = None) -> FastAPI:
                                           c.figures, session.session_id)
         log_event("jarvis.%s" % session.profile, "soutenance_etape",
                   session_id=session.session_id, etape=numero)
+        return contenu
+
+    @app.get("/jarvis/api/briefing")
+    async def briefing_plan(annee: Optional[int] = None,
+                            session: SessionInfo = Depends(current_session)):
+        """Plan du briefing vocal d'un bulletin de veille (defaut: le plus recent)."""
+        contenu = await asyncio.to_thread(briefing.plan, annee)
+        if contenu is None:
+            raise NotFoundError("Aucun bulletin de veille pour cette saison.")
+        return contenu
+
+    @app.post("/jarvis/api/briefing/{numero}")
+    async def briefing_etape(numero: int, request: Request, annee: Optional[int] = None,
+                             session: SessionInfo = Depends(current_session),
+                             c: AppContext = Depends(ctx)):
+        """Une etape du briefing: page, carte et narration composees par le
+        code depuis le bulletin. Aucun appel au modele."""
+        if not 1 <= numero <= len(briefing.ETAPES):
+            raise NotFoundError("Etape inconnue.")
+        ip = _client_ip(request, c.settings.trusted_proxy_hops, c.settings.proxies)
+        allowed, retry_after = c.soutenance_bucket.consume(ip)
+        if not allowed:
+            raise RateLimitedError(retry_after=retry_after)
+        contenu = await asyncio.to_thread(briefing.etape, numero, annee, c.figures,
+                                          session.session_id)
+        if contenu is None:
+            raise NotFoundError("Aucun bulletin de veille pour cette saison.")
+        log_event("jarvis.%s" % session.profile, "briefing_etape",
+                  session_id=session.session_id, etape=numero, annee=contenu["annee"])
         return contenu
 
     @app.get("/jarvis/api/figures/{figure_id}")

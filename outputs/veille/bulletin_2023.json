@@ -80,7 +80,8 @@
           1989,
           2022
         ],
-        "part_evenements_en_annee_extreme": 1.0
+        "part_evenements_en_annee_extreme": 1.0,
+        "etat_oceanique": "La Niña"
       },
       {
         "configuration": 0,
@@ -91,7 +92,8 @@
           2000,
           1998
         ],
-        "part_evenements_en_annee_extreme": 0.88
+        "part_evenements_en_annee_extreme": 0.88,
+        "etat_oceanique": "La Niña"
       },
       {
         "configuration": 8,
@@ -101,7 +103,8 @@
           2010,
           2011
         ],
-        "part_evenements_en_annee_extreme": 0.66
+        "part_evenements_en_annee_extreme": 0.66,
+        "etat_oceanique": "La Niña"
       }
     ],
     "toutes_configurations": [
@@ -178,6 +181,50 @@
         "extreme": true,
         "inondation_documentee": false
       }
+    ],
+    "trajectoire": [
+      {
+        "jusqu_a": "2022-11",
+        "n_mois": 1,
+        "probabilite_experimentale": 0.417,
+        "configuration": 5,
+        "correlation": 0.519
+      },
+      {
+        "jusqu_a": "2022-12",
+        "n_mois": 2,
+        "probabilite_experimentale": 0.417,
+        "configuration": 5,
+        "correlation": 0.465
+      },
+      {
+        "jusqu_a": "2023-01",
+        "n_mois": 3,
+        "probabilite_experimentale": 0.408,
+        "configuration": 5,
+        "correlation": 0.412
+      },
+      {
+        "jusqu_a": "2023-02",
+        "n_mois": 4,
+        "probabilite_experimentale": 0.404,
+        "configuration": 5,
+        "correlation": 0.362
+      },
+      {
+        "jusqu_a": "2023-03",
+        "n_mois": 5,
+        "probabilite_experimentale": 0.394,
+        "configuration": 5,
+        "correlation": 0.305
+      },
+      {
+        "jusqu_a": "2023-04",
+        "n_mois": 6,
+        "probabilite_experimentale": 0.386,
+        "configuration": 5,
+        "correlation": 0.261
+      }
     ]
   },
   "competence_projection": {
@@ -218,5 +265,5 @@
     "inondation_documentee": false,
     "seuil": 745.8
   },
-  "synthese": "Saison 2023 : risque d'année extrême normal (probabilité 31 %, contre 33 % en moyenne), d'après la prévision saisonnière Copernicus C3S. Confiance faible. Le modèle ECMWF prévoit pour juillet-septembre une pluie proche de la normale (anomalie -0,2 écart-type) ; 31 % des membres sont dans le tiers le plus humide. De novembre à avril, l'océan ressemble surtout à la configuration C5 du mémoire (corrélation 0,26), celle des années 1989, 2022. Années les plus ressemblantes : 2022, 2012, 2018, 2011, 2008 ; 3 sur 5 ont été des années extrêmes (dont 2022, 2012, inondations documentées). Indication expérimentale de la projection : 39 %. Cette méthode n'a pas de compétence démontrée en prévision réelle (AUC 0,53 en conditions réelles de prévision) ; elle ne fixe pas le niveau de risque. Contexte : 3 des 10 dernières saisons observées (2013-2022) ont été extrêmes, pour une fréquence de référence d'une sur trois. Vérification : la saison 2023 a été extrême (empreinte 773, rang 13)."
+  "synthese": "Saison 2023 : risque d'année extrême normal (probabilité 31 %, contre 33 % en moyenne), d'après la prévision saisonnière Copernicus C3S. Confiance faible. Le modèle ECMWF prévoit pour juillet-septembre une pluie proche de la normale (anomalie -0,2 écart-type) ; 31 % des membres sont dans le tiers le plus humide. De novembre à avril, l'océan ressemble surtout à la configuration C5 du mémoire (corrélation 0,26), une variante de l'état La Niña, celle des années 1989, 2022. Années les plus ressemblantes : 2022, 2012, 2018, 2011, 2008 ; 3 sur 5 ont été des années extrêmes (dont 2022, 2012, inondations documentées). Indication expérimentale de la projection : 39 %. Cette méthode n'a pas de compétence démontrée en prévision réelle (AUC 0,53 en conditions réelles de prévision) ; elle ne fixe pas le niveau de risque. Contexte : 3 des 10 dernières saisons observées (2013-2022) ont été extrêmes, pour une fréquence de référence d'une sur trois. Vérification : la saison 2023 a été extrême (empreinte 773, rang 13)."
 }

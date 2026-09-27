@@ -535,6 +535,18 @@
         bouton: "Appliquer"
       };
     }
+    if(a.type === "veille_diffusion"){
+      return {
+        tete: '⚠ Bulletin de veille à diffuser — <b>saison ' + echapper(d.annee) +
+              '</b> · niveau ' + echapper(d.niveau || ""),
+        corps: '<div class="action-raison">Message court :</div>' +
+          '<div class="diff">' + echapper(d.sms || "") + '</div>' +
+          '<div class="action-raison">Fichiers écrits dans ' + echapper(d.dossier || "") + ' : ' +
+          (d.fichiers || []).map(echapper).join(", ") +
+          '. Rien n’est envoyé : la diffusion reste un geste humain.</div>',
+        bouton: "Écrire les fichiers"
+      };
+    }
     if(a.type === "tache_executer"){
       return {
         tete: '⚠ Exécution — <b>' + echapper(d.cible || "") + '</b>',
@@ -632,6 +644,9 @@
             (r2.sauvegarde ? ". Sauvegarde : " + echapper(r2.sauvegarde) : " (fichier créé)") +
             ' <button class="lien" data-annuler="1">Annuler la modification</button>');
           b.querySelector("[data-annuler]").addEventListener("click", function(){ annuler(a.id, el); });
+        } else if(a.type === "veille_diffusion"){
+          el.classList.add("traitee");
+          bilan(el, "✔ Écrits — " + (r2.fichiers || []).map(echapper).join(", "));
         } else {
           el.classList.add("traitee");
           bilan(el, "✔ Appliquée — " + (r2.n_occurrences || 0) + " remplacement(s) dans " +

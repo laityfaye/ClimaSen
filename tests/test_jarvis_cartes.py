@@ -128,7 +128,9 @@ def test_rendu_png_et_csv(params, theme):
 def test_la_carte_s_affiche_des_son_arrivee_dans_le_hud():
     figure = SOURCE[SOURCE.index('} else if(name === "figure"){'):]
     figure = figure[:figure.index('} else if(name === "tool"){')]
-    assert "if(data.carte && Hud.actif()){ Ecran.afficher(data); }" in figure
+    assert "if(data.carte && Hud.actif()){" in figure
+    # Seule, ou a cote de la carte deja a l'ecran si la comparaison est demandee.
+    assert "if(data.comparer){ Ecran.comparerAvecCourante(data); } else { Ecran.afficher(data); }" in figure
 
 
 def test_ecran_se_ferme_avec_echap_et_a_la_sortie():

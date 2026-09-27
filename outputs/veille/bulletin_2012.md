@@ -8,7 +8,7 @@ Probabilité : **23 %** (référence : 33 %) · source : c3s · confiance : faib
 
 ## Synthèse
 
-Saison 2012 : risque d'année extrême normal (probabilité 23 %, contre 33 % en moyenne), d'après la prévision saisonnière Copernicus C3S. Confiance faible. Le modèle ECMWF prévoit pour juillet-septembre une pluie en dessous de la normale (anomalie -0,9 écart-type) ; 20 % des membres sont dans le tiers le plus humide. De novembre à avril, l'océan ressemble surtout à la configuration C3 du mémoire (corrélation 0,18), celle des années . Années les plus ressemblantes : 2000, 2009, 2008, 2011, 1999 ; 4 sur 5 ont été des années extrêmes (dont 2009, 1999, inondations documentées). Indication expérimentale de la projection : 38 %. Cette méthode n'a pas de compétence démontrée en prévision réelle (AUC 0,53 en conditions réelles de prévision) ; elle ne fixe pas le niveau de risque. Contexte : 6 des 10 dernières saisons observées (2002-2011) ont été extrêmes, pour une fréquence de référence d'une sur trois. Vérification : la saison 2012 a été extrême (empreinte 1002, rang 6), inondations documentées.
+Saison 2012 : risque d'année extrême normal (probabilité 23 %, contre 33 % en moyenne), d'après la prévision saisonnière Copernicus C3S. Confiance faible. Le modèle ECMWF prévoit pour juillet-septembre une pluie en dessous de la normale (anomalie -0,9 écart-type) ; 20 % des membres sont dans le tiers le plus humide. De novembre à avril, l'océan ressemble surtout à la configuration C3 du mémoire (corrélation 0,18), une variante de l'état Neutre, celle des années . Années les plus ressemblantes : 2000, 2009, 2008, 2011, 1999 ; 4 sur 5 ont été des années extrêmes (dont 2009, 1999, inondations documentées). Indication expérimentale de la projection : 38 %. Cette méthode n'a pas de compétence démontrée en prévision réelle (AUC 0,53 en conditions réelles de prévision) ; elle ne fixe pas le niveau de risque. Contexte : 6 des 10 dernières saisons observées (2002-2011) ont été extrêmes, pour une fréquence de référence d'une sur trois. Vérification : la saison 2012 a été extrême (empreinte 1002, rang 6), inondations documentées.
 
 ## Prévision saisonnière officielle (Copernicus C3S)
 
@@ -23,11 +23,11 @@ Saison 2012 : risque d'année extrême normal (probabilité 23 %, contre 33 % en
 
 ## État océanique novembre-avril (configurations du mémoire)
 
-| Configuration | Corrélation | Années principales | Part d'événements en année extrême |
-|---|---|---|---|
-| C3 | 0,18 |  | 100 % |
-| C0 | 0,13 | 1999, 2000, 1998 | 88 % |
-| C5 | 0,11 | 1989 | 100 % |
+| Configuration | État océanique | Corrélation | Années principales | Part d'événements en année extrême |
+|---|---|---|---|---|
+| C3 | Neutre | 0,18 |  | 100 % |
+| C0 | La Niña | 0,13 | 1999, 2000, 1998 | 88 % |
+| C5 | La Niña | 0,11 | 1989 | 100 % |
 
 **Années analogues** : 2000 (extrême), 2009 (extrême), 2008 (extrême), 2011 (normale), 1999 (extrême)
 

@@ -20,7 +20,7 @@ import dashboard_utils as du
 from dashboard_utils import INDIGO
 
 from veille import DOSSIER_SORTIE, INONDATIONS_CONNUES
-from veille import production
+from veille import artefacts, fiabilite, production
 
 ICONES = {"faible": "&#9660;", "normal": "&#9679;", "eleve": "&#9650;",
           "tres_eleve": "&#9650;&#9650;", "indetermine": "?"}
@@ -29,6 +29,20 @@ ICONES = {"faible": "&#9660;", "normal": "&#9679;", "eleve": "&#9650;",
 @st.cache_data(ttl=300)
 def _bulletins():
     return {a: production.lire_bulletin(a) for a in production.bulletins_disponibles()}
+
+
+@st.cache_data(ttl=300)
+def _etat(annee):
+    try:
+        z, lats, lons, mois = artefacts.charger_etat(annee)
+    except artefacts.ArtefactIndisponible:
+        return None
+    return z, lats, lons, [str(m) for m in mois]
+
+
+@st.cache_data(ttl=300)
+def _carnet():
+    return fiabilite.carnet()
 
 
 @st.cache_data(ttl=300)
@@ -158,11 +172,11 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dark_mode=False, **kw):
             top = (proj.get("configurations") or [])[:3]
             if top:
                 st.markdown(_tableau(
-                    ["Config.", "Corrélation", "Années principales", "Évén. en année extrême"],
-                    [["C%d" % c["configuration"], _fr(c["correlation"]),
+                    ["Config.", "État", "Corrélation", "Années principales", "Évén. en année extrême"],
+                    [["C%d" % c["configuration"], c.get("etat_oceanique") or "—", _fr(c["correlation"]),
                       ", ".join(str(a) for a in c.get("annees_principales", [])) or "—",
                       _pct(c.get("part_evenements_en_annee_extreme"))] for c in top],
-                    TEXT, MUTED, BORDER, CARD, alignes=(1, 3)), unsafe_allow_html=True)
+                    TEXT, MUTED, BORDER, CARD, alignes=(2, 4)), unsafe_allow_html=True)
         with d:
             st.markdown('<p class="pnl-ttl">Années analogues</p>'
                         '<p class="pnl-sub">Saisons passées dont l\'océan de novembre à avril '
@@ -185,6 +199,83 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dark_mode=False, **kw):
                     f"(p = {_fr(pr.get('p_permutation', 1), 3)})<br>"
                     f"<span style='color:{MUTED}'>{_e(cp.get('verdict', ''))}. "
                     f"AUC 0,5 = hasard.</span></p>", unsafe_allow_html=True)
+
+    # ── L'ocean de novembre a avril + trajectoire de la veille ────────────
+    etat = _etat(choix)
+    traj = (proj or {}).get("trajectoire") or []
+    if etat is not None:
+        z, lats, lons, mois = etat
+        st.markdown("<div style='height:10px'></div>", unsafe_allow_html=True)
+        st.markdown('<p class="pnl-ttl">L\'océan de novembre à avril</p>'
+                    '<p class="pnl-sub">Anomalie de température de surface (°C), moyenne de '
+                    '%s à %s · bleu : plus froid que la normale · rouge : plus chaud</p>'
+                    % (_e(mois[0]), _e(mois[-1])), unsafe_allow_html=True)
+        lim = float(max(0.5, min(3.0, abs(pd.Series(z.ravel()).dropna()).quantile(0.98))))
+        neutre = BORDER
+        fig = go.Figure(go.Heatmap(
+            z=z, x=lons, y=lats, zmin=-lim, zmax=lim, zmid=0,
+            colorscale=[[0, "#2563EB"], [0.5, neutre], [1, "#DC2626"]],
+            colorbar=dict(title=dict(text="°C", font=dict(color=MUTED, size=11)),
+                          tickfont=dict(color=MUTED, size=10), thickness=10, len=0.8),
+            hovertemplate="%{y:.0f}°, %{x:.0f}° : %{z:+.2f} °C<extra></extra>"))
+        plotly_base(fig, h=320)
+        fig.update_layout(margin=dict(l=10, r=10, t=10, b=24), separators=", ",
+                          xaxis=dict(showgrid=False, ticksuffix="°", range=[-180, 180],
+                                     tickvals=list(range(-150, 181, 50)), constrain="domain"),
+                          yaxis=dict(showgrid=False, ticksuffix="°", range=[-60, 60],
+                                     scaleanchor="x", constrain="domain"))
+        st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
+    if len(traj) >= 2:
+        st.markdown('<p class="pnl-ttl">Évolution pendant la veille</p>'
+                    '<p class="pnl-sub">Indication expérimentale de la projection sur l\'état '
+                    'cumulé depuis novembre · étiquette : configuration du mémoire la plus '
+                    'proche · les premiers mois sont plus incertains</p>', unsafe_allow_html=True)
+        mois_fr = ["janv.", "févr.", "mars", "avr.", "mai", "juin", "juil.", "août",
+                   "sept.", "oct.", "nov.", "déc."]
+        etiquettes = ["%s %s" % (mois_fr[int(t["jusqu_a"][5:]) - 1], t["jusqu_a"][:4])
+                      for t in traj]
+        fig = go.Figure(go.Scatter(
+            x=etiquettes, y=[t["probabilite_experimentale"] for t in traj],
+            mode="lines+markers+text", line=dict(color=INDIGO, width=2),
+            marker=dict(size=9, color=INDIGO),
+            text=["C%d" % t["configuration"] for t in traj], textposition="top center",
+            textfont=dict(color=TEXT, size=11),
+            hovertemplate="jusqu'à fin %{x} : %{y:.0%}<extra></extra>"))
+        fig.add_hline(y=1 / 3, line=dict(color=MUTED, width=1, dash="dot"),
+                      annotation_text="référence 33 %", annotation_position="bottom left",
+                      annotation_font_color=MUTED)
+        plotly_base(fig, h=240)
+        fig.update_layout(yaxis=dict(tickformat=".0%", range=[0, 1], showgrid=True,
+                                     gridcolor=BORDER), separators=", ",
+                          xaxis=dict(type="category"),
+                          margin=dict(l=10, r=14, t=16, b=24))
+        st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
+
+    # ── Carnet de fiabilite ────────────────────────────────────────────────
+    carnet = _carnet()
+    if carnet.get("disponible"):
+        r = carnet["niveau_de_risque"]
+        cpt = r["comptes"]
+        st.markdown("<div style='height:10px'></div>", unsafe_allow_html=True)
+        st.markdown('<p class="pnl-ttl">Carnet de fiabilité %d-%d</p>'
+                    '<p class="pnl-sub">Ce que les bulletins rétrospectifs auraient annoncé '
+                    '(chacun limité à ce qui était connu en avril) face à ce qui est arrivé · '
+                    'alerte = niveau élevé ou très élevé</p>' % tuple(carnet["periode"]),
+                    unsafe_allow_html=True)
+        cols = st.columns(4, gap="small")
+        tuiles = [("Détections", cpt["détection"], "saisons extrêmes annoncées"),
+                  ("Manquées", cpt["manquée"], "saisons extrêmes non annoncées"),
+                  ("Fausses alertes", cpt["fausse alerte"], "alerte, saison normale"),
+                  ("Taux de détection", _pct(r["taux_detection"]),
+                   "AUC %s (0,5 = hasard)" % _fr(r["auc_probabilite_c3s"] or 0))]
+        for col, (lbl, val, sub) in zip(cols, tuiles):
+            col.markdown(f'<div class="kpi"><div class="kpi-body"><p class="kpi-lbl">{_e(lbl)}</p>'
+                         f'<p class="kpi-val">{_e(val)}</p><span class="kpi-tag">{_e(sub)}</span>'
+                         f'</div></div>', unsafe_allow_html=True)
+        st.markdown(_tableau(
+            ["Inondation documentée", "Niveau annoncé", "Verdict"],
+            [[x["annee"], x["niveau"], x["verdict"]] for x in carnet["inondations_documentees"]],
+            TEXT, MUTED, BORDER, CARD), unsafe_allow_html=True)
 
     # ── Historique: quelles annees ont ete extremes ────────────────────────
     cl = _classement()

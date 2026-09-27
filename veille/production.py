@@ -12,6 +12,7 @@ import warnings
 
 from . import DOSSIER_SORTIE
 from . import annees as mod_annees
+from . import artefacts
 from . import bulletin as mod_bulletin
 from . import c3s as mod_c3s
 from . import projection as mod_proj
@@ -63,7 +64,7 @@ def calibration_c3s(annee_exclue=None, centre=mod_c3s.SYSTEME_DEFAUT, journal=pr
     return cal
 
 
-def _projection(ctx, annee, partiel, journal):
+def _projection(ctx, annee, partiel, journal, kit=False):
     """Projection nov-avr de l'annee: modele appris sur les saisons < annee."""
     manquants = ctx.cube.mois_etat_manquants(annee)
     disponibles = [m for m in ctx.cube.mois_etat(annee) if m not in manquants]
@@ -85,6 +86,15 @@ def _projection(ctx, annee, partiel, journal):
         for c in conf:
             c["annees_principales"] = [a for a in c.get("annees_principales", []) if a < annee]
         ana = mod_proj.annees_analogues(ctx, champ, annee, modele, nombre=5, avant=annee)
+        memoire = mod_proj.centroides_memoire(ctx)
+        traj = artefacts.trajectoire(ctx, modele, annee, memoire)
+        # Artefacts compacts pour le serveur (carte de l'ocean, scenarios).
+        mois_dispo = [m for m in ctx.cube.mois_etat(annee) if ctx.cube.a_le_mois(*m)]
+        champ_2d = sum(ctx.cube.mensuel(a, m) for a, m in mois_dispo) / len(mois_dispo)
+        artefacts.sauver_etat(annee, champ_2d, ctx.cube.lats, ctx.cube.lons, mois_dispo)
+        if kit:  # ~3,5 Mo: seulement pour les saisons ou l'on explore des scenarios
+            candidats = [a for a in ctx.annees_observees() if a < annee]
+            artefacts.sauver_kit(annee, ctx, modele, champ, memoire, candidats)
     journal("  projection %d: p=%.2f, configuration la plus proche C%d" % (
         annee, p, conf[0]["configuration"]))
     return {
@@ -94,11 +104,15 @@ def _projection(ctx, annee, partiel, journal):
         "toutes_configurations": [{"configuration": c["configuration"], "correlation": c["correlation"]}
                                   for c in conf],
         "analogues": ana,
+        "trajectoire": traj,
     }, disponibles, bool(manquants)
 
 
-def produire(annee, avec_c3s=True, partiel=False, journal=print, ecrire=True):
-    """Produit (et ecrit) le bulletin de l'annee. Ne leve pas pour une source absente."""
+def produire(annee, avec_c3s=True, partiel=False, journal=print, ecrire=True, kit=None):
+    """Produit (et ecrit) le bulletin de l'annee. Ne leve pas pour une source absente.
+
+    kit: deposer le kit de scenario (defaut: seulement pour une saison pas
+    encore observee, la seule ou un scenario sert a la veille)."""
     avertissements = []
     empreinte = mod_annees.empreinte()
     projection = etat_mois = None
@@ -107,7 +121,9 @@ def produire(annee, avec_c3s=True, partiel=False, journal=print, ecrire=True):
     try:
         ctx = mod_proj.Contexte(Cube.charger())
         comp = competence_projection(ctx, journal=journal)
-        projection, mois, etat_partiel = _projection(ctx, annee, partiel, journal)
+        if kit is None:
+            kit = annee > int(empreinte.index.max())
+        projection, mois, etat_partiel = _projection(ctx, annee, partiel, journal, kit)
         etat_mois = mod_bulletin.mois_lisibles(mois)
         if etat_partiel:
             avertissements.append(
@@ -117,6 +133,14 @@ def produire(annee, avec_c3s=True, partiel=False, journal=print, ecrire=True):
         avertissements.append("Projection océanique indisponible : %s" % exc)
 
     c3s = {"disponible": False, "raison": "non demandée"}
+    # C3S publie la prevision d'avril le 13 avril: avant, rien a demander.
+    publication = dt.date(annee, mod_c3s.MOIS_EMISSION, 13)
+    if avec_c3s and dt.date.today() < publication:
+        avec_c3s = False
+        c3s = {"disponible": False,
+               "raison": "prévision d'avril %d pas encore publiée (attendue le %s)"
+                         % (annee, publication.strftime("%d/%m/%Y"))}
+        avertissements.append("Prévision C3S : %s." % c3s["raison"])
     if avec_c3s:
         try:
             cal = calibration_c3s(annee_exclue=annee, journal=journal)
