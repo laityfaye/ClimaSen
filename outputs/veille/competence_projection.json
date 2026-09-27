@@ -1,0 +1,426 @@
+{
+  "loyo": {
+    "calculable": true,
+    "n": 40,
+    "annees_extremes": 14,
+    "auc": 0.718,
+    "p_permutation": 0.016,
+    "brier_skill_score": 0.106,
+    "annees": [
+      {
+        "annee": 1984,
+        "probabilite": 0.346,
+        "base": 0.325,
+        "observe": 0
+      },
+      {
+        "annee": 1985,
+        "probabilite": 0.418,
+        "base": 0.325,
+        "observe": 0
+      },
+      {
+        "annee": 1986,
+        "probabilite": 0.318,
+        "base": 0.325,
+        "observe": 0
+      },
+      {
+        "annee": 1987,
+        "probabilite": 0.205,
+        "base": 0.325,
+        "observe": 0
+      },
+      {
+        "annee": 1988,
+        "probabilite": 0.29,
+        "base": 0.325,
+        "observe": 0
+      },
+      {
+        "annee": 1989,
+        "probabilite": 0.445,
+        "base": 0.325,
+        "observe": 1
+      },
+      {
+        "annee": 1990,
+        "probabilite": 0.317,
+        "base": 0.325,
+        "observe": 0
+      },
+      {
+        "annee": 1991,
+        "probabilite": 0.304,
+        "base": 0.325,
+        "observe": 0
+      },
+      {
+        "annee": 1992,
+        "probabilite": 0.225,
+        "base": 0.325,
+        "observe": 0
+      },
+      {
+        "annee": 1993,
+        "probabilite": 0.228,
+        "base": 0.325,
+        "observe": 0
+      },
+      {
+        "annee": 1994,
+        "probabilite": 0.271,
+        "base": 0.325,
+        "observe": 0
+      },
+      {
+        "annee": 1995,
+        "probabilite": 0.264,
+        "base": 0.325,
+        "observe": 0
+      },
+      {
+        "annee": 1996,
+        "probabilite": 0.359,
+        "base": 0.325,
+        "observe": 0
+      },
+      {
+        "annee": 1997,
+        "probabilite": 0.333,
+        "base": 0.325,
+        "observe": 0
+      },
+      {
+        "annee": 1998,
+        "probabilite": 0.237,
+        "base": 0.325,
+        "observe": 0
+      },
+      {
+        "annee": 1999,
+        "probabilite": 0.451,
+        "base": 0.325,
+        "observe": 1
+      },
+      {
+        "annee": 2000,
+        "probabilite": 0.468,
+        "base": 0.325,
+        "observe": 1
+      },
+      {
+        "annee": 2001,
+        "probabilite": 0.41,
+        "base": 0.325,
+        "observe": 0
+      },
+      {
+        "annee": 2002,
+        "probabilite": 0.367,
+        "base": 0.325,
+        "observe": 1
+      },
+      {
+        "annee": 2003,
+        "probabilite": 0.223,
+        "base": 0.325,
+        "observe": 1
+      },
+      {
+        "annee": 2004,
+        "probabilite": 0.289,
+        "base": 0.325,
+        "observe": 0
+      },
+      {
+        "annee": 2005,
+        "probabilite": 0.274,
+        "base": 0.325,
+        "observe": 1
+      },
+      {
+        "annee": 2006,
+        "probabilite": 0.419,
+        "base": 0.325,
+        "observe": 0
+      },
+      {
+        "annee": 2007,
+        "probabilite": 0.286,
+        "base": 0.325,
+        "observe": 0
+      },
+      {
+        "annee": 2008,
+        "probabilite": 0.479,
+        "base": 0.325,
+        "observe": 1
+      },
+      {
+        "annee": 2009,
+        "probabilite": 0.414,
+        "base": 0.325,
+        "observe": 1
+      },
+      {
+        "annee": 2010,
+        "probabilite": 0.233,
+        "base": 0.325,
+        "observe": 1
+      },
+      {
+        "annee": 2011,
+        "probabilite": 0.469,
+        "base": 0.325,
+        "observe": 0
+      },
+      {
+        "annee": 2012,
+        "probabilite": 0.405,
+        "base": 0.325,
+        "observe": 1
+      },
+      {
+        "annee": 2013,
+        "probabilite": 0.372,
+        "base": 0.325,
+        "observe": 0
+      },
+      {
+        "annee": 2014,
+        "probabilite": 0.32,
+        "base": 0.325,
+        "observe": 0
+      },
+      {
+        "annee": 2015,
+        "probabilite": 0.271,
+        "base": 0.325,
+        "observe": 0
+      },
+      {
+        "annee": 2016,
+        "probabilite": 0.225,
+        "base": 0.325,
+        "observe": 0
+      },
+      {
+        "annee": 2017,
+        "probabilite": 0.316,
+        "base": 0.325,
+        "observe": 0
+      },
+      {
+        "annee": 2018,
+        "probabilite": 0.386,
+        "base": 0.325,
+        "observe": 0
+      },
+      {
+        "annee": 2019,
+        "probabilite": 0.268,
+        "base": 0.325,
+        "observe": 0
+      },
+      {
+        "annee": 2020,
+        "probabilite": 0.275,
+        "base": 0.325,
+        "observe": 1
+      },
+      {
+        "annee": 2021,
+        "probabilite": 0.427,
+        "base": 0.325,
+        "observe": 1
+      },
+      {
+        "annee": 2022,
+        "probabilite": 0.48,
+        "base": 0.325,
+        "observe": 1
+      },
+      {
+        "annee": 2023,
+        "probabilite": 0.386,
+        "base": 0.325,
+        "observe": 1
+      }
+    ]
+  },
+  "prevision_reelle": {
+    "calculable": true,
+    "n": 26,
+    "annees_extremes": 15,
+    "auc": 0.533,
+    "p_permutation": 0.395,
+    "brier_skill_score": 0.054,
+    "annees": [
+      {
+        "annee": 1998,
+        "probabilite": 0.36,
+        "base": 0.333,
+        "observe": 0
+      },
+      {
+        "annee": 1999,
+        "probabilite": 0.397,
+        "base": 0.312,
+        "observe": 1
+      },
+      {
+        "annee": 2000,
+        "probabilite": 0.491,
+        "base": 0.353,
+        "observe": 1
+      },
+      {
+        "annee": 2001,
+        "probabilite": 0.383,
+        "base": 0.333,
+        "observe": 0
+      },
+      {
+        "annee": 2002,
+        "probabilite": 0.343,
+        "base": 0.316,
+        "observe": 1
+      },
+      {
+        "annee": 2003,
+        "probabilite": 0.273,
+        "base": 0.35,
+        "observe": 1
+      },
+      {
+        "annee": 2004,
+        "probabilite": 0.329,
+        "base": 0.333,
+        "observe": 0
+      },
+      {
+        "annee": 2005,
+        "probabilite": 0.311,
+        "base": 0.318,
+        "observe": 1
+      },
+      {
+        "annee": 2006,
+        "probabilite": 0.388,
+        "base": 0.348,
+        "observe": 0
+      },
+      {
+        "annee": 2007,
+        "probabilite": 0.332,
+        "base": 0.333,
+        "observe": 0
+      },
+      {
+        "annee": 2008,
+        "probabilite": 0.385,
+        "base": 0.32,
+        "observe": 1
+      },
+      {
+        "annee": 2009,
+        "probabilite": 0.4,
+        "base": 0.346,
+        "observe": 1
+      },
+      {
+        "annee": 2010,
+        "probabilite": 0.291,
+        "base": 0.333,
+        "observe": 1
+      },
+      {
+        "annee": 2011,
+        "probabilite": 0.432,
+        "base": 0.321,
+        "observe": 0
+      },
+      {
+        "annee": 2012,
+        "probabilite": 0.382,
+        "base": 0.345,
+        "observe": 1
+      },
+      {
+        "annee": 2013,
+        "probabilite": 0.357,
+        "base": 0.333,
+        "observe": 0
+      },
+      {
+        "annee": 2014,
+        "probabilite": 0.33,
+        "base": 0.323,
+        "observe": 0
+      },
+      {
+        "annee": 2015,
+        "probabilite": 0.297,
+        "base": 0.344,
+        "observe": 1
+      },
+      {
+        "annee": 2016,
+        "probabilite": 0.276,
+        "base": 0.333,
+        "observe": 0
+      },
+      {
+        "annee": 2017,
+        "probabilite": 0.345,
+        "base": 0.324,
+        "observe": 1
+      },
+      {
+        "annee": 2018,
+        "probabilite": 0.436,
+        "base": 0.343,
+        "observe": 0
+      },
+      {
+        "annee": 2019,
+        "probabilite": 0.309,
+        "base": 0.333,
+        "observe": 0
+      },
+      {
+        "annee": 2020,
+        "probabilite": 0.323,
+        "base": 0.324,
+        "observe": 1
+      },
+      {
+        "annee": 2021,
+        "probabilite": 0.421,
+        "base": 0.342,
+        "observe": 1
+      },
+      {
+        "annee": 2022,
+        "probabilite": 0.469,
+        "base": 0.333,
+        "observe": 1
+      },
+      {
+        "annee": 2023,
+        "probabilite": 0.386,
+        "base": 0.325,
+        "observe": 1
+      }
+    ]
+  },
+  "verdict": "signal physique present (validation LOYO) mais pas de competence demontree en prevision reelle: indication experimentale seulement",
+  "utilisable_seule": false,
+  "methode": "V2: regression logistique (C=0.5) sur les correlations de motif entre l'etat SST nov-avr detrende et les 9 configurations K-Means reconstruites sur les annees d'apprentissage.",
+  "calcule_le": "2026-09-26",
+  "annees_etat": [
+    1984,
+    2023
+  ]
+}

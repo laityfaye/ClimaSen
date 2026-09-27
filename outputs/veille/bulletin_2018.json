@@ -1,0 +1,223 @@
+{
+  "version": 1,
+  "annee": 2018,
+  "emis_le": "2026-09-27",
+  "statut": "complet",
+  "niveau_risque": {
+    "code": "faible",
+    "libelle": "Faible",
+    "couleur": "#10B981",
+    "probabilite_annee_extreme": 0.199,
+    "source": "c3s",
+    "confiance": "faible",
+    "regle": "faible < 20 % <= normal < 40 % <= élevé < 60 % <= très élevé (fréquence climatologique d'une année extrême : 33 %)"
+  },
+  "definition": {
+    "seuil": 745.8,
+    "inondations_documentees": 8,
+    "classees_extremes": 8,
+    "rangs": {
+      "1999": 3,
+      "2003": 8,
+      "2005": 2,
+      "2009": 10,
+      "2010": 1,
+      "2012": 6,
+      "2020": 4,
+      "2022": 5
+    },
+    "annees_de_reference": 43,
+    "mesure": "empreinte saisonnière = somme de l'étendue (% du territoire) de tous les événements extrêmes CHIRPS (> 2 sigma) de la saison",
+    "annee_extreme": "empreinte dans le tiers supérieur des années"
+  },
+  "contexte": {
+    "base_climatologique": 0.333,
+    "frequence_recente": {
+      "annees": [
+        2008,
+        2017
+      ],
+      "extremes": 4,
+      "sur": 10
+    }
+  },
+  "c3s": {
+    "pluie_jas_mm_jour": 3.214,
+    "anomalie_standardisee": -1.25,
+    "part_membres_au_dessus_normale": 0.176,
+    "n_membres": 51,
+    "probabilite_annee_extreme": 0.199,
+    "centre": "ecmwf",
+    "systeme": "51",
+    "annee": 2018,
+    "emission": "04",
+    "disponible": true,
+    "competence": {
+      "n": 36,
+      "annees_extremes": 12,
+      "auc": 0.594,
+      "p_permutation": 0.192,
+      "brier_skill_score": 0.03,
+      "correlation_pluie_empreinte": 0.27
+    },
+    "calibration_annees": [
+      1981,
+      2016
+    ]
+  },
+  "projection": {
+    "probabilite_experimentale": 0.436,
+    "annees_apprentissage": [
+      1983,
+      2017
+    ],
+    "configurations": [
+      {
+        "configuration": 5,
+        "correlation": 0.226,
+        "n_evenements": 73,
+        "annees_principales": [
+          1989
+        ],
+        "part_evenements_en_annee_extreme": 1.0
+      },
+      {
+        "configuration": 2,
+        "correlation": 0.151,
+        "n_evenements": 357,
+        "annees_principales": [
+          2008,
+          1984,
+          1985,
+          1988
+        ],
+        "part_evenements_en_annee_extreme": 0.39
+      },
+      {
+        "configuration": 0,
+        "correlation": 0.122,
+        "n_evenements": 74,
+        "annees_principales": [
+          1999,
+          2000,
+          1998
+        ],
+        "part_evenements_en_annee_extreme": 0.88
+      }
+    ],
+    "toutes_configurations": [
+      {
+        "configuration": 5,
+        "correlation": 0.226
+      },
+      {
+        "configuration": 2,
+        "correlation": 0.151
+      },
+      {
+        "configuration": 0,
+        "correlation": 0.122
+      },
+      {
+        "configuration": 8,
+        "correlation": 0.074
+      },
+      {
+        "configuration": 6,
+        "correlation": 0.046
+      },
+      {
+        "configuration": 7,
+        "correlation": -0.0
+      },
+      {
+        "configuration": 1,
+        "correlation": -0.119
+      },
+      {
+        "configuration": 3,
+        "correlation": -0.196
+      },
+      {
+        "configuration": 4,
+        "correlation": -0.253
+      }
+    ],
+    "analogues": [
+      {
+        "annee": 2011,
+        "correlation": 0.432,
+        "empreinte": 553.1,
+        "extreme": false,
+        "inondation_documentee": false
+      },
+      {
+        "annee": 2014,
+        "correlation": 0.431,
+        "empreinte": 591.1,
+        "extreme": false,
+        "inondation_documentee": false
+      },
+      {
+        "annee": 2008,
+        "correlation": 0.418,
+        "empreinte": 749.3,
+        "extreme": true,
+        "inondation_documentee": false
+      },
+      {
+        "annee": 2015,
+        "correlation": 0.408,
+        "empreinte": 740.2,
+        "extreme": false,
+        "inondation_documentee": false
+      },
+      {
+        "annee": 2009,
+        "correlation": 0.392,
+        "empreinte": 820.2,
+        "extreme": true,
+        "inondation_documentee": true
+      }
+    ]
+  },
+  "competence_projection": {
+    "loyo": {
+      "calculable": true,
+      "n": 40,
+      "annees_extremes": 14,
+      "auc": 0.718,
+      "p_permutation": 0.016,
+      "brier_skill_score": 0.106
+    },
+    "prevision_reelle": {
+      "calculable": true,
+      "n": 26,
+      "annees_extremes": 15,
+      "auc": 0.533,
+      "p_permutation": 0.395,
+      "brier_skill_score": 0.054
+    },
+    "verdict": "signal physique présent (validation année exclue), mais pas de compétence démontrée en prévision réelle : indication expérimentale seulement",
+    "utilisable_seule": false,
+    "methode": "V2: regression logistique (C=0.5) sur les correlations de motif entre l'etat SST nov-avr detrende et les 9 configurations K-Means reconstruites sur les annees d'apprentissage.",
+    "calcule_le": "2026-09-26"
+  },
+  "avertissements": [],
+  "etat_oceanique_mois": [
+    "novembre 2017",
+    "décembre 2017",
+    "janvier 2018",
+    "février 2018",
+    "mars 2018",
+    "avril 2018"
+  ],
+  "verification": {
+    "empreinte_observee": 580.2,
+    "rang": 28,
+    "extreme_observe": false,
+    "inondation_documentee": false,
+    "seuil": 745.8
+  },
+  "synthese": "Saison 2018 : risque d'année extrême faible (probabilité 20 %, contre 33 % en moyenne), d'après la prévision saisonnière Copernicus C3S. Confiance faible. Le modèle ECMWF prévoit pour juillet-septembre une pluie en dessous de la normale (anomalie -1,2 écart-type) ; 18 % des membres sont dans le tiers le plus humide. De novembre à avril, l'océan ressemble surtout à la configuration C5 du mémoire (corrélation 0,23), celle des années 1989. Années les plus ressemblantes : 2011, 2014, 2008, 2015, 2009 ; 2 sur 5 ont été des années extrêmes (dont 2009, inondations documentées). Indication expérimentale de la projection : 44 %. Cette méthode n'a pas de compétence démontrée en prévision réelle (AUC 0,53 en conditions réelles de prévision) ; elle ne fixe pas le niveau de risque. Contexte : 4 des 10 dernières saisons observées (2008-2017) ont été extrêmes, pour une fréquence de référence d'une sur trois. Vérification : la saison 2018 a été non extrême (empreinte 580, rang 28)."
+}

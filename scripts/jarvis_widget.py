@@ -98,6 +98,9 @@ CLES_CONTEXTE = {
         "cluster": "cl_shared_cluster",
         "metrique_barres": "cl_metric_bar",
     },
+    "Veille": {
+        "saison": "veille_annee",
+    },
     "Pipeline": {
         "onglet": "pip_tab",
     },

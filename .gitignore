@@ -62,3 +62,8 @@ LINUX/
 
 # Sauvegardes des modifications de code faites par Jarvis (Phase 10)
 .jarvis/
+
+# Veille pre-saison: cube SST compact (~80 Mo, reconstruit par le script 19)
+# et previsions Copernicus telechargees (le cache se reconstitue seul).
+data/processed/sst_cube_1deg.npz
+data/raw/c3s/

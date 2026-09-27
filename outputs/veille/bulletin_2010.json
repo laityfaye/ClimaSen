@@ -1,0 +1,219 @@
+{
+  "version": 1,
+  "annee": 2010,
+  "emis_le": "2026-09-27",
+  "statut": "complet",
+  "niveau_risque": {
+    "code": "eleve",
+    "libelle": "Élevé",
+    "couleur": "#F59E0B",
+    "probabilite_annee_extreme": 0.423,
+    "source": "c3s",
+    "confiance": "faible",
+    "regle": "faible < 20 % <= normal < 40 % <= élevé < 60 % <= très élevé (fréquence climatologique d'une année extrême : 33 %)"
+  },
+  "definition": {
+    "seuil": 745.8,
+    "inondations_documentees": 8,
+    "classees_extremes": 8,
+    "rangs": {
+      "1999": 3,
+      "2003": 8,
+      "2005": 2,
+      "2009": 10,
+      "2010": 1,
+      "2012": 6,
+      "2020": 4,
+      "2022": 5
+    },
+    "annees_de_reference": 43,
+    "mesure": "empreinte saisonnière = somme de l'étendue (% du territoire) de tous les événements extrêmes CHIRPS (> 2 sigma) de la saison",
+    "annee_extreme": "empreinte dans le tiers supérieur des années"
+  },
+  "contexte": {
+    "base_climatologique": 0.333,
+    "frequence_recente": {
+      "annees": [
+        2000,
+        2009
+      ],
+      "extremes": 6,
+      "sur": 10
+    }
+  },
+  "c3s": {
+    "pluie_jas_mm_jour": 4.144,
+    "anomalie_standardisee": 0.87,
+    "part_membres_au_dessus_normale": 0.52,
+    "n_membres": 25,
+    "probabilite_annee_extreme": 0.423,
+    "centre": "ecmwf",
+    "systeme": "51",
+    "annee": 2010,
+    "emission": "04",
+    "disponible": true,
+    "competence": {
+      "n": 35,
+      "annees_extremes": 12,
+      "auc": 0.547,
+      "p_permutation": 0.3345,
+      "brier_skill_score": 0.001,
+      "correlation_pluie_empreinte": 0.234
+    },
+    "calibration_annees": [
+      1981,
+      2016
+    ]
+  },
+  "projection": {
+    "probabilite_experimentale": 0.291,
+    "annees_apprentissage": [
+      1983,
+      2009
+    ],
+    "configurations": [
+      {
+        "configuration": 1,
+        "correlation": 0.272,
+        "n_evenements": 53,
+        "annees_principales": [
+          1992,
+          1997
+        ],
+        "part_evenements_en_annee_extreme": 0.0
+      },
+      {
+        "configuration": 4,
+        "correlation": 0.231,
+        "n_evenements": 104,
+        "annees_principales": [
+          1987,
+          1997,
+          1983
+        ],
+        "part_evenements_en_annee_extreme": 0.33
+      },
+      {
+        "configuration": 3,
+        "correlation": 0.088,
+        "n_evenements": 47,
+        "annees_principales": [],
+        "part_evenements_en_annee_extreme": 1.0
+      }
+    ],
+    "toutes_configurations": [
+      {
+        "configuration": 1,
+        "correlation": 0.272
+      },
+      {
+        "configuration": 4,
+        "correlation": 0.231
+      },
+      {
+        "configuration": 3,
+        "correlation": 0.088
+      },
+      {
+        "configuration": 7,
+        "correlation": 0.077
+      },
+      {
+        "configuration": 8,
+        "correlation": -0.004
+      },
+      {
+        "configuration": 6,
+        "correlation": -0.127
+      },
+      {
+        "configuration": 2,
+        "correlation": -0.185
+      },
+      {
+        "configuration": 5,
+        "correlation": -0.258
+      },
+      {
+        "configuration": 0,
+        "correlation": -0.266
+      }
+    ],
+    "analogues": [
+      {
+        "annee": 2003,
+        "correlation": 0.567,
+        "empreinte": 864.4,
+        "extreme": true,
+        "inondation_documentee": true
+      },
+      {
+        "annee": 2007,
+        "correlation": 0.469,
+        "empreinte": 490.2,
+        "extreme": false,
+        "inondation_documentee": false
+      },
+      {
+        "annee": 1988,
+        "correlation": 0.431,
+        "empreinte": 636.9,
+        "extreme": false,
+        "inondation_documentee": false
+      },
+      {
+        "annee": 1998,
+        "correlation": 0.425,
+        "empreinte": 555.6,
+        "extreme": false,
+        "inondation_documentee": false
+      },
+      {
+        "annee": 1987,
+        "correlation": 0.389,
+        "empreinte": 704.7,
+        "extreme": false,
+        "inondation_documentee": false
+      }
+    ]
+  },
+  "competence_projection": {
+    "loyo": {
+      "calculable": true,
+      "n": 40,
+      "annees_extremes": 14,
+      "auc": 0.718,
+      "p_permutation": 0.016,
+      "brier_skill_score": 0.106
+    },
+    "prevision_reelle": {
+      "calculable": true,
+      "n": 26,
+      "annees_extremes": 15,
+      "auc": 0.533,
+      "p_permutation": 0.395,
+      "brier_skill_score": 0.054
+    },
+    "verdict": "signal physique présent (validation année exclue), mais pas de compétence démontrée en prévision réelle : indication expérimentale seulement",
+    "utilisable_seule": false,
+    "methode": "V2: regression logistique (C=0.5) sur les correlations de motif entre l'etat SST nov-avr detrende et les 9 configurations K-Means reconstruites sur les annees d'apprentissage.",
+    "calcule_le": "2026-09-26"
+  },
+  "avertissements": [],
+  "etat_oceanique_mois": [
+    "novembre 2009",
+    "décembre 2009",
+    "janvier 2010",
+    "février 2010",
+    "mars 2010",
+    "avril 2010"
+  ],
+  "verification": {
+    "empreinte_observee": 1152.4,
+    "rang": 1,
+    "extreme_observe": true,
+    "inondation_documentee": true,
+    "seuil": 745.8
+  },
+  "synthese": "Saison 2010 : risque d'année extrême élevé (probabilité 42 %, contre 33 % en moyenne), d'après la prévision saisonnière Copernicus C3S. Confiance faible. Le modèle ECMWF prévoit pour juillet-septembre une pluie au-dessus de la normale (anomalie +0,9 écart-type) ; 52 % des membres sont dans le tiers le plus humide. De novembre à avril, l'océan ressemble surtout à la configuration C1 du mémoire (corrélation 0,27), celle des années 1992, 1997. Années les plus ressemblantes : 2003, 2007, 1988, 1998, 1987 ; 1 sur 5 ont été des années extrêmes (dont 2003, inondations documentées). Indication expérimentale de la projection : 29 %. Cette méthode n'a pas de compétence démontrée en prévision réelle (AUC 0,53 en conditions réelles de prévision) ; elle ne fixe pas le niveau de risque. Contexte : 6 des 10 dernières saisons observées (2000-2009) ont été extrêmes, pour une fréquence de référence d'une sur trois. Vérification : la saison 2010 a été extrême (empreinte 1152, rang 1), inondations documentées."
+}

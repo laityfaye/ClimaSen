@@ -23,7 +23,8 @@ import re
 
 from .tools.common import INDICES, METRIQUES, PHASES, PHASES_TOUTES
 
-PAGES = ("Evenements", "Indices SST", "Teleconnexions", "Clustering", "Pipeline")
+PAGES = ("Evenements", "Indices SST", "Teleconnexions", "Clustering", "Pipeline",
+         "Veille")
 
 MAX_CONTEXT_CHARS = 2000
 
@@ -111,6 +112,9 @@ CHAMPS = {
     "Pipeline": {
         "onglet": (_enum(("Donnees CHIRPS", "Pipeline d'analyse", "Donnees SST")),
                    "onglet ouvert"),
+    },
+    "Veille": {
+        "saison": (_entier(1981, 2100), "saison du bulletin de veille pre-saison affiche"),
     },
 }
 

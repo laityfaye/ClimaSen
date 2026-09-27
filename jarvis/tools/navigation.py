@@ -33,6 +33,7 @@ FILTRES = {
                        "indices_series"),
     "Clustering": ("phase", "cluster", "metrique_barres"),
     "Pipeline": ("onglet",),
+    "Veille": ("saison",),
 }
 PAGES = tuple(FILTRES)
 

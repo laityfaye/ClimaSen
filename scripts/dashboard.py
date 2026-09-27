@@ -1775,6 +1775,7 @@ with st.sidebar:
         ("Indices SST",    "Indices SST",    "🌊"),
         ("Teleconnexions", "Teleconnexions", "🔗"),
         ("Clustering",     "Clustering",     "◉"),
+        ("Veille",         "Veille pré-saison", "⚠"),
         ("Pipeline",       "Pipeline",       "⚙"),
     ]
     for _pg_key, _pg_label, _icon in _NAV:
@@ -1859,6 +1860,7 @@ import pages.teleconnexions as _pg_teleconnexions
 import pages.indices_sst    as _pg_indices_sst
 import pages.clustering     as _pg_clustering
 import pages.pipeline       as _pg_pipeline
+import pages.veille_presaison as _pg_veille
 
 _page_kw = dict(
     BG=BG, CARD=CARD, TEXT=TEXT, MUTED=MUTED, BORDER=BORDER,
@@ -1876,6 +1878,8 @@ elif page == "Clustering":
     _pg_clustering.run(**_page_kw)
 elif page == "Pipeline":
     _pg_pipeline.run(**_page_kw)
+elif page == "Veille":
+    _pg_veille.run(**_page_kw)
 
 # =============================================================================
 # JARVIS - bulle d'assistant (Phase 1)
