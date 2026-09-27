@@ -69,9 +69,13 @@ def telecharger(centre, systeme, emission, client):
     if f.is_file() and f.stat().st_size > 0:
         return f
     DOSSIER.mkdir(parents=True, exist_ok=True)
-    r = c3s.requete(ANNEES[0], centre, emission)
-    r.update(system=systeme, year=[str(a) for a in ANNEES],
-             leadtime_month=[str(e) for e in TELECHARGE[emission]])
+    # Requete construite ici: c3s.requete() ne connait que les systemes de
+    # production (ECMWF), elle levait KeyError pour les autres centres.
+    r = {"originating_centre": centre, "system": systeme,
+         "variable": ["total_precipitation"], "product_type": ["monthly_mean"],
+         "year": [str(a) for a in ANNEES], "month": ["%02d" % emission],
+         "leadtime_month": [str(e) for e in TELECHARGE[emission]],
+         "data_format": "netcdf", "area": c3s.BOITE}
     print("  %s %s emission %02d: telechargement..." % (centre, systeme, emission), flush=True)
     tmp = f.with_suffix(".part")
     client.retrieve(c3s.JEU, r, str(tmp))
