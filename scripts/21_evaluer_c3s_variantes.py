@@ -92,7 +92,10 @@ def moyennes_annuelles(f, echeances):
         poids = np.cos(np.deg2rad(da["latitude"]))
         boite = da.weighted(poids).mean(dim=["latitude", "longitude"])
         par_an = boite.mean(dim=["forecastMonth", "number"], skipna=True)
-        annees = [int(str(t)[:4]) for t in ds["forecast_reference_time"].values]
+        # Les ensembles "decales" (ex. ukmo) sont indexes par indexing_time.
+        temps = "forecast_reference_time" if "forecast_reference_time" in ds.variables \
+            else "indexing_time"
+        annees = [int(str(t)[:4]) for t in ds[temps].values]
         return dict(zip(annees, (par_an.values.ravel() * 86400000.0).tolist()))
     finally:
         ds.close()
