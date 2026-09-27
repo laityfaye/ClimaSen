@@ -243,7 +243,9 @@ def test_briefing_complet_avec_projection(bulletins_synthetiques, monkeypatch):
         e = briefing.etape(n, 2031, store, "s1")
         assert e["numero"] == n and e["narration"] and e["page"] == "Veille"
         assert e["filtres"] == {"saison": 2031}
-    assert "élevé" in briefing.etape(1, 2031, store, "s1")["narration"]
+    # Competence non demontree (confiance faible): probabilite indicative, aucun niveau.
+    narr = briefing.etape(1, 2031, store, "s1")["narration"]
+    assert "indicative" in narr and "élevé" not in narr
     assert "configuration 4" in briefing.etape(3, 2031, store, "s1")["narration"]
     assert "la 2, puis la 4" in briefing.etape(4, 2031, store, "s1")["narration"]
     assert "2010" in briefing.etape(5, 2031, store, "s1")["narration"]
@@ -340,17 +342,19 @@ def test_etapes_de_veille_dans_le_pipeline_mais_pas_le_pipeline_complet():
 def test_formats_diffusables(tmp_path, bulletins_synthetiques):
     b = bulletins_synthetiques[2031]
     sms = diffusion.sms(b)
-    assert len(sms) <= diffusion.MAX_SMS and "ÉLEVÉ" in sms and "ANACIM" in sms
+    assert len(sms) <= diffusion.MAX_SMS and "indicative" in sms and "ANACIM" in sms
+    assert "ÉLEVÉ" not in sms.upper()
     assert "50 %" in sms
     res = diffusion.resume(b)
-    assert diffusion.CONSEILS["eleve"] in res and "Fiabilité" in res
+    assert diffusion.CONSEILS["indicatif"] in res and "Fiabilité" in res
+    assert diffusion.CONSEILS["eleve"] not in res
     diffusion.docx(b, tmp_path / "b.docx")
     assert (tmp_path / "b.docx").stat().st_size > 10000
 
 
 def test_sms_jamais_trop_long(bulletins_synthetiques):
     b = dict(bulletins_synthetiques[2031])
-    b["niveau_risque"] = dict(b["niveau_risque"], libelle="X" * 400)
+    b["niveau_risque"] = dict(b["niveau_risque"], libelle="X" * 400, confiance="moyenne")
     assert len(diffusion.sms(b)) == diffusion.MAX_SMS
 
 

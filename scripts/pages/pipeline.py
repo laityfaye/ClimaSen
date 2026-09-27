@@ -10,6 +10,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 import streamlit as st
 import dashboard_utils as du
+import admin_gate
 from dashboard_utils import INDIGO, BLUE, EMERALD, AMBER, ROSE, BASE
 
 SCRIPTS_DIR = BASE / "scripts"
@@ -22,9 +23,27 @@ _FMT_MIME = {
     "zip":  "application/zip",
 }
 _FMT_ICON = {"csv": "CSV", "png": "PNG", "txt": "TXT", "json": "JSON"}
+
+
+def _fmt_export(e):
+    """Format d'un export : explicite, sinon deduit de l'extension (un PNG sans
+    "fmt" s'affichait "CSV" sous Figures - revue 27/09/2026, point 13)."""
+    if e.get("fmt"):
+        return e["fmt"]
+    ext = Path(e["path"]).suffix.lower().lstrip(".")
+    return ext if ext in _FMT_MIME else "csv"
+
+
+def _taille(octets):
+    """Taille lisible : 940 o, 12 Ko, 3,4 Mo (et non '0.0 MB')."""
+    if octets < 1024:
+        return "%d o" % octets
+    if octets < 1024 ** 2:
+        return "%d Ko" % round(octets / 1024)
+    return ("%.1f Mo" % (octets / 1024 ** 2)).replace(".", ",")
 _GRP_LABEL = {
-    "input":  ("Donnees d'entree K-Means", "#8B5CF6"),
-    "data":   ("Donnees de sortie",        "#0EA5E9"),
+    "input":  ("Données d'entree K-Means", "#8B5CF6"),
+    "data":   ("Données de sortie",        "#0EA5E9"),
     "figure": ("Figures",                  "#10B981"),
     "report": ("Rapports",                 "#F59E0B"),
 }
@@ -32,17 +51,17 @@ _GRP_LABEL = {
 PIPELINE_STEPS = [
     {
         "id": "01", "num": 1,
-        "label": "Detection des evenements extremes",
+        "label": "Détection des événements extrêmes",
         "script": "01_detection_extremes.py",
-        "desc": "Detection CHIRPS >2 sigma avec clustering spatio-temporel",
+        "desc": "Détection CHIRPS >2 sigma avec clustering spatio-temporel",
         "category": "Detection", "color": BLUE,
         "outputs": ["data/processed/extreme_events_phases_senegal.csv"],
         "exports": {
             "data": [
                 {"path": "data/processed/extreme_events_phases_senegal.csv",
-                 "label": "Evenements extremes + phases"},
+                 "label": "Événements extrêmes + phases"},
                 {"path": "data/processed/spatial_metrics_detailed.csv",
-                 "label": "Metriques spatiales detaillees"},
+                 "label": "Métriques spatiales detaillees"},
             ],
             "report": [
                 {"path": "data/processed/phase_statistics_summary.json",
@@ -70,19 +89,19 @@ PIPELINE_STEPS = [
         "id": "03", "num": 3,
         "label": "Filtrage et export QGIS",
         "script": "03_filter_events_for_qgis.py",
-        "desc": "Export des evenements filtres pour visualisation cartographique",
+        "desc": "Export des événements filtres pour visualisation cartographique",
         "category": "Export", "color": EMERALD,
         "outputs": ["outputs/exports/extreme_events_comprehensive.csv"],
         "exports": {
             "data": [
                 {"path": "outputs/exports/extreme_events_comprehensive.csv",
-                 "label": "Evenements complets (tous champs)"},
+                 "label": "Événements complets (tous champs)"},
                 {"path": "outputs/specific_events_qgis/events_summary_statistics.csv",
                  "label": "Statistiques de synthese"},
                 {"path": "outputs/specific_events_qgis/events_centroids.csv",
-                 "label": "Centroides des evenements"},
+                 "label": "Centroides des événements"},
                 {"path": "outputs/specific_events_qgis/all_specific_events_pixels.csv",
-                 "label": "Pixels — evenements specifiques"},
+                 "label": "Pixels — événements specifiques"},
             ],
             "report": [
                 {"path": "outputs/specific_events_qgis/metadata.json",
@@ -94,15 +113,15 @@ PIPELINE_STEPS = [
         "id": "03b", "num": 4,
         "label": "Separation par phase de saison",
         "script": "03b_split_events_by_phase.py",
-        "desc": "Split Debut (Mai-Juin) / Pleine (Jul-Aou) / Fin (Sep-Oct)",
+        "desc": "Split Début (Mai-Juin) / Pleine (Jul-Août) / Fin (Sep-Oct)",
         "category": "Export", "color": EMERALD,
         "outputs": ["outputs/exports/extreme_events_phase_1_debut.csv"],
         "exports": {
             "data": [
                 {"path": "outputs/exports/extreme_events_phase_1_debut.csv",
-                 "label": "Phase 1 — Debut (Mai-Juin)"},
+                 "label": "Phase 1 — Début (Mai-Juin)"},
                 {"path": "outputs/exports/extreme_events_phase_2_pleine.csv",
-                 "label": "Phase 2 — Pleine (Jul-Aou)"},
+                 "label": "Phase 2 — Pleine (Jul-Août)"},
                 {"path": "outputs/exports/extreme_events_phase_3_fin.csv",
                  "label": "Phase 3 — Fin (Sep-Oct)"},
             ],
@@ -135,9 +154,9 @@ PIPELINE_STEPS = [
     },
     {
         "id": "04", "num": 6,
-        "label": "Teleconnexions (script principal)",
+        "label": "Téléconnexions (script principal)",
         "script": "04_teleconnections_analysis.py",
-        "desc": "Correlations mensuelles SST x precipitations — detrend, AR1 (p_neff)",
+        "desc": "Corrélations mensuelles SST x précipitations — detrend, AR1 (p_neff)",
         "category": "Teleconnexions", "color": ROSE,
         "outputs": [
             "outputs/teleconnections/correlations_Phase_1_debut.csv",
@@ -147,17 +166,17 @@ PIPELINE_STEPS = [
         "exports": {
             "data": [
                 {"path": "outputs/teleconnections/correlations_Phase_1_debut.csv",
-                 "label": "Correlations — Phase 1 Debut"},
+                 "label": "Corrélations — Phase 1 Début"},
                 {"path": "outputs/teleconnections/correlations_Phase_2_pleine.csv",
-                 "label": "Correlations — Phase 2 Pleine"},
+                 "label": "Corrélations — Phase 2 Pleine"},
                 {"path": "outputs/teleconnections/correlations_Phase_3_fin.csv",
-                 "label": "Correlations — Phase 3 Fin"},
+                 "label": "Corrélations — Phase 3 Fin"},
                 {"path": "outputs/teleconnections/correlations_Toutes phases.csv",
-                 "label": "Correlations — Toutes phases"},
+                 "label": "Corrélations — Toutes phases"},
             ],
             "figure": [
                 {"path": "outputs/teleconnections/visualizations/synthese_correlations.png",
-                 "label": "Synthese des correlations"},
+                 "label": "Synthese des corrélations"},
                 {"path": "outputs/teleconnections/visualizations",
                  "label": "Toutes les figures (ZIP)",
                  "fmt": "zip_glob", "glob": "*.png",
@@ -165,7 +184,7 @@ PIPELINE_STEPS = [
             ],
             "report": [
                 {"path": "outputs/teleconnections/rapport_teleconnections.txt",
-                 "label": "Rapport teleconnexions", "fmt": "txt"},
+                 "label": "Rapport téléconnexions", "fmt": "txt"},
             ],
         },
     },
@@ -199,7 +218,7 @@ PIPELINE_STEPS = [
                 {"path": "outputs/clustering/Phase_1_debut/Phase_1_debut_cluster_characteristics.csv",
                  "label": "P1 · Caracteristiques"},
                 {"path": "outputs/clustering/Phase_1_debut/Phase_1_debut_events_with_clusters.csv",
-                 "label": "P1 · Evenements"},
+                 "label": "P1 · Événements"},
                 {"path": "outputs/clustering/Phase_1_debut/Phase_1_debut_tableau_k_3_methodes.csv",
                  "label": "P1 · Tableau k (3 meth.)"},
                 {"path": "outputs/clustering/Phase_1_debut/Phase_1_debut_tableau_k_4_methodes.csv",
@@ -207,7 +226,7 @@ PIPELINE_STEPS = [
                 {"path": "outputs/clustering/Phase_2_pleine/Phase_2_pleine_cluster_characteristics.csv",
                  "label": "P2 · Caracteristiques"},
                 {"path": "outputs/clustering/Phase_2_pleine/Phase_2_pleine_events_with_clusters.csv",
-                 "label": "P2 · Evenements"},
+                 "label": "P2 · Événements"},
                 {"path": "outputs/clustering/Phase_2_pleine/Phase_2_pleine_tableau_k_3_methodes.csv",
                  "label": "P2 · Tableau k (3 meth.)"},
                 {"path": "outputs/clustering/Phase_2_pleine/Phase_2_pleine_tableau_k_4_methodes.csv",
@@ -215,7 +234,7 @@ PIPELINE_STEPS = [
                 {"path": "outputs/clustering/Phase_3_fin/Phase_3_fin_cluster_characteristics.csv",
                  "label": "P3 · Caracteristiques"},
                 {"path": "outputs/clustering/Phase_3_fin/Phase_3_fin_events_with_clusters.csv",
-                 "label": "P3 · Evenements"},
+                 "label": "P3 · Événements"},
                 {"path": "outputs/clustering/Phase_3_fin/Phase_3_fin_tableau_k_3_methodes.csv",
                  "label": "P3 · Tableau k (3 meth.)"},
                 {"path": "outputs/clustering/Phase_3_fin/Phase_3_fin_tableau_k_4_methodes.csv",
@@ -223,7 +242,7 @@ PIPELINE_STEPS = [
                 {"path": "outputs/clustering/All_phases/All_phases_cluster_characteristics.csv",
                  "label": "All · Caracteristiques"},
                 {"path": "outputs/clustering/All_phases/All_phases_events_with_clusters.csv",
-                 "label": "All · Evenements"},
+                 "label": "All · Événements"},
                 {"path": "outputs/clustering/All_phases/All_phases_tableau_k_3_methodes.csv",
                  "label": "All · Tableau k (3 meth.)"},
             ],
@@ -245,7 +264,7 @@ PIPELINE_STEPS = [
         "exports": {
             "figure": [
                 {"path": "outputs/visualizations/clustering/sst_patterns/Phase_1_debut_sst_patterns_clusters.png",
-                 "label": "Carte SST — Phase 1 Debut"},
+                 "label": "Carte SST — Phase 1 Début"},
                 {"path": "outputs/visualizations/clustering/sst_patterns/Phase_2_pleine_sst_patterns_clusters.png",
                  "label": "Carte SST — Phase 2 Pleine"},
                 {"path": "outputs/visualizations/clustering/sst_patterns/Phase_3_fin_sst_patterns_clusters.png",
@@ -264,7 +283,7 @@ PIPELINE_STEPS = [
         "id": "19", "num": 9, "veille": True,
         "label": "Veille — cube SST compact",
         "script": "19_build_sst_cube.py",
-        "desc": "Extrait des 42 Go OISST les moyennes mensuelles et les jours d'evenements (1 deg)",
+        "desc": "Extrait des 42 Go OISST les moyennes mensuelles et les jours d'événements (1 deg)",
         "category": "Veille pre-saison", "color": ROSE,
         "outputs": ["data/processed/sst_cube_1deg.npz"],
         "exports": {},
@@ -395,6 +414,20 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
         border-bottom:2px solid currentColor;margin:20px 0 10px 0;
         display:inline-block;
     }}
+    /* Telechargements : boutons secondaires, libelle complet sur 2 lignes */
+    [data-testid="stExpander"] [data-testid="stDownloadButton"] button {{
+        background:{CARD} !important; color:{TEXT} !important;
+        border:1px solid {BORDER} !important; box-shadow:none !important;
+        white-space:normal !important; height:auto !important;
+        min-height:38px !important; text-align:left !important;
+        justify-content:flex-start !important; font-weight:500 !important;
+    }}
+    [data-testid="stExpander"] [data-testid="stDownloadButton"] button p {{
+        white-space:normal !important; font-size:0.76rem !important;
+    }}
+    [data-testid="stExpander"] [data-testid="stDownloadButton"] button:hover {{
+        border-color:{INDIGO} !important; color:{INDIGO} !important;
+    }}
     .sz-ok   {{color:#059669;background:rgba(16,185,129,0.15);padding:4px 10px;border-radius:20px;font-size:0.71rem;font-weight:700;display:inline-block;}}
     .sz-warn {{color:#D97706;background:rgba(245,158,11,0.15);padding:4px 10px;border-radius:20px;font-size:0.71rem;font-weight:700;display:inline-block;}}
     .sz-big  {{color:#DC2626;background:rgba(239,68,68,0.15);padding:4px 10px;border-radius:20px;font-size:0.71rem;font-weight:700;display:inline-block;}}
@@ -408,9 +441,9 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
         <p class="pg-bc">Dashboard &nbsp;/&nbsp; <b>Pipeline</b></p>
         <h1 class="pg-ttl">Pipeline d\'Analyse</h1>
         <p class="pg-sub">
-          Telechargement CHIRPS &nbsp;&middot;&nbsp;
-          Detection &nbsp;&middot;&nbsp;
-          Teleconnexions &nbsp;&middot;&nbsp;
+          Téléchargement CHIRPS &nbsp;&middot;&nbsp;
+          Détection &nbsp;&middot;&nbsp;
+          Téléconnexions &nbsp;&middot;&nbsp;
           Clustering &nbsp;&middot;&nbsp;
           Export
         </p>
@@ -423,11 +456,11 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
         st.session_state.pip_tab = "Pipeline d'analyse"
 
     TAB_ICONS = {
-        "Donnees CHIRPS":    "&#9729;",
+        "Données CHIRPS":    "&#9729;",
         "Pipeline d'analyse":"&#9654;",
-        "Donnees SST":       "&#127754;",
+        "Données SST":       "&#127754;",
     }
-    TAB_NAMES = ["Donnees CHIRPS", "Pipeline d'analyse", "Donnees SST"]
+    TAB_NAMES = ["Données CHIRPS", "Pipeline d'analyse", "Données SST"]
     _cur_tab  = st.session_state.pip_tab
 
     st.markdown(f"""
@@ -483,9 +516,13 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
         unsafe_allow_html=True,
     )
 
-    _show_chirps   = (_cur_tab == "Donnees CHIRPS")
+    # Actions serveur (telechargements, execution, suppression) : admin seul.
+    admin_gate.formulaire_connexion(MUTED, cle="pip_admin")
+    _admin = admin_gate.est_admin()
+
+    _show_chirps   = (_cur_tab == "Données CHIRPS")
     _show_pipeline = (_cur_tab == "Pipeline d'analyse")
-    _show_sst      = (_cur_tab == "Donnees SST")
+    _show_sst      = (_cur_tab == "Données SST")
 
     # =========================================================================
     # ONGLET 1 — CHIRPS
@@ -509,7 +546,7 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
                             ("bb_lon_min", _p0["lon_min"]), ("bb_lon_max", _p0["lon_max"])]:
                 st.session_state[_k] = float(_v)
 
-        st.markdown("<p class='pip-section-title'>Zone geographique</p>", unsafe_allow_html=True)
+        st.markdown("<p class='pip-section-title'>Zone géographique</p>", unsafe_allow_html=True)
 
         preset_cols = st.columns(len(PRESETS))
         for i, (pname, pvals) in enumerate(PRESETS.items()):
@@ -568,12 +605,12 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
         )
 
         st.markdown("<br>", unsafe_allow_html=True)
-        st.markdown("<p class='pip-section-title'>Periode et fichier de sortie</p>",
+        st.markdown("<p class='pip-section-title'>Période et fichier de sortie</p>",
                     unsafe_allow_html=True)
 
         pr_c1, pr_c2, pr_c3 = st.columns([3, 3, 4])
         with pr_c1:
-            yr_range = st.slider("Periode", min_value=1981, max_value=2025,
+            yr_range = st.slider("Période", min_value=1981, max_value=2025,
                                   value=(1981, 2023), key="dl_yr_range")
             dl_year_start, dl_year_end = yr_range
             n_years_dl  = max(0, dl_year_end - dl_year_start + 1)
@@ -663,16 +700,16 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
             if ch_state == "running":
                 st_html = f'<span style="color:#F59E0B;font-weight:700;">En cours</span>'
             elif ch_state == "done":
-                st_html = f'<span style="color:#22C55E;font-weight:700;">Termine</span>'
+                st_html = f'<span style="color:#22C55E;font-weight:700;">Terminé</span>'
             elif ch_state == "cancelled":
-                st_html = f'<span style="color:#EF4444;font-weight:700;">Annule</span>'
+                st_html = f'<span style="color:#EF4444;font-weight:700;">Annulé</span>'
             elif ch_state == "error":
                 st_html = f'<span style="color:#EF4444;font-weight:700;">Erreur</span>'
             else:
                 st_html = f'<span style="color:{MUTED};">{ch_state}</span>'
             phase_label = {
                 "telechargement": "Telechargement",
-                "decoupage":      "Decoupage bbox",
+                "decoupage":      "Découpage bbox",
                 "sauvegarde":     "Sauvegarde HDF5",
             }.get(ch_phase, ch_phase)
             st.markdown(f"""
@@ -684,14 +721,14 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
                   {"&nbsp;<span style='color:" + MUTED + ";font-weight:400;font-size:0.75rem;'>" + phase_label + "</span>" if ch_year else ""}
                 </span>
                 <span style="font-size:0.78rem;color:{MUTED};">
-                  {ch_done}/{ch_total} annees &nbsp;|&nbsp; {ch_output}
+                  {ch_done}/{ch_total} années &nbsp;|&nbsp; {ch_output}
                 </span>
               </div>
               <div style="background:{BORDER};border-radius:99px;height:7px;overflow:hidden;margin-bottom:8px;">
                 <div style="width:{overall_pct}%;height:100%;border-radius:99px;
                             background:linear-gradient(90deg,{INDIGO},{BLUE});"></div>
               </div>
-              {"<p style='font-size:0.75rem;color:" + MUTED + ";margin:0;'>Annee en cours : <b>" + str(ch_year) + "</b> — " + str(ch_pct) + "%</p>" if ch_year else ""}
+              {"<p style='font-size:0.75rem;color:" + MUTED + ";margin:0;'>Année en cours : <b>" + str(ch_year) + "</b> — " + str(ch_pct) + "%</p>" if ch_year else ""}
               {"<p style='font-size:0.72rem;color:#EF4444;margin:6px 0 0 0;'>" + str(len(ch_errors)) + " erreur(s) : " + ", ".join(str(e["year"]) for e in ch_errors) + "</p>" if ch_errors else ""}
               <p style="font-size:0.68rem;color:{MUTED};margin:6px 0 0 0;">
                 Derniere mise a jour : {chirps_status.get("updated_at", "")}
@@ -701,7 +738,9 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
             """, unsafe_allow_html=True)
 
         st.markdown("<br>", unsafe_allow_html=True)
-        if chirps_is_running:
+        if not _admin:
+            st.caption("Le téléchargement CHIRPS est réservé à l'administrateur.")
+        elif chirps_is_running:
             col_ref, col_can = st.columns([1, 1])
             with col_ref:
                 if st.button("Actualiser la progression", key="btn_chirps_refresh"):
@@ -709,7 +748,7 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
             with col_can:
                 if st.button("Annuler le telechargement", key="btn_chirps_cancel"):
                     CHIRPS_CANCEL_FILE.touch()
-                    st.warning("Signal d'annulation envoye. Arret apres l'annee en cours.")
+                    st.warning("Signal d'annulation envoyé. Arrêt après l'année en cours.")
                     st.rerun()
             time.sleep(3)
             st.rerun()
@@ -717,20 +756,20 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
             btn_c1, btn_c2 = st.columns([2, 5])
             with btn_c1:
                 launch_download = st.button(
-                    "Telecharger les donnees CHIRPS", key="btn_chirps_dl",
+                    "Télécharger les données CHIRPS", key="btn_chirps_dl",
                     type="primary", use_container_width=True,
                 )
             with btn_c2:
                 st.markdown(
                     f"<p style='font-size:0.74rem;color:{MUTED};padding-top:10px;'>"
                     f"Source : CHC UCSB &mdash; CHIRPS v2.0 Global Daily 0.25&deg;. "
-                    f"Telechargement annee par annee avec reprise automatique, "
+                    f"Téléchargement année par année avec reprise automatique, "
                     f"decoupage bbox et sauvegarde HDF5.</p>",
                     unsafe_allow_html=True,
                 )
-            if launch_download:
+            if launch_download and admin_gate.exiger_admin():
                 if dl_year_end < dl_year_start:
-                    st.error("L'annee de fin doit etre >= a l'annee de debut.")
+                    st.error("L'année de fin doit être >= à l'année de début.")
                 elif bb_lat_max <= bb_lat_min or bb_lon_max <= bb_lon_min:
                     st.error("Bounding box invalide (lat/lon min >= max).")
                 else:
@@ -751,7 +790,7 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
                         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
                     )
                     st.session_state["chirps_dl_pid"] = proc.pid
-                    st.info(f"Telechargement lance (PID {proc.pid}).")
+                    st.info(f"Téléchargement lancé (PID {proc.pid}).")
                     time.sleep(1)
                     st.rerun()
 
@@ -769,6 +808,8 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
             return buf.read()
 
         def run_script(script_path):
+            if not admin_gate.est_admin():
+                return 1, "Action réservée à l'administrateur."
             env = os.environ.copy()
             env["PYTHONIOENCODING"] = "utf-8"
             env["PYTHONUTF8"] = "1"
@@ -785,69 +826,80 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
             if not outs:
                 return None, "N/A"
             all_ok = all((BASE / o).exists() for o in outs)
-            return all_ok, "Sorties presentes" if all_ok else "Non execute"
+            return all_ok, "Sorties présentes" if all_ok else "Non exécuté"
 
         def render_exports(step):
             exp_groups = step.get("exports", {})
             if not exp_groups:
                 return
-            has_any = False
-            for grp_key in ("input", "data", "figure", "report"):
-                if grp_key not in exp_groups:
-                    continue
-                grp_label, grp_color = _GRP_LABEL[grp_key]
-                avail = []
-                for e in exp_groups[grp_key]:
+            # Compte d'abord : les exports vont dans un volet replie (la page
+            # faisait 15 ecrans sur telephone).
+            n_dispo = 0
+            for grp_items in exp_groups.values():
+                for e in grp_items:
                     ep = BASE / e["path"]
                     if e.get("fmt") == "zip_glob":
-                        if ep.is_dir():
-                            matched = list(ep.glob(e.get("glob", "*")))
-                            if matched:
-                                avail.append((e, ep, matched))
-                    elif ep.exists():
-                        avail.append((e, ep, None))
-                if not avail:
-                    continue
-                if not has_any:
-                    st.markdown("<div class='step-card-exports'>", unsafe_allow_html=True)
-                    has_any = True
-                st.markdown(
-                    f"<p class='exp-grp-label' style='color:{grp_color};margin:6px 0 4px 0;"
-                    f"font-size:0.72rem;font-weight:700;letter-spacing:.06em;"
-                    f"text-transform:uppercase;'>&#9632; {grp_label}</p>",
-                    unsafe_allow_html=True,
-                )
-                cols_per_row = 3
-                for i in range(0, len(avail), cols_per_row):
-                    row = avail[i:i + cols_per_row]
-                    dl_cols = st.columns(cols_per_row)
-                    for col_idx, (col, (e, ep, matched)) in enumerate(zip(dl_cols, row)):
-                        with col:
-                            fmt    = e.get("fmt", "csv")
-                            dl_key = f"dl_{step['id']}_{grp_key}_{i + col_idx}"
-                            if fmt == "zip_glob":
-                                zip_name  = e.get("zip_name", "export.zip")
-                                zip_bytes = _make_zip(matched)
-                                zip_mb    = len(zip_bytes) / 1e6
-                                st.download_button(
-                                    label=f"ZIP  {e['label']} ({zip_mb:.1f} MB)",
-                                    data=zip_bytes, file_name=zip_name,
-                                    mime="application/zip", key=dl_key,
-                                    use_container_width=True,
-                                )
-                            else:
-                                file_mb = ep.stat().st_size / 1e6
-                                mime    = _FMT_MIME.get(fmt, "application/octet-stream")
-                                fmt_icon = _FMT_ICON.get(fmt, fmt.upper())
-                                with open(ep, "rb") as fh:
-                                    file_bytes_dl = fh.read()
-                                st.download_button(
-                                    label=f"{fmt_icon}  {e['label']} ({file_mb:.1f} MB)",
-                                    data=file_bytes_dl, file_name=ep.name,
-                                    mime=mime, key=dl_key, use_container_width=True,
-                                )
-            if has_any:
-                st.markdown("</div>", unsafe_allow_html=True)
+                        n_dispo += bool(ep.is_dir() and list(ep.glob(e.get("glob", "*"))))
+                    else:
+                        n_dispo += ep.exists()
+            if not n_dispo:
+                return
+            with st.expander(f"Fichiers exportables ({n_dispo})", expanded=False):
+                has_any = False
+                for grp_key in ("input", "data", "figure", "report"):
+                    if grp_key not in exp_groups:
+                        continue
+                    grp_label, grp_color = _GRP_LABEL[grp_key]
+                    avail = []
+                    for e in exp_groups[grp_key]:
+                        ep = BASE / e["path"]
+                        if e.get("fmt") == "zip_glob":
+                            if ep.is_dir():
+                                matched = list(ep.glob(e.get("glob", "*")))
+                                if matched:
+                                    avail.append((e, ep, matched))
+                        elif ep.exists():
+                            avail.append((e, ep, None))
+                    if not avail:
+                        continue
+                    if not has_any:
+                        st.markdown("<div class='step-card-exports'>", unsafe_allow_html=True)
+                        has_any = True
+                    st.markdown(
+                        f"<p class='exp-grp-label' style='color:{grp_color};margin:6px 0 4px 0;"
+                        f"font-size:0.72rem;font-weight:700;letter-spacing:.06em;"
+                        f"text-transform:uppercase;'>&#9632; {grp_label}</p>",
+                        unsafe_allow_html=True,
+                    )
+                    cols_per_row = 3
+                    for i in range(0, len(avail), cols_per_row):
+                        row = avail[i:i + cols_per_row]
+                        dl_cols = st.columns(cols_per_row)
+                        for col_idx, (col, (e, ep, matched)) in enumerate(zip(dl_cols, row)):
+                            with col:
+                                fmt    = _fmt_export(e)
+                                dl_key = f"dl_{step['id']}_{grp_key}_{i + col_idx}"
+                                if fmt == "zip_glob":
+                                    zip_name  = e.get("zip_name", "export.zip")
+                                    zip_bytes = _make_zip(matched)
+                                    st.download_button(
+                                        label=f"ZIP · {e['label']} ({_taille(len(zip_bytes))})",
+                                        data=zip_bytes, file_name=zip_name,
+                                        mime="application/zip", key=dl_key,
+                                        use_container_width=True,
+                                    )
+                                else:
+                                    mime    = _FMT_MIME.get(fmt, "application/octet-stream")
+                                    fmt_icon = _FMT_ICON.get(fmt, fmt.upper())
+                                    with open(ep, "rb") as fh:
+                                        file_bytes_dl = fh.read()
+                                    st.download_button(
+                                        label=f"{fmt_icon} · {e['label']} ({_taille(ep.stat().st_size)})",
+                                        data=file_bytes_dl, file_name=ep.name,
+                                        mime=mime, key=dl_key, use_container_width=True,
+                                    )
+                if has_any:
+                    st.markdown("</div>", unsafe_allow_html=True)
 
         # Le pipeline complet exclut la veille pre-saison (telechargements).
         _complet = [s for s in PIPELINE_STEPS if not s.get("veille")]
@@ -861,15 +913,15 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
         st.markdown(f"""
         <div class="run-hero">
           <div style='flex:1;'>
-            <h3>Executer le pipeline complet</h3>
+            <h3>{"Exécuter le pipeline complet" if _admin else "État du pipeline"}</h3>
             <p>
-              {_n_total} etapes &nbsp;&middot;&nbsp;
-              Detection &rarr; SST &rarr; Teleconnexions &rarr; Clustering &rarr; Visualisation
+              {_n_total} étapes &nbsp;&middot;&nbsp;
+              Détection &rarr; SST &rarr; Téléconnexions &rarr; Clustering &rarr; Visualisation
             </p>
           </div>
           <div style='text-align:right;margin-left:24px;flex-shrink:0;'>
             <div style='font-size:1.6rem;font-weight:800;color:#fff;line-height:1;'>{_n_done}/{_n_total}</div>
-            <div style='font-size:0.72rem;color:rgba(255,255,255,.7);margin-top:2px;'>etapes executees</div>
+            <div style='font-size:0.72rem;color:rgba(255,255,255,.7);margin-top:2px;'>étapes executees</div>
             <div style='background:rgba(255,255,255,.2);border-radius:99px;height:5px;margin-top:8px;width:90px;'>
               <div style='background:#fff;border-radius:99px;height:5px;width:{_pct_done}%;'></div>
             </div>
@@ -877,40 +929,40 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
         </div>
         """, unsafe_allow_html=True)
 
-        run_all = st.button("Lancer le pipeline complet", key="btn_run_all",
-                             type="primary", use_container_width=True)
+        run_all = _admin and st.button("Lancer le pipeline complet", key="btn_run_all",
+                                        type="primary", use_container_width=True)
 
         if run_all:
-            overall_bar = st.progress(0, text="Demarrage...")
+            overall_bar = st.progress(0, text="Démarrage...")
             all_ok = True
             results_container = st.container()
             for i, step in enumerate(_complet):
                 script_path = SCRIPTS_DIR / step["script"]
                 overall_bar.progress(
                     int(i / len(_complet) * 100),
-                    text=f"Etape {step['num']}/{len(_complet)} : {step['label']}",
+                    text=f"Étape {step['num']}/{len(_complet)} : {step['label']}",
                 )
                 if not script_path.exists():
                     with results_container:
                         st.warning(f"Script introuvable : `{step['script']}`")
                     all_ok = False
                     continue
-                with st.spinner(f"Etape {step['num']} — {step['label']}..."):
+                with st.spinner(f"Étape {step['num']} — {step['label']}..."):
                     rc, out = run_script(script_path)
                 with results_container:
                     if rc == 0:
-                        st.success(f"Etape {step['num']} terminee : {step['label']}")
+                        st.success(f"Étape {step['num']} terminée : {step['label']}")
                     else:
-                        st.error(f"Etape {step['num']} en echec : {step['label']} (code {rc})")
+                        st.error(f"Étape {step['num']} en échec : {step['label']} (code {rc})")
                         with st.expander("Voir la sortie d'erreur"):
                             st.code(out or "(vide)", language="text")
                         all_ok = False
-            overall_bar.progress(100, text="Pipeline termine")
+            overall_bar.progress(100, text="Pipeline terminé")
             if all_ok:
                 st.balloons()
-                st.success("Pipeline complet execute avec succes ! Rechargez les autres pages pour voir les nouveaux resultats.")
+                st.success("Pipeline complet exécuté avec succès ! Rechargez les autres pages pour voir les nouveaux résultats.")
             else:
-                st.warning("Pipeline termine avec des erreurs. Verifiez les etapes marquees ci-dessus.")
+                st.warning("Pipeline terminé avec des erreurs. Vérifiez les étapes marquées ci-dessus.")
             st.cache_data.clear()
 
         st.markdown("<br>", unsafe_allow_html=True)
@@ -942,7 +994,7 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
                 f"    {cat}"
                 f"  </span>"
                 f"  <span style='font-size:0.72rem;color:{MUTED};'>"
-                f"    {cat_done}/{cat_total} execute{'s' if cat_done>1 else ''}"
+                f"    {cat_done}/{cat_total} exécuté{'s' if cat_done>1 else ''}"
                 f"  </span>"
                 f"</div>",
                 unsafe_allow_html=True,
@@ -958,9 +1010,9 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
                 step_desc   = step["desc"]
 
                 if out_ok is True:
-                    status_badge = "<span class='sbadge sbadge-ok'>Sorties presentes</span>"
+                    status_badge = "<span class='sbadge sbadge-ok'>Sorties présentes</span>"
                 elif out_ok is False:
-                    status_badge = "<span class='sbadge sbadge-miss'>Non execute</span>"
+                    status_badge = "<span class='sbadge sbadge-miss'>Non exécuté</span>"
                 else:
                     status_badge = ""
 
@@ -1000,8 +1052,10 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
                 with btn_col:
                     btn_key = f"run_{step['id']}"
                     st.markdown("<div style='padding:14px 0 0 0;'>", unsafe_allow_html=True)
-                    if sc_exists:
-                        clicked = st.button("Executer", key=btn_key,
+                    if not _admin:
+                        clicked = False
+                    elif sc_exists:
+                        clicked = st.button("Exécuter", key=btn_key,
                                             use_container_width=True, type="secondary")
                     else:
                         clicked = False
@@ -1010,14 +1064,14 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
                     st.markdown("</div>", unsafe_allow_html=True)
 
                 if clicked:
-                    with st.spinner(f"Execution de l'etape {step_num}..."):
+                    with st.spinner(f"Exécution de l'étape {step_num}..."):
                         rc, out = run_script(script_path)
                     if rc == 0:
                         st.markdown(
                             f"<div style='background:#f0fdf4;border:1px solid #86efac;"
                             f"border-radius:8px;padding:10px 16px;margin:8px 0;'>"
                             f"  <span style='color:#166534;font-weight:600;'>"
-                            f"    Etape {step_num} executee avec succes</span>"
+                            f"    Étape {step_num} exécutée avec succès</span>"
                             f"</div>",
                             unsafe_allow_html=True,
                         )
@@ -1026,7 +1080,7 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
                             f"<div style='background:#fef2f2;border:1px solid #fca5a5;"
                             f"border-radius:8px;padding:10px 16px;margin:8px 0;'>"
                             f"  <span style='color:#991b1b;font-weight:600;'>"
-                            f"    Etape {step_num} — Echec (code {rc})</span>"
+                            f"    Étape {step_num} — Échec (code {rc})</span>"
                             f"</div>",
                             unsafe_allow_html=True,
                         )
@@ -1104,11 +1158,11 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
         </div>
         """, unsafe_allow_html=True)
 
-        st.markdown("<p class='pip-section-title'>Telecharger depuis NOAA</p>",
+        st.markdown("<p class='pip-section-title'>Télécharger depuis NOAA</p>",
                     unsafe_allow_html=True)
         st.markdown(
             f'<p style="font-size:0.78rem;color:{MUTED};margin:0 0 14px 0;">'
-            "Le serveur telecharge directement les donnees OISST v2 depuis <b>NOAA PSL</b>. "
+            "Le serveur télécharge directement les données OISST v2 depuis <b>NOAA PSL</b>. "
             "Le telechargement reprend automatiquement en cas de coupure. "
             "Seuls les fichiers manquants sont telecharges.</p>",
             unsafe_allow_html=True,
@@ -1126,9 +1180,9 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
             if state == "running":
                 status_html = f'<span style="color:#F59E0B;font-weight:700;">En cours</span>'
             elif state == "done":
-                status_html = f'<span style="color:#22C55E;font-weight:700;">Termine</span>'
+                status_html = f'<span style="color:#22C55E;font-weight:700;">Terminé</span>'
             elif state == "cancelled":
-                status_html = f'<span style="color:#EF4444;font-weight:700;">Annule</span>'
+                status_html = f'<span style="color:#EF4444;font-weight:700;">Annulé</span>'
             else:
                 status_html = f'<span style="color:{MUTED};">{state}</span>'
             st.markdown(f"""
@@ -1154,7 +1208,9 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
             </div>
             """, unsafe_allow_html=True)
 
-        if is_running:
+        if not _admin:
+            st.caption("Le téléchargement SST est réservé à l'administrateur.")
+        elif is_running:
             col_a, col_b = st.columns([1, 1])
             with col_a:
                 if st.button("Actualiser la progression", key="btn_sst_refresh"):
@@ -1162,20 +1218,20 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
             with col_b:
                 if st.button("Annuler le telechargement", key="btn_sst_cancel"):
                     CANCEL_FILE.touch()
-                    st.warning("Signal d'annulation envoye. Le telechargement s'arretera apres le fichier en cours.")
+                    st.warning("Signal d'annulation envoyé. Le telechargement s'arretera apres le fichier en cours.")
                     st.rerun()
         else:
             col_yr1, col_yr2, col_dl = st.columns([1, 1, 2])
             with col_yr1:
-                yr_start = st.number_input("Annee debut", min_value=1981, max_value=2023,
+                yr_start = st.number_input("Année début", min_value=1981, max_value=2023,
                                            value=1983, step=1, key="sst_yr_start")
             with col_yr2:
-                yr_end = st.number_input("Annee fin", min_value=1983, max_value=2023,
+                yr_end = st.number_input("Année fin", min_value=1983, max_value=2023,
                                          value=2023, step=1, key="sst_yr_end")
             with col_dl:
                 st.markdown("<div style='height:28px'></div>", unsafe_allow_html=True)
-                if st.button("Telecharger depuis NOAA", type="primary",
-                             use_container_width=True, key="btn_sst_dl"):
+                if st.button("Télécharger depuis NOAA", type="primary",
+                             use_container_width=True, key="btn_sst_dl")                         and admin_gate.exiger_admin():
                     CANCEL_FILE.unlink(missing_ok=True)
                     env = os.environ.copy()
                     env["PYTHONIOENCODING"] = "utf-8"
@@ -1188,7 +1244,7 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
                         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
                     )
                     st.session_state["sst_dl_pid"] = proc.pid
-                    st.info(f"Telechargement lance (PID {proc.pid}). Actualisez pour suivre la progression.")
+                    st.info(f"Téléchargement lancé (PID {proc.pid}). Actualisez pour suivre la progression.")
                     time.sleep(1)
                     st.rerun()
 
@@ -1219,15 +1275,15 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
         else:
             st.info("Aucun fichier SST present.")
 
-        if sst_files_present and not is_running:
+        if sst_files_present and not is_running and _admin:
             st.markdown(
-                "<p class='pip-section-title' style='margin-top:24px;'>Liberer l'espace disque</p>",
+                "<p class='pip-section-title' style='margin-top:24px;'>Libérer l'espace disque</p>",
                 unsafe_allow_html=True,
             )
             st.markdown(
                 f'<p style="font-size:0.78rem;color:{MUTED};margin:0 0 12px 0;">'
                 f"Supprimez les {n_present} fichiers SST ({total_size_gb:.1f} Go) "
-                "une fois le clustering termine.</p>",
+                "une fois le clustering terminé.</p>",
                 unsafe_allow_html=True,
             )
             if "confirm_delete_sst" not in st.session_state:
@@ -1244,7 +1300,7 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
                 )
                 col_yes, col_no = st.columns(2)
                 with col_yes:
-                    if st.button("Oui, supprimer", type="primary", key="btn_del_sst_confirm"):
+                    if st.button("Oui, supprimer", type="primary", key="btn_del_sst_confirm")                             and admin_gate.exiger_admin():
                         deleted, errs = 0, []
                         for f in sst_files_present:
                             try:

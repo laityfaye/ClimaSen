@@ -39,6 +39,33 @@ C_LOGISTIQUE = 0.5
 DEBUT_ETAT = 1984          # pas de novembre 1982 dans OISST
 DEBUT_PREVISION_REELLE = 1998
 
+# Variantes comparees le 26/09/2026, FIXEES AVANT de voir les resultats, meme
+# protocole sans fuite (annee testee exclue du K-Means, du seuil, de la
+# calibration). V2 a ete retenue: son p LOYO doit donc etre corrige pour ces
+# N_VARIANTES essais (Bonferroni), sinon il surestime le signal.
+# Scores du test exploratoire (2000 permutations); la production recalcule V2
+# (competence_projection.json) et obtient p = 0,016 au lieu de 0,009.
+VARIANTES_TESTEES = (
+    {"code": "V1", "nom": "configuration la plus proche",
+     "loyo": {"auc": 0.60, "p": 0.175, "bss": 0.04},
+     "prevision_reelle": {"auc": 0.33, "p": 0.94}},
+    {"code": "V2", "nom": "ressemblance a chaque configuration (logistique)", "retenue": True,
+     "loyo": {"auc": 0.72, "p": 0.009, "bss": 0.11},
+     "prevision_reelle": {"auc": 0.54, "p": 0.39}},
+    {"code": "V3", "nom": "risque du cluster, calcule sur ses evenements",
+     "loyo": {"auc": 0.64, "p": 0.075, "bss": 0.03},
+     "prevision_reelle": {"auc": 0.56, "p": 0.31}},
+    {"code": "V4", "nom": "trajectoire mois par mois",
+     "loyo": {"auc": 0.66, "p": 0.050, "bss": 0.12},
+     "prevision_reelle": {"auc": 0.36, "p": 0.88}},
+)
+N_VARIANTES = len(VARIANTES_TESTEES)
+
+
+def p_corrige(p):
+    """p de la variante retenue, corrige pour les N_VARIANTES comparees."""
+    return None if p is None else min(1.0, float(p) * N_VARIANTES)
+
 
 def _poids(cube, masque):
     w = np.sqrt(np.cos(np.deg2rad(np.repeat(cube.lats, cube.lons.size))))
@@ -260,8 +287,12 @@ def evaluer(ctx, journal=print):
             journal("  %s %d  p=%.2f  observe=%d" % (nom, t, p, res[-1]["observe"]))
         sortie[nom] = dict(_scores(res, rng), annees=res)
     pr = sortie["prevision_reelle"]
-    signal = sortie["loyo"].get("p_permutation", 1) < 0.05
-    previsible = pr.get("p_permutation", 1) < 0.05 and pr.get("brier_skill_score", -1) > 0
+    for cle in ("loyo", "prevision_reelle"):
+        if "p_permutation" in sortie[cle]:
+            sortie[cle]["p_corrige_variantes"] = round(p_corrige(sortie[cle]["p_permutation"]), 4)
+    sortie["n_variantes_comparees"] = N_VARIANTES
+    signal = sortie["loyo"].get("p_corrige_variantes", 1) < 0.05
+    previsible = pr.get("p_corrige_variantes", 1) < 0.05 and pr.get("brier_skill_score", -1) > 0
     sortie["verdict"] = (
         "competence demontree en prevision reelle" if previsible else
         "signal physique present (validation LOYO) mais pas de competence demontree en "

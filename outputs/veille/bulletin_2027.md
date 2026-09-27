@@ -1,8 +1,8 @@
 # Bulletin de veille pré-saison — saison des pluies 2027
 
-*CLIMAT-SEN · émis le 2026-09-27 · statut : partiel*
+*ClimatSen · émis le 2026-09-27 · statut : partiel*
 
-## Niveau de risque d'année extrême : **INDÉTERMINÉ**
+## Pas encore de prévision pour cette saison
 
 ## Synthèse
 

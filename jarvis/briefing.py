@@ -67,7 +67,14 @@ def _sans_projection(b):
 # =============================================================================
 def _verdict(b, figures, sid):
     n = b["niveau_risque"]
-    if n["code"] == "indetermine":
+    from veille.bulletin import presentation
+    if presentation(n)["mode"] == "probabilite":
+        texte = ("Bulletin de veille pour la saison des pluies %d. La prévision saisonnière "
+                 "Copernicus, calibrée sur nos données de pluie, donne une probabilité "
+                 "indicative d'année extrême de %s, quand une saison sur trois l'est en "
+                 "moyenne. Sa compétence n'est pas démontrée : aucun niveau de risque n'est "
+                 "annoncé." % (b["annee"], pct(n["probabilite_annee_extreme"])))
+    elif n["code"] == "indetermine":
         texte = ("Bulletin de veille pour la saison des pluies %d. Le niveau de risque "
                  "n'est pas déterminé : la prévision saisonnière officielle de Copernicus "
                  "n'est pas encore disponible pour cette saison." % b["annee"])

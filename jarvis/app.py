@@ -1,4 +1,4 @@
-"""Application FastAPI - backend Jarvis CLIMAT-SEN.
+"""Application FastAPI - backend Jarvis ClimatSen.
 
 Toutes les routes sont prefixees /jarvis pour que le chemin soit identique en
 local (http://localhost:8000/jarvis/health) et derriere nginx
@@ -354,7 +354,7 @@ def create_app(settings: Optional[Settings] = None) -> FastAPI:
                 pass
 
     app = FastAPI(
-        title="Jarvis CLIMAT-SEN",
+        title="Jarvis ClimatSen",
         version=__version__,
         docs_url="/jarvis/docs" if settings.env == "dev" else None,
         openapi_url="/jarvis/openapi.json" if settings.env == "dev" else None,

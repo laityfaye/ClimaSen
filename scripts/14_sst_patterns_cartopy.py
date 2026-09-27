@@ -19,6 +19,8 @@ Prerequis : scripts 11 et 12 deja executes (outputs/clustering/).
 
 import sys
 import math
+import datetime
+import json
 import warnings
 import numpy as np
 import pandas as pd
@@ -322,8 +324,10 @@ def plot_phase(phase_key: str, phase_label: str):
     # -------------------------------------------------------------------------
     # Titre general
     # -------------------------------------------------------------------------
+    date_gen = datetime.date.today().isoformat()
     fig.suptitle(
-        f"Patterns SST moyens des clusters K-Means — {phase_label}\n"
+        f"Patterns SST moyens des clusters K-Means — {phase_label} "
+        f"(k = {K}, genere le {date_gen})\n"
         f"Anomalies SST (degC, retroprojection PCA). "
         f"Boites : indices de teleconnexion. "
         f"Hachurage : |anomalie| > 0.5 degC.",
@@ -334,6 +338,12 @@ def plot_phase(phase_key: str, phase_label: str):
     fig.savefig(outfile, dpi=180, bbox_inches='tight',
                 facecolor='white', edgecolor='none')
     plt.close(fig)
+    # Fiche d'identite de la figure: le dashboard verifie qu'elle vient du
+    # meme clustering que celui qu'il affiche (k et effectifs identiques).
+    meta = {"phase": phase_key, "k": int(K), "genere_le": date_gen,
+            "effectifs": {str(int(c)): int(n) for c, n in n_per_cluster.items()}}
+    with open(outfile.with_suffix(".json"), "w", encoding="utf-8") as fh:
+        json.dump(meta, fh, indent=2)
     print(f"    -> {outfile.name}")
 
 

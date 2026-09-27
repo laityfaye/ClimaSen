@@ -42,8 +42,9 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
     <div class="pg-hdr">
       <div>
         <p class="pg-bc">Dashboard &nbsp;/&nbsp; <b>Indices SST</b></p>
-        <h1 class="pg-ttl">Indices de Temperature de Surface (SST)</h1>
-        <p class="pg-sub">Series temporelles journalieres · OISST v2 · 1983-2023 · 11 indices</p>
+        <h1 class="pg-ttl">Indices de Température de Surface (SST)</h1>
+        <p class="pg-sub">Series temporelles journalieres · OISST v2 · 11 indices ·
+          données du {sst_raw["date"].min():%d/%m/%Y} au {sst_raw["date"].max():%d/%m/%Y}</p>
       </div>
     </div>
     """, unsafe_allow_html=True)
@@ -62,7 +63,8 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
             sel_idx = ["Nino34"]
     with fb:
         agg_mode = st.selectbox(
-            "Agregation", ["Mensuelle", "Annuelle", "Journaliere"],
+            "Agrégation", ["Mensuelle", "Annuelle", "Journaliere"],
+            format_func=lambda v: {"Journaliere": "Journalière"}.get(v, v),
             key="sst_agg_mode",
         )
 
@@ -84,6 +86,12 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
     # ── KPI du premier indice ──────────────────────────────────────────────
     pv      = sst[primary]
     pv_last = pv.iloc[-1]
+    # La date de la derniere valeur est affichee : en 2026, "derniere valeur"
+    # seule se lisait comme la valeur actuelle (revue 27/09/2026, point 08).
+    _MOIS_FR = ["janvier", "février", "mars", "avril", "mai", "juin", "juillet",
+                "août", "septembre", "octobre", "novembre", "décembre"]
+    _d_last = sst["date"].iloc[-1]
+    pv_last_lbl = f"Valeur du {_d_last.day} {_MOIS_FR[_d_last.month - 1]} {_d_last.year}"
     pv_mean = pv.mean()
     pv_std  = pv.std()
     pct_pos = 100 * (pv > 0).mean()
@@ -91,7 +99,7 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
     k1, k2, k3, k4 = st.columns(4, gap="small")
     kpi_sst = [
         (k1, f"background:rgba(79,70,229,0.13)", primary, f"{pv_last:+.3f}", "t-indigo",
-         "Derniere valeur", svg_spark(pv.values[-60:].tolist(), color=INDIGO)),
+         pv_last_lbl, svg_spark(pv.values[-60:].tolist(), color=INDIGO)),
         (k2, f"background:rgba(14,165,233,0.13)", "Moyenne", f"{pv_mean:+.3f}", "t-blue",
          f"std = {pv_std:.3f}", svg_spark(
              sst.set_index("date")[primary].resample("YS").mean().values.tolist(),

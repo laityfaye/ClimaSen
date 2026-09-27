@@ -9,6 +9,7 @@ import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 import dashboard_utils as du
+import admin_gate
 from dashboard_utils import (
     INDIGO, BLUE, EMERALD, AMBER, ROSE, PHASE_C, BASE,
     load_clustering, load_cluster_pixels, load_dept_geojson,
@@ -25,12 +26,12 @@ except Exception:                                 # noqa: BLE001
 
 
 def _ligne_etat(hier, cid, muted, text):
-    """Ligne 'Etat : La Nina (91 %)' d'une carte de cluster (vide sans hierarchie)."""
+    """Ligne 'État : La Nina (91 %)' d'une carte de cluster (vide sans hierarchie)."""
     if not hier or int(cid) not in hier["clusters"]:
         return ""
     c = hier["clusters"][int(cid)]
     coul = next((e["couleur"] for e in hier["etats"] if e["nom"] == c["etat"]), muted)
-    return (f'<p style="font-size:0.72rem;color:{muted};margin:6px 0 0 0;">Etat&nbsp;: '
+    return (f'<p style="font-size:0.72rem;color:{muted};margin:6px 0 0 0;">État&nbsp;: '
             f'<span style="display:inline-block;width:8px;height:8px;border-radius:50%;'
             f'background:{coul};margin-right:4px;"></span>'
             f'<b style="color:{text};">{c["etat"]}</b> ({int(round(100 * c["part"]))} %)</p>')
@@ -46,8 +47,8 @@ def _hierarchie(phase, events):
 
 
 PHASE_LABELS_CL = {
-    "Phase_1_debut":  "Debut saison  (Mai-Jun)",
-    "Phase_2_pleine": "Pleine saison (Jul-Aou)",
+    "Phase_1_debut":  "Début saison  (Mai-Jun)",
+    "Phase_2_pleine": "Pleine saison (Jul-Août)",
     "Phase_3_fin":    "Fin saison    (Sep-Oct)",
     "All_phases":     "Toutes phases confondues",
 }
@@ -62,15 +63,15 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
       <div>
         <p class="pg-bc">Dashboard &nbsp;/&nbsp; <b>Clustering</b></p>
         <h1 class="pg-ttl">Clustering KMeans SST</h1>
-        <p class="pg-sub">Patterns SST associes aux evenements extremes · selection du k optimal</p>
+        <p class="pg-sub">Configurations océaniques du jour de chaque événement extrême · choix du nombre de configurations</p>
       </div>
     </div>""", unsafe_allow_html=True)
 
-    with st.spinner("Chargement des donnees de clustering..."):
+    with st.spinner("Chargement des données de clustering..."):
         clust_data = load_clustering()
 
     if not clust_data:
-        st.warning("Donnees de clustering non disponibles.")
+        st.warning("Données de clustering non disponibles.")
         return
 
     # ── selectors ─────────────────────────────────────────────────────────
@@ -90,11 +91,14 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
         if _k not in st.session_state:
             st.session_state[_k] = False if _k == "show_cluster_rerun" else None
 
+    # Relance = execution d'un script sur le serveur : administrateur seul.
+    if not admin_gate.est_admin():
+        st.session_state["show_cluster_rerun"] = False
     btn_label = (
         "Masquer le panneau" if st.session_state["show_cluster_rerun"]
         else "Relancer le clustering avec un K personnalise"
     )
-    if st.button(btn_label, key="btn_cluster_rerun"):
+    if admin_gate.est_admin() and st.button(btn_label, key="btn_cluster_rerun"):
         st.session_state["show_cluster_rerun"] = not st.session_state["show_cluster_rerun"]
         st.session_state["cluster_result"] = None
         st.rerun()
@@ -115,12 +119,12 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
         col_k1, col_k2, col_k3, col_k4 = st.columns(4)
         with col_k1:
             k_p1 = st.number_input(
-                "Phase 1 - Debut (Mai-Jun)", min_value=2, max_value=15,
+                "Phase 1 - Début (Mai-Jun)", min_value=2, max_value=15,
                 value=_current_k("Phase_1_debut"), step=1, key="ck_p1",
             )
         with col_k2:
             k_p2 = st.number_input(
-                "Phase 2 - Pleine (Jul-Aou)", min_value=2, max_value=15,
+                "Phase 2 - Pleine (Jul-Août)", min_value=2, max_value=15,
                 value=_current_k("Phase_2_pleine"), step=1, key="ck_p2",
             )
         with col_k3:
@@ -149,7 +153,7 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
             )
 
         if st.session_state["cluster_result"] == "success":
-            st.success("Clustering termine avec succes ! Les resultats affiches sont mis a jour.")
+            st.success("Clustering terminé avec succes ! Les resultats affiches sont mis a jour.")
             if st.button("Fermer ce message", key="btn_reload_cl"):
                 st.session_state["cluster_result"] = None
                 st.rerun()
@@ -159,7 +163,7 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
         elif st.session_state["cluster_result"] == "timeout":
             st.error("Timeout depasse (30 min). Le calcul est peut-etre trop long.")
 
-        if run_clicked:
+        if run_clicked and admin_gate.exiger_admin():
             fast_script = BASE / "scripts" / "11b_kmeans_rerun_fast.py"
             full_script  = BASE / "scripts" / "11_kmeans_sst_analysis.py"
 
@@ -224,8 +228,8 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
     n_clust  = chars["cluster"].nunique()
 
     kpi_items = [
-        ("&#128202;", "Evenements",     str(n_ev),   "cette phase"),
-        ("&#127981;", "k optimal",      str(k_opt),  "methode coude"),
+        ("&#128202;", "Événements",     str(n_ev),   "cette phase"),
+        ("&#127981;", "k retenu",       str(k_opt),  "coude + interpretabilite"),
         ("&#128200;", "Silhouette max", sil_str,     f"k={k_sil}"),
         ("&#127987;", "Clusters",       str(n_clust), "dans ce graphe"),
     ]
@@ -264,11 +268,11 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
         if k_opt in k_range:
             fig_el.add_vline(
                 x=k_opt, line_dash="dash", line_color=ROSE, line_width=1.5,
-                annotation_text=f"k={k_opt} (coude)",
+                annotation_text=f"k={k_opt} (retenu)",
                 annotation_font_color=ROSE, annotation_position="top right",
             )
         fig_el.update_layout(
-            title=dict(text="Courbe d'inertie (methode du coude)",
+            title=dict(text="Courbe d'inertie (méthode du coude)",
                        font=dict(size=13, color=TEXT), x=0, pad=dict(l=0)),
             xaxis=dict(title="k (nb clusters)", gridcolor=BORDER, tickmode="linear"),
             yaxis=dict(title="Inertie", gridcolor=BORDER),
@@ -298,12 +302,32 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
             yaxis=dict(title=dict(text="Silhouette", font=dict(color=EMERALD)), gridcolor=BORDER),
             yaxis2=dict(title=dict(text="Davies-Bouldin", font=dict(color=AMBER)),
                         overlaying="y", side="right", showgrid=False),
-            legend=dict(orientation="h", y=1.08, x=0),
+            legend=dict(orientation="h", y=-0.28, x=0.5, xanchor="center",
+                        traceorder="normal", font=dict(color=TEXT, size=11),
+                        title=dict(text="")),
             plot_bgcolor=CARD, paper_bgcolor=CARD,
             font=dict(color=TEXT, size=11),
-            margin=dict(l=10, r=10, t=44, b=10), height=280,
+            margin=dict(l=10, r=10, t=44, b=10), height=300,
         )
         st.plotly_chart(fig_si, use_container_width=True, key="cl_silhouette")
+
+    # Revue 27/09/2026 (point 03): les courbes ne designent pas un k optimal.
+    sil_k = dict(zip(k_range, silhouettes)) if k_range and silhouettes else {}
+    sil_retenu = sil_k.get(k_opt)
+    st.markdown(
+        f'<div style="background:{CARD};border:1px solid {BORDER};border-radius:12px;'
+        f'padding:12px 16px;margin:2px 0 14px 0;font-size:0.78rem;color:{TEXT};line-height:1.55;">'
+        f'<b>Comment k a ete choisi.</b> La courbe d&#39;inertie n&#39;a pas de coude net et la '
+        f'silhouette augmente avec k (maximum {sil_str} a k = {k_sil}) : aucune valeur de k '
+        f'n&#39;est statistiquement optimale, et des silhouettes inferieures a 0,2 indiquent des '
+        f'groupes faiblement separes. k = {k_opt}'
+        + (f' (silhouette {sil_retenu:.3f})' if isinstance(sil_retenu, (int, float)) else '') +
+        f' est un choix d&#39;<b>interpretabilite</b> : assez de configurations pour distinguer '
+        f'les grands états océaniques, des effectifs suffisants par cluster pour des composites '
+        f'lisibles. Les clusters sont a lire comme une typologie descriptive, pas comme des '
+        f'regimes nettement separes ; la stabilite est controlee par l&#39;analyse saisonnière '
+        f'(script 24, états océaniques ci-dessous).</div>',
+        unsafe_allow_html=True)
 
     # ── Row 2 : cluster profiles ──────────────────────────────────────────
     st.markdown(
@@ -321,13 +345,13 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
 
     with col_bar:
         metrics_bar = {
-            "Nb evenements":       "n_events",
+            "Nb événements":       "n_events",
             "Precip max moy (mm)": "mean_max_precip",
             "Couverture (%)":      "mean_coverage_percent",
             "Anomalie max moy":    "mean_max_anomaly",
         }
         sel_metric = st.selectbox(
-            "Metrique", options=list(metrics_bar.keys()),
+            "Métrique", options=list(metrics_bar.keys()),
             key="cl_metric_bar", label_visibility="collapsed",
         )
         col_key = metrics_bar[sel_metric]
@@ -351,6 +375,24 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
 
     with col_scat:
         fig_sc = go.Figure()
+        # Etiquette placee du cote oppose au voisin le plus proche (evite C0 sur C3).
+        _nx = chars_s["mean_coverage_percent"].to_numpy(dtype=float)
+        _ny = chars_s["mean_max_precip"].to_numpy(dtype=float)
+        _nx = (_nx - _nx.min()) / (np.ptp(_nx) or 1.0)
+        _ny = (_ny - _ny.min()) / (np.ptp(_ny) or 1.0)
+
+        def _pos_etiquette(i):
+            if len(_nx) < 2:
+                return "top center"
+            d = np.hypot(_nx - _nx[i], _ny - _ny[i])
+            d[i] = np.inf
+            j = int(np.argmin(d))
+            if d[j] > 0.18:
+                return "top center"
+            vert = "bottom" if _ny[j] >= _ny[i] else "top"
+            hor = "left" if _nx[j] >= _nx[i] else "right"
+            return f"{vert} {hor}"
+
         for i, row in enumerate(chars_s.itertuples()):
             cid = row.cluster
             fig_sc.add_trace(go.Scatter(
@@ -361,20 +403,28 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
                     color=cl_colors[i % len(cl_colors)], opacity=0.85,
                     line=dict(width=1.5, color="white"),
                 ),
-                text=[f"C{cid}<br>n={row.n_events}"],
-                textposition="top center", textfont=dict(size=10),
-                name=f"Cluster {cid}", showlegend=True,
+                text=[f"C{cid} (n={row.n_events})"],
+                textposition=_pos_etiquette(i),
+                textfont=dict(size=11, color=TEXT), cliponaxis=False,
+                name=f"Cluster {cid}", showlegend=False,
+                hovertemplate=(f"<b>Cluster {cid}</b><br>n = {row.n_events}<br>"
+                               "couverture %{x:.1f} %<br>precip max %{y:.1f} mm<extra></extra>"),
             ))
         fig_sc.update_layout(
-            title=dict(text="Couverture vs Intensite (taille = nb evt)",
+            title=dict(text="Couverture vs Intensité (taille = nb evt)",
                        font=dict(size=13, color=TEXT), x=0, pad=dict(l=0)),
             xaxis=dict(title="Couverture moyenne (%)", gridcolor=BORDER),
             yaxis=dict(title="Precip max moyenne (mm)", gridcolor=BORDER),
             plot_bgcolor=CARD, paper_bgcolor=CARD,
             font=dict(color=TEXT, size=11),
-            legend=dict(orientation="h", y=-0.15, x=0),
-            margin=dict(l=10, r=10, t=44, b=10), height=300,
+            margin=dict(l=10, r=30, t=60, b=10), height=320,
         )
+        # Marge autour des bulles: les etiquettes du bord ne sont plus coupees.
+        _xs = chars_s["mean_coverage_percent"]; _ys = chars_s["mean_max_precip"]
+        _dx = max(1.0, float(_xs.max() - _xs.min()) * 0.15)
+        _dy = max(1.0, float(_ys.max() - _ys.min()) * 0.20)
+        fig_sc.update_layout(xaxis_range=[float(_xs.min()) - _dx, float(_xs.max()) + _dx],
+                             yaxis_range=[float(_ys.min()) - _dy, float(_ys.max()) + _dy])
         st.plotly_chart(fig_sc, use_container_width=True, key="cl_scatter")
 
     # ── Row 3 : temporal distribution ─────────────────────────────────────
@@ -393,15 +443,17 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
             sub = yr_cl[yr_cl["cluster"] == cid]
             fig_yr.add_trace(go.Bar(
                 x=sub["year"], y=sub["n"],
-                name=f"C{cid}", marker_color=cl_colors[i % len(cl_colors)],
+                name=f"Cluster {cid}", marker_color=cl_colors[i % len(cl_colors)],
             ))
         fig_yr.update_layout(
             barmode="stack",
-            title=dict(text="Evenements par annee et cluster",
+            title=dict(text="Événements par année et cluster",
                        font=dict(size=13, color=TEXT), x=0, pad=dict(l=0)),
-            xaxis=dict(title="Annee", gridcolor=BORDER, dtick=5),
-            yaxis=dict(title="Nb evenements", gridcolor=BORDER),
-            legend=dict(orientation="h", y=1.08, x=0),
+            xaxis=dict(title="Année", gridcolor=BORDER, dtick=5),
+            yaxis=dict(title="Nb événements", gridcolor=BORDER),
+            legend=dict(orientation="h", y=-0.28, x=0.5, xanchor="center",
+                        traceorder="normal", font=dict(color=TEXT, size=11),
+                        title=dict(text="")),
             plot_bgcolor=CARD, paper_bgcolor=CARD,
             font=dict(color=TEXT, size=11),
             margin=dict(l=10, r=10, t=44, b=10), height=300,
@@ -417,15 +469,17 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
             sub = mo_cl[mo_cl["cluster"] == cid].sort_values("month")
             fig_mo.add_trace(go.Bar(
                 x=sub["month_lbl"], y=sub["n"],
-                name=f"C{cid}", marker_color=cl_colors[i % len(cl_colors)],
+                name=f"Cluster {cid}", marker_color=cl_colors[i % len(cl_colors)],
             ))
         fig_mo.update_layout(
             barmode="group",
-            title=dict(text="Evenements par mois et cluster",
+            title=dict(text="Événements par mois et cluster",
                        font=dict(size=13, color=TEXT), x=0, pad=dict(l=0)),
             xaxis=dict(title="Mois", gridcolor=BORDER),
-            yaxis=dict(title="Nb evenements", gridcolor=BORDER),
-            legend=dict(orientation="h", y=1.08, x=0),
+            yaxis=dict(title="Nb événements", gridcolor=BORDER),
+            legend=dict(orientation="h", y=-0.28, x=0.5, xanchor="center",
+                        traceorder="normal", font=dict(color=TEXT, size=11),
+                        title=dict(text="")),
             plot_bgcolor=CARD, paper_bgcolor=CARD,
             font=dict(color=TEXT, size=11),
             margin=dict(l=10, r=10, t=44, b=10), height=300,
@@ -437,11 +491,11 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
     if hier:
         st.markdown(
             f'<h3 style="font-size:0.85rem;font-weight:700;color:{MUTED};text-transform:uppercase;'
-            f'letter-spacing:.07em;margin:4px 0 4px 2px;">Etats oceaniques &rarr; configurations</h3>'
+            f'letter-spacing:.07em;margin:4px 0 4px 2px;">États océaniques &rarr; configurations</h3>'
             f'<p style="font-size:0.74rem;color:{MUTED};margin:0 0 10px 2px;">'
-            f'Niveau 1 : 4 etats saisonniers robustes (composites par saison, significatifs face au '
-            f'hasard, script 24). Niveau 2 : les clusters d&#39;evenements ci-dessous, rattaches a l&#39;etat '
-            f'ou tombent au moins {int(100 * hier["seuil_rattachement"])} % de leurs evenements. '
+            f'Niveau 1 : 4 états saisonniers robustes (composites par saison, significatifs face au '
+            f'hasard, script 24). Niveau 2 : les clusters d&#39;événements ci-dessous, rattaches a l&#39;etat '
+            f'ou tombent au moins {int(100 * hier["seuil_rattachement"])} % de leurs événements. '
             f'V de Cramer = {hier["cramer_v"]} (1 = emboitement parfait).</p>',
             unsafe_allow_html=True)
         cols_e = st.columns(len(hier["etats"]))
@@ -455,7 +509,7 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
                 f'<p style="font-size:0.7rem;color:{MUTED};margin:4px 0 8px 0;line-height:1.4;">{e["description"]}</p>'
                 f'<p style="font-size:0.72rem;color:{MUTED};margin:0;">Configurations : '
                 f'<b style="color:{TEXT};">{enfants}</b></p>'
-                f'<p style="font-size:0.72rem;color:{MUTED};margin:2px 0;">Evenements : '
+                f'<p style="font-size:0.72rem;color:{MUTED};margin:2px 0;">Événements : '
                 f'<b style="color:{TEXT};">{e["n_evenements"]}</b> &middot; Nino 3.4 : '
                 f'<b style="color:{TEXT};">{e["indices_moyens"]["Nino34"]:+.2f}</b></p>'
                 f'<p style="font-size:0.68rem;color:{MUTED};margin:4px 0 0 0;">{annees}</p>'
@@ -469,7 +523,7 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
             fig_h.add_trace(go.Bar(
                 y=["C%d" % k for k in ks], x=[hier["tableau"][k].get(nom, 0) for k in ks],
                 name=nom, orientation="h", marker=dict(color=coul_e[nom], line=dict(width=1, color=CARD)),
-                hovertemplate="<b>%{y}</b> : %{x} evenements en " + nom + "<extra></extra>"))
+                hovertemplate="<b>%{y}</b> : %{x} événements en " + nom + "<extra></extra>"))
         fig_h.update_layout(
             barmode="stack", height=max(220, 34 * len(ks) + 90),
             paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
@@ -482,7 +536,7 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
     # ── Row 4 : per-cluster summary cards ────────────────────────────────
     st.markdown(
         f'<h3 style="font-size:0.85rem;font-weight:700;color:{MUTED};text-transform:uppercase;'
-        f'letter-spacing:.07em;margin:4px 0 10px 2px;">Resume par cluster</h3>',
+        f'letter-spacing:.07em;margin:4px 0 10px 2px;">Résumé par cluster</h3>',
         unsafe_allow_html=True,
     )
     selected_cl = st.session_state.get("cl_shared_cluster")
@@ -541,7 +595,7 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
                     f'<p style="font-size:0.8rem;font-weight:800;color:{color};margin:0 0 8px 0;">'
                     f'Cluster {cid}&nbsp;'
                     f'<span style="font-weight:500;color:{MUTED};">({pct})</span></p>'
-                    f'<p style="font-size:0.72rem;color:{MUTED};margin:0;">Evenements&nbsp;: <b style="color:{TEXT};">{row.n_events}</b></p>'
+                    f'<p style="font-size:0.72rem;color:{MUTED};margin:0;">Événements&nbsp;: <b style="color:{TEXT};">{row.n_events}</b></p>'
                     f'<p style="font-size:0.72rem;color:{MUTED};margin:2px 0;">Precip moy.&nbsp;: <b style="color:{TEXT};">{mp}</b></p>'
                     f'<p style="font-size:0.72rem;color:{MUTED};margin:2px 0;">Couverture moy.&nbsp;: <b style="color:{TEXT};">{cov}</b></p>'
                     f'<p style="font-size:0.72rem;color:{MUTED};margin:2px 0;">Anomalie moy.&nbsp;: <b style="color:{TEXT};">{anom}</b></p>'
@@ -600,7 +654,7 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
             hovertemplate=(
                 "Lon: %{x:.2f}  Lat: %{y:.2f}<br>"
                 "Anomalie SST: <b>%{z:.3f} degC</b><br>"
-                "Region: %{customdata}<extra></extra>"
+                "Région: %{customdata}<extra></extra>"
             ),
         ))
         _apply_geo_traces(fig_sst)
@@ -608,12 +662,12 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
             x=[-17.4], y=[14.7], mode="markers",
             marker=dict(symbol="star", size=14, color=AMBER,
                         line=dict(width=1.5, color="white")),
-            name="Senegal (Dakar)",
+            name="Sénégal (Dakar)",
             hovertemplate="Dakar<br>17.4W  14.7N<extra></extra>",
         ))
         fig_sst.update_layout(
             title=dict(
-                text=(f"Centroide SST  -  {PHASE_LABELS_CL.get(sel_phase, sel_phase)}"
+                text=(f"Centroïde SST  -  {PHASE_LABELS_CL.get(sel_phase, sel_phase)}"
                       f"  |  Cluster {sel_cl}"),
                 font=dict(size=13, color=TEXT), x=0, pad=dict(l=0),
             ),
@@ -621,7 +675,7 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
             yaxis=dict(title="Latitude",  gridcolor=BORDER, dtick=15, range=[-60, 60]),
             plot_bgcolor=CARD, paper_bgcolor=CARD,
             font=dict(color=TEXT, size=11),
-            legend=dict(x=0.01, y=0.99, bgcolor="rgba(255,255,255,0.85)"),
+            legend=dict(x=0.01, y=0.99, bgcolor=CARD, font=dict(color=TEXT)),
             margin=dict(l=10, r=10, t=48, b=10), height=520,
         )
         st.plotly_chart(fig_sst, use_container_width=True, key="cl_sst_cent_map",
@@ -637,7 +691,7 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
     <h2 style="font-size:1.05rem;font-weight:800;color:{TEXT};margin:0 0 6px 0;">
       Analyse spatiale &mdash; Cartographie</h2>
     <p style="font-size:0.78rem;color:{MUTED};margin:0 0 16px 0;">
-      Precipitation moyenne composite sur le Senegal (tous evenements representatifs
+      Précipitation moyenne composite sur le Sénégal (tous événements representatifs
       du cluster).</p>
     """, unsafe_allow_html=True)
 
@@ -645,7 +699,7 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
 
     if _cl_px_all is None or len(_cl_px_all) == 0:
         st.info(
-            "Donnees cartographiques non disponibles. "
+            "Données cartographiques non disponibles. "
             "Executer le script 03c_filter_events_by_cluster_for_qgis.py pour generer les fichiers de pixels."
         )
     else:
@@ -749,7 +803,8 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
                         [0.90, "#7c3aed"], [1.00, "#1e1b4b"],
                     ]
 
-                    _cl_bmap = du.basemap(_cl_ctr_lat, _cl_ctr_lon, 6.2)
+                    _cl_bmap = du.basemap(_cl_ctr_lat, _cl_ctr_lon, 6.2,
+                                          dark=bool(kw.get("dark_mode", False)))
 
                     _cl_fig_comp = go.Figure()
 
@@ -772,7 +827,9 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
                                 _la_b.append(None)
                         _cl_fig_comp.add_trace(go.Scattermapbox(
                             lat=_la_b, lon=_lo_b, mode="lines",
-                            line=dict(width=1.1, color="rgba(30,27,75,0.35)"),
+                            line=dict(width=1.1, color=("rgba(226,232,240,0.35)"
+                                                        if kw.get("dark_mode") else
+                                                        "rgba(30,27,75,0.35)")),
                             hoverinfo="none", showlegend=False,
                         ))
 
@@ -809,7 +866,7 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
                                     for a, rg, p in zip(_cl_anom, _cl_regs, _cl_prec)],
                         hovertemplate=(
                             "<b>%{customdata[2]} mm</b> moy. &nbsp;|&nbsp; %{customdata[0]}&sigma;<br>"
-                            "<span style='color:#64748b'>Region : %{customdata[1]}</span>"
+                            "<span style='color:#64748b'>Région : %{customdata[1]}</span>"
                             "<extra></extra>"
                         ),
                         showlegend=False,
@@ -889,7 +946,7 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
                     st.markdown(
                         f'<p style="margin:0 0 10px 0;font-size:0.70rem;font-weight:700;'
                         f'color:{MUTED};text-transform:uppercase;letter-spacing:.05em;">'
-                        f'Regions les plus arrosees &nbsp;'
+                        f'Régions les plus arrosees &nbsp;'
                         f'<span style="font-weight:400;text-transform:none;'
                         f'letter-spacing:0;">(precip. moyenne)</span></p>',
                         unsafe_allow_html=True,
@@ -921,7 +978,7 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
     st.markdown(f"""
     <div style="border-top:2px solid {BORDER};margin:24px 0 18px 0;"></div>
     <h2 style="font-size:1.05rem;font-weight:800;color:{TEXT};margin:0 0 6px 0;">
-      Cartes SST — Qualite publication (cartopy)</h2>
+      Cartes SST — Qualité publication (cartopy)</h2>
     <p style="font-size:0.78rem;color:{MUTED};margin:0 0 16px 0;">
       Figures multi-panneaux generees par le script 14 : anomalies SST globales
       (tropiques) et zoom Atlantique / Afrique de l'Ouest pour chaque cluster.
@@ -930,7 +987,7 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
 
     SST_PAT_DIR = BASE / "outputs/visualizations/clustering/sst_patterns"
     PHASE_LABELS_PUB = {
-        "Phase_1_debut":  "Phase 1 - Debut (Mai-Juin)",
+        "Phase_1_debut":  "Phase 1 - Début (Mai-Juin)",
         "Phase_2_pleine": "Phase 2 - Pleine (Juillet-Aout)",
         "Phase_3_fin":    "Phase 3 - Fin (Septembre-Octobre)",
         "All_phases":     "Toutes phases confondues",
@@ -938,7 +995,28 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
 
     img_path = SST_PAT_DIR / f"{sel_phase}_sst_patterns_clusters.png"
     if img_path.exists():
-        st.image(str(img_path), use_container_width=True)
+        # La figure doit venir du MEME clustering que la page (revue 27/09/2026,
+        # point 02): on compare k et effectifs a la fiche ecrite par le script 14.
+        effectifs_page = {str(int(c)): int(n)
+                          for c, n in events["cluster"].value_counts().sort_index().items()}
+        meta = None
+        try:
+            import json as _json
+            meta = _json.loads(img_path.with_suffix(".json").read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            pass
+        if meta and meta.get("effectifs") == effectifs_page:
+            st.caption(f"k = {meta['k']} · figure generee le {meta.get('genere_le', '?')} "
+                       f"a partir du clustering affiche sur cette page.")
+            st.image(str(img_path), use_container_width=True)
+        elif meta:
+            st.warning(
+                f"Figure non affichee : elle provient d'un autre clustering "
+                f"(k = {meta.get('k')}, {meta.get('genere_le', '?')}) que celui de la page "
+                f"(k = {len(effectifs_page)}). Relancer l'étape 14 du pipeline.")
+        else:
+            st.warning("Figure non affichee : son origine (k, date) est inconnue. "
+                       "Relancer l'étape 14 du pipeline pour la regenerer.")
     else:
         st.info(
             f"Image non disponible pour {PHASE_LABELS_PUB.get(sel_phase, sel_phase)}. "

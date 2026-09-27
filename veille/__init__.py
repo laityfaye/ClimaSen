@@ -1,4 +1,4 @@
-"""Veille pre-saison CLIMAT-SEN: bulletin annuel de niveau de risque.
+"""Veille pre-saison ClimatSen: bulletin annuel de niveau de risque.
 
 Chaque annee en avril, avant la saison des pluies, le bulletin repond a:
 "la saison qui vient sera-t-elle une annee extreme, comme 1999, 2005, 2010,

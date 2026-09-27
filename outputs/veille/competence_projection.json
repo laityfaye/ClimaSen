@@ -247,7 +247,8 @@
         "base": 0.325,
         "observe": 1
       }
-    ]
+    ],
+    "p_corrige_variantes": 0.064
   },
   "prevision_reelle": {
     "calculable": true,
@@ -413,14 +414,16 @@
         "base": 0.325,
         "observe": 1
       }
-    ]
+    ],
+    "p_corrige_variantes": 1.0
   },
-  "verdict": "signal physique present (validation LOYO) mais pas de competence demontree en prevision reelle: indication experimentale seulement",
+  "verdict": "pas de competence demontree en prevision reelle; signal LOYO suggestif (p=0.016 brut, 0.064 corrige pour 4 variantes)",
   "utilisable_seule": false,
   "methode": "V2: regression logistique (C=0.5) sur les correlations de motif entre l'etat SST nov-avr detrende et les 9 configurations K-Means reconstruites sur les annees d'apprentissage.",
   "calcule_le": "2026-09-26",
   "annees_etat": [
     1984,
     2023
-  ]
+  ],
+  "n_variantes_comparees": 4
 }

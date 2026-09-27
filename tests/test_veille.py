@@ -206,11 +206,31 @@ def test_c3s_fixe_le_niveau_et_la_confiance():
     b = mod_bulletin.composer(2027, projection=PROJ, c3s=c3s, competence_projection=COMP_PROJ)
     n = b["niveau_risque"]
     assert (n["code"], n["source"], n["confiance"]) == ("tres_eleve", "c3s", "moyenne")
+    assert mod_bulletin.presentation(n)["mode"] == "niveau"
+    assert "TRÈS ÉLEVÉ" in mod_bulletin.markdown(b)
     c3s["competence"]["p_permutation"] = 0.2
     b = mod_bulletin.composer(2027, projection=PROJ, c3s=c3s, competence_projection=COMP_PROJ)
     assert b["niveau_risque"]["confiance"] == "faible"
     md = mod_bulletin.markdown(b)
-    assert "TRÈS ÉLEVÉ" in md and "ECMWF" in md and "65 %" in md
+    assert "ECMWF" in md and "65 %" in md
+
+
+def test_competence_non_demontree_pas_de_niveau_affiche():
+    """Revue 27/09/2026 (V1): confiance faible -> probabilite indicative, jamais un niveau."""
+    c3s = {"disponible": True, "probabilite_annee_extreme": 0.65, "anomalie_standardisee": 1.2,
+           "part_membres_au_dessus_normale": 0.7, "centre": "ecmwf", "systeme": "51",
+           "pluie_jas_mm_jour": 6.1,
+           "competence": {"auc": 0.59, "p_permutation": 0.19, "brier_skill_score": 0.03, "n": 36}}
+    b = mod_bulletin.composer(2027, projection=PROJ, c3s=c3s, competence_projection=COMP_PROJ)
+    pres = mod_bulletin.presentation(b["niveau_risque"])
+    assert pres["mode"] == "probabilite" and pres["valeur"] == "65 %"
+    assert "non démontrée" in pres["note"]
+    md = mod_bulletin.markdown(b)
+    assert "TRÈS ÉLEVÉ" not in md and "Probabilité indicative" in md
+    assert "très élevé" not in b["synthese"] and "aucun niveau" in b["synthese"]
+    from veille import diffusion
+    assert "élevé" not in diffusion.sms(b).lower()
+    assert "indicative" in diffusion.sms(b)
 
 
 def test_bulletin_retrospectif_porte_sa_verification():

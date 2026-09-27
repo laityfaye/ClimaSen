@@ -63,7 +63,7 @@
       "p_permutation": 0.395,
       "brier_skill_score": 0.054
     },
-    "verdict": "signal physique présent (validation année exclue), mais pas de compétence démontrée en prévision réelle : indication expérimentale seulement",
+    "verdict": "signal suggestif en validation année exclue (p = 0.016, mais 0.06 une fois corrigé pour les 4 variantes comparées) et pas de compétence démontrée en prévision réelle : indication expérimentale seulement",
     "utilisable_seule": false,
     "methode": "V2: regression logistique (C=0.5) sur les correlations de motif entre l'etat SST nov-avr detrende et les 9 configurations K-Means reconstruites sur les annees d'apprentissage.",
     "calcule_le": "2026-09-26"

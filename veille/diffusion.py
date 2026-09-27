@@ -12,6 +12,7 @@ L'ecriture des fichiers passe par le protocole d'approbation de Jarvis
 approuve, le serveur ecrit dans outputs/veille/diffusion/.
 """
 from . import DOSSIER_SORTIE
+from .bulletin import presentation
 
 DOSSIER = DOSSIER_SORTIE / "diffusion"
 MAX_SMS = 320
@@ -22,7 +23,25 @@ CONSEILS = {
     "eleve": "Renforcer la préparation : curage des ouvrages, prépositionnement, information des quartiers exposés.",
     "tres_eleve": "Préparation renforcée recommandée dès mai-juin : plans de contingence, zones inondables, stocks.",
     "indetermine": "Aucune prévision officielle disponible : suivre les bulletins de l'ANACIM.",
+    # Probabilite sans competence demontree: aucun niveau, donc aucun conseil gradue.
+    "indicatif": "Aucun niveau de risque annoncé (compétence non démontrée) : vigilance "
+                 "habituelle de saison et bulletins de l'ANACIM.",
 }
+
+
+def _conseil(b):
+    pres = presentation(b["niveau_risque"])
+    return CONSEILS["indicatif"] if pres["mode"] == "probabilite" else CONSEILS[b["niveau_risque"]["code"]]
+
+
+def _titre(b):
+    """'risque d'annee extreme ELEVE' ou 'probabilite indicative 42 %' selon la competence."""
+    n, pres = b["niveau_risque"], presentation(b["niveau_risque"])
+    if pres["mode"] == "niveau":
+        return "risque d'année extrême %s" % n["libelle"]
+    if pres["mode"] == "probabilite":
+        return "probabilité indicative d'année extrême %s" % pres["valeur"]
+    return "pas encore de prévision"
 
 
 def _pct(p):
@@ -31,12 +50,14 @@ def _pct(p):
 
 def sms(b):
     """Message court (<= 320 caracteres)."""
-    n = b["niveau_risque"]
-    texte = ("CLIMAT-SEN veille %d : risque d'année extrême %s" % (b["annee"], n["libelle"].upper()))
-    if n["probabilite_annee_extreme"] is not None:
+    n, pres = b["niveau_risque"], presentation(b["niveau_risque"])
+    texte = "ClimatSen veille %d : %s" % (b["annee"], _titre(b))
+    if pres["mode"] == "niveau":
         texte += " (%s, réf. 33 %%, confiance %s)" % (_pct(n["probabilite_annee_extreme"]),
                                                        n["confiance"])
-    texte += ". " + CONSEILS[n["code"]] + " Alertes officielles : ANACIM."
+    elif pres["mode"] == "probabilite":
+        texte += " (réf. 33 %, compétence non démontrée)"
+    texte += ". " + _conseil(b) + " Alertes officielles : ANACIM."
     if len(texte) > MAX_SMS:
         texte = texte[:MAX_SMS - 1] + "…"
     return texte
@@ -56,11 +77,11 @@ def _fiabilite():
 
 def resume(b):
     """Resume d'une page (Markdown)."""
-    n = b["niveau_risque"]
+    n, pres = b["niveau_risque"], presentation(b["niveau_risque"])
     lignes = [
-        "# Veille pré-saison %d — risque d'année extrême : %s" % (b["annee"], n["libelle"]),
+        "# Veille pré-saison %d — %s" % (b["annee"], _titre(b)),
         "",
-        "**Émis le %s par CLIMAT-SEN.**" % b["emis_le"],
+        "**Émis le %s par ClimatSen.**" % b["emis_le"],
         "",
     ]
     if n["probabilite_annee_extreme"] is not None:
@@ -68,9 +89,11 @@ def resume(b):
                    _pct(n["probabilite_annee_extreme"]),
                    "- Source : prévision saisonnière Copernicus C3S calibrée sur CHIRPS",
                    "- Confiance : **%s**" % n["confiance"]]
+        if pres["mode"] == "probabilite":
+            lignes.append("- Compétence non démontrée : aucun niveau de risque n'est annoncé")
     else:
         lignes.append("- Niveau non déterminé : prévision officielle indisponible")
-    lignes += ["", "## Recommandation", "", CONSEILS[n["code"]], "", "## Synthèse", "",
+    lignes += ["", "## Recommandation", "", _conseil(b), "", "## Synthèse", "",
                b["synthese"], ""]
     fiab = _fiabilite()
     if fiab:
@@ -92,21 +115,24 @@ def docx(b, chemin):
     style.font.name = "Calibri"
     style.font.size = Pt(11)
     doc.add_heading("Bulletin de veille pré-saison — saison des pluies %d" % b["annee"], 0)
-    doc.add_paragraph("CLIMAT-SEN · émis le %s · statut : %s" % (b["emis_le"], b["statut"]))
+    doc.add_paragraph("ClimatSen · émis le %s · statut : %s" % (b["emis_le"], b["statut"]))
 
-    doc.add_heading("Niveau de risque d'année extrême", 1)
+    pres = presentation(n)
+    doc.add_heading(pres["titre"], 1)
     p = doc.add_paragraph()
-    run = p.add_run(n["libelle"].upper())
+    run = p.add_run(pres["valeur"].upper())
     run.bold = True
     run.font.size = Pt(20)
-    couleur = n["couleur"].lstrip("#")
+    couleur = pres["couleur"].lstrip("#")
     run.font.color.rgb = RGBColor(int(couleur[0:2], 16), int(couleur[2:4], 16), int(couleur[4:6], 16))
     if n["probabilite_annee_extreme"] is not None:
         doc.add_paragraph("Probabilité : %s (référence climatologique : 33 %%). Confiance : %s."
                           % (_pct(n["probabilite_annee_extreme"]), n["confiance"]))
 
     doc.add_heading("Recommandation", 1)
-    doc.add_paragraph(CONSEILS[n["code"]])
+    if pres["mode"] == "probabilite":
+        doc.add_paragraph("Compétence non démontrée : aucun niveau de risque n'est annoncé.")
+    doc.add_paragraph(_conseil(b))
 
     doc.add_heading("Synthèse", 1)
     doc.add_paragraph(b["synthese"])

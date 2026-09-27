@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Shared utilities for the SenRain Dashboard — loaders, helpers, palette."""
+"""Shared utilities for the ClimatSen dashboard — loaders, helpers, palette."""
 import io
 import os
 import subprocess
@@ -43,10 +43,20 @@ _ESRI_GRAY_TILES = (
 )
 
 
-def basemap(center_lat, center_lon, zoom, style=None):
-    """Configuration mapbox sans cle API (voir BASEMAP_STYLE)."""
+def basemap(center_lat, center_lon, zoom, style=None, dark=False):
+    """Configuration mapbox sans cle API (voir BASEMAP_STYLE).
+
+    dark=True : fond de la couleur des cartes du theme sombre au lieu du blanc
+    (revue 27/09/2026, point 15), toujours sans appel reseau.
+    """
     style = style or BASEMAP_STYLE
     center = dict(lat=center_lat, lon=center_lon)
+    if style == "white-bg" and dark:
+        return dict(
+            style={"version": 8, "sources": {}, "layers": [
+                {"id": "fond", "type": "background",
+                 "paint": {"background-color": "#1E293B"}}]},
+            center=center, zoom=zoom)
     if style == "esri-gray":
         return dict(
             style="white-bg",
@@ -453,8 +463,12 @@ def plotly_base(fig, h=300, muted="#64748B", border="#E2E8F0", text="#0F172A", c
         plot_bgcolor="rgba(0,0,0,0)",
         paper_bgcolor="rgba(0,0,0,0)",
         font=dict(family="Inter,sans-serif", size=11, color=muted),
-        xaxis=dict(showgrid=False, zeroline=False, tickfont=dict(size=11, color=muted)),
-        yaxis=dict(showgrid=True, gridcolor=border, zeroline=False, tickfont=dict(size=11, color=muted)),
+        # automargin : une etiquette longue ("Nino34", "Debut Mai-Jun") agrandit la
+        # marge au lieu d'etre coupee (revue 27/09/2026, point 12).
+        xaxis=dict(showgrid=False, zeroline=False, tickfont=dict(size=11, color=muted),
+                   automargin=True),
+        yaxis=dict(showgrid=True, gridcolor=border, zeroline=False, tickfont=dict(size=11, color=muted),
+                   automargin=True),
         hoverlabel=dict(bgcolor=card, font_color=text, font_size=12, bordercolor=border),
         legend=dict(orientation="h", y=-0.28, x=0.5, xanchor="center",
                     bgcolor="rgba(0,0,0,0)", borderwidth=0, font=dict(size=11, color=muted)),

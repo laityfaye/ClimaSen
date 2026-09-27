@@ -38,8 +38,11 @@ SCHEMA = {
     },
 }
 
-REGLE = ("Le niveau de risque n'est fixe que par la prevision C3S calibree. Sans elle il "
-         "est 'indetermine'. La probabilite de la projection oceanique est experimentale: "
+REGLE = ("Le niveau de risque n'est calcule que par la prevision C3S calibree. Sans elle il "
+         "est 'indetermine'. Tant que presentation.mode vaut 'probabilite' (competence C3S non "
+         "demontree: AUC 0,59, p = 0,19), NE PAS annoncer de niveau (faible/eleve...): donner la "
+         "probabilite indicative face a 33 % et dire que la competence n'est pas demontree. "
+         "Le niveau ne s'annonce que si presentation.mode vaut 'niveau'. La probabilite de la projection oceanique est experimentale: "
          "sa competence en prevision reelle n'est pas demontree (voir competence_projection); "
          "la citer comme une indication, jamais comme une prevision. Frequence de reference "
          "d'une annee extreme: 1 sur 3.")
@@ -65,6 +68,7 @@ def run(params, data):
         "emis_le": b["emis_le"],
         "statut": b["statut"],
         "niveau_risque": b["niveau_risque"],
+        "presentation": b.get("presentation"),
         "synthese": b["synthese"],
         "c3s": b.get("c3s"),
         "projection": {k: proj.get(k) for k in ("probabilite_experimentale", "configurations",
@@ -76,5 +80,5 @@ def run(params, data):
         "avertissements": b.get("avertissements"),
         "regle_interpretation": REGLE,
         "bulletins_disponibles": sorted(disponibles),
-        "source": "Veille pre-saison CLIMAT-SEN (outputs/veille/bulletin_%d.json)" % annee,
+        "source": "Veille pre-saison ClimatSen (outputs/veille/bulletin_%d.json)" % annee,
     }

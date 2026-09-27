@@ -243,7 +243,7 @@ def test_le_prompt_systeme_interdit_l_invention_de_chiffres():
     prompt = load_system_prompt("system_public")
     assert "Aucun chiffre sans outil" in prompt
     assert "appel d'outil" in prompt
-    assert "CLIMAT-SEN" in prompt
+    assert "ClimatSen" in prompt
 
 
 def test_le_prompt_systeme_declare_les_quatre_outils():

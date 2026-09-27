@@ -291,7 +291,7 @@ def run(year_start: int, year_end: int,
             "lon_min":    lon_min,
             "lon_max":    lon_max,
             "n_days":     int(precip_full.shape[0]),
-            "created_by": "SenRain Dashboard",
+            "created_by": "ClimatSen dashboard",
         })
 
         size_mb = out_path.stat().st_size / 1e6

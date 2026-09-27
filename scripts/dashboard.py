@@ -21,7 +21,7 @@ HAS_CARTOPY = _iutil.find_spec("cartopy") is not None
 
 # ─── Config ──────────────────────────────────────────────────────────────────
 st.set_page_config(
-    page_title="SenRain · Dashboard",
+    page_title="ClimatSen · Précipitations extrêmes au Sénégal",
     page_icon="🌧",
     layout="wide",
     initial_sidebar_state="expanded",
@@ -101,9 +101,9 @@ st.markdown("""
         '<div class="spl-inner">' +
         '<div class="spl-logo">CS</div>' +
         '<div class="spl-title">ClimatSen</div>' +
-        '<div class="spl-sub">Precipitations Extremes &middot; Senegal</div>' +
+        '<div class="spl-sub">Précipitations Extrêmes &middot; Sénégal</div>' +
         '<div class="spl-bwrap"><div class="spl-bar"></div></div>' +
-        '<div class="spl-hint">Chargement des donnees...</div>' +
+        '<div class="spl-hint">Chargement des données...</div>' +
         '</div>';
 
       var inject = function () {
@@ -131,7 +131,7 @@ BORDER  = "#E2E8F0"
 SIDEBAR_BG = "#13123B"
 
 PHASE_C = {"Phase_1_debut": BLUE, "Phase_2_pleine": INDIGO, "Phase_3_fin": AMBER}
-PHASE_L = {"Phase_1_debut": "Debut Mai-Jun", "Phase_2_pleine": "Pleine Jul-Aou", "Phase_3_fin": "Fin Sep-Oct"}
+PHASE_L = {"Phase_1_debut": "Début Mai-Jun", "Phase_2_pleine": "Pleine Jul-Août", "Phase_3_fin": "Fin Sep-Oct"}
 
 # ─── Dark mode state ─────────────────────────────────────────────────────────
 # Priorite : session_state (navigation interne) > query_params (refresh/nouvel onglet)
@@ -226,7 +226,7 @@ def load_sst():
 
 @st.cache_data
 def load_events_pixels():
-    """Charge les pixels des evenements specifiques pour cartographie."""
+    """Charge les pixels des événements specifiques pour cartographie."""
     p = BASE / "outputs/specific_events_qgis/all_specific_events_pixels.csv"
     if not p.exists():
         return None
@@ -234,7 +234,7 @@ def load_events_pixels():
 
 @st.cache_data
 def load_events_summary():
-    """Charge le resume statistique des evenements specifiques."""
+    """Charge le resume statistique des événements specifiques."""
     p = BASE / "outputs/specific_events_qgis/events_summary_statistics.csv"
     if not p.exists():
         return None
@@ -242,7 +242,7 @@ def load_events_summary():
 
 @st.cache_data
 def load_cluster_pixels():
-    """Charge les pixels des evenements representatifs par cluster."""
+    """Charge les pixels des événements representatifs par cluster."""
     p = BASE / "outputs/cluster_events_qgis/all_cluster_events_combined.csv"
     if not p.exists():
         return None
@@ -250,7 +250,7 @@ def load_cluster_pixels():
 
 @st.cache_data
 def load_dept_geojson():
-    """Charge le GeoJSON des departements du Senegal."""
+    """Charge le GeoJSON des departements du Sénégal."""
     import json
     p = BASE / "data/geographic/senegal_departments.geojson"
     if not p.exists():
@@ -537,7 +537,7 @@ def _apply_geo_traces(fig):
         ))
 
 
-with st.spinner("Chargement des donnees en cours..."):
+with st.spinner("Chargement des données en cours..."):
     df = load_events()
 
 # ─── Viewport : detectable uniquement via CSS (media queries deja en place) ───
@@ -597,6 +597,10 @@ st.markdown(f"""
 *, html, body, [class*="css"] {{
     font-family: 'Inter', sans-serif !important;
 }}
+/* Le reset ci-dessus ne doit pas toucher la police des icones Material. */
+[data-testid="stIconMaterial"], .material-symbols-rounded {{
+    font-family: "Material Symbols Rounded" !important;
+}}
 [data-testid="stAppViewContainer"] > .main {{
     background: {BG} !important;
     padding: 0 28px 40px 28px !important;
@@ -607,6 +611,15 @@ st.markdown(f"""
 }}
 .block-container, [data-testid="stMainBlockContainer"] {{
     padding-top: 0 !important;
+    /* Marge basse reservee a la bulle Jarvis (revue 27/09/2026, point 09) :
+       elle ne recouvre plus le bas du contenu. */
+    padding-bottom: 110px !important;
+}}
+@media (max-width: 768px) {{
+    /* Le bouton menu fixe (40 px, coin haut gauche) ne recouvre plus le titre. */
+    .block-container, [data-testid="stMainBlockContainer"] {{
+        padding-top: 56px !important;
+    }}
 }}
 /* Header : supprime completement */
 [data-testid="stHeader"] {{
@@ -775,7 +788,23 @@ section[data-testid="stSidebar"] [data-testid="stHorizontalBlock"]
     user-select: none;
     box-sizing: border-box;
 }}
-.nav-icon {{ font-size: 0.9rem; flex-shrink: 0; opacity: 0.85; }}
+.nav-icon {{ font-size: 1.15rem; flex-shrink: 0; opacity: 0.9; width: 1.25rem;
+             text-align: center; line-height: 1; }}
+.nav-icon.material-symbols-rounded {{
+    font-family: "Material Symbols Rounded" !important;
+    font-weight: 400; font-style: normal; letter-spacing: normal;
+    text-transform: none; white-space: nowrap; direction: ltr;
+    -webkit-font-feature-settings: "liga"; font-feature-settings: "liga";
+}}
+/* Meme taille de texte pour les boutons du menu que pour l'element actif. */
+section[data-testid="stSidebar"] [data-testid="stButton"] > button p {{
+    font-size: 0.875rem !important;
+    line-height: 1.4 !important;
+}}
+section[data-testid="stSidebar"] [data-testid="stButton"] > button [data-testid="stIconMaterial"] {{
+    font-size: 1.15rem !important;
+    width: 1.25rem !important;
+}}
 
 /* ── Nav boutons INACTIFS ── */
 section[data-testid="stSidebar"] [data-testid="stVerticalBlock"] > div
@@ -1010,6 +1039,15 @@ section[data-testid="stSidebar"] [data-baseweb="tag"] span {{
     opacity: 0.86 !important;
 }}
 
+/* Hierarchie : un libelle de filtre ne doit pas etre plus gros qu'un titre
+   de section (.pnl-ttl 0.88rem) - revue 27/09/2026, point 11. */
+[data-testid="stMainBlockContainer"] [data-testid="stWidgetLabel"] p {{
+    font-size: 0.76rem !important;
+}}
+[data-testid="stMainBlockContainer"] [data-testid="stCheckbox"] label p,
+[data-testid="stMainBlockContainer"] [data-testid="stRadio"] label p {{
+    font-size: 0.80rem !important;
+}}
 /* Selectbox */
 [data-baseweb="select"] > div {{
     border-radius: 9px !important;
@@ -1442,7 +1480,8 @@ div[data-testid="stButton"]:has(button[data-testid*="evt_reset"]) button:not(:di
     font-size: 0.70rem !important;
 }}
 
-/* ── Expander : corrige icone Material affichee en texte brut ── */
+/* ── Expander : l'icone Material garde sa police (regle stIconMaterial plus
+   haut) ; ne plus masquer le 1er span, qui porte aussi le libelle. ── */
 [data-testid="stExpander"] summary {{
     display: flex !important;
     align-items: center !important;
@@ -1451,21 +1490,9 @@ div[data-testid="stButton"]:has(button[data-testid*="evt_reset"]) button:not(:di
     cursor: pointer !important;
     gap: 6px !important;
 }}
-[data-testid="stExpanderToggleIcon"],
-[data-testid="stExpander"] summary > span:first-child {{
-    font-size: 0 !important;
-    line-height: 0 !important;
-    color: transparent !important;
-    width: 20px !important;
-    height: 20px !important;
-    flex-shrink: 0 !important;
-}}
-[data-testid="stExpanderToggleIcon"] svg,
-[data-testid="stExpander"] summary > span:first-child svg {{
-    width: 20px !important;
-    height: 20px !important;
-    color: #6B7280 !important;
-    display: block !important;
+[data-testid="stExpander"] summary p {{
+    color: {TEXT} !important;
+    font-size: 0.82rem !important;
 }}
 </style>
 """, unsafe_allow_html=True)
@@ -1753,7 +1780,7 @@ with st.sidebar:
             <div style="color:#FFFFFF;font-size:1rem;font-weight:700;
                         letter-spacing:-0.2px;line-height:1.15;">ClimatSen</div>
             <div style="color:#F0F2F5;font-size:0.66rem;margin-top:2px;">
-              Precipitations · Senegal
+              Précipitations · Sénégal
             </div>
           </div>
         </div>
@@ -1770,25 +1797,32 @@ with st.sidebar:
     # ── Navigation ────────────────────────────────────────────────────────────
     st.markdown('<span class="sb-sec-label">Menu</span>', unsafe_allow_html=True)
 
+    # Icones Material (une seule famille, monochromes) et libelles accentues ;
+    # la cle (1er element) reste celle qu'utilisent Jarvis et la navigation.
+    # Revue 27/09/2026, points 17-19.
     _NAV = [
-        ("Evenements",     "Evenements",     "🌧"),
-        ("Indices SST",    "Indices SST",    "🌊"),
-        ("Teleconnexions", "Teleconnexions", "🔗"),
-        ("Clustering",     "Clustering",     "◉"),
-        ("Veille",         "Veille pré-saison", "⚠"),
-        ("Pipeline",       "Pipeline",       "⚙"),
+        ("Evenements",     "Événements",        "rainy"),
+        ("Indices SST",    "Indices SST",       "waves"),
+        ("Teleconnexions", "Téléconnexions",    "hub"),
+        ("Clustering",     "Clustering",        "bubble_chart"),
+        ("Veille",         "Veille pré-saison", "notifications"),
+        ("Pipeline",       "Pipeline",          "settings"),
+        ("A propos",       "À propos",          "info"),
     ]
+    if st.session_state["nav_page"] not in {k for k, _, _ in _NAV}:
+        st.session_state["nav_page"] = "Evenements"
     for _pg_key, _pg_label, _icon in _NAV:
         if st.session_state["nav_page"] == _pg_key:
             st.markdown(
                 f'<div class="nav-item-active">'
-                f'<span class="nav-icon">{_icon}</span>{_pg_label}'
+                f'<span class="nav-icon material-symbols-rounded">{_icon}</span>{_pg_label}'
                 f'</div>',
                 unsafe_allow_html=True,
             )
         else:
             if st.button(
-                f"{_icon}  {_pg_label}",
+                _pg_label,
+                icon=f":material/{_icon}:",
                 key=f"nav_{_pg_key}",
                 use_container_width=True,
             ):
@@ -1797,38 +1831,6 @@ with st.sidebar:
                 st.rerun()
 
     page = st.session_state["nav_page"]
-
-    st.markdown("---")
-
-    # ── Equipe (bas de sidebar) ───────────────────────────────────────────────
-    st.markdown('<span class="sb-sec-label">Equipe</span>', unsafe_allow_html=True)
-
-    _TEAM = [
-        ("LF", "Laity FAYE",       "laity.faye@univ-thies.sn",       "#6366F1,#0EA5E9"),
-        ("FK", "François KALY",  "francois.kaly@univ-thies.sn",    "#10B981,#0EA5E9"),
-        ("MD", "Moussa DIAKHATE",  "moussa.diakhate@uam.edu.sn",     "#F59E0B,#F43F5E"),
-    ]
-    _team_html = ""
-    for _ini, _name, _mail, _grad in _TEAM:
-        _team_html += f"""
-        <div style="display:flex;align-items:center;gap:10px;
-                    padding:9px 12px;margin-bottom:5px;
-                    background:rgba(255,255,255,0.07);
-                    border:1px solid rgba(255,255,255,0.11);
-                    border-radius:11px;">
-          <div style="width:34px;height:34px;border-radius:50%;flex-shrink:0;
-                      background:linear-gradient(135deg,{_grad});
-                      display:flex;align-items:center;justify-content:center;
-                      font-size:0.76rem;font-weight:800;color:#FFFFFF;">{_ini}</div>
-          <div style="min-width:0;flex:1;">
-            <div style="color:#FFFFFF;font-size:0.80rem;font-weight:600;
-                        line-height:1.2;">{_name}</div>
-            <div style="color:#94A3B8;font-size:0.62rem;margin-top:2px;
-                        white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
-              {_mail}</div>
-          </div>
-        </div>"""
-    st.markdown(_team_html, unsafe_allow_html=True)
 
 year_range = (int(df["year"].min()), int(df["year"].max()))
 phases_sel = ["Phase_1_debut", "Phase_2_pleine", "Phase_3_fin"]
@@ -1861,6 +1863,7 @@ import pages.indices_sst    as _pg_indices_sst
 import pages.clustering     as _pg_clustering
 import pages.pipeline       as _pg_pipeline
 import pages.veille_presaison as _pg_veille
+import pages.a_propos       as _pg_a_propos
 
 _page_kw = dict(
     BG=BG, CARD=CARD, TEXT=TEXT, MUTED=MUTED, BORDER=BORDER,
@@ -1880,6 +1883,8 @@ elif page == "Pipeline":
     _pg_pipeline.run(**_page_kw)
 elif page == "Veille":
     _pg_veille.run(**_page_kw)
+elif page == "A propos":
+    _pg_a_propos.run(**_page_kw)
 
 # =============================================================================
 # JARVIS - bulle d'assistant (Phase 1)

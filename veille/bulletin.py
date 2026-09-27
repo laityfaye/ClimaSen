@@ -3,9 +3,10 @@
 
 Regles fixes, ecrites ici une fois pour toutes:
 
-  NIVEAU DE RISQUE: fixe par la probabilite d'annee extreme issue de C3S
-  (seule source a competence mesurable en prevision reelle), par rapport a
-  la frequence climatologique d'une annee extreme (1/3):
+  NIVEAU DE RISQUE: calcule a partir de la probabilite d'annee extreme issue
+  de C3S (la seule source evaluee en prevision reelle sur une longue periode,
+  mais SANS competence demontree a ce jour: AUC LOYO 0,59, p = 0,19), par
+  rapport a la frequence climatologique d'une annee extreme (1/3):
       p < 0,20        faible
       0,20 - 0,40     normal (proche de la climatologie)
       0,40 - 0,60     eleve
@@ -17,6 +18,12 @@ Regles fixes, ecrites ici une fois pour toutes:
   CONFIANCE: "moyenne" si la calibration C3S est significative en LOYO
   (p < 0,05) avec un Brier skill score positif, "faible" sinon. Jamais
   "forte": 36 annees de retro-prevision ne le permettent pas.
+
+  AFFICHAGE (presentation()): le niveau colore n'est MONTRE que si la
+  competence est demontree (confiance "moyenne"). Sinon on affiche une
+  probabilite indicative face a la reference de 33 %, avec la mention
+  "competence non demontree". Le code du niveau reste calcule (carnet de
+  fiabilite, archives), mais n'est pas presente comme une prevision.
 
 Le texte de synthese est compose par le code a partir des chiffres, sans
 modele de langage: rien ne peut y etre invente.
@@ -51,6 +58,30 @@ def niveau(p):
     return NIVEAUX[-1][1], NIVEAUX[-1][2]
 
 
+def presentation(n):
+    """Comment afficher niveau_risque (derive a la lecture: vaut aussi pour les
+    bulletins archives). Renvoie {"mode", "titre", "valeur", "couleur", "note"}.
+
+    mode "niveau": competence demontree, niveau colore.
+    mode "probabilite": probabilite indicative, couleur neutre.
+    mode "indetermine": aucune source.
+    """
+    p = n.get("probabilite_annee_extreme")
+    if p is None or n.get("code") == "indetermine":
+        return {"mode": "indetermine", "titre": "Pas encore de prévision",
+                "valeur": "—", "couleur": COULEURS["indetermine"],
+                "note": "en moyenne, 1 saison sur 3 est extrême"}
+    src = "C3S" if n.get("source") == "c3s" else "projection océanique"
+    if n.get("confiance") == "moyenne":
+        return {"mode": "niveau", "titre": "Niveau de risque", "valeur": n["libelle"],
+                "couleur": n["couleur"],
+                "note": "probabilité %s (référence 33 %%) · %s · confiance moyenne" % (
+                    _pct(p), src)}
+    return {"mode": "probabilite", "titre": "Probabilité indicative d'année extrême",
+            "valeur": _pct(p), "couleur": COULEURS["indetermine"],
+            "note": "référence 33 %% · %s · compétence non démontrée" % src}
+
+
 def confiance(competence):
     if not competence:
         return "faible"
@@ -69,9 +100,17 @@ def verdict_fr(cp):
         return ""
     if cp.get("utilisable_seule"):
         return "compétence démontrée en prévision réelle"
-    if (cp.get("loyo") or {}).get("p_permutation", 1) < 0.05:
+    lo = cp.get("loyo") or {}
+    p = lo.get("p_permutation", 1)
+    # Revue 27/09/2026 (V2): 4 variantes comparees -> p corrige (Bonferroni).
+    pc = lo.get("p_corrige_variantes", min(1.0, 4 * p))
+    if pc < 0.05:
         return ("signal physique présent (validation année exclue), mais pas de compétence "
                 "démontrée en prévision réelle : indication expérimentale seulement")
+    if p < 0.05:
+        return ("signal suggestif en validation année exclue (p = %.3f, mais %.2f une fois "
+                "corrigé pour les 4 variantes comparées) et pas de compétence démontrée en "
+                "prévision réelle : indication expérimentale seulement" % (p, pc))
     return "pas de compétence démontrée"
 
 
@@ -152,7 +191,8 @@ def composer(annee, projection=None, c3s=None, competence_projection=None,
 def _resume_competence(comp):
     if not comp:
         return None
-    garde = ("n", "annees_extremes", "auc", "p_permutation", "brier_skill_score", "calculable")
+    garde = ("n", "annees_extremes", "auc", "p_permutation", "p_corrige_variantes",
+             "brier_skill_score", "calculable")
     return {
         "loyo": {k: v for k, v in comp.get("loyo", {}).items() if k in garde},
         "prevision_reelle": {k: v for k, v in comp.get("prevision_reelle", {}).items() if k in garde},
@@ -168,12 +208,19 @@ def synthese(b):
     phrases = []
     n = b["niveau_risque"]
     annee = b["annee"]
-    if n["code"] == "indetermine":
+    pres = presentation(n)
+    src = ("prévision saisonnière Copernicus C3S" if n["source"] == "c3s"
+           else "projection de l'état océanique")
+    if pres["mode"] == "indetermine":
         phrases.append("Saison %d : niveau de risque non déterminé, faute de prévision "
                        "saisonnière officielle (Copernicus C3S) disponible." % annee)
+    elif pres["mode"] == "probabilite":
+        phrases.append("Saison %d : probabilité indicative d'année extrême %s, contre %s en "
+                       "moyenne, d'après la %s. Sa compétence n'est pas démontrée : aucun "
+                       "niveau de risque n'est annoncé." % (
+                           annee, _pct(n["probabilite_annee_extreme"]),
+                           _pct(b["contexte"]["base_climatologique"]), src))
     else:
-        src = ("prévision saisonnière Copernicus C3S" if n["source"] == "c3s"
-               else "projection de l'état océanique")
         phrases.append("Saison %d : risque d'année extrême %s (probabilité %s, contre %s en "
                        "moyenne), d'après la %s. Confiance %s." % (
                            annee, n["libelle"].lower(), _pct(n["probabilite_annee_extreme"]),
@@ -240,12 +287,19 @@ def markdown(b):
     lignes = [
         "# Bulletin de veille pré-saison — saison des pluies %d" % b["annee"],
         "",
-        "*CLIMAT-SEN · émis le %s · statut : %s*" % (b["emis_le"], b["statut"]),
-        "",
-        "## Niveau de risque d'année extrême : **%s**" % n["libelle"].upper(),
+        "*ClimatSen · émis le %s · statut : %s*" % (b["emis_le"], b["statut"]),
         "",
     ]
-    if n["probabilite_annee_extreme"] is not None:
+    pres = presentation(n)
+    if pres["mode"] == "niveau":
+        lignes += ["## Niveau de risque d'année extrême : **%s**" % n["libelle"].upper(), ""]
+    elif pres["mode"] == "probabilite":
+        lignes += ["## Probabilité indicative d'année extrême : **%s** (référence 33 %%)"
+                   % pres["valeur"], "",
+                   "*Compétence non démontrée : aucun niveau de risque n'est annoncé.*", ""]
+    else:
+        lignes += ["## Pas encore de prévision pour cette saison", ""]
+    if pres["mode"] == "niveau":
         lignes.append("Probabilité : **%s** (référence : 33 %%) · source : %s · confiance : %s" % (
             _pct(n["probabilite_annee_extreme"]), n["source"], n["confiance"]))
         lignes.append("")

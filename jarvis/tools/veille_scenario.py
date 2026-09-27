@@ -118,7 +118,7 @@ def run(params, data):
                       "prevision: la projection n'a pas de competence demontree en "
                       "prevision reelle (AUC ~0,53). Une perturbation uniforme dans une "
                       "boite est une simplification: l'ocean reel ne change pas ainsi."),
-        "source": "Kit de scenario du bulletin %d (veille pre-saison CLIMAT-SEN)" % annee,
+        "source": "Kit de scenario du bulletin %d (veille pre-saison ClimatSen)" % annee,
     }
     if par_defaut:
         # Sans annee demandee, on part du kit le plus recent: ce n'est pas

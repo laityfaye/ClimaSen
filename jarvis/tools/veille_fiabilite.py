@@ -46,7 +46,7 @@ def run(params, data):
         except (TypeError, ValueError):
             raise ToolInputError("compare_years: deux annees entieres.")
         return {"comparaison": fiabilite.comparer(a, b),
-                "source": "Bulletins de veille pre-saison CLIMAT-SEN"}
+                "source": "Bulletins de veille pre-saison ClimatSen"}
 
     carnet = fiabilite.carnet()
     if not carnet.get("disponible"):
@@ -59,8 +59,8 @@ def run(params, data):
                                  % (annee, carnet["periode"][0], carnet["periode"][1]))
         return {"saison": ligne, "bilan_global": carnet["niveau_de_risque"],
                 "lecture": carnet["lecture"],
-                "source": "Bulletins de veille pre-saison CLIMAT-SEN"}
+                "source": "Bulletins de veille pre-saison ClimatSen"}
     sortie = dict(carnet)
     sortie.pop("saisons")          # le detail annee par annee: parametre year
-    sortie["source"] = "Bulletins de veille pre-saison CLIMAT-SEN"
+    sortie["source"] = "Bulletins de veille pre-saison ClimatSen"
     return sortie

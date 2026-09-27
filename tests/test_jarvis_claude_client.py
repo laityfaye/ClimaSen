@@ -119,7 +119,7 @@ async def test_absence_de_cle_api_ne_tente_aucun_appel(settings):
 
 def test_le_prompt_public_pose_les_garde_fous():
     prompt = load_system_prompt("system_public")
-    for regle in ["Aucun chiffre sans outil", "causalité", "CLIMAT-SEN"]:
+    for regle in ["Aucun chiffre sans outil", "causalité", "ClimatSen"]:
         assert regle in prompt
 
 

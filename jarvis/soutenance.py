@@ -1,4 +1,4 @@
-"""Mode soutenance: une presentation guidee de CLIMAT-SEN par Jarvis.
+"""Mode soutenance: une presentation guidee de ClimatSen par Jarvis.
 
 Jarvis deroule le travail etape par etape: il ouvre la bonne page du
 dashboard, affiche la figure en grand et la commente a voix haute. Le jury
@@ -76,7 +76,7 @@ def _probleme(data, figures, sid):
                     "significative (Mann-Kendall, %s) : pas de hausse démontrée."
                     % (fr(pente, 1), _p(p)))
     rec = r.get("annee_record") or {}
-    texte = ("CLIMAT-SEN étudie les pluies extrêmes au Sénégal. Sur les données "
+    texte = ("ClimatSen étudie les pluies extrêmes au Sénégal. Sur les données "
              "CHIRPS de %d à %d, %d événements dépassent deux écarts-types de la "
              "normale journalière. L'année record est %s, avec %s événements. %s"
              % (r["periode"][0], r["periode"][1], r["n_evenements"],

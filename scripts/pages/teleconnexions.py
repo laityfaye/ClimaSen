@@ -12,17 +12,17 @@ from dashboard_utils import (
 )
 
 PHASE_TC_L = {
-    "Phase_1_debut":  "Phase 1 - Debut (Mai-Jun)",
-    "Phase_2_pleine": "Phase 2 - Pleine (Jul-Aou)",
+    "Phase_1_debut":  "Phase 1 - Début (Mai-Jun)",
+    "Phase_2_pleine": "Phase 2 - Pleine (Jul-Août)",
     "Phase_3_fin":    "Phase 3 - Fin (Sep-Oct)",
     "Toutes phases":  "Toutes les phases",
 }
 METRIC_L = {
-    "max_precip":       "Precipitation max (mm)",
-    "mean_precip":      "Precipitation moyenne (mm)",
+    "max_precip":       "Précipitation max (mm)",
+    "mean_precip":      "Précipitation moyenne (mm)",
     "max_anomaly":      "Anomalie max (sigma)",
     "coverage_percent": "Couverture spatiale (%)",
-    "n_events":         "Nombre d'evenements",
+    "n_events":         "Nombre d'événements",
 }
 LAGS_ALL = [0, 1, 2, 3, 4, 5]
 IDX_GROUP = {
@@ -51,18 +51,18 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
             },
         }
 
-    with st.spinner("Chargement des teleconnexions..."):
+    with st.spinner("Chargement des téléconnexions..."):
         tc_data = load_telecon()
 
     # ── Header ────────────────────────────────────────────────────────────
     st.markdown(f"""
     <div class="pg-hdr">
       <div>
-        <p class="pg-bc">Dashboard &nbsp;/&nbsp; <b>Teleconnexions</b></p>
-        <h1 class="pg-ttl">Teleconnexions SST - Precipitations Extremes</h1>
+        <p class="pg-bc">Dashboard &nbsp;/&nbsp; <b>Téléconnexions</b></p>
+        <h1 class="pg-ttl">Téléconnexions SST - Précipitations Extrêmes</h1>
         <p class="pg-sub">
           Series <b>annuelles</b> (interannuel) &nbsp;&middot;&nbsp;
-          Correlations Pearson &amp; Spearman · Correction AR1 (p<sub>neff</sub>)
+          Corrélations Pearson &amp; Spearman · Correction AR1 (p<sub>neff</sub>)
           &nbsp;&middot;&nbsp; Lags 0-5 mois &nbsp;&middot;&nbsp; 11 indices SST
           &nbsp;&middot;&nbsp; ~41 ans (1983-2023)
         </p>
@@ -72,11 +72,35 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
 
     all_indices = [i for grp in IDX_GROUP.values() for i in grp]
 
+    # ── Reglages communs a toute la page (revue 27/09/2026, point 10) ─────
+    # Un seul jeu : il commande les deux heatmaps et les deux tops.
+    st.markdown('<p class="pnl-sub" style="margin:10px 0 2px 0;">'
+                '<b>R&eacute;glages de l&#39;analyse</b> &middot; valent pour toute la page</p>',
+                unsafe_allow_html=True)
+    ga, gb, gc = st.columns([1.3, 1.2, 2.2], gap="small")
+    with ga:
+        tc_type = st.selectbox("Coefficient", ["Pearson", "Spearman"], key="tc_type")
+    with gb:
+        st.markdown("<div style='height:30px'></div>", unsafe_allow_html=True)
+        show_sig = st.checkbox("Significatives seulement", value=False, key="tc_show_sig")
+    with gc:
+        p_mode = st.radio(
+            "Significativité",
+            options=["p brute", "p neff (AR1)"],
+            index=1,
+            horizontal=True,
+            key="tc_p_mode",
+            help="p neff (AR1) : corrigée pour l'autocorrelation (Chelton 1983) -- recommandée\n"
+                 "p brute : p-value nominale sans correction",
+        )
+    use_p_brute = (p_mode == "p brute")
+    lag0_type, lag0_show_sig, use_p_brute0 = tc_type, show_sig, use_p_brute
+
     st.markdown("<div style='height:14px'></div>", unsafe_allow_html=True)
 
     # ── Heatmaps lag 0 : tous indices x toutes metriques, par phase ─────────
     st.markdown(
-        '<p class="pnl-ttl">Heatmaps des correlations au lag 0 - indices x metriques, par phase</p>',
+        '<p class="pnl-ttl">Heatmaps des corrélations au lag 0 - indices x métriques, par phase</p>',
         unsafe_allow_html=True,
     )
 
@@ -85,36 +109,21 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
         "mean_precip":      "Precip moy",
         "max_anomaly":      "Anomalie max",
         "coverage_percent": "Couverture %",
-        "n_events":         "N evenements",
+        "n_events":         "N événements",
     }
     metrics_order = list(METRIC_L.keys())
     metrics_labels = [METRIC_SHORT[m] for m in metrics_order]
     phase_keys_lag0 = list(PHASE_TC_L.keys())
 
-    la0a, la0b, la0c, la0d = st.columns([2, 1.5, 1.3, 2], gap="small")
+    la0a, _la0_vide = st.columns([2, 4.8], gap="small")
     with la0a:
         lag0_phase_sel = st.selectbox(
-            "Phase saisonniere",
+            "Phase saisonnière",
             options=phase_keys_lag0,
             format_func=lambda x: PHASE_TC_L[x],
             index=phase_keys_lag0.index("Toutes phases"),
             key="lag0_phase_sel",
         )
-    with la0b:
-        lag0_type = st.selectbox("Type", ["Pearson", "Spearman"], key="lag0_type")
-    with la0c:
-        lag0_show_sig = st.checkbox("Sig. seulement", value=False, key="lag0_show_sig")
-    with la0d:
-        lag0_p_mode = st.radio(
-            "Significativite",
-            options=["p brute", "p neff (AR1)"],
-            index=1,
-            horizontal=True,
-            key="lag0_p_mode",
-            help="p neff (AR1) : corrigee pour l'autocorrelation (Chelton 1983) -- recommandee\n"
-                 "p brute : p-value nominale sans correction",
-        )
-        use_p_brute0 = (lag0_p_mode == "p brute")
 
     r_col0        = "pearson_r"        if lag0_type == "Pearson" else "spearman_r"
     p_neff_col0   = "pearson_p_neff"   if lag0_type == "Pearson" else "spearman_p_neff"
@@ -122,7 +131,7 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
     p_active_col0 = p_nom_col0 if use_p_brute0 else p_neff_col0
 
     if use_p_brute0:
-        star_label0 = 'p<sub>brute</sub> (non corrigee)'
+        star_label0 = 'p<sub>brute</sub> (non corrigée)'
         star_color0 = "#60A5FA"
     else:
         star_label0 = 'p<sub>neff</sub> (AR1 Chelton)'
@@ -130,7 +139,7 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
 
     st.markdown(
         f'<p class="pnl-sub">'
-        f'Lag 0 uniquement &nbsp;&middot;&nbsp; Toutes les metriques &nbsp;&middot;&nbsp; '
+        f'Lag 0 uniquement &nbsp;&middot;&nbsp; Toutes les métriques &nbsp;&middot;&nbsp; '
         f'Couleur = coefficient r ({lag0_type}) &nbsp;&middot;&nbsp; Etoiles = {star_label0} : '
         f'<b style="color:{star_color0};">*</b> &lt;0,05 &nbsp; '
         f'<b style="color:{star_color0};">**</b> &lt;0,01 &nbsp; '
@@ -191,7 +200,7 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
             text=cell_text,
             customdata=customdata,
             texttemplate="%{text}",
-            textfont=dict(size=10, color="white"),
+            textfont=dict(size=10),  # couleur auto (contraste) : lisible sur cellules claires
             colorscale=[
                 [0.0,  "#7F1D1D"],
                 [0.2,  "#C2410C"],
@@ -218,7 +227,7 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
                 "r = %{z:.3f}<br>"
                 "p brute = %{customdata[0]}<br>"
                 "p_neff (AR1) = %{customdata[1]}<br>"
-                "n (annees) = %{customdata[3]} &nbsp; n_eff = %{customdata[2]}"
+                "n (années) = %{customdata[3]} &nbsp; n_eff = %{customdata[2]}"
                 "<extra></extra>"
             ),
         ))
@@ -276,6 +285,7 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
 
     with hm0_col:
         fig_lag0 = _build_lag0_metric_heatmap(lag0_phase_sel)
+        fig_lag0.update_xaxes(automargin=True).update_yaxes(automargin=True)
         st.plotly_chart(
             fig_lag0, use_container_width=True,
             config=_CHART_CFG(f"heatmap_lag0_{lag0_phase_sel}"),
@@ -284,9 +294,9 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
     with top0_col:
         _top0_p_label = "p<sub>neff</sub> (AR1)" if not use_p_brute0 else "p<sub>brute</sub>"
         st.markdown(
-            '<p class="pnl-ttl">Top 8 correlations</p>'
+            '<p class="pnl-ttl">Top 8 corrélations</p>'
             f'<p class="pnl-sub">Lag 0 &nbsp;&middot;&nbsp; {PHASE_TC_L[lag0_phase_sel]} &nbsp;&middot;&nbsp; '
-            f'valeurs absolues · toutes metriques · etoiles = {_top0_p_label}</p>',
+            f'valeurs absolues · toutes métriques · etoiles = {_top0_p_label}</p>',
             unsafe_allow_html=True,
         )
 
@@ -347,10 +357,10 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
     st.markdown("<div style='height:6px'></div>", unsafe_allow_html=True)
 
     # ── Filtres inline ─────────────────────────────────────────────────────
-    fa, fb, fc, fd, fe = st.columns([2, 2, 1.5, 1.5, 2], gap="small")
+    fa, fb, _f_vide = st.columns([2, 2, 2.8], gap="small")
     with fa:
         tc_phase = st.selectbox(
-            "Phase saisonniere",
+            "Phase saisonnière",
             options=list(PHASE_TC_L.keys()),
             format_func=lambda x: PHASE_TC_L[x],
             index=list(PHASE_TC_L.keys()).index("Toutes phases"),
@@ -358,26 +368,11 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
         )
     with fb:
         tc_metric = st.selectbox(
-            "Metrique",
+            "Métrique",
             options=list(METRIC_L.keys()),
             format_func=lambda x: METRIC_L[x],
             key="tc_metric",
         )
-    with fc:
-        tc_type = st.selectbox("Type", ["Pearson", "Spearman"], key="tc_type")
-    with fd:
-        show_sig = st.checkbox("Sig. seulement", value=False, key="tc_show_sig")
-    with fe:
-        p_mode = st.radio(
-            "Significativite",
-            options=["p brute", "p neff (AR1)"],
-            index=1,
-            horizontal=True,
-            key="tc_p_mode",
-            help="p neff (AR1) : corrigee pour l'autocorrelation (Chelton 1983) -- recommandee\n"
-                 "p brute : p-value nominale sans correction",
-        )
-        use_p_brute = (p_mode == "p brute")
 
     r_col       = "pearson_r"        if tc_type == "Pearson" else "spearman_r"
     p_neff_col  = "pearson_p_neff"   if tc_type == "Pearson" else "spearman_p_neff"
@@ -387,14 +382,14 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
 
     df_tc = tc_data.get(tc_phase, pd.DataFrame())
     if df_tc.empty:
-        st.warning("Donnees non disponibles pour cette phase.")
+        st.warning("Données non disponibles pour cette phase.")
         st.stop()
 
     df_m = df_tc[df_tc["metric"] == tc_metric].copy()
     lags_shown = LAGS_ALL
 
     if use_p_brute:
-        star_label = 'p<sub>brute</sub> (non corrigee)'
+        star_label = 'p<sub>brute</sub> (non corrigée)'
         star_color = "#60A5FA"
     else:
         star_label = 'p<sub>neff</sub> (AR1 Chelton)'
@@ -407,7 +402,7 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
 
     with hm_col:
         st.markdown(
-            '<p class="pnl-ttl">Heatmap des correlations par indice et lag</p>'
+            '<p class="pnl-ttl">Heatmap des corrélations par indice et lag</p>'
             f'<p class="pnl-sub">'
             f'Couleur = coefficient r &nbsp;&middot;&nbsp; Etoiles = {star_label} : '
             f'<b style="color:{star_color};">*</b> &lt;0,05 &nbsp; '
@@ -473,7 +468,7 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
             text=cell_text,
             customdata=customdata_mat,
             texttemplate="%{text}",
-            textfont=dict(size=10, color="white"),
+            textfont=dict(size=10),  # couleur auto (contraste) : lisible sur cellules claires
             colorscale=[
                 [0.0,  "#7F1D1D"],
                 [0.2,  "#C2410C"],
@@ -500,7 +495,7 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
                 "r = %{z:.3f}<br>"
                 "p brute = %{customdata[0]}<br>"
                 "p_neff (AR1) = %{customdata[1]}<br>"
-                "n (annees) = %{customdata[3]} &nbsp; n_eff = %{customdata[2]}"
+                "n (années) = %{customdata[3]} &nbsp; n_eff = %{customdata[2]}"
                 "<extra></extra>"
             ),
         ))
@@ -555,13 +550,14 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
             ),
             annotations=annotations,
         )
+        fig_hm.update_xaxes(automargin=True).update_yaxes(automargin=True)
         st.plotly_chart(fig_hm, use_container_width=True, config=_CHART_CFG("heatmap_correlations"))
 
     # ── Top correlations ───────────────────────────────────────────────────
     with top_col:
         _top_p_label = "p<sub>neff</sub> (AR1)" if not use_p_brute else "p<sub>brute</sub>"
         st.markdown(
-            '<p class="pnl-ttl">Top 8 correlations</p>'
+            '<p class="pnl-ttl">Top 8 corrélations</p>'
             '<p class="pnl-sub">Valeurs absolues · tous lags · '
             f'etoiles = {_top_p_label} sur chaque ligne (comme la heatmap)</p>',
             unsafe_allow_html=True,
@@ -624,8 +620,8 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
     _profil_p_label = "p<sub>neff</sub> (AR1 Chelton)" if not use_p_brute else "p<sub>brute</sub>"
     _profil_star_clr = "#F59E0B" if not use_p_brute else "#60A5FA"
     st.markdown(
-        '<p class="pnl-ttl">Profil de correlation par indice (r vs lag)</p>'
-        '<p class="pnl-sub">Evolution du coefficient r en fonction du decalage temporel'
+        '<p class="pnl-ttl">Profil de corrélation par indice (r vs lag)</p>'
+        '<p class="pnl-sub">Évolution du coefficient r en fonction du decalage temporel'
         f' &nbsp;&middot;&nbsp; <span style="color:{_profil_star_clr};">&#9733;</span> = significatif '
         f'({_profil_p_label} : 0,05 / 0,01 / 0,001)</p>',
         unsafe_allow_html=True,
@@ -776,115 +772,59 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
     else:
         common_years = []
 
-    # ── Calibrage des plages pour aligner les deux zeros ──────────────────
+    # ── Plage symetrique de l'axe SST ──────────────────────────────────────
     import numpy as _np
     if not sst_annual.empty and avail_sst:
         _v = sst_annual[avail_sst].values.flatten()
-        sst_ylim = float(_np.nanmax(_np.abs(_v))) * 1.35 or 1.5
+        sst_ylim = float(_np.nanmax(_np.abs(_v))) * 1.15 or 1.5
     else:
         sst_ylim = 1.5
 
-    _max_evts = float(pivot_m.values.max()) if not pivot_m.empty else 15.0
-    # Barres contraintes a ~15 % de la demi-hauteur positive (x2 vs precedent)
-    # => echelle SST visuellement x2 superieure aux barres
-    evts_ylim = _max_evts / 0.15
-
-    # Ticks seulement jusqu'au vrai max des evenements (pas jusqu'a evts_ylim)
-    _max_evts_int = max(1, int(_max_evts))
-    _step_t = max(1, round(_max_evts_int / 5))
-    _tvals  = list(range(0, _max_evts_int + 1, _step_t))
-    if _tvals[-1] != _max_evts_int:
-        _tvals.append(_max_evts_int)
-    _ttxt = [str(v) for v in _tvals]
-
-    # ── Figure unique, double axe Y superposes au meme zero ───────────────
-    fig_cb = go.Figure()
-
-    # Barres (yaxis2, range symetrique => zero au milieu => barres dans la moitie haute)
-    for mname in pivot_m.columns:
-        fig_cb.add_trace(go.Bar(
-            x=pivot_m.index.tolist(),
-            y=pivot_m[mname].tolist(),
-            name=mname,
-            yaxis="y2",
-            marker_color=MONTH_CLR_TC[mname],
-            marker_line_width=0,
-            opacity=0.70,
-            hovertemplate=f"<b>{mname}</b> · %{{x}} : %{{y}} evt<extra></extra>",
-        ))
-
-    # Lignes SST (yaxis gauche, range symetrique => zero au milieu)
+    # ── Deux graphiques alignes sur le meme axe des annees ────────────────
+    # (revue 27/09/2026, point 07 : l'ancien double axe superposait 4 courbes
+    # et 6 series de barres, avec un titre d'axe droit illisible.)
+    from plotly.subplots import make_subplots
+    fig_cb = make_subplots(rows=2, cols=1, shared_xaxes=True, vertical_spacing=0.08,
+                           row_heights=[0.55, 0.45],
+                           subplot_titles=("Anomalie SST moyenne des mois de la phase (°C)",
+                                           "Événements extrêmes par année (empilés par mois)"))
     for ci, idx in enumerate(avail_sst):
         clr = COLORS_TS[ci % len(COLORS_TS)]
         fig_cb.add_trace(go.Scatter(
-            x=sst_annual["year"],
-            y=sst_annual[idx],
-            mode="lines+markers",
-            name=idx,
-            yaxis="y",
-            line=dict(color=clr, width=2),
-            marker=dict(size=4, color=clr),
-            hovertemplate=(
-                f"<b>{idx}</b><br>%{{x}}<br>Anom moy. = %{{y:.3f}} degC<extra></extra>"
-            ),
-        ))
-
-    # Ligne zero commune (reference climatologique)
-    fig_cb.add_hline(y=0, yref="y",
-                     line=dict(color=MUTED, width=1.2, dash="dot"))
-
+            x=sst_annual["year"], y=sst_annual[idx], mode="lines+markers", name=idx,
+            legendgroup="sst", legendgrouptitle_text="Indices SST",
+            line=dict(color=clr, width=2), marker=dict(size=4, color=clr),
+            hovertemplate=f"<b>{idx}</b><br>%{{x}}<br>Anom moy. = %{{y:.3f}} °C<extra></extra>",
+        ), row=1, col=1)
+    fig_cb.add_hline(y=0, line=dict(color=MUTED, width=1.2, dash="dot"), row=1, col=1)
+    for mname in pivot_m.columns:
+        fig_cb.add_trace(go.Bar(
+            x=pivot_m.index.tolist(), y=pivot_m[mname].tolist(), name=mname,
+            legendgroup="mois", legendgrouptitle_text="Mois",
+            marker_color=MONTH_CLR_TC[mname], marker_line_width=0,
+            hovertemplate=f"<b>{mname}</b> · %{{x}} : %{{y}} evt<extra></extra>",
+        ), row=2, col=1)
     fig_cb.update_layout(
-        height=400,
-        barmode="group",
-        bargap=0.15,
-        bargroupgap=0.05,
-        margin=dict(l=4, r=60, t=28, b=40),
-        plot_bgcolor="rgba(0,0,0,0)",
-        paper_bgcolor="rgba(0,0,0,0)",
+        height=520, barmode="stack", bargap=0.2,
+        margin=dict(l=4, r=4, t=40, b=30),
+        plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
         font=dict(family="Inter,sans-serif", size=11, color=MUTED),
         hoverlabel=dict(bgcolor=CARD, font_color=TEXT, font_size=12, bordercolor=BORDER),
-        legend=dict(
-            orientation="h", yanchor="bottom", y=1.02,
-            xanchor="left", x=0,
-            bgcolor="rgba(0,0,0,0)", borderwidth=0,
-            font=dict(size=8, color=TEXT), itemwidth=30,
-            tracegroupgap=0,
-        ),
-        xaxis=dict(
-            showgrid=False,
-            tickfont=dict(size=10, color=TEXT),
-            dtick=5,
-            title=dict(text="Annee", font=dict(size=10, color=MUTED)),
-            automargin=True,
-        ),
-        # Axe SST : symetrique autour de 0 (gauche)
-        yaxis=dict(
-            title=dict(text="Anom. SST moy. (degC)", font=dict(size=10, color=MUTED)),
-            range=[-sst_ylim, sst_ylim],
-            zeroline=True, zerolinecolor=BORDER, zerolinewidth=1,
-            showgrid=True, gridcolor=BORDER,
-            tickfont=dict(size=10, color=MUTED),
-            side="left",
-        ),
-        # Axe evenements : symetrique autour de 0 => zero aligne avec SST (droite)
-        yaxis2=dict(
-            title=dict(text="N evenements", font=dict(size=10, color=MUTED)),
-            range=[-evts_ylim, evts_ylim],
-            zeroline=False,
-            showgrid=False,
-            tickvals=_tvals,
-            ticktext=_ttxt,
-            tickfont=dict(size=10, color=MUTED),
-            side="right",
-            overlaying="y",
-        ),
+        legend=dict(orientation="v", x=1.01, y=1, bgcolor="rgba(0,0,0,0)",
+                    font=dict(size=11, color=TEXT), groupclick="toggleitem"),
     )
+    fig_cb.update_annotations(font=dict(size=11, color=MUTED), x=0, xanchor="left")
+    fig_cb.update_xaxes(showgrid=False, tickfont=dict(size=10, color=TEXT), dtick=5,
+                        automargin=True)
+    fig_cb.update_yaxes(showgrid=True, gridcolor=BORDER, tickfont=dict(size=10, color=MUTED),
+                        automargin=True, zeroline=False)
+    fig_cb.update_yaxes(range=[-sst_ylim, sst_ylim], row=1, col=1)
     st.markdown(
-        '<p class="pnl-ttl">Anomalies SST annuelles &amp; Distribution mensuelle des evenements</p>'
+        '<p class="pnl-ttl">Anomalies SST annuelles &amp; &eacute;v&eacute;nements extr&ecirc;mes</p>'
         '<p class="pnl-sub">'
-        'Lignes : moyenne annuelle des indices SST selectionnes (mois de la phase) &nbsp;&middot;&nbsp; '
-        'Barres : N evenements par mois &nbsp;&middot;&nbsp; '
-        'Zero commun aux deux axes</p>',
+        'En haut : moyenne annuelle des indices SST s&eacute;lectionn&eacute;s (mois de la phase) '
+        '&nbsp;&middot;&nbsp; En bas : nombre d&#39;&eacute;v&eacute;nements par ann&eacute;e, '
+        'par mois &nbsp;&middot;&nbsp; M&ecirc;me axe des ann&eacute;es</p>',
         unsafe_allow_html=True,
     )
     st.plotly_chart(fig_cb, use_container_width=True, config=_CHART_CFG("anomalies_sst_evenements"))

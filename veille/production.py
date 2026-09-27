@@ -185,4 +185,15 @@ def bulletins_disponibles():
 
 
 def lire_bulletin(annee):
-    return _lire_json(DOSSIER_SORTIE / ("bulletin_%d.json" % int(annee)))
+    """Bulletin archive, avec sa presentation et sa synthese recalculees a la
+    lecture: une regle d'affichage corrigee s'applique aussi aux archives."""
+    b = _lire_json(DOSSIER_SORTIE / ("bulletin_%d.json" % int(annee)))
+    try:
+        b["presentation"] = mod_bulletin.presentation(b["niveau_risque"])
+        if b.get("competence_projection"):
+            b["competence_projection"]["verdict"] = mod_bulletin.verdict_fr(
+                b["competence_projection"])
+        b["synthese"] = mod_bulletin.synthese(b)
+    except (KeyError, TypeError):
+        pass
+    return b

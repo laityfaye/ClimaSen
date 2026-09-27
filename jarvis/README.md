@@ -1,6 +1,6 @@
-# Jarvis CLIMAT-SEN — backend
+# Jarvis ClimatSen — backend
 
-Assistant IA de la plateforme CLIMAT-SEN, adossé à l'API Claude (Anthropic).
+Assistant IA de la plateforme ClimatSen, adossé à l'API Claude (Anthropic).
 Un seul cerveau, deux profils d'accès : **public** (widget en lecture seule) et
 **admin** (Laity, accès complet — Phase 4).
 

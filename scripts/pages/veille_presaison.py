@@ -21,6 +21,8 @@ from dashboard_utils import INDIGO
 
 from veille import DOSSIER_SORTIE, INONDATIONS_CONNUES
 from veille import artefacts, fiabilite, production
+from veille import bulletin as mod_bulletin
+from veille.projection import VARIANTES_TESTEES, p_corrige
 
 ICONES = {"faible": "&#9660;", "normal": "&#9679;", "eleve": "&#9650;",
           "tres_eleve": "&#9650;&#9650;", "indetermine": "?"}
@@ -109,26 +111,43 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dark_mode=False, **kw):
                              a, " (rétrospectif)" if bulletins[a].get("verification") else ""))
     b = bulletins[choix]
     n = b["niveau_risque"]
+    # Niveau colore seulement si la competence est demontree (veille/bulletin.py).
+    pres = b.get("presentation") or mod_bulletin.presentation(n)
+    retrospectif = bool(b.get("verification"))
+
+    # ── Calendrier (saison a venir sans prevision) ─────────────────────────
+    if pres["mode"] == "indetermine" and not retrospectif:
+        st.markdown(
+            f'<div style="background:{CARD};border:1px solid {BORDER};border-radius:12px;'
+            f'padding:14px 18px;margin:4px 0 12px 0;color:{TEXT};font-size:0.84rem;'
+            f'line-height:1.6">'
+            f'<b>Calendrier de la veille pour la saison {choix}</b><br>'
+            f'Début décembre {choix - 1} : premier bulletin provisoire (état océanique de '
+            f'novembre).<br>'
+            f'Chaque début de mois jusqu’en avril : bulletin provisoire mis à jour.<br>'
+            f'Mi-avril {choix} : bulletin final, après la prévision Copernicus C3S '
+            f'(publiée le 13 avril).<br>'
+            f'<span style="color:{MUTED}">En attendant : en moyenne, 1 saison sur 3 est '
+            f'extrême.</span></div>', unsafe_allow_html=True)
 
     # ── Niveau de risque + chiffres clefs ────────────────────────────────────
     c1, c2, c3 = st.columns([1.3, 1, 1], gap="small")
     with c1:
+        icone = (f'<span style="color:{pres["couleur"]}">{ICONES.get(n["code"], "")}</span> '
+                 if pres["mode"] == "niveau" else "")
         st.markdown(
-            f'<div class="kpi" style="border-left:6px solid {n["couleur"]}">'
+            f'<div class="kpi" style="border-left:6px solid {pres["couleur"]}">'
             f'<div class="kpi-body">'
-            f'<p class="kpi-lbl">Niveau de risque · saison {choix}</p>'
-            f'<p class="kpi-val" style="color:{TEXT}">'
-            f'<span style="color:{n["couleur"]}">{ICONES.get(n["code"], "")}</span> '
-            f'{_e(n["libelle"])}</p>'
-            f'<span class="kpi-tag">Probabilité {_pct(n["probabilite_annee_extreme"])} '
-            f'(réf. 33 %) · source {_e(n["source"])}'
-            f'{" · confiance " + _e(n["confiance"]) if n["confiance"] else ""}</span>'
+            f'<p class="kpi-lbl">{_e(pres["titre"])} · saison {choix}</p>'
+            f'<p class="kpi-val" style="color:{TEXT}">{icone}{_e(pres["valeur"])}</p>'
+            f'<span class="kpi-tag">{_e(pres["note"])}</span>'
             f'</div></div>', unsafe_allow_html=True)
     c3s = b.get("c3s") or {}
     with c2:
         val = _pct(c3s.get("probabilite_annee_extreme")) if c3s.get("disponible") else "—"
         sub = ("%s · anomalie JAS %+.1f σ" % (c3s["centre"].upper(), c3s["anomalie_standardisee"])
-               if c3s.get("disponible") else "non disponible")
+               if c3s.get("disponible") else
+               "publiée le 13 avril" if not retrospectif else "non disponible")
         st.markdown(f'<div class="kpi"><div class="kpi-body"><p class="kpi-lbl">Prévision C3S</p>'
                     f'<p class="kpi-val">{val}</p><span class="kpi-tag">{_e(sub)}</span>'
                     f'</div></div>', unsafe_allow_html=True)
@@ -144,8 +163,10 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dark_mode=False, **kw):
     st.markdown(f'<p class="pnl-ttl">Synthèse</p>', unsafe_allow_html=True)
     st.markdown(f"<p style='color:{TEXT};line-height:1.55'>{_e(b['synthese'])}</p>",
                 unsafe_allow_html=True)
+    # Saison a venir: ces notes decrivent l'etat normal hors periode de veille,
+    # pas une erreur -> ton informatif.
     for a in b.get("avertissements") or []:
-        st.warning(a)
+        (st.warning if retrospectif else st.info)(a)
 
     # ── Configurations + analogues ─────────────────────────────────────────
     if proj:
@@ -194,11 +215,26 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dark_mode=False, **kw):
                     f"<p class='pnl-sub' style='margin-top:14px;color:{TEXT}'>"
                     f"<b>Compétence de la projection</b><br>"
                     f"Année testée exclue : AUC {_fr(lo.get('auc', 0))} "
-                    f"(p = {_fr(lo.get('p_permutation', 1), 3)})<br>"
+                    f"(p = {_fr(lo.get('p_permutation', 1), 3)} ; "
+                    f"{_fr(p_corrige(lo.get('p_permutation', 1)), 3)} corrigé pour les "
+                    f"{len(VARIANTES_TESTEES)} variantes comparées)<br>"
                     f"Prévision réelle (passé seul) : AUC {_fr(pr.get('auc', 0))} "
                     f"(p = {_fr(pr.get('p_permutation', 1), 3)})<br>"
                     f"<span style='color:{MUTED}'>{_e(cp.get('verdict', ''))}. "
                     f"AUC 0,5 = hasard.</span></p>", unsafe_allow_html=True)
+                with st.expander("Variantes de projection comparées (fixées avant le test)"):
+                    st.markdown(_tableau(
+                        ["Variante", "Année exclue : AUC (p)", "Prévision réelle : AUC (p)"],
+                        [["%s %s%s" % (v["code"], v["nom"], " (retenue)" if v.get("retenue") else ""),
+                          "%s (%s)" % (_fr(v["loyo"]["auc"]), _fr(v["loyo"]["p"], 3)),
+                          "%s (%s)" % (_fr(v["prevision_reelle"]["auc"]),
+                                       _fr(v["prevision_reelle"]["p"], 2))]
+                         for v in VARIANTES_TESTEES],
+                        TEXT, MUTED, BORDER, CARD, alignes=(1, 2)), unsafe_allow_html=True)
+                    st.caption("Test exploratoire du 26/09/2026, même protocole sans fuite. "
+                               "La variante retenue doit être jugée sur son p corrigé "
+                               "(× %d) : une comparaison de plusieurs variantes augmente "
+                               "la chance d'un bon score dû au hasard." % len(VARIANTES_TESTEES))
 
     # ── L'ocean de novembre a avril + trajectoire de la veille ────────────
     etat = _etat(choix)
@@ -260,7 +296,8 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dark_mode=False, **kw):
         st.markdown('<p class="pnl-ttl">Carnet de fiabilité %d-%d</p>'
                     '<p class="pnl-sub">Ce que les bulletins rétrospectifs auraient annoncé '
                     '(chacun limité à ce qui était connu en avril) face à ce qui est arrivé · '
-                    'alerte = niveau élevé ou très élevé</p>' % tuple(carnet["periode"]),
+                    'alerte = probabilité C3S d’au moins 40 %% (niveau calculé « élevé » '
+                    'ou plus, jamais affiché tant que la compétence n’est pas démontrée)</p>' % tuple(carnet["periode"]),
                     unsafe_allow_html=True)
         cols = st.columns(4, gap="small")
         tuiles = [("Détections", cpt["détection"], "saisons extrêmes annoncées"),
@@ -273,7 +310,7 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dark_mode=False, **kw):
                          f'<p class="kpi-val">{_e(val)}</p><span class="kpi-tag">{_e(sub)}</span>'
                          f'</div></div>', unsafe_allow_html=True)
         st.markdown(_tableau(
-            ["Inondation documentée", "Niveau annoncé", "Verdict"],
+            ["Inondation documentée", "Niveau calculé", "Verdict"],
             [[x["annee"], x["niveau"], x["verdict"]] for x in carnet["inondations_documentees"]],
             TEXT, MUTED, BORDER, CARD), unsafe_allow_html=True)
 

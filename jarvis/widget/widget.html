@@ -3,9 +3,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Jarvis CLIMAT-SEN</title>
+<title>Jarvis ClimatSen</title>
 <style>
-  /* Palette CLIMAT-SEN : bleu ocean profond, turquoise, accent corail.
+  /* Palette ClimatSen : bleu ocean profond, turquoise, accent corail.
      Alignee sur les constantes du dashboard (scripts/dashboard_utils.py). */
   :root{
     --ocean:#1D1864;      /* bleu ocean profond (fond sidebar du dashboard) */
@@ -979,7 +979,7 @@
     </div>
     <div class="htxt">
       <div class="htitle">Jarvis<span class="badge-admin">ADMIN</span></div>
-      <div class="hsub"><span class="dot" id="dot"></span><span id="status">Assistant CLIMAT-SEN</span></div>
+      <div class="hsub"><span class="dot" id="dot"></span><span id="status">Assistant ClimatSen</span></div>
     </div>
     <button class="hquit" id="quit" title="Revenir au profil public">Quitter</button>
     <button class="hclose" id="hud-btn" title="Mode J.A.R.V.I.S plein ecran" aria-label="Mode J.A.R.V.I.S plein ecran">&#9670; J.A.R.V.I.S</button>
@@ -999,7 +999,7 @@
     <div class="intro" id="intro">
       <div class="big">&#127783;</div>
       <h4>Bonjour, je suis Jarvis</h4>
-      <p>L'assistant de CLIMAT-SEN&nbsp;: les pluies extr&ecirc;mes au S&eacute;n&eacute;gal,<br>
+      <p>L'assistant de ClimatSen&nbsp;: les pluies extr&ecirc;mes au S&eacute;n&eacute;gal,<br>
       les oc&eacute;ans qui les influencent, et la veille avant chaque saison.</p>
       <div class="chips">
         <button class="chip">Quel risque pour la prochaine saison&nbsp;?</button>
@@ -1545,7 +1545,7 @@
         $("ec-titre").textContent = ref.titre || (ref.carte ? "Carte" : "Figure");
         $("ec-sous").textContent = ref.sous_titre || "";
       }
-      $("ec-source").textContent = "SOURCE // CHIRPS 1981-2023 \u00b7 OISST v2 \u00b7 CLIMAT-SEN";
+      $("ec-source").textContent = "SOURCE // CHIRPS 1981-2023 \u00b7 OISST v2 \u00b7 ClimatSen";
       $("ec-pos").textContent = liste.length > 1 ? (i + 1) + " / " + liste.length : "";
       $("ec-prec").hidden = liste.length < 2;
       $("ec-suiv").hidden = liste.length < 2;
@@ -3053,7 +3053,7 @@
         (enProd ? "Documents et code ne sont accessibles que sur ton poste, pas sur ce serveur.\n\n" : "") +
         "Rien n'est écrit, exécuté ni diffusé sans ton approbation d'un clic.";
     }
-    return s + ", je suis **Jarvis**, l'assistant de CLIMAT-SEN. Je travaille sur les pluies extrêmes " +
+    return s + ", je suis **Jarvis**, l'assistant de ClimatSen. Je travaille sur les pluies extrêmes " +
       "au Sénégal depuis 1981 et sur les océans qui les influencent.\n\n" +
       "- **Comprendre** : les événements extrêmes, les indices océaniques, les **Téléconnexions** et les " +
       "régimes océaniques, chiffres tirés des données et sources citées.\n" +
@@ -3081,7 +3081,7 @@
 
   /* La liste affichee, lue telle quelle, sonne comme un sommaire recite.
      A l'oral, les memes capacites en phrases. "Climat-Sen" et non
-     "CLIMAT-SEN", que la synthese epelerait. */
+     "ClimatSen" (ancien nom), que la synthese epelerait. */
   function texteAccueilOral(admin, complet){
     if(!complet){ return null; }                 // le salut court se dit tel quel
     var s = salutation();
@@ -3096,7 +3096,7 @@
     var ancien = state.token;
     state.admin = false; state.convId = null;
     document.body.classList.remove("admin");
-    if(status){ status.textContent = "Assistant CLIMAT-SEN"; }
+    if(status){ status.textContent = "Assistant ClimatSen"; }
     remember("admin", "0"); remember("conv", "");
     fetch(API + "/api/admin/logout", {method:"POST", headers: headers()})
       .catch(function(){})
@@ -3300,7 +3300,7 @@
     state.online = ok;
     try{ Hud.majMenu(); }catch(e){}
     dot.className = "dot" + (ok ? "" : " off");
-    status.textContent = label || (ok ? "Assistant CLIMAT-SEN" : "Hors ligne");
+    status.textContent = label || (ok ? "Assistant ClimatSen" : "Hors ligne");
     input.disabled = !ok;
     refreshSend();
   }

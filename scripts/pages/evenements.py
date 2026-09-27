@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Page Evenements — SenRain Dashboard."""
+"""Page Evenements - dashboard ClimatSen."""
 import sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
@@ -13,6 +13,38 @@ from dashboard_utils import (
     INDIGO, BLUE, EMERALD, AMBER, ROSE, PHASE_C, PHASE_L, BASE,
     load_events_pixels, load_events_summary, load_dept_geojson, svg_spark,
 )
+
+
+@st.cache_data(show_spinner=False)
+def _contour_lignes(nom_fichier, tol=0.01):
+    """Contours d'un GeoJSON en listes lat/lon (None entre anneaux), simplifies.
+
+    Calcule une fois par processus : reconstruire les contours complets des
+    departements a chaque affichage coutait ~8 s par page (revue 27/09/2026,
+    point 06). Tolerance 0,01 deg (~1 km), invisible au zoom de la carte.
+    """
+    import json as _json
+    chemin = BASE / "data/geographic" / nom_fichier
+    if not chemin.exists():
+        return [], []
+    with open(str(chemin), "r", encoding="utf-8") as fh:
+        geojson = _json.load(fh)
+    lons_b, lats_b = [], []
+    for feat in geojson.get("features", []):
+        geom = feat.get("geometry", {}) or {}
+        coords = geom.get("coordinates", [])
+        rings = coords if geom.get("type") == "Polygon" else [
+            r for poly in coords for r in poly] if geom.get("type") == "MultiPolygon" else []
+        for ring in rings:
+            px = py = None
+            for i, (x, y) in enumerate(ring):
+                if px is None or i == len(ring) - 1 or abs(x - px) + abs(y - py) >= tol:
+                    lons_b.append(x)
+                    lats_b.append(y)
+                    px, py = x, y
+            lons_b.append(None)
+            lats_b.append(None)
+    return lats_b, lons_b
 
 
 def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
@@ -44,7 +76,7 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
         st.markdown(f"""
         <div class="pg-hdr">
           <div>
-            <p class="pg-bc">Dashboard &nbsp;/&nbsp; <b>Evenements</b></p>
+            <p class="pg-bc">Dashboard &nbsp;/&nbsp; <b>Événements</b></p>
             <h1 class="pg-ttl">Ev&eacute;nements de Pr&eacute;cipitation Extr&ecirc;me</h1>
             <p class="pg-sub">
               S&eacute;n&eacute;gal &nbsp;&middot;&nbsp; CHIRPS 0,25&deg;
@@ -105,7 +137,7 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
 
     if _ev_pixels is None or len(_ev_pixels) == 0:
         st.info(
-            "Donnees cartographiques non disponibles. "
+            "Données cartographiques non disponibles. "
             "Executer le script 03_filter_events_for_qgis.py pour generer les fichiers de pixels."
         )
     else:
@@ -123,7 +155,7 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
             "plus_petite_couverture": "Plus petite couverture",
             "plus_grande_anomalie":   "Plus grande anomalie",
             "plus_petite_anomalie":   "Plus petite anomalie",
-            "selection_manuelle":     "Selection manuelle",
+            "selection_manuelle":     "Sélection manuelle",
         }
         _CRIT_COLORS = {
             "plus_intense":           (ROSE,      "rgba(244,63,94,0.13)"),
@@ -159,7 +191,7 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
                 st.rerun()
         with _sel_col:
             _sel_date = st.selectbox(
-                "Evenement selectionne",
+                "Événement sélectionné",
                 options=_dates,
                 index=_idx_cur,
                 format_func=_fmt_event,
@@ -217,6 +249,12 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
         if _bounds_geo is not None and len(_ev_pixels_sn) > 0:
             _boundary_paths = _build_paths(_bounds_geo)
             if _boundary_paths:
+                # Carte et fiche : pixels dont le centre est au Senegal. Le
+                # catalogue (script 01) travaille sur une BOITE 12,3-16,7 N /
+                # 17,55-11,35 W qui deborde sur les pays voisins : son maximum
+                # peut venir d'un pixel hors frontiere (04/07/1984 : 28,1 mm en
+                # Mauritanie contre 25,5 mm au Senegal). Les deux valeurs sont
+                # donc affichees avec leur libelle (revue 27/09/2026, point 04).
                 _pts_sn = np.column_stack([
                     _ev_pixels_sn["longitude"].values,
                     _ev_pixels_sn["latitude"].values,
@@ -282,8 +320,8 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
                 _fg, _bg = _CRIT_COLORS.get(_c0, (INDIGO, "rgba(79,70,229,0.13)"))
                 _ph = _row_m.iloc[0]["season_phase"] if not _row_m.empty else ""
                 _pmax = (
-                    f"{_pmax_by_date[_d]:.0f}" if _d in _pmax_by_date
-                    else (f"{_row_m.iloc[0]['precip_max']:.0f}" if not _row_m.empty else "-")
+                    f"{_pmax_by_date[_d]:.1f}" if _d in _pmax_by_date
+                    else (f"{_row_m.iloc[0]['precip_max']:.1f}" if not _row_m.empty else "-")
                 )
                 _amax = (
                     f"{_amax_by_date[_d]:.1f}" if _d in _amax_by_date
@@ -294,7 +332,7 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
                 _shadow = "box-shadow:0 3px 12px rgba(79,70,229,0.18);" if _is_sel else ""
                 _bg_card = "rgba(79,70,229,0.12)" if _is_sel else CARD
                 _ph_short = (
-                    "P1 Debut" if "debut" in _ph
+                    "P1 Début" if "debut" in _ph
                     else "P2 Pleine" if "pleine" in _ph
                     else "P3 Fin" if "fin" in _ph
                     else _ph
@@ -358,32 +396,6 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
         # -- Infrastructure cartes ------------------------------------------------
         _margin = dict(l=0, r=0, t=28, b=0)
 
-        def _make_boundary_trace(geojson, width=1.4, color="rgba(30,30,30,0.70)"):
-            lons_b, lats_b = [], []
-            for feat in geojson.get("features", []):
-                geom   = feat.get("geometry", {})
-                gtype  = geom.get("type", "")
-                coords = geom.get("coordinates", [])
-                rings  = []
-                if gtype == "Polygon":
-                    rings = coords
-                elif gtype == "MultiPolygon":
-                    for poly in coords:
-                        rings.extend(poly)
-                for ring in rings:
-                    for x, y in ring:
-                        lons_b.append(x)
-                        lats_b.append(y)
-                    lons_b.append(None)
-                    lats_b.append(None)
-            return go.Scattermapbox(
-                lat=lats_b, lon=lons_b,
-                mode="lines",
-                line=dict(width=width, color=color),
-                hoverinfo="none",
-                showlegend=False,
-            )
-
         def _make_hover_trace(lats, lons, texts):
             return go.Scattermapbox(
                 lat=lats, lon=lons,
@@ -402,7 +414,7 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
         _hover_txt = [
             f"<b>{r['precipitation_mm']:.1f} mm</b> &nbsp;|&nbsp; "
             f"{r['anomaly_standardized']:.1f}<br>"
-            f"Region : {r['region']}<br>"
+            f"Région : {r['region']}<br>"
             f"Categorie : {r['intensity_category']}"
             for _, r in _ev_sel.iterrows()
         ]
@@ -459,7 +471,8 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
             [0.88, "#D6604D"], [1.00, "#67001F"],
         ]
 
-        _bmap = du.basemap(_ctr_lat, _ctr_lon, 6.2)
+        _sombre = bool(kw.get("dark_mode", False))
+        _bmap = du.basemap(_ctr_lat, _ctr_lon, 6.2, dark=_sombre)
         _mgn = dict(l=0, r=0, t=0, b=0)
 
         # Pixel avec precipitation maximale
@@ -468,17 +481,24 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
         _mx_lon = _lons_ev[_mx_idx] if _mx_idx is not None else None
         _mx_val = _prec_ev[_mx_idx] if _mx_idx is not None else None
 
+        def _trace_contour(nom_fichier, width, color):
+            lats_b, lons_b = _contour_lignes(nom_fichier)
+            return go.Scattermapbox(lat=lats_b, lon=lons_b, mode="lines",
+                                    line=dict(width=width, color=color),
+                                    hoverinfo="none", showlegend=False)
+
         def _add_overlays(fig):
-            # Frontieres departements (trait fin)
+            # Frontieres departements (trait fin) - contours en cache
             if _dept_geo is not None:
-                fig.add_trace(_make_boundary_trace(
-                    _dept_geo, width=0.6, color="rgba(30,41,59,0.28)"
-                ))
+                fig.add_trace(_trace_contour(
+                    "senegal_departments.geojson", 0.6,
+                    "rgba(226,232,240,0.30)" if _sombre else "rgba(30,41,59,0.28)"))
             # Contour national Senegal (trait epais)
             if _bounds_geo is not None:
-                fig.add_trace(_make_boundary_trace(
-                    _bounds_geo, width=2.0, color="rgba(15,23,42,0.72)"
-                ))
+                fig.add_trace(_trace_contour(
+                    "senegal_boundaries.geojson" if _bounds_path.exists()
+                    else "senegal_departments.geojson",
+                    2.0, "rgba(241,245,249,0.80)" if _sombre else "rgba(15,23,42,0.72)"))
             # Marqueur pixel maximum : halo + point central
             if _mx_lat is not None:
                 fig.add_trace(go.Scattermapbox(
@@ -535,7 +555,7 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
             _c0_hdr = _get_crit0(_sel_date)
             _fg_hdr, _ = _CRIT_COLORS.get(_c0_hdr, (INDIGO, ""))
             _crit_hdr  = _CRIT_FR.get(_c0_hdr, "")
-            _mx_lbl = f"{_mx_val:.0f} mm" if _mx_val is not None else "-"
+            _mx_lbl = f"{_mx_val:.1f} mm" if _mx_val is not None else "-"
 
             # Variable pixel sizes proportional to precipitation intensity
             _szs = [
@@ -566,7 +586,7 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
                       <span style="display:inline-block;width:10px;height:10px;
                                    border-radius:50%;background:#FBBF24;
                                    vertical-align:middle;margin-right:3px;"></span>
-                      Maximum ({_mx_lbl})</span>
+                      Maximum au S&eacute;n&eacute;gal ({_mx_lbl})</span>
                   </span>
                 </div>
                 """, unsafe_allow_html=True)
@@ -598,7 +618,7 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
                                 thickness=14, len=0.72, x=1.01, y=0.5,
                                 tickfont=dict(size=10, color=MUTED),
                                 outlinewidth=0,
-                                bgcolor="rgba(255,255,255,0.80)",
+                                bgcolor=("rgba(30,41,59,0.85)" if _sombre else "rgba(255,255,255,0.80)"),
                                 borderwidth=0, nticks=6,
                             ),
                         ),
@@ -678,7 +698,7 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
                                 thickness=14, len=0.72, x=1.01, y=0.5,
                                 tickfont=dict(size=10, color=MUTED),
                                 outlinewidth=0,
-                                bgcolor="rgba(255,255,255,0.80)",
+                                bgcolor=("rgba(30,41,59,0.85)" if _sombre else "rgba(255,255,255,0.80)"),
                                 borderwidth=0, nticks=6,
                             ),
                         ),
@@ -719,7 +739,7 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
         with _minfo:
             st.markdown(
                 '<p class="pnl-ttl" style="margin-bottom:8px">'
-                '&#128203; Fiche evenement</p>',
+                '&#128203; Fiche événement</p>',
                 unsafe_allow_html=True,
             )
 
@@ -812,6 +832,23 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
                     f'{icon}&nbsp;{title}</span></div>'
                 )
 
+            # Valeur du catalogue (celle que citent Jarvis et le memoire), si elle differe.
+            _cat_row = ""
+            _cat = df[df["date"].dt.strftime("%Y-%m-%d") == str(_sel_date)[:10]]
+            if not _cat.empty:
+                _cat_max = float(_cat.iloc[0]["max_precip"])
+                try:
+                    _ecart = abs(_cat_max - float(_pmax_v)) >= 0.05
+                except ValueError:
+                    _ecart = True
+                if _ecart:
+                    _cat_row = (
+                        f'<div style="font-size:0.70rem;color:{MUTED};padding:4px 0 6px 0;'
+                        f'border-bottom:1px solid {BORDER};line-height:1.45">'
+                        f'Catalogue : <b style="color:{TEXT}">{_cat_max:.1f} mm</b> &mdash; '
+                        f'maximum sur la bo&#238;te de d&#233;tection (12,3-16,7&#176;N, '
+                        f'17,55-11,35&#176;W), qui inclut des pixels des pays voisins.</div>')
+
             _html_header = (
                 f'<div style="border-bottom:3px solid {_cr_fg2};'
                 f'padding:14px 16px 12px 16px;background:{_cr_bg2};">'
@@ -835,8 +872,9 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
             )
             _html_body = (
                 f'<div style="padding:8px 16px 16px 16px;">'
-                + _mrow("Pr&#233;cip. max", _pmax_v, "mm", BLUE)
-                + _mrow("Pr&#233;cip. moyenne", _pmoy_v, "mm")
+                + _mrow("Pr&#233;cip. max (pixel, S&#233;n&#233;gal)", _pmax_v, "mm", BLUE)
+                + _cat_row
+                + _mrow("Pr&#233;cip. moyenne (carte)", _pmoy_v, "mm")
                 + _mrow("Anomalie max", _amax_v, "&#963;", "#7C3AED")
                 + _mrow("Anomalie moyenne", _amoy_v, "&#963;")
                 + f'<div style="padding:7px 0 4px 0;border-bottom:1px solid {BORDER};">'
@@ -942,7 +980,7 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
     _fc1, _fc2, _fc_rst = st.columns([5, 4, 1], gap="small")
     with _fc1:
         _yr = st.slider(
-            "Periode",
+            "Période",
             min_value=_yr_min,
             max_value=_yr_max,
             value=(_yr_min, _yr_max),
@@ -989,7 +1027,7 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
         hh, hs = st.columns([3, 1])
         with hh:
             st.markdown(
-                '<p class="pnl-ttl">Evolution annuelle des evenements extremes</p>'
+                '<p class="pnl-ttl">Évolution annuelle des événements extrêmes</p>'
                 '<p class="pnl-sub">Nombre d\'evenements par annee · decompose par phase saisonniere</p>',
                 unsafe_allow_html=True,
             )
@@ -1007,7 +1045,7 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
         <div class="chips">
           <div class="chip">Moy. annuelle &nbsp;<b>{avg_yr_n:.0f} evt/an</b></div>
           <div class="chip">Record &nbsp;<b>{int(max_yr_row['year'])} — {int(max_yr_row['n'])} evt</b></div>
-          <div class="chip">Annee calme &nbsp;<b>{int(min_yr_row['year'])} — {int(min_yr_row['n'])} evt</b></div>
+          <div class="chip">Année calme &nbsp;<b>{int(min_yr_row['year'])} — {int(min_yr_row['n'])} evt</b></div>
           <div class="chip">Tendance &nbsp;<b>{"+" if slope>=0 else ""}{slope:.2f} evt/an</b></div>
         </div>
         """, unsafe_allow_html=True)
@@ -1020,7 +1058,7 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
             fig.add_trace(go.Bar(
                 x=tot["year"], y=tot["n"],
                 marker_color=INDIGO, marker_line_width=0,
-                hovertemplate="<b>%{x}</b> : %{y} evenements<extra></extra>",
+                hovertemplate="<b>%{x}</b> : %{y} événements<extra></extra>",
                 showlegend=False,
             ))
         else:
@@ -1054,8 +1092,8 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
     # ── Donut ─────────────────────────────────────────────────────────────────
     with rc:
         st.markdown(
-            '<p class="pnl-ttl">Repartition par Phase</p>'
-            '<p class="pnl-sub">Distribution des 3 phases saisonnieres</p>',
+            '<p class="pnl-ttl">Répartition par Phase</p>'
+            '<p class="pnl-sub">Distribution des 3 phases saisonnières</p>',
             unsafe_allow_html=True,
         )
 
@@ -1116,12 +1154,7 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
             '<p class="pnl-sub">Nombre d\'&eacute;v&eacute;nements par ann&eacute;e et par mois</p>',
             unsafe_allow_html=True,
         )
-        STUDIED_MONTHS = {5:"Mai", 6:"Jun", 7:"Jul", 8:"Aou", 9:"Sep", 10:"Oct"}
-        MONTH_COLORS = {
-            "Mai": "#7DD3FC", "Jun": "#0EA5E9",
-            "Jul": "#818CF8", "Aou": "#4F46E5",
-            "Sep": "#FCD34D", "Oct": "#F59E0B",
-        }
+        STUDIED_MONTHS = {5: "Mai", 6: "Juin", 7: "Juil.", 8: "Août", 9: "Sept.", 10: "Oct."}
 
         pivot_m = (
             dff.groupby(["year", "month"]).size()
@@ -1133,30 +1166,23 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
         )
         pivot_m.columns = [STUDIED_MONTHS[m] for m in pivot_m.columns]
 
-        fig_m = go.Figure()
-        for mname in pivot_m.columns:
-            fig_m.add_trace(go.Bar(
-                x=pivot_m.index.tolist(),
-                y=pivot_m[mname].tolist(),
-                name=mname,
-                marker_color=MONTH_COLORS[mname],
-                marker_line_width=0,
-                hovertemplate=f"<b>{mname}</b> · %{{x}} : %{{y}} evt<extra></extra>",
-            ))
-        plotly_base(fig_m, h=300 if is_mobile else 340)
+        # Carte de chaleur annee x mois : ~250 barres groupees etaient illisibles
+        # (revue 27/09/2026, point 07).
+        _zmax = max(1, int(pivot_m.values.max()))
+        fig_m = go.Figure(go.Heatmap(
+            z=pivot_m.T.values, x=pivot_m.index.tolist(), y=list(pivot_m.columns),
+            colorscale=[[0, CARD], [0.001, "#E0E7FF"], [0.5, "#818CF8"], [1, "#3730A3"]],
+            zmin=0, zmax=_zmax, xgap=1, ygap=2,
+            colorbar=dict(title=dict(text="evt", font=dict(size=10, color=MUTED)),
+                          thickness=10, len=0.9, tickfont=dict(size=10, color=MUTED)),
+            hovertemplate="<b>%{y} %{x}</b> : %{z} événement(s)<extra></extra>",
+        ))
+        plotly_base(fig_m, h=260 if is_mobile else 300)
         fig_m.update_layout(
-            barmode="group",
-            bargap=0.15,
-            bargroupgap=0.05,
-            margin=dict(l=2, r=2, t=10, b=40),
-            legend=dict(
-                orientation="h", yanchor="bottom", y=1.01,
-                xanchor="left", x=0,
-                font=dict(size=10, color=TEXT),
-                itemwidth=30,
-            ),
-            xaxis=dict(tickfont=dict(size=10, color=TEXT), dtick=5, automargin=True),
-            yaxis=dict(tickfont=dict(size=10, color=MUTED)),
+            margin=dict(l=2, r=2, t=10, b=30),
+            xaxis=dict(tickfont=dict(size=10, color=TEXT), dtick=5, showgrid=False),
+            yaxis=dict(tickfont=dict(size=11, color=TEXT), autorange="reversed",
+                       showgrid=False),
         )
         st.plotly_chart(fig_m, use_container_width=True, config=dict(_CHART_CFG,
             toImageButtonOptions={"format": "png", "scale": 2,

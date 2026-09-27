@@ -1,4 +1,4 @@
-"""Jarvis CLIMAT-SEN - backend assistant IA (API Claude).
+"""Jarvis ClimatSen - backend assistant IA (API Claude).
 
 Package isole du code de recherche (src/) et du dashboard (scripts/).
 Point d'entree ASGI: jarvis.app:app

@@ -384,7 +384,7 @@ def _etat_oceanique(params, data):
         "donnees": {"grille": _liste(z, 2), "lats": [round(float(v), 2) for v in lats],
                     "lons": [round(float(v), 2) for v in lons], "vlim": vlim},
         "source": "NOAA OISST v2 (anomalies journalieres), moyenne novembre-avril; "
-                  "veille pre-saison CLIMAT-SEN",
+                  "veille pre-saison ClimatSen",
     }
     resume = {
         "saison": annee, "mois": [str(m) for m in mois],
