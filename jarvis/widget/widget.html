@@ -1250,8 +1250,23 @@
     return hud || (state.open && estMobile());
   }
 
+  /* Plein ecran du NAVIGATEUR (bouton du HUD) : c'est l'iframe de Jarvis qui
+     occupe alors tout le moniteur. Quand elle se reduit (retour au
+     dashboard, apercu, miniature d'analyse), le navigateur restait en plein
+     ecran sur une iframe de 76 px : ecran noir avec la bulle dans un coin
+     (constate par Laity, 28/09/2026). On en sort des que Jarvis ne couvre
+     plus toute la page. */
+  function quitterPleinEcranNavigateur(){
+    try{
+      if(document.fullscreenElement && document.exitFullscreen){ document.exitFullscreen(); }
+    }catch(e){}
+  }
+
   function cadrer(){
     if(!pinned || !frame){ return false; }
+    var plein = pleinEcranVoulu() && !document.body.classList.contains("analyse") &&
+                !document.body.classList.contains("apercu");
+    if(!plein){ quitterPleinEcranNavigateur(); }
     try{
       var s = frame.style, mobile = estMobile();
       document.body.classList.toggle("mobile", mobile);
@@ -1274,6 +1289,29 @@
         }
         s.setProperty("max-width", "100vw", "important");
         s.setProperty("bottom", "auto", "important");
+        return true;
+      }
+      // Apercu du dashboard ("VOIR", "DASHBOARD") : le fond de Jarvis devient
+      // transparent, mais l'iframe restait en plein ecran et avalait clics
+      // et defilement -- on voyait le dashboard sans pouvoir s'en servir
+      // (constate 28/09/2026). L'iframe se reduit donc a ce qui reste
+      // affiche : le bouton de retour, et la barre de presentation s'il y en a une.
+      if(Hud.actif() && document.body.classList.contains("apercu")){
+        s.setProperty("max-width", "100vw", "important");
+        if(document.body.classList.contains("soutenance")){
+          var barre = $("sout-barre").getBoundingClientRect();
+          s.setProperty("top", "0px", "important");
+          s.setProperty("bottom", "auto", "important");
+          s.setProperty("right", "0", "important");
+          s.setProperty("width", "100vw", "important");
+          s.setProperty("height", Math.round((barre.bottom || 110) + 62) + "px", "important");
+        } else {
+          s.setProperty("top", "auto", "important");
+          s.setProperty("bottom", "0px", "important");
+          s.setProperty("right", "0", "important");
+          s.setProperty("width", "300px", "important");
+          s.setProperty("height", "84px", "important");
+        }
         return true;
       }
       if(pleinEcranVoulu()){
@@ -1411,7 +1449,7 @@
     if(intro && intro.parentNode){ intro.parentNode.removeChild(intro); intro = null; }
     var el = document.createElement("div");
     el.className = "msg " + role;
-    if(role === "bot"){ el.innerHTML = mini(text); } else { el.textContent = text; }
+    if(role === "bot"){ el.innerHTML = mini(avecReperes(text)); } else { el.textContent = text; }
     log.appendChild(el);
     // Une question posee ramene toujours en bas: on veut voir la reponse.
     scroll(role === "user");
@@ -1759,6 +1797,7 @@
       var b = $("sb-dash");
       if(b){ b.classList.toggle("on", enApercu()); b.setAttribute("aria-pressed", enApercu() ? "true" : "false"); }
       if(enApercu()){ $("nav-toast").classList.remove("on"); }
+      cadrer();
     }
 
     $("nav-toast-voir").addEventListener("click", function(){ apercu(true); });
@@ -1782,7 +1821,9 @@
      "pousse"), remis a zero en sortie. */
   var Analyse = (function(){
     var actif = false, cadres = [], cibles = [], boucle = null;
-    var ID_STYLE = "jarvis-analyse-style";
+    // Analyse complete : elements de la page, et celui en cours d'analyse.
+    var parcours = null;
+    var ID_STYLE = "jarvis-analyse-style-2";
 
     function largeurColonne(){ return Math.round(Math.min(420, Math.max(320, vue().w * 0.30))); }
     function hauteurMini(){ return Math.round(Math.min(560, zoneVisible().h - 36)); }
@@ -1804,14 +1845,41 @@
         "letter-spacing:.08em;color:#03080C;background:#00E5FF;padding:4px 7px;border-radius:4px;" +
         "white-space:nowrap}" +
         "@keyframes jarvis-lit{0%,100%{box-shadow:0 0 0 4px rgba(0,229,255,.18),0 0 14px rgba(0,229,255,.25)}" +
-        "50%{box-shadow:0 0 0 7px rgba(0,229,255,.10),0 0 30px rgba(0,229,255,.55)}}";
+        "50%{box-shadow:0 0 0 7px rgba(0,229,255,.10),0 0 30px rgba(0,229,255,.55)}}" +
+        // Element en cours d'analyse : projecteur (le reste de la page est
+        // assombri par l'ombre du cadre) et etiquette "3/12 - titre".
+        ".jarvis-cadre.courant{border-width:2.5px;border-radius:10px;" +
+        "animation:jarvis-foc 1.8s ease-in-out infinite}" +
+        ".jarvis-cadre.courant b{font-size:11px;top:-14px;max-width:70vw;overflow:hidden;" +
+        "text-overflow:ellipsis}" +
+        "@keyframes jarvis-foc{0%,100%{box-shadow:0 0 0 9999px rgba(3,8,12,.46)," +
+        "0 0 0 4px rgba(0,229,255,.22),0 0 18px rgba(0,229,255,.45)}" +
+        "50%{box-shadow:0 0 0 9999px rgba(3,8,12,.46),0 0 0 8px rgba(0,229,255,.10)," +
+        "0 0 34px rgba(0,229,255,.7)}}";
       (doc.head || doc.documentElement).appendChild(st);
+    }
+
+    // Une cible peut etre une liste (une section = son titre et son contenu) :
+    // le cadre entoure alors l'ensemble.
+    function rectDe(cible){
+      var liste = (cible && cible.length !== undefined && !cible.nodeType) ? cible : [cible];
+      var g = Infinity, h = Infinity, d = -Infinity, b = -Infinity;
+      for(var i = 0; i < liste.length; i++){
+        var el = liste[i];
+        if(!el || !el.isConnected){ continue; }
+        var r = el.getBoundingClientRect();
+        if(!r.width || !r.height){ continue; }
+        g = Math.min(g, r.left); h = Math.min(h, r.top);
+        d = Math.max(d, r.right); b = Math.max(b, r.bottom);
+      }
+      if(g === Infinity){ return {left: 0, top: 0, width: 0, height: 0}; }
+      return {left: g, top: h, width: d - g, height: b - h};
     }
 
     function placer(){
       for(var i = 0; i < cadres.length; i++){
-        var c = cadres[i], r = c.cible.getBoundingClientRect();
-        var cache = !c.cible.isConnected || r.width === 0 || r.height === 0;
+        var c = cadres[i], r = rectDe(c.cible);
+        var cache = r.width === 0 || r.height === 0;
         c.el.style.display = cache ? "none" : "block";
         if(cache){ continue; }
         c.el.style.left = (r.left - 6) + "px";
@@ -1875,8 +1943,11 @@
     // elle changeait DERRIERE l'interface opaque et Jarvis commentait une page
     // invisible (constate 28/09/2026). On passe en miniature, sans cadres :
     // les elements lus avant la navigation appartiennent a l'ancienne page.
+    //
+    // Regle de Laity (28/09/2026) : la miniature n'apparait QUE pendant
+    // l'analyse d'une page. Hors analyse, on reste en plein ecran.
     function montrerPage(){
-      if(!Hud.actif() || colonneActive()){ return; }
+      if(!actif || !Hud.actif() || colonneActive()){ return; }
       effacerCadres();
       colonne(true);
     }
@@ -1884,9 +1955,92 @@
     // Reponse terminee : les cadres restent (on relit en ecoutant), sans pulsation.
     function repos(){ cadres.forEach(function(c){ c.el.classList.remove("lit"); }); }
 
+    /* Analyse complete, element par element (demande de Laity, 28/09/2026).
+       retenirParcours() recoit l'inventaire de la page ; focus(n) encadre
+       l'element n, assombrit le reste et fait defiler la page jusqu'a lui.
+       focus(null) (repere [[FIN]]) rend la page entiere. */
+    function retenirParcours(items){ parcours = {items: items || [], courant: undefined}; }
+
+    function debutParcours(){
+      if(!parcours || !parcours.items.length || !hote()){ return; }
+      if(!state.open){ open(false); }
+      if(!Hud.actif()){ Hud.entrer(true); }
+      actif = true;
+      colonne(true);
+      effacerCadres();
+      decaler(true);
+    }
+
+    /* La colonne Jarvis recouvre le bord droit de la page : une fiche placee
+       dessous etait commentee sans etre visible (constate sur Clustering,
+       4e indicateur). Pendant l'analyse, la page se decale donc de la
+       largeur de la colonne. Sur telephone (volet en bas), on ne decale
+       pas : l'element est amene en haut de l'ecran (voir focus). */
+    var SEL_CORPS = '[data-testid="stMainBlockContainer"],[data-testid="stAppViewBlockContainer"],.block-container';
+    var decale = false;
+    function decaler(on){
+      var doc = hote();
+      if(!doc || (!on && !decale)){ return; }
+      var large = on && !estMobile() && vue().w >= LARGEUR_MINI_POUSSEE;
+      try{
+        var corps = doc.querySelectorAll(SEL_CORPS);
+        for(var i = 0; i < corps.length; i++){
+          corps[i].style.transition = "padding-right .25s ease";
+          corps[i].style.paddingRight = large ? (largeurColonne() + 36) + "px" : "";
+        }
+      }catch(e){}
+      decale = large;
+      if(!on){ pousser(state.open); }
+    }
+
+    function focus(n){
+      var doc = hote();
+      if(!parcours || !doc || n === parcours.courant){ return; }
+      var it = (n === null) ? null : parcours.items[n - 1];
+      if(n !== null && !it){ return; }
+      parcours.courant = n;
+      effacerCadres();
+      if(!it){ return; }
+      styleHote(doc);
+      var el = doc.createElement("div");
+      el.className = "jarvis-cadre courant";
+      var b = doc.createElement("b");
+      b.textContent = "JARVIS \u00b7 " + n + "/" + parcours.items.length +
+                      (it.titre ? " \u00b7 " + it.titre.slice(0, 70) : "");
+      el.appendChild(b);
+      doc.body.appendChild(el);
+      cadres.push({el: el, cible: it.cibles});
+      placer();
+      try{
+        var premier = it.cibles[0], r = rectDe(it.cibles);
+        var haut = r.height > (window.parent.innerHeight || 800) * 0.8;
+        premier.scrollIntoView({behavior: "smooth",
+                                block: (haut || estMobile()) ? "start" : "center"});
+      }catch(e){}
+    }
+
+    // Analyse terminee (texte fini et voix eteinte) : retour au plein ecran,
+    // apres un court temps pour voir le dernier element.
+    var jetonFin = 0;
+    function terminer(){
+      if(!actif){ return; }
+      var no = ++jetonFin;
+      setTimeout(function(){
+        if(no === jetonFin && actif && !state.busy && !parleEnCours()){ retour(); }
+      }, 3000);
+    }
+
+    function titreElement(n){
+      var it = parcours && parcours.items[n - 1];
+      return it ? (it.titre || "") : "";
+    }
+
     // Nouvelle question, fermeture, retour au plein ecran.
     function fin(garderColonne){
+      jetonFin++;
       effacerCadres();
+      if(parcours){ decaler(false); }
+      parcours = null;
       actif = false;
       if(!garderColonne && colonneActive()){ colonne(false); }
     }
@@ -1899,6 +2053,8 @@
 
     return {retenir: retenir, debut: debut, repos: repos, fin: fin, retour: retour,
             montrerPage: montrerPage,
+            retenirParcours: retenirParcours, debutParcours: debutParcours,
+            focus: focus, titreElement: titreElement, terminer: terminer,
             colonne: colonne, colonneActive: colonneActive, largeur: largeurColonne,
             hauteur: hauteurMini,
             actif: function(){ return actif; }};
@@ -2325,8 +2481,29 @@
     return en > fr ? "en-US" : "fr-FR";
   }
 
+  /* Analyse complete : Jarvis precede le commentaire de chaque element de
+     la page d'un repere [[E3]] (et [[FIN]] avant la synthese). Le repere
+     pilote le cadre sur la page ; a l'ecran il devient un intertitre, a
+     l'oral il disparait. */
+  var RE_REPERE = /[ \t]*\[\[(E(\d{1,2})|FIN)\]\][ \t]*/g;
+  function avecReperes(md){
+    return String(md || "").replace(RE_REPERE, function(_, id, n){
+      if(!n){ return "\n### Synth\u00e8se\n"; }
+      var t = "";
+      try{ t = Analyse.titreElement(+n); }catch(e){}
+      return "\n### \u25B8 " + n + (t ? " \u00b7 " + t : "") + "\n";
+    });
+  }
+  // Dernier repere du texte : numero, null pour [[FIN]], undefined si aucun.
+  function dernierRepere(md){
+    var re = /\[\[(E(\d{1,2})|FIN)\]\]/g, m, der;
+    while((m = re.exec(md))){ der = m[2] ? +m[2] : null; }
+    return der;
+  }
+
   function textePourLecture(md){
     return String(md || "")
+      .replace(/\[\[(E\d{1,2}|FIN)\]\]/g, " ")
       .replace(/```[\s\S]*?```/g, " ")
       .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
       .replace(/https?:\/\/\S+/g, " ")
@@ -2413,15 +2590,28 @@
     }
     if(coupe > 0){
       L.consomme += coupe;
-      var texte = textePourLecture(reste.slice(0, coupe));
-      if(texte){
+      // Les reperes [[En]] ne sont pas lus : ils marquent la phrase a partir
+      // de laquelle le cadre passe a l'element n (voir avancerLecture).
+      var parts = reste.slice(0, coupe).split(/\[\[(E\d{1,2}|FIN)\]\]/);
+      for(var ip = 0; ip < parts.length; ip++){
+        if(ip % 2 === 1){
+          L.focusEnAttente = parts[ip] === "FIN" ? null : +parts[ip].slice(1);
+          continue;
+        }
+        var texte = textePourLecture(parts[ip]);
+        if(!texte){ continue; }
         if(!L.lang){
           L.lang = langueDe(texte);
           if(L.lang !== "fr-FR"){ L.neuronal = false; }
         }
         decouperPhrases(texte).forEach(function(p){
           // Telechargement lance tout de suite: pret quand son tour vient.
-          L.file.push({texte: p, audio: L.neuronal ? chargerAudio(p) : null});
+          var item = {texte: p, audio: L.neuronal ? chargerAudio(p) : null};
+          if(L.focusEnAttente !== undefined){
+            item.focus = L.focusEnAttente;
+            L.focusEnAttente = undefined;
+          }
+          L.file.push(item);
         });
       }
     }
@@ -2441,6 +2631,10 @@
     if(L.no !== lectureNo || L.joue){ return; }
     if(!L.file.length){
       if(L.fini){
+        if(L.focusEnAttente !== undefined){
+          try{ Analyse.focus(L.focusEnAttente); }catch(e){}
+          L.focusEnAttente = undefined;
+        }
         finLecture(L.no);
         // Rappel de fin (mode soutenance: l'etape suivante part a la fin de
         // la lecture). Jamais appele pour une lecture interrompue.
@@ -2449,6 +2643,8 @@
       return;                                    // la suite arrive avec le flux
     }
     var item = L.file.shift();
+    // Analyse complete : on montre l'element dont la phrase parle.
+    if(item.focus !== undefined){ try{ Analyse.focus(item.focus); }catch(e){} }
     L.joue = true;
     var suite = function(){ L.joue = false; avancerLecture(L); };
     if(L.neuronal && item.audio){ jouerNeuronal(L, item, suite); }
@@ -2876,14 +3072,14 @@
   // alors en plein ecran une page cachee (constate 28/09/2026). On lit donc
   // aussi la page quand on demande une explication, ou quand la question
   // porte sur le sujet de la page ouverte.
-  var MOTS_EXPLICATION = /(expli|d[eé]tail|d[eé]cri|signifi|veut dire|comprendre|ici|cette (partie|section|zone)|ce (bloc|panneau|r[eé]sultat))/i;
+  var MOTS_EXPLICATION = /(expli|d[e\u00e9]tail|d[e\u00e9]cri|signifi|veut dire|comprendre|ici|cette (partie|section|zone)|ce (bloc|panneau|r[e\u00e9]sultat))/i;
   var SUJETS_PAGE = {
-    "Clustering": /(cluster|configuration|kmeans|k-means|silhouette|coude|centro[iï]de|motif)/i,
-    "Teleconnexions": /(corr[eé]l|t[eé]l[eé]connexion|lag|d[eé]calage|nuage)/i,
-    "Evenements": /([eé]v[eé]nement|extr[eê]me|intensit|r[eé]partition)/i,
-    "Indices SST": /(indice|sst|temp[eé]rature|anomalie)/i,
-    "Veille": /(veille|bulletin|risque|pr[eé]-?saison|projection)/i,
-    "Pipeline": /(pipeline|[eé]tape|script|traitement)/i
+    "Clustering": /(cluster|configuration|kmeans|k-means|silhouette|coude|centro[i\u00ef]de|motif)/i,
+    "Teleconnexions": /(corr[e\u00e9]l|t[e\u00e9]l[e\u00e9]connexion|lag|d[e\u00e9]calage|nuage)/i,
+    "Evenements": /([e\u00e9]v[e\u00e9]nement|extr[e\u00ea]me|intensit|r[e\u00e9]partition)/i,
+    "Indices SST": /(indice|sst|temp[e\u00e9]rature|anomalie)/i,
+    "Veille": /(veille|bulletin|risque|pr[e\u00e9]-?saison|projection)/i,
+    "Pipeline": /(pipeline|[e\u00e9]tape|script|traitement)/i
   };
   function vueVoulue(text){
     if(MOTS_VUE.test(text) || MOTS_EXPLICATION.test(text)){ return true; }
@@ -2996,7 +3192,8 @@
     return r;
   }
 
-  function resumeGraphique(gd){
+  function resumeGraphique(gd, maxChars){
+    var borne = maxChars || 5800;
     var traces = tableau(gd._fullData && gd._fullData.length ? gd._fullData : gd.data);
     var mise = gd._fullLayout || gd.layout || {};
     function titreAxe(a){
@@ -3010,9 +3207,9 @@
       var r = JSON.parse(JSON.stringify(base));
       r.traces = traces.slice(0, 10).map(function(t){ return resumeTrace(t, paliers[k]); });
       var texte = JSON.stringify(r);
-      if(texte.length <= 5800){ return texte; }
+      if(texte.length <= borne){ return texte; }
     }
-    return JSON.stringify(base).slice(0, 5800);
+    return JSON.stringify(base).slice(0, borne);
   }
 
   function avecDelai(promesse, ms){
@@ -3068,12 +3265,12 @@
     });
   }
 
-  function imageDe(gd, traces){
+  function imageDe(gd, traces, largeurMax){
     var P = window.parent.Plotly;
     // Les fonds de carte viennent d'un autre domaine: leur export echoue.
     var carte = traces.some(estCarte);
     if(!P || !P.toImage || carte || !gd.clientWidth){ return Promise.resolve(null); }
-    var largeur = Math.min(900, gd.clientWidth);
+    var largeur = Math.min(largeurMax || 900, gd.clientWidth);
     var hauteur = Math.round(gd.clientHeight * largeur / gd.clientWidth);
     return avecDelai(P.toImage(gd, {format: "png", width: largeur, height: hauteur}), 5000)
       .then(function(url){ return url ? aplatir(url, fondDe(gd)) : null; })
@@ -3127,6 +3324,324 @@
       .catch(function(){ return vue; });
   }
 
+  /* ---------- Analyse complete : inventaire de TOUTE la page -------------
+     "Analyse cette page" : on ne se limite plus aux 4 premiers graphiques.
+     On parcourt la zone principale dans l'ordre de lecture et on numerote
+     chaque element : sections (titres, encadres, onglets), graphiques,
+     cartes, fiches et indicateurs, tableaux, messages, images, textes. Les
+     reglages affiches (listes, curseurs...) accompagnent l'inventaire.
+     Lecture seule : rien n'est modifie dans la page. */
+  var MOTS_ANALYSE_COMPLETE = /((analys|parcour|d[e\u00e9]cortiqu|examin|commente|passe[rz]?\s+en\s+revue)\S*[^?.!]{0,30}\s(toute?s?\s+(la|cette)\s+page|la\s+page|cette\s+page|l'[e\u00e9]cran|tout|le\s+dashboard|le\s+tableau\s+de\s+bord|l'ensemble)\b|analyse\s+compl[e\u00e8]te|page\s+(enti[e\u00e8]re|compl[e\u00e8]te)|tout\s+analyser|section\s+par\s+section|graphe\s+par\s+graphe|carte\s+par\s+carte)/i;
+  var MAX_ELEMENTS = 40, MAX_IMAGES_COMPLETE = 10, BUDGET_IMAGES = 1500000;
+  var SEL_BLOCS = '[data-testid="stElementContainer"], [data-testid="stExpander"], [data-testid="stTabs"]';
+  var SEL_TITRES = ".pg-ttl, .pnl-ttl, h1, h2, h3, h4";
+  var SEL_SOUS = ".pg-sub, .pnl-sub, .sec-hdr-sub";
+  var SEL_REGLAGES = ['stSelectbox', 'stMultiSelect', 'stRadio', 'stSlider', 'stSelectSlider',
+                      'stCheckbox', 'stDateInput', 'stNumberInput', 'stTextInput',
+                      'stButtonGroup'].map(function(t){ return '[data-testid="' + t + '"]'; }).join(", ");
+
+  // Texte tel qu'affiche (innerText ignore les <style> des cartes HTML).
+  var SEL_ICONES = '[data-testid="stIconMaterial"], .material-symbols-rounded, .material-icons';
+  function texteVisible(el, max){
+    if(!el){ return ""; }
+    var t = (el.innerText !== undefined ? el.innerText : el.textContent) || "";
+    // Les icones Material s'ecrivent en toutes lettres ("keyboard_arrow_right").
+    tableau(el.querySelectorAll ? el.querySelectorAll(SEL_ICONES) : []).forEach(function(i){
+      var nom = (i.textContent || "").trim();
+      if(nom){ t = t.split(nom).join(" "); }
+    });
+    return t.replace(/\s+/g, " ").trim().slice(0, max || 200);
+  }
+  function surface(el){
+    var r = el.getBoundingClientRect();
+    return r.width > 2 && r.height > 2;
+  }
+  function tracesDe(gd){
+    return tableau(gd._fullData && gd._fullData.length ? gd._fullData : gd.data);
+  }
+  function titreGraphe(gd){
+    var mise = gd._fullLayout || gd.layout || {}, t = mise.title;
+    t = t ? (t.text !== undefined ? t.text : t) : "";
+    t = String(t || "").replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
+    return /^Click to enter/i.test(t) ? "" : t.slice(0, 200);
+  }
+
+  // Encadre "fiche" : coins arrondis, bordure ou fond, taille de carte.
+  function estFiche(el){
+    var r = el.getBoundingClientRect();
+    if(r.width < 110 || r.height < 44){ return false; }
+    var s = window.parent.getComputedStyle(el);
+    var rayon = parseFloat(s.borderTopLeftRadius) || 0;
+    var bord = (parseFloat(s.borderTopWidth) || 0) + (parseFloat(s.borderLeftWidth) || 0);
+    var fond = opaque(s.backgroundColor) || (s.backgroundImage && s.backgroundImage !== "none");
+    return rayon >= 6 && (bord > 0 || fond) && texteVisible(el, 20).length >= 3;
+  }
+  // Fiches les plus exterieures ; une rangee de fiches est depliee en ses
+  // fiches (chaque indicateur est lu, pas la rangee d'un bloc).
+  function fichesDe(racine){
+    var cands = tableau(racine.querySelectorAll("div")).filter(estFiche);
+    function exterieures(dans){
+      return cands.filter(function(c){
+        if(dans && (c === dans || !dans.contains(c))){ return false; }
+        return !cands.some(function(d){
+          return d !== c && d !== dans && d.contains(c) && (!dans || dans.contains(d));
+        });
+      });
+    }
+    function deplier(c){
+      var enfants = exterieures(c);
+      if(enfants.length >= 2){
+        var total = texteVisible(c, 20000).length, somme = 0;
+        enfants.forEach(function(e){ somme += texteVisible(e, 20000).length; });
+        if(somme >= 0.8 * total){ return [].concat.apply([], enfants.map(deplier)); }
+      }
+      return [c];
+    }
+    return [].concat.apply([], exterieures(null).map(deplier));
+  }
+
+  function imageDImg(img){
+    return new Promise(function(ok){
+      try{
+        var w = img.naturalWidth, h = img.naturalHeight;
+        if(!w || !h){ return ok(null); }
+        var largeurs = [800, 560, 400];
+        for(var i = 0; i < largeurs.length; i++){
+          var lw = Math.min(largeurs[i], w), lh = Math.round(h * lw / w);
+          if(lh > 1800){ lh = 1800; lw = Math.round(w * lh / h); }
+          var c = document.createElement("canvas");
+          c.width = lw; c.height = lh;
+          c.getContext("2d").drawImage(img, 0, 0, lw, lh);
+          var url = c.toDataURL("image/png");
+          if(url.length <= MAX_IMAGE_CHARS){ return ok(url); }
+        }
+        ok(null);
+      }catch(e){ ok(null); }           // image d'un autre domaine : ignoree
+    });
+  }
+
+  function inventaire(doc){
+    var racine = doc.querySelector('[data-testid="stMain"]') ||
+                 doc.querySelector("section.main") || doc.body;
+    var items = [], reglages = [], section = null, titrePage = "";
+
+    function ajouter(it){
+      if(items.length >= MAX_ELEMENTS){ return null; }
+      it.numero = items.length + 1;
+      it.cibles = it.cibles || [];
+      it.section = (it.type !== "section" && section) ? section.titre : "";
+      items.push(it);
+      // Une section s'etend a tout ce qui la suit, jusqu'a la suivante.
+      if(it.type === "section"){ section = it; }
+      else if(section){ section.cibles.push.apply(section.cibles, it.cibles); }
+      return it;
+    }
+
+    function lireReglage(w){
+      var libelle = texteVisible(w.querySelector('[data-testid="stWidgetLabel"]'), 80);
+      var valeur = "", entree = w.querySelector("input");
+      if(w.matches('[data-testid="stRadio"]')){
+        var coche = w.querySelector("input:checked");
+        valeur = coche ? texteVisible(coche.closest("label"), 200) : "";
+      } else if(w.matches('[data-testid="stCheckbox"]')){
+        libelle = libelle || texteVisible(w, 80);
+        valeur = entree && entree.checked ? "oui" : "non";
+      } else if(w.matches('[data-testid="stTextInput"], [data-testid="stNumberInput"]')){
+        valeur = entree ? String(entree.value || "").slice(0, 200) : "";
+      } else {
+        var tout = texteVisible(w, 400);
+        valeur = (libelle && tout.indexOf(libelle) === 0 ? tout.slice(libelle.length) : tout).trim();
+      }
+      if(libelle || valeur){
+        reglages.push({libelle: (libelle || "r\u00e9glage").slice(0, 80), valeur: valeur.slice(0, 200)});
+      }
+    }
+
+    function lireMarkdown(md, bloc){
+      var titreEl = md.querySelector(SEL_TITRES);
+      var fiches = fichesDe(md).filter(function(f){
+        // Encadre qui ne porte qu'un titre : c'est une section, pas une fiche.
+        var t = f.querySelector(SEL_TITRES);
+        if(!t){ return true; }
+        return texteVisible(f, 20000).length - texteVisible(t, 20000).length -
+               texteVisible(f.querySelector(SEL_SOUS), 20000).length > 40;
+      });
+      if(titreEl && !fiches.some(function(f){ return f.contains(titreEl); })){
+        var titre = texteVisible(titreEl, 200);
+        var sous = texteVisible(md.querySelector(SEL_SOUS), 300);
+        var tout = texteVisible(md, 1500);
+        if(titreEl.matches(".pg-ttl") && !titrePage){ titrePage = titre; }
+        ajouter({type: "section", titre: titre, sous_titre: sous,
+                 texte: (!fiches.length && tout.length - titre.length - sous.length > 40) ? tout : "",
+                 cibles: [bloc]});
+      }
+      fiches.forEach(function(f){
+        var kpi = f.matches(".kpi") || !!f.querySelector(".kpi-val");
+        // Libelle : l'etiquette ou le titre de la fiche, sinon sa premiere ligne.
+        var libelle = texteVisible(f.querySelector(".kpi-lbl, h1, h2, h3, h4, h5"), 80);
+        if(!libelle){
+          libelle = String(f.innerText || "").split("\n").map(function(l){ return l.trim(); })
+                      // Une ligne sans lettre ni chiffre est une icone (emoji) : sautee.
+                      .filter(function(l){ return /[A-Za-z0-9\u00c0-\u024f]/.test(l); })[0] || "";
+          libelle = libelle.replace(/\s+/g, " ").slice(0, 80);
+        }
+        ajouter({type: kpi ? "indicateur" : "fiche", titre: libelle || texteVisible(f, 60),
+                 texte: texteVisible(f, 1500), cibles: [f]});
+      });
+      if(!titreEl && !fiches.length){
+        var t = texteVisible(md, 1500);
+        if(t.length >= 25){ ajouter({type: "texte", titre: t.slice(0, 60), texte: t, cibles: [bloc]}); }
+      }
+    }
+
+    function lireBloc(bloc){
+      var gd = bloc.querySelector(".js-plotly-plot");
+      if(gd){
+        if(gd._fullData || gd.data){
+          ajouter({type: tracesDe(gd).some(estCarte) ? "carte" : "graphique",
+                   titre: titreGraphe(gd) || (section ? section.titre : ""),
+                   cibles: [gd], _gd: gd});
+        }
+        return;
+      }
+      var img = bloc.querySelector('[data-testid="stImage"] img, [data-testid="stImageContainer"] img');
+      if(img){
+        var legende = texteVisible(bloc.querySelector('[data-testid="stImageCaption"], [data-testid="caption"], figcaption'), 200);
+        ajouter({type: "image", titre: legende || (section ? section.titre : "") || "image",
+                 texte: legende, cibles: [img], _img: img});
+        return;
+      }
+      var metrique = bloc.querySelector('[data-testid="stMetric"]');
+      if(metrique){
+        ajouter({type: "indicateur",
+                 titre: texteVisible(metrique.querySelector('[data-testid="stMetricLabel"]'), 80),
+                 texte: texteVisible(metrique, 300), cibles: [metrique]});
+        return;
+      }
+      var alerte = bloc.querySelector('[data-testid="stAlert"]');
+      if(alerte){
+        var ta = texteVisible(alerte, 1500);
+        if(ta){ ajouter({type: "message", titre: ta.slice(0, 60), texte: ta, cibles: [alerte]}); }
+        return;
+      }
+      var table = bloc.querySelector('[data-testid="stDataFrame"], [data-testid="stTable"], table');
+      if(table){
+        ajouter({type: "tableau", titre: section ? section.titre : "tableau",
+                 texte: texteVisible(table, 1500), cibles: [table]});
+        return;
+      }
+      var reglage = bloc.querySelector(SEL_REGLAGES);
+      if(reglage){ lireReglage(reglage); return; }
+      if(bloc.querySelector('[data-testid="stButton"], [data-testid="stDownloadButton"], iframe')){ return; }
+      var md = bloc.querySelector('[data-testid="stMarkdownContainer"], [data-testid="stCaptionContainer"]');
+      if(md){ lireMarkdown(md, bloc); }
+    }
+
+    function lireEncadre(exp){
+      var titre = texteVisible(exp.querySelector("summary"), 160) || "encadr\u00e9";
+      var details = exp.querySelector("details");
+      if(!details || details.open){
+        ajouter({type: "section", titre: titre, cibles: [exp]});
+      } else {
+        // Replie : son contenu n'est pas a l'ecran, on le lit quand meme.
+        var corps = texteVisible(details, 1700);
+        ajouter({type: "texte", titre: titre + " (encadr\u00e9 repli\u00e9)",
+                 texte: corps.slice(titre.length).trim().slice(0, 1500), cibles: [exp]});
+      }
+    }
+
+    function lireOnglets(tabs){
+      var onglets = tableau(tabs.querySelectorAll('[role="tab"]'));
+      if(!onglets.length){ return; }
+      var ouvert = "", noms = onglets.map(function(o){
+        var n = texteVisible(o, 60);
+        if(o.getAttribute("aria-selected") === "true"){ ouvert = n; return n + " (ouvert)"; }
+        return n;
+      });
+      ajouter({type: "section", titre: "Onglet " + (ouvert || noms[0]),
+               texte: "Onglets de cette zone : " + noms.join(", ") +
+                      ". Seul l'onglet ouvert est affich\u00e9.",
+               cibles: [tabs.querySelector('[role="tablist"]') || tabs]});
+    }
+
+    tableau(racine.querySelectorAll(SEL_BLOCS)).forEach(function(bloc){
+      if(items.length >= MAX_ELEMENTS){ return; }
+      if(bloc.closest(".st-key-jarvis_slot")){ return; }
+      var id = bloc.getAttribute("data-testid");
+      // Un conteneur qui en englobe un autre : c'est l'autre qu'on lit.
+      if(id === "stElementContainer" && bloc.querySelector(SEL_BLOCS)){ return; }
+      // Contenu d'un encadre replie : deja lu avec l'encadre.
+      var parent = id === "stExpander" ? null : bloc.closest('[data-testid="stExpander"]');
+      if(parent){
+        var det = parent.querySelector("details");
+        if(det && !det.open){ return; }
+      }
+      if(id === "stExpander"){ lireEncadre(bloc); return; }
+      if(id === "stTabs"){ lireOnglets(bloc); return; }
+      if(!surface(bloc)){ return; }
+      try{ lireBloc(bloc); }catch(e){ trace("inventaire : bloc illisible", e.message); }
+    });
+    return {items: items, reglages: reglages, titrePage: titrePage};
+  }
+
+  function capturerPageComplete(progres){
+    var doc = pageHote();
+    if(!doc){ return Promise.resolve(null); }
+    var inv = inventaire(doc), items = inv.items;
+    var visuels = items.filter(function(it){ return it._gd || it._img; });
+    var nGraphes = items.filter(function(it){ return it._gd; }).length;
+    // Budget de donnees partage entre les graphiques de la page.
+    var limite = Math.max(1500, Math.min(5800, Math.floor(45000 / Math.max(1, nGraphes))));
+    var images = 0, poids = 0, k = 0;
+    return items.reduce(function(chaine, it){
+      return chaine.then(function(){
+        if(it._gd){ it.resume = resumeGraphique(it._gd, limite); }
+        if(!it._gd && !it._img){ return null; }
+        k += 1;
+        if(progres){ progres(k, visuels.length); }
+        if(images >= MAX_IMAGES_COMPLETE){ return null; }
+        var p = it._gd ? imageDe(it._gd, tracesDe(it._gd), 700) : imageDImg(it._img);
+        return p.then(function(url){
+          if(url && poids + url.length <= BUDGET_IMAGES){
+            it.image = url; poids += url.length; images += 1;
+          }
+        });
+      });
+    }, Promise.resolve()).then(function(){
+      Analyse.retenirParcours(items.map(function(it){
+        return {numero: it.numero, type: it.type, titre: it.titre || "", cibles: it.cibles};
+      }));
+      return {
+        page_titre: (inv.titrePage || texteVisible(doc.querySelector(".pg-ttl"), 200)).slice(0, 200),
+        filtres: inv.reglages.slice(0, 20),
+        elements: items.map(function(it){
+          var e = {numero: it.numero, type: it.type,
+                   section: (it.section || "").slice(0, 200),
+                   titre: (it.titre || "").slice(0, 200),
+                   sous_titre: (it.sous_titre || "").slice(0, 300),
+                   texte: (it.texte || "").slice(0, 1500),
+                   resume: (it.resume || "").slice(0, 6000)};
+          if(it.image){ e.image = it.image; }
+          return e;
+        })
+      };
+    });
+  }
+
+  function joindreVueComplete(body){
+    outil("Inventaire de la page\u2026");
+    return avecDelai(capturerPageComplete(function(k, n){
+      outil("Lecture de la page \u2014 visuel " + k + "/" + n);
+    }), 40000)
+      .then(function(vue){
+        if(!vue || !vue.elements.length){ Analyse.montrerPage(); return; }
+        body.page_view = vue;
+        Analyse.debutParcours();
+        outil("Analyse compl\u00e8te \u2014 " + vue.elements.length + " \u00e9l\u00e9ments, un par un");
+      })
+      .catch(function(){ /* sans vue, on repond quand meme */ });
+  }
+
   function basculerVue(actif){
     state.joindreVue = !!actif;
     vueBtn.classList.toggle("on", state.joindreVue);
@@ -3134,7 +3649,15 @@
   }
 
   function joindreVue(body, text){
+    // "Analyse cette page" : toute la page, element par element.
+    if(MOTS_ANALYSE_COMPLETE.test(text) && pageHote()){
+      basculerVue(false);
+      return joindreVueComplete(body);
+    }
     var voulu = state.joindreVue || vueVoulue(text);
+    // Analyse demandee (bouton "vue" ou "ce graphique", "cette page"...) :
+    // miniature et cadres. Sinon la page est lue en silence.
+    var analyseDemandee = state.joindreVue || MOTS_VUE.test(text);
     basculerVue(false);
     if(!voulu || !pageHote()){ return Promise.resolve(); }
     outil("Lecture de la page affich\u00e9e");
@@ -3142,6 +3665,7 @@
       .then(function(vue){
         if(vue && (vue.graphiques.length || vue.indicateurs.length)){
           body.page_view = vue;
+          if(!analyseDemandee){ return; }
           // On voit ce que Jarvis analyse : cadres numerotes sur la page.
           Analyse.debut();
           var titres = vue.graphiques.map(function(g, k){ return (k + 1) + ". " + (g.titre || "graphique"); });
@@ -3717,6 +4241,15 @@
         }
         figuresRecues.forEach(figureBloc);
         orbeAuRepos();
+        // Fin de l'analyse de la page : la miniature se referme quand Jarvis
+        // a fini de parler (ou tout de suite sans voix). Pose AVANT la fin de
+        // lecture, qui peut appeler surFin immediatement.
+        if(Analyse.actif()){
+          if(lecture){
+            var apresLecture = lecture.surFin;
+            lecture.surFin = function(){ if(apresLecture){ apresLecture(); } Analyse.terminer(); };
+          } else { Analyse.terminer(); }
+        }
         // La fin du texte (derniere phrase sans ponctuation finale) part
         // maintenant; en cas d'echec, on laisse finir ce qui a ete dit.
         if(lecture){ alimenterLecture(lecture, target ? target._raw : "", true); }
@@ -3772,8 +4305,11 @@
         if(state.voix && synthese){
           if(!lecture){ lecture = nouvelleLecture(); }
           alimenterLecture(lecture, target._raw, false);
+        } else {
+          var marque = dernierRepere(target._raw);
+          if(marque !== undefined){ Analyse.focus(marque); }
         }
-        target.innerHTML = mini(target._raw);
+        target.innerHTML = mini(avecReperes(target._raw));
         Hud.soustitre(target._raw, false);
         scroll();
       } else if(name === "error"){
@@ -4073,8 +4609,9 @@
   boot().then(function(){
     // Jarvis se rouvre en mode J.A.R.V.I.S, sans rejouer le demarrage.
     if(recall("open") === "1"){
-      if(recall("analyse") === "1"){ Hud.entrer(true); Analyse.colonne(true); }
-      else { Hud.entrer(true); }
+      // La miniature n'existe que pendant une analyse : jamais restauree.
+      remember("analyse", "0");
+      Hud.entrer(true);
     }
     Soutenance.reprendreApresRechargement();
   });

@@ -321,7 +321,8 @@ def _bloc(debut, fin):
 
 def test_widget_relaie_la_navigation_et_lit_le_contexte_de_la_page():
     assert '} else if(name === "navigation"){' in SOURCE
-    assert "Tableau.naviguer(data);" in SOURCE
+    # La page ouverte passe ensuite en miniature (Analyse.montrerPage).
+    assert "Tableau.naviguer(data)" in SOURCE
     assert "var ctxPage = contexteHote();" in SOURCE
     naviguer = _bloc("function naviguer(nav){", "function annoncer(")
     # Champ cache du dashboard, valide comme une frappe (setter natif + keypress).
@@ -352,3 +353,73 @@ def test_le_js_du_widget_reste_en_ascii_hors_accueil():
     accueil = _bloc("function texteAccueil(", "function saluer(")
     reste = js.replace(accueil, "")
     assert all(ord(c) < 128 for c in reste)
+
+
+def test_analyse_complete_cote_widget():
+    # Declenchement, inventaire de toute la page, reperes pilotant le cadre.
+    assert "var MOTS_ANALYSE_COMPLETE" in SOURCE
+    joindre = _bloc("function joindreVue(body, text){", "var voulu")
+    assert "MOTS_ANALYSE_COMPLETE.test(text)" in joindre
+    assert "joindreVueComplete(body)" in joindre
+    inv = _bloc("function inventaire(doc){", "function capturerPageComplete(")
+    for cible in ("js-plotly-plot", "stImage", "stMetric", "stAlert", "stDataFrame",
+                  "stExpander", "stTabs", "fichesDe(md)"):
+        assert cible in SOURCE and (cible in inv or cible in SOURCE)
+    # Voix : le cadre change a la phrase qui suit le repere.
+    avancer = _bloc("function avancerLecture(L){", "function jouerNeuronal(")
+    assert "Analyse.focus(item.focus)" in avancer
+    # Texte : le repere devient un intertitre, jamais lu a voix haute.
+    assert "mini(avecReperes(target._raw))" in SOURCE
+    lecture = _bloc("function textePourLecture(md){", "function choisirVoix(")
+    assert "[[(E" in lecture.replace("\[\[", "[[")
+
+
+def test_analyse_complete_regex_de_declenchement():
+    import re
+    ligne = [l for l in SOURCE.splitlines() if "var MOTS_ANALYSE_COMPLETE" in l][0]
+    motif = ligne.split("= /", 1)[1].rsplit("/i;", 1)[0]
+    motif = re.sub(r"\\u([0-9a-fA-F]{4})", lambda m: chr(int(m.group(1), 16)), motif)
+    re_js = re.compile(motif, re.I)
+    for oui in ("Analyse cette page", "analyse la page stp", "Passe en revue toute la page",
+                "fais une analyse compl\u00e8te", "commente tout", "analyse section par section",
+                "Jarvis, analyse-moi cette page", "peux-tu analyser toute la page ?",
+                "fais-moi l'analyse de la page", "analyse la page des t\u00e9l\u00e9connexions"):
+        assert re_js.search(oui), oui
+    for non in ("Analyse la tendance de l'AMO", "que montre ce graphique ?",
+                "explique le cluster 3", "analyse surtout le lag 4"):
+        assert not re_js.search(non), non
+
+
+def test_miniature_uniquement_pendant_une_analyse():
+    """Regle de Laity (28/09/2026) : la miniature ne s'ouvre que pendant
+    l'analyse d'une page, et se referme quand l'analyse est finie."""
+    montrer = _bloc("function montrerPage(){", "function repos(")
+    assert "if(!actif ||" in montrer
+    joindre = _bloc("function joindreVue(body, text){", "function typing(")
+    assert "var analyseDemandee = state.joindreVue || MOTS_VUE.test(text);" in joindre
+    assert "if(!analyseDemandee){ return; }" in joindre
+    fin_reponse = _bloc("// Fin de l'analyse de la page", "// La fin du texte")
+    assert "Analyse.terminer()" in fin_reponse
+    terminer = _bloc("function terminer(){", "function titreElement(")
+    assert "retour();" in terminer and "!parleEnCours()" in terminer
+
+
+def test_apercu_du_dashboard_laisse_la_page_utilisable():
+    """En apercu (VOIR / DASHBOARD), l'iframe restait en plein ecran et
+    bloquait clics et defilement (28/09/2026) : elle se reduit au bouton de
+    retour, ou a une bande haute pendant une presentation."""
+    cadrer = _bloc("  function cadrer(){", "  function setHeight(")
+    apercu = cadrer[cadrer.index('classList.contains("apercu")'):cadrer.index("if(pleinEcranVoulu())")]
+    assert '"300px"' in apercu and '"84px"' in apercu
+    assert 'classList.contains("soutenance")' in apercu
+    bascule = _bloc("    function apercu(oui){", "$(\"nav-toast-voir\")")
+    assert "cadrer();" in bascule
+
+
+def test_retour_au_dashboard_quitte_le_plein_ecran_du_navigateur():
+    """Bouton plein ecran puis RETOUR AU DASHBOARD : le navigateur restait en
+    plein ecran sur l'iframe reduite -> ecran noir (Laity, 28/09/2026)."""
+    cadrer = _bloc("  function cadrer(){", "if(document.body.classList.contains(\"analyse\") && state.open)")
+    assert "if(!plein){ quitterPleinEcranNavigateur(); }" in cadrer
+    quitter = _bloc("function quitterPleinEcranNavigateur(){", "function cadrer(){")
+    assert "document.exitFullscreen()" in quitter

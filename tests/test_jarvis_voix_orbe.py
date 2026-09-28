@@ -168,7 +168,9 @@ def test_la_bulle_ouvre_le_plein_ecran_directement():
     assert "Hud.entrer()" in fab
     remontage = SOURCE[SOURCE.index('if(recall("open") === "1"){'):]
     remontage = remontage[:300]
-    assert "else { Hud.entrer(true); }" in remontage
+    assert "Hud.entrer(true);" in remontage
+    # La miniature n'existe que pendant une analyse : jamais restauree (28/09/2026).
+    assert "Analyse.colonne(true)" not in remontage
     echap = SOURCE[SOURCE.index('if(e.key !== "Escape"){ return; }'):]
     echap = echap[:echap.index("});")]
     lignes = [l.strip() for l in echap.splitlines()]

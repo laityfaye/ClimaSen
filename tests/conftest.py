@@ -62,9 +62,9 @@ class FakeClaude:
         return resultats
 
     async def stream_reply(self, messages, profile="public", tools=None,
-                           executor=None):
+                           executor=None, max_tokens=None):
         self.calls.append({"messages": list(messages), "profile": profile,
-                           "tools": tools})
+                           "tools": tools, "max_tokens": max_tokens})
         self.tools_seen = tools
         if self.error and self.fail_after is None:
             raise self.error
@@ -86,9 +86,9 @@ class FakeClaude:
                "tools_used": [nom for nom, _ in self.tool_calls]}
 
     async def complete(self, messages, profile="public", tools=None,
-                       executor=None):
+                       executor=None, max_tokens=None):
         self.calls.append({"messages": list(messages), "profile": profile,
-                           "tools": tools})
+                           "tools": tools, "max_tokens": max_tokens})
         self.tools_seen = tools
         if self.error:
             raise self.error

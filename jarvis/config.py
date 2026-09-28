@@ -47,6 +47,9 @@ class Settings(BaseSettings):
     effort_public: Literal["low", "medium", "high", "xhigh", "max"] = "low"
     thinking_public: Literal["adaptive", "disabled"] = "adaptive"
     max_tokens_public: int = 2048
+    # Analyse complete d'une page (tous les elements commentes un par un) :
+    # 2048 jetons coupaient la reponse au milieu d'une page chargee.
+    max_tokens_analyse: int = 8000
 
     # --- Robustesse appels API ----------------------------------------------
     request_timeout_seconds: float = 60.0

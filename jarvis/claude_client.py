@@ -208,13 +208,14 @@ class ClaudeClient:
         return self._system_cache[name]
 
     def _request_kwargs(self, messages: List[dict], profile: str,
-                        tools: Optional[List[dict]] = None) -> dict:
+                        tools: Optional[List[dict]] = None,
+                        max_tokens: Optional[int] = None) -> dict:
         thinking = {"type": "adaptive"}
         if self.settings.thinking_public != "adaptive":
             thinking = {"type": "disabled"}
         kwargs = {
             "model": self.model_for(profile),
-            "max_tokens": self.settings.max_tokens_public,
+            "max_tokens": max_tokens or self.settings.max_tokens_public,
             "system": [{
                 "type": "text",
                 "text": self.system_for(profile),
@@ -252,7 +253,8 @@ class ClaudeClient:
     # --- appels --------------------------------------------------------------
     async def stream_reply(self, messages: List[dict], profile: str = "public",
                            tools: Optional[List[dict]] = None,
-                           executor=None) -> AsyncIterator[object]:
+                           executor=None,
+                           max_tokens: Optional[int] = None) -> AsyncIterator[object]:
         """Diffuse la reponse fragment par fragment, outils compris.
 
         Produit:
@@ -271,7 +273,8 @@ class ClaudeClient:
             # Au dernier tour on retire les outils: le modele doit conclure en
             # texte plutot que de redemander une lecture qu'on n'executerait pas.
             outils_du_tour = tools if (tools and executor and tour < tours_max) else None
-            kwargs = self._request_kwargs(conversation, profile, tools=outils_du_tour)
+            kwargs = self._request_kwargs(conversation, profile, tools=outils_du_tour,
+                                          max_tokens=max_tokens)
             final = None
             try:
                 async with self.client.messages.stream(**kwargs) as stream:
@@ -308,7 +311,8 @@ class ClaudeClient:
 
     async def complete(self, messages: List[dict], profile: str = "public",
                        tools: Optional[List[dict]] = None,
-                       executor=None) -> dict:
+                       executor=None,
+                       max_tokens: Optional[int] = None) -> dict:
         """Version non streamee: repli du widget et chemin de test."""
         conversation = list(messages)
         usage_total = {}
@@ -319,7 +323,8 @@ class ClaudeClient:
 
         for tour in range(tours_max + 1):
             outils_du_tour = tools if (tools and executor and tour < tours_max) else None
-            kwargs = self._request_kwargs(conversation, profile, tools=outils_du_tour)
+            kwargs = self._request_kwargs(conversation, profile, tools=outils_du_tour,
+                                          max_tokens=max_tokens)
             try:
                 response = await self.client.messages.create(**kwargs)
             except UpstreamError:

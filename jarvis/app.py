@@ -793,6 +793,14 @@ def create_app(settings: Optional[Settings] = None) -> FastAPI:
                                              oral=payload.oral)]
         return conv, messages, contexte
 
+    def _max_tokens(c: AppContext, payload: ChatRequest):
+        """Analyse complete d'une page : reponse plus longue autorisee.
+
+        Argument omis sinon : le comportement ordinaire ne change pas."""
+        if page_view.est_complete(payload.page_view):
+            return {"max_tokens": c.settings.max_tokens_analyse}
+        return {}
+
     def _commit(c: AppContext, conv, question: str, answer: str,
                 figures_produites=None) -> None:
         """N'ecrit dans l'historique qu'une fois une reponse obtenue.
@@ -846,6 +854,7 @@ def create_app(settings: Optional[Settings] = None) -> FastAPI:
                     tools=c.tool_specs(session.profile),
                     executor=c.tool_executor(session.profile, session.session_id,
                                              produites, navigations),
+                    **_max_tokens(c, payload),
                 )
                 async for chunk in flux:
                     # Une figure deposee pendant le tour d'outils precedent
@@ -938,6 +947,7 @@ def create_app(settings: Optional[Settings] = None) -> FastAPI:
             tools=c.tool_specs(session.profile),
             executor=c.tool_executor(session.profile, session.session_id,
                                      produites, navigations),
+            **_max_tokens(c, payload),
         )
         _commit(c, conv, payload.message, result["text"], produites)
         log_event("jarvis.%s" % session.profile, "chat_sync_done",
