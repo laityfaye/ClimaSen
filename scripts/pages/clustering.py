@@ -561,15 +561,17 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
                       f'font-weight:800;padding:2px 8px;border-radius:20px;'
                       f'letter-spacing:.06em;text-transform:uppercase;">Actif</span>'
                       if is_sel else "")
-            with st.container():
+            # Conteneur a cle: le style ne vise QUE la carte. L'ancien selecteur
+            # (stVerticalBlock:has(.mk-cl-X)) attrapait aussi le bloc principal
+            # de la page; son z-index:1 y creait un contexte d'empilement qui
+            # enfermait l'iframe Jarvis, et la barre laterale passait devant.
+            with st.container(key=f"cl_card_box_{cid}"):
                 st.markdown(
                     f'<style>'
-                    f'[data-testid="stVerticalBlock"]:has(.mk-cl-{cid})'
-                    f':not(:has(>[data-testid="stVerticalBlock"]))'
+                    f'.st-key-cl_card_box_{cid}'
                     f'{{position:relative !important;z-index:1 !important;'
                     f'cursor:pointer !important;}}'
-                    f'[data-testid="stVerticalBlock"]:has(.mk-cl-{cid})'
-                    f':not(:has(>[data-testid="stVerticalBlock"])):hover .cl-card-{cid}'
+                    f'.st-key-cl_card_box_{cid}:hover .cl-card-{cid}'
                     f'{{transform:translateY(-2px) !important;'
                     f'box-shadow:0 8px 24px rgba(0,0,0,.5) !important;}}'
                     f'*:has(>[data-testid="stMarkdown"] .mk-cl-{cid})'
