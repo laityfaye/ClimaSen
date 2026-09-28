@@ -1871,6 +1871,16 @@
       try{ premier.scrollIntoView({behavior: "smooth", block: "center"}); }catch(e){}
     }
 
+    // Page ouverte par navigate_dashboard pendant la reponse : en plein ecran,
+    // elle changeait DERRIERE l'interface opaque et Jarvis commentait une page
+    // invisible (constate 28/09/2026). On passe en miniature, sans cadres :
+    // les elements lus avant la navigation appartiennent a l'ancienne page.
+    function montrerPage(){
+      if(!Hud.actif() || colonneActive()){ return; }
+      effacerCadres();
+      colonne(true);
+    }
+
     // Reponse terminee : les cadres restent (on relit en ecoutant), sans pulsation.
     function repos(){ cadres.forEach(function(c){ c.el.classList.remove("lit"); }); }
 
@@ -1888,6 +1898,7 @@
     }
 
     return {retenir: retenir, debut: debut, repos: repos, fin: fin, retour: retour,
+            montrerPage: montrerPage,
             colonne: colonne, colonneActive: colonneActive, largeur: largeurColonne,
             hauteur: hauteurMini,
             actif: function(){ return actif; }};
@@ -3726,7 +3737,7 @@
         // par le serveur): elle s'ouvre pendant que Jarvis en parle.
         // Une presentation (briefing) attend, elle, la fin de la reponse.
         if(data.presentation){ presentationDemandee = data.presentation; }
-        else { Tableau.naviguer(data); }
+        else if(Tableau.naviguer(data)){ Analyse.montrerPage(); }
       } else if(name === "tool"){
         typing(false);
         outil(data.label || "Consultation des donnees");
