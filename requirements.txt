@@ -9,6 +9,10 @@ xarray>=2022.3.0
 netcdf4>=1.6.0
 scikit-learn>=1.0.0
 statsmodels>=0.13.0
-streamlit>=1.28.0
-plotly>=5.15.0
+# Streamlit >= 1.50 embarque plotly.js 3 (traces Scattermap/Densitymap MapLibre).
+streamlit>=1.50.0
+# go.Scattermap existe depuis Plotly 5.24 ; borne haute pour eviter une
+# nouvelle suppression d'API non testee (revue 28/09/2026, point S1).
+plotly>=5.24.0,<8
 requests>=2.28.0
+python-docx>=1.1      # bulletin de veille diffusable (veille/diffusion.py)

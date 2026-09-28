@@ -69,7 +69,7 @@ def _utils():
             _silence_streamlit()
             if str(SCRIPTS_DIR) not in sys.path:
                 # dashboard_utils n'est pas un paquet: les pages du dashboard
-                # procedent exactement ainsi (voir scripts/pages/*.py).
+                # procedent exactement ainsi (voir scripts/vues/*.py).
                 sys.path.insert(0, str(SCRIPTS_DIR))
             try:
                 import dashboard_utils  # noqa: F401  (import differe volontaire)
@@ -130,9 +130,9 @@ def _charger_pipeline():
     import importlib
     _utils()  # met scripts/ dans sys.path et fait taire streamlit
     try:
-        module = importlib.import_module("pages.pipeline")
+        module = importlib.import_module("vues.pipeline")
     except Exception as exc:  # pragma: no cover - depend de l'install
-        log.exception("Import de pages.pipeline impossible.")
+        log.exception("Import de vues.pipeline impossible.")
         raise DataUnavailableError(str(exc)) from exc
     return {"steps": module.PIPELINE_STEPS, "base": str(module.BASE)}
 

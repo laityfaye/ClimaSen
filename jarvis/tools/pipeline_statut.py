@@ -1,7 +1,7 @@
 """Outil get_pipeline_status: etat de la chaine de traitement (Phase 7).
 
 Meme liste d'etapes que le module "Pipeline" du dashboard
-(scripts/pages/pipeline.py, PIPELINE_STEPS): une seule source de verite, une
+(scripts/vues/pipeline.py, PIPELINE_STEPS): une seule source de verite, une
 etape ajoutee au dashboard apparait ici sans rien toucher.
 
 Pour chaque etape: ses sorties existent-elles, de quand datent-elles, et
@@ -195,5 +195,5 @@ def run(params, data):
                     "ont change depuis. sorties_de_lancements_differents = "
                     "les fichiers d'une meme etape ont plus d'un jour "
                     "d'ecart: certains decrivent peut-etre un etat anterieur."),
-        "source": "Module Pipeline du dashboard (scripts/pages/pipeline.py)",
+        "source": "Module Pipeline du dashboard (scripts/vues/pipeline.py)",
     }

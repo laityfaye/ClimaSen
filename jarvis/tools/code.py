@@ -48,7 +48,7 @@ class ReadCode:
             "action": {"type": "string", "enum": ["lister", "lire", "chercher"]},
             "path": {"type": "string",
                      "description": "Fichier ou dossier, relatif a la racine "
-                                    "du projet (ex: scripts/pages/pipeline.py)."},
+                                    "du projet (ex: scripts/vues/pipeline.py)."},
             "start_line": {"type": "integer", "description": "lire: premiere ligne."},
             "end_line": {"type": "integer", "description": "lire: derniere ligne."},
             "pattern": {"type": "string", "description": "chercher: motif."},

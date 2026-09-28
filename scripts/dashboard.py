@@ -141,8 +141,6 @@ if "dark_mode" not in st.session_state:
     st.session_state.dark_mode = (st.query_params.get("dm", "1") != "0")
 
 # ─── Page transition state ────────────────────────────────────────────────────
-if "nav_page" not in st.session_state:
-    st.session_state["nav_page"] = "Evenements"
 # Page et filtres demandes par Jarvis (outil navigate_dashboard): appliques
 # avant la barre laterale et les pages, qui creent leurs selecteurs.
 try:
@@ -150,6 +148,56 @@ try:
     _jarvis_nav.appliquer_navigation(st)
 except Exception:
     pass
+
+# ─── Navigation : une adresse par page ───────────────────────────────────────
+# Suivi de revue 28/09/2026, point S3 : la page courante etait gardee en
+# session seulement (lien non partageable, Retour et actualisation inoperants).
+# st.navigation donne a chaque page son URL (/evenements, /veille-pre-saison...)
+# sans recharger l'application : la session (administrateur, filtres) survit.
+# Le menu lateral personnalise reste ; le menu par defaut est masque.
+# Cle (1er element) = celle qu'utilisent Jarvis et st.session_state["nav_page"].
+_NAV = [
+    ("Accueil",        "Accueil",           "home",          "accueil"),
+    ("Evenements",     "Événements",        "rainy",         "evenements"),
+    ("Indices SST",    "Indices SST",       "waves",         "indices-sst"),
+    ("Teleconnexions", "Téléconnexions",    "hub",           "teleconnexions"),
+    ("Clustering",     "Clustering",        "bubble_chart",  "clustering"),
+    ("Veille",         "Veille pré-saison", "notifications", "veille-pre-saison"),
+    ("Pipeline",       "Pipeline",          "settings",      "pipeline"),
+    ("A propos",       "À propos",          "info",          "a-propos"),
+]
+
+
+def _afficher_page():
+    """Rendu de la page courante (appele par st.navigation, en fin de script)."""
+    _dispatch_page(page)
+
+
+_ST_PAGES = {
+    _k: st.Page(_afficher_page, title=_lbl, icon=f":material/{_ic}:",
+                url_path=_url, default=(_k == "Accueil"))
+    for _k, _lbl, _ic, _url in _NAV
+}
+_nav = st.navigation(list(_ST_PAGES.values()), position="hidden")
+_cle_url = next((_k for _k, _p in _ST_PAGES.items()
+                 if _p is _nav or _p.url_path == _nav.url_path), "Accueil")
+
+# L'URL fait foi quand elle a change depuis l'execution precedente (lien,
+# Retour, actualisation) ; sinon une page demandee en session (menu, Jarvis,
+# tests) est rejointe par st.switch_page, qui met l'URL a jour.
+_url_prec = st.session_state.get("_nav_url")
+_voulue = st.session_state.get("nav_page")
+if (_url_prec is not None and _cle_url != _url_prec) or _voulue not in _ST_PAGES:
+    _voulue = _cle_url
+st.session_state["nav_page"] = _voulue
+st.session_state["_nav_url"] = _voulue
+# Liens et changements de page transportent le theme (?dm=) : sans lui, une
+# actualisation en theme clair repasserait en sombre. Le passer au lien plutot
+# que de le reecrire apres coup evite une entree d'historique en double
+# (Retour devait etre clique deux fois).
+_DM_QP = {"dm": "1" if st.session_state.dark_mode else "0"}
+if _voulue != _cle_url:
+    st.switch_page(_ST_PAGES[_voulue], query_params=_DM_QP)
 if "prev_page" not in st.session_state:
     st.session_state.prev_page = None
 if "page_loading" not in st.session_state:
@@ -984,6 +1032,40 @@ section[data-testid="stSidebar"] [data-baseweb="tag"] span {{
 }}
 .pg-bc  {{ font-size: 0.69rem; color: {MUTED}; margin: 0 0 3px 0; }}
 .pg-bc b {{ color: {INDIGO}; }}
+
+/* Blocs sans rendu (feuilles de style, script anti-flash, contexte Jarvis
+   cache, indicateur de chargement fixe) : hors du flux, sinon chacun ajoute
+   l'ecart vertical de la colonne (~15 px) - 70 px vides en haut de chaque
+   page. Leur contenu reste actif (une balise style s'applique toujours). */
+[data-testid="stMainBlockContainer"] [data-testid="stElementContainer"]:has(> [data-testid="stMarkdown"]):has([data-testid="stMarkdownContainer"] > :is(style, script, link, [hidden], #page-loader)):not(:has([data-testid="stMarkdownContainer"] > :not(style, script, link, [hidden], #page-loader))) {{
+    position: absolute !important;
+}}
+@media (min-width: 769px) {{
+    [data-testid="stMainBlockContainer"] {{ padding-top: 18px !important; }}
+}}
+
+/* Fil d'Ariane et logo cliquables (suivi de revue 28/09/2026, S3) */
+.st-key-fil_ariane {{ margin: 6px 0 -18px 0; gap: 6px !important; }}
+.st-key-fil_ariane [data-testid="stPageLink"] a {{
+    padding: 0 !important; min-height: 0 !important; background: transparent !important;
+}}
+.st-key-fil_ariane [data-testid="stPageLink"] a p,
+.st-key-fil_ariane [data-testid="stPageLink"] a span {{
+    font-size: 0.69rem !important; color: {MUTED} !important;
+    text-decoration: underline; text-underline-offset: 2px;
+}}
+.st-key-fil_ariane [data-testid="stPageLink"] a:hover p {{ color: {INDIGO} !important; }}
+.st-key-fil_ariane .pg-bc {{ margin: 0; }}
+.st-key-cs_logo {{ position: relative; }}
+.st-key-cs_logo [data-testid="stElementContainer"]:has([data-testid="stPageLink"]) {{
+    position: absolute !important; inset: 0; z-index: 2; margin: 0 !important;
+    width: 100% !important; max-width: none !important; height: 100% !important;
+}}
+.st-key-cs_logo [data-testid="stPageLink"],
+.st-key-cs_logo [data-testid="stPageLink"] * {{
+    width: 100% !important; max-width: none !important; height: 100% !important;
+    opacity: 0; cursor: pointer;
+}}
 .pg-ttl {{ font-size: 1.3rem; font-weight: 800; color: {TEXT}; margin: 0; }}
 .pg-sub {{ font-size: 0.74rem; color: {MUTED}; margin: 4px 0 0 0; }}
 
@@ -1396,6 +1478,15 @@ html, body {{
         min-width: calc(50% - 5px) !important;
         flex: 0 0 calc(50% - 5px) !important;
     }}
+    /* Phase + metrique des Teleconnexions : libelles longs, pleine largeur ;
+       la 3e colonne (vide) ne prend pas de place. Classe repetee : doit
+       l'emporter sur la regle generique ci-dessus (specificite 0,7,0). */
+    .st-key-tc_filtres.st-key-tc_filtres.st-key-tc_filtres.st-key-tc_filtres.st-key-tc_filtres.st-key-tc_filtres [data-testid="stHorizontalBlock"] > [data-testid="stColumn"] {{
+        width: 100% !important; min-width: 100% !important; flex: 0 0 100% !important;
+    }}
+    .st-key-tc_filtres [data-testid="stHorizontalBlock"] > [data-testid="stColumn"]:last-child {{
+        display: none !important;
+    }}
 
     /* Navigation des evenements cartographies : selecteur sur toute la
        largeur, puis  <-  1/6  ->  sur UNE ligne (et non trois). */
@@ -1768,7 +1859,10 @@ with st.sidebar:
     _mode_lbl = "Mode clair" if st.session_state.dark_mode else "Mode sombre"
 
     _hdr_c = st.columns([6, 1])
-    with _hdr_c[0]:
+    # Logo cliquable : un st.page_link transparent recouvre le bloc (lien
+    # interne, la session est conservee) - suivi de revue 28/09/2026, S3.
+    with _hdr_c[0], st.container(key="cs_logo"):
+        st.page_link(_ST_PAGES["Accueil"], label="Accueil ClimatSen", query_params=_DM_QP)
         st.markdown(f"""
         <div style="padding:20px 0 14px 0;display:flex;align-items:center;gap:11px;">
           <div style="width:36px;height:36px;border-radius:10px;flex-shrink:0;
@@ -1798,20 +1892,9 @@ with st.sidebar:
     st.markdown('<span class="sb-sec-label">Menu</span>', unsafe_allow_html=True)
 
     # Icones Material (une seule famille, monochromes) et libelles accentues ;
-    # la cle (1er element) reste celle qu'utilisent Jarvis et la navigation.
-    # Revue 27/09/2026, points 17-19.
-    _NAV = [
-        ("Evenements",     "Événements",        "rainy"),
-        ("Indices SST",    "Indices SST",       "waves"),
-        ("Teleconnexions", "Téléconnexions",    "hub"),
-        ("Clustering",     "Clustering",        "bubble_chart"),
-        ("Veille",         "Veille pré-saison", "notifications"),
-        ("Pipeline",       "Pipeline",          "settings"),
-        ("A propos",       "À propos",          "info"),
-    ]
-    if st.session_state["nav_page"] not in {k for k, _, _ in _NAV}:
-        st.session_state["nav_page"] = "Evenements"
-    for _pg_key, _pg_label, _icon in _NAV:
+    # _NAV est defini avec la navigation (haut du script). Revue 27/09/2026,
+    # points 17-19.
+    for _pg_key, _pg_label, _icon, _url in _NAV:
         if st.session_state["nav_page"] == _pg_key:
             st.markdown(
                 f'<div class="nav-item-active">'
@@ -1827,8 +1910,9 @@ with st.sidebar:
                 use_container_width=True,
             ):
                 st.session_state["nav_page"] = _pg_key
+                st.session_state["_nav_url"] = _pg_key
                 st.session_state.mobile_sidebar_open = False
-                st.rerun()
+                st.switch_page(_ST_PAGES[_pg_key], query_params=_DM_QP)
 
     page = st.session_state["nav_page"]
 
@@ -1854,16 +1938,22 @@ dff = df[df["year"].between(*year_range) & df["phase"].isin(active_phases)].copy
 # DISPATCH PAGE MODULES
 # =============================================================================
 import sys as _sys
-_pages_dir = str(__import__('pathlib').Path(__file__).resolve().parent / 'pages')
-if _pages_dir not in _sys.path:
-    _sys.path.insert(0, _pages_dir)
-import pages.evenements     as _pg_evenements
-import pages.teleconnexions as _pg_teleconnexions
-import pages.indices_sst    as _pg_indices_sst
-import pages.clustering     as _pg_clustering
-import pages.pipeline       as _pg_pipeline
-import pages.veille_presaison as _pg_veille
-import pages.a_propos       as _pg_a_propos
+# Dossier "vues" et non "pages" : un dossier pages/ a cote du script principal
+# active l'ancien mode multipage de Streamlit, qui affichait "Page not found"
+# au premier visiteur apres un redemarrage sur /indices-sst, /accueil...
+# C'est le dossier PARENT (scripts/) qui doit etre dans sys.path pour
+# "import vues.xxx", quel que soit le repertoire de lancement.
+_scripts_dir = str(__import__('pathlib').Path(__file__).resolve().parent)
+if _scripts_dir not in _sys.path:
+    _sys.path.insert(0, _scripts_dir)
+import vues.accueil        as _pg_accueil
+import vues.evenements     as _pg_evenements
+import vues.teleconnexions as _pg_teleconnexions
+import vues.indices_sst    as _pg_indices_sst
+import vues.clustering     as _pg_clustering
+import vues.pipeline       as _pg_pipeline
+import vues.veille_presaison as _pg_veille
+import vues.a_propos       as _pg_a_propos
 
 _page_kw = dict(
     BG=BG, CARD=CARD, TEXT=TEXT, MUTED=MUTED, BORDER=BORDER,
@@ -1871,20 +1961,36 @@ _page_kw = dict(
     dark_mode=st.session_state.dark_mode,
 )
 
-if page == "Evenements":
-    _pg_evenements.run(**_page_kw)
-elif page == "Teleconnexions":
-    _pg_teleconnexions.run(**_page_kw)
-elif page == "Indices SST":
-    _pg_indices_sst.run(**_page_kw)
-elif page == "Clustering":
-    _pg_clustering.run(**_page_kw)
-elif page == "Pipeline":
-    _pg_pipeline.run(**_page_kw)
-elif page == "Veille":
-    _pg_veille.run(**_page_kw)
-elif page == "A propos":
-    _pg_a_propos.run(**_page_kw)
+_LIBELLES = {_k: _lbl for _k, _lbl, _ic, _url in _NAV}
+
+
+def _dispatch_page(page):
+    # Fil d'Ariane : "Accueil" est un lien interne (suivi de revue 28/09, S3).
+    if page != "Accueil":
+        with st.container(key="fil_ariane", horizontal=True, gap="small",
+                          vertical_alignment="center"):
+            st.page_link(_ST_PAGES["Accueil"], label="Accueil", query_params=_DM_QP)
+            st.markdown(f'<span class="pg-bc">/&nbsp; <b>{_LIBELLES[page]}</b></span>',
+                        unsafe_allow_html=True)
+    if page == "Accueil":
+        _pg_accueil.run(**_page_kw, liens=_ST_PAGES, query_params=_DM_QP)
+    elif page == "Evenements":
+        _pg_evenements.run(**_page_kw)
+    elif page == "Teleconnexions":
+        _pg_teleconnexions.run(**_page_kw)
+    elif page == "Indices SST":
+        _pg_indices_sst.run(**_page_kw)
+    elif page == "Clustering":
+        _pg_clustering.run(**_page_kw)
+    elif page == "Pipeline":
+        _pg_pipeline.run(**_page_kw)
+    elif page == "Veille":
+        _pg_veille.run(**_page_kw)
+    elif page == "A propos":
+        _pg_a_propos.run(**_page_kw)
+
+
+_nav.run()
 
 # =============================================================================
 # JARVIS - bulle d'assistant (Phase 1)

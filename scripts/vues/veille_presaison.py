@@ -90,7 +90,6 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dark_mode=False, **kw):
 
     st.markdown("""
     <div class="pg-hdr"><div>
-      <p class="pg-bc">Dashboard &nbsp;/&nbsp; <b>Veille pré-saison</b></p>
       <h1 class="pg-ttl">Veille pré-saison · risque d'année extrême</h1>
       <p class="pg-sub">Bulletin d'avril · prévision Copernicus C3S + état océanique
       novembre-avril projeté sur les configurations du mémoire</p>

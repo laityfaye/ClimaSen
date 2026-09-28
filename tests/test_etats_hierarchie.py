@@ -105,9 +105,9 @@ def test_page_clustering_reste_utilisable_sans_hierarchie():
     import sys
     from pathlib import Path
     sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
-    sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts" / "pages"))
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts" / "vues"))
     import importlib
-    page = importlib.import_module("pages.clustering")
+    page = importlib.import_module("vues.clustering")
     assert page._ligne_etat(None, 3, "#999", "#000") == ""
     h = {"clusters": {3: {"etat": "Neutre", "part": 1.0}},
          "etats": [{"nom": "Neutre", "couleur": "#94A3B8"}]}

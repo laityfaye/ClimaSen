@@ -41,7 +41,6 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
     st.markdown(f"""
     <div class="pg-hdr">
       <div>
-        <p class="pg-bc">Dashboard &nbsp;/&nbsp; <b>Indices SST</b></p>
         <h1 class="pg-ttl">Indices de Température de Surface (SST)</h1>
         <p class="pg-sub">Series temporelles journalieres · OISST v2 · 11 indices ·
           données du {sst_raw["date"].min():%d/%m/%Y} au {sst_raw["date"].max():%d/%m/%Y}</p>

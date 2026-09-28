@@ -64,7 +64,7 @@ def test_mot_de_passe_faux_refuse(monkeypatch):
 
 # --- Point 13 : exports du pipeline --------------------------------------------
 def _pipeline():
-    spec = importlib.util.spec_from_file_location("pipeline_page", RACINE / "scripts/pages/pipeline.py")
+    spec = importlib.util.spec_from_file_location("pipeline_page", RACINE / "scripts/vues/pipeline.py")
     mod = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(mod)
     return mod
@@ -100,3 +100,47 @@ def test_fiches_des_figures_cartopy_concordent_avec_le_clustering():
         attendu = {str(int(c)): int(n) for c, n in ev["cluster"].value_counts().sort_index().items()}
         assert meta["effectifs"] == attendu, phase
         assert meta["k"] == len(attendu)
+
+
+# --- Suivi du 28/09 : navigation (S3), dependances (S1), cartes de chaleur (14) --
+def test_accueil_est_la_page_par_defaut():
+    from streamlit.testing.v1 import AppTest
+    at = AppTest.from_file(str(RACINE / "scripts" / "dashboard.py"), default_timeout=240)
+    at.run()
+    assert not at.exception, [e.value for e in at.exception]
+    assert at.session_state["nav_page"] == "Accueil"
+
+
+@pytest.mark.parametrize("page", ["Evenements", "Indices SST", "Teleconnexions", "Veille",
+                                  "A propos"])
+def test_page_demandee_en_session_est_rejointe(page):
+    # Menu lateral, Jarvis (navigate_dashboard) : la page demandee en session est
+    # rejointe par st.switch_page, qui met aussi l'URL a jour.
+    assert _app(page).session_state["nav_page"] == page
+
+
+def test_pas_de_dossier_pages_a_cote_du_script_principal():
+    # Un dossier scripts/pages/ reactive l'ancien mode multipage de Streamlit
+    # ("Page not found" au premier visiteur apres redemarrage).
+    assert not (RACINE / "scripts" / "pages").exists()
+
+
+def test_aucune_trace_mapbox():
+    # go.Scattermapbox / go.Densitymapbox ont ete retires dans Plotly 7.
+    for f in (RACINE / "scripts").rglob("*.py"):
+        texte = f.read_text(encoding="utf-8", errors="ignore")
+        assert "Scattermapbox(" not in texte and "Densitymapbox(" not in texte, f.name
+
+
+def test_requirements_racine_complets():
+    req = (RACINE / "requirements.txt").read_text(encoding="utf-8")
+    assert "python-docx" in req
+    assert "plotly>=5.24" in req
+
+
+def test_chiffres_des_cartes_de_chaleur_lisibles():
+    import dashboard_utils as du
+    echelle = [[0, "#7F1D1D"], [0.5, "#F8FAFC"], [1, "#1E3A8A"]]
+    assert du.couleur_sur_fond(0.0, -0.5, 0.5, echelle) == "#0F172A"   # cellule claire
+    assert du.couleur_sur_fond(0.5, -0.5, 0.5, echelle) == "#FFFFFF"   # cellule foncee
+    assert du.couleur_sur_fond(-0.5, -0.5, 0.5, echelle) == "#FFFFFF"

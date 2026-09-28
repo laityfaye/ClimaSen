@@ -26,6 +26,7 @@ DATASETS = ()
 # passe bien par page_context (import dans run); un test verifie que cette
 # copie reste identique a CHAMPS.
 FILTRES = {
+    "Accueil": (),
     "Evenements": ("annees", "phases", "evenement_date"),
     "Indices SST": ("indices", "agregation"),
     "Teleconnexions": ("phase", "metrique", "type_correlation",

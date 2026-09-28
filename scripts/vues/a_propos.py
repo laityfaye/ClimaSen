@@ -17,7 +17,6 @@ EQUIPE = (
 def run(BG, CARD, TEXT, MUTED, BORDER, **kw):
     st.markdown("""
     <div class="pg-hdr"><div>
-      <p class="pg-bc">Dashboard &nbsp;/&nbsp; <b>À propos</b></p>
       <h1 class="pg-ttl">À propos de ClimatSen</h1>
       <p class="pg-sub">Précipitations extrêmes au Sénégal et téléconnexions océaniques</p>
     </div></div>

@@ -22,7 +22,10 @@ Cadre de l'étude :
   (juillet-août), fin (septembre-octobre)
 - Données socio-démographiques croisées via l'ANSD
 
-## Les cinq modules de la plateforme
+## Les modules de la plateforme
+
+La page **Accueil** (page d'arrivée) présente la plateforme, ses chiffres clés,
+trois résultats marquants et un accès à chaque module.
 
 1. **Événements** — catalogue des événements de pluies extrêmes historiques
    détectés sur la période d'étude

@@ -438,7 +438,6 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
     st.markdown(f"""
     <div class="pg-hdr">
       <div>
-        <p class="pg-bc">Dashboard &nbsp;/&nbsp; <b>Pipeline</b></p>
         <h1 class="pg-ttl">Pipeline d\'Analyse</h1>
         <p class="pg-sub">
           Téléchargement CHIRPS &nbsp;&middot;&nbsp;

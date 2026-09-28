@@ -24,7 +24,7 @@ AMBER   = "#F59E0B"
 ROSE    = "#F43F5E"
 SIDEBAR_BG = "#1D1864"
 PHASE_C = {"Phase_1_debut": BLUE, "Phase_2_pleine": INDIGO, "Phase_3_fin": AMBER}
-PHASE_L = {"Phase_1_debut": "Debut Mai-Jun", "Phase_2_pleine": "Pleine Jul-Aou", "Phase_3_fin": "Fin Sep-Oct"}
+PHASE_L = {"Phase_1_debut": "Début Mai-Jun", "Phase_2_pleine": "Pleine Jul-Août", "Phase_3_fin": "Fin Sep-Oct"}
 
 
 # --- Fond de carte (sans cle API) --------------------------------------------
@@ -44,7 +44,10 @@ _ESRI_GRAY_TILES = (
 
 
 def basemap(center_lat, center_lon, zoom, style=None, dark=False):
-    """Configuration mapbox sans cle API (voir BASEMAP_STYLE).
+    """Configuration de carte MapLibre (layout `map`) sans cle API (voir BASEMAP_STYLE).
+
+    Les traces sont des go.Scattermap / go.Densitymap : go.Scattermapbox a ete
+    retire dans Plotly 7 (suivi de revue 28/09/2026, point S1).
 
     dark=True : fond de la couleur des cartes du theme sombre au lieu du blanc
     (revue 27/09/2026, point 15), toujours sans appel reseau.
@@ -88,6 +91,7 @@ CARTE_CONFIG = {
     "scrollZoom": True,
     "displaylogo": False,
     "modeBarButtonsToRemove": ["lasso2d", "select2d", "autoScale2d",
+                               "hoverClosestMap", "zoomInMap", "zoomOutMap",
                                "hoverClosestMapbox", "zoomInMapbox", "zoomOutMapbox"],
 }
 
@@ -473,6 +477,38 @@ def svg_spark(vals, w=100, h=40, color=INDIGO):
         f' stroke-linejoin="round" stroke-linecap="round"/>'
         f'</svg>'
     )
+
+
+def couleur_sur_fond(v, zmin, zmax, colorscale, clair="#FFFFFF", fonce="#0F172A"):
+    """Couleur de texte lisible sur la cellule de valeur v (luminance du fond)."""
+    from plotly.colors import sample_colorscale
+    pos = min(1.0, max(0.0, (float(v) - zmin) / ((zmax - zmin) or 1.0)))
+    r, g, b = (float(c) for c in sample_colorscale(colorscale, [pos])[0]
+               .strip("rgb()").split(","))
+    return fonce if (0.299 * r + 0.587 * g + 0.114 * b) / 255 > 0.55 else clair
+
+
+def textes_cellules(fig, x, y, textes, z, zmin, zmax, colorscale, size=10,
+                    clair="#FFFFFF", fonce="#0F172A"):
+    """Chiffres d'une carte de chaleur, lisibles sur toutes les cellules.
+
+    Le contraste automatique de Plotly laissait des chiffres blancs sur les
+    cellules claires (+0,01, -0,03) : la couleur est calculee ici cellule par
+    cellule d'apres la luminance du fond (suivi de revue 28/09/2026, point 14).
+    Trace texte superposee (go.Scatter), sans survol : la carte garde le sien.
+    """
+    xs, ys, tx, couleurs = [], [], [], []
+    for ri, yv in enumerate(y):
+        for ci, xv in enumerate(x):
+            v, txt = z[ri][ci], textes[ri][ci]
+            if v is None or txt in (None, "") or not np.isfinite(v):
+                continue
+            xs.append(xv); ys.append(yv); tx.append(txt)
+            couleurs.append(couleur_sur_fond(v, zmin, zmax, colorscale, clair, fonce))
+    fig.add_trace(go.Scatter(x=xs, y=ys, text=tx, mode="text",
+                             textfont=dict(size=size, color=couleurs),
+                             hoverinfo="skip", showlegend=False))
+    return fig
 
 
 def plotly_base(fig, h=300, muted="#64748B", border="#E2E8F0", text="#0F172A", card="#FFFFFF"):

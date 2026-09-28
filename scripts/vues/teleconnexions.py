@@ -33,6 +33,20 @@ IDX_GROUP = {
 }
 
 
+
+# Echelle divergente des cartes de chaleur de correlation (r de -0,5 a +0,5).
+_CS_R = [
+    [0.0,  "#7F1D1D"],
+    [0.2,  "#C2410C"],
+    [0.4,  "#FB923C"],
+    [0.48, "#FED7AA"],
+    [0.5,  "#F8FAFC"],
+    [0.52, "#BAE6FD"],
+    [0.6,  "#0EA5E9"],
+    [0.8,  "#1D4ED8"],
+    [1.0,  "#1E3A8A"],
+]
+
 def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
         is_mobile=False, is_tablet=False, **kw):
 
@@ -58,7 +72,6 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
     st.markdown(f"""
     <div class="pg-hdr">
       <div>
-        <p class="pg-bc">Dashboard &nbsp;/&nbsp; <b>Téléconnexions</b></p>
         <h1 class="pg-ttl">Téléconnexions SST - Précipitations Extrêmes</h1>
         <p class="pg-sub">
           Series <b>annuelles</b> (interannuel) &nbsp;&middot;&nbsp;
@@ -199,19 +212,7 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
             y=all_indices,
             text=cell_text,
             customdata=customdata,
-            texttemplate="%{text}",
-            textfont=dict(size=10),  # couleur auto (contraste) : lisible sur cellules claires
-            colorscale=[
-                [0.0,  "#7F1D1D"],
-                [0.2,  "#C2410C"],
-                [0.4,  "#FB923C"],
-                [0.48, "#FED7AA"],
-                [0.5,  "#F8FAFC"],
-                [0.52, "#BAE6FD"],
-                [0.6,  "#0EA5E9"],
-                [0.8,  "#1D4ED8"],
-                [1.0,  "#1E3A8A"],
-            ],
+            colorscale=_CS_R,
             zmid=0,
             zmin=-0.5, zmax=0.5,
             colorbar=dict(
@@ -232,6 +233,8 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
             ),
         ))
 
+        du.textes_cellules(fig, metrics_labels, all_indices, cell_text, z, -0.5, 0.5, _CS_R)
+
         annotations = []
         for ri, hm_idx in enumerate(all_indices):
             for ci in range(len(metrics_order)):
@@ -246,6 +249,7 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
                     star_txt = "*"
                 else:
                     continue
+                _z_etoile = z[ri][ci] if z[ri][ci] is not None else 0.0
                 annotations.append(dict(
                     x=metrics_labels[ci],
                     y=hm_idx,
@@ -255,7 +259,8 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
                     yanchor="bottom",
                     xshift=18,
                     yshift=-2,
-                    font=dict(size=15, color="#000000", family="Inter,sans-serif"),
+                    font=dict(size=15, family="Inter,sans-serif",
+                              color=du.couleur_sur_fond(_z_etoile, -0.5, 0.5, _CS_R)),
                 ))
 
         for sep in [4, 6, 10]:
@@ -357,7 +362,9 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
     st.markdown("<div style='height:6px'></div>", unsafe_allow_html=True)
 
     # ── Filtres inline ─────────────────────────────────────────────────────
-    fa, fb, _f_vide = st.columns([2, 2, 2.8], gap="small")
+    # Conteneur nomme : sur mobile, une colonne par selecteur (a 50 % chacun,
+    # "Précipitation max (mm)" etait tronque - suivi de revue 28/09, point 12).
+    fa, fb, _f_vide = st.container(key="tc_filtres").columns([2, 2, 2.8], gap="small")
     with fa:
         tc_phase = st.selectbox(
             "Phase saisonnière",
@@ -467,19 +474,7 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
             y=all_indices,
             text=cell_text,
             customdata=customdata_mat,
-            texttemplate="%{text}",
-            textfont=dict(size=10),  # couleur auto (contraste) : lisible sur cellules claires
-            colorscale=[
-                [0.0,  "#7F1D1D"],
-                [0.2,  "#C2410C"],
-                [0.4,  "#FB923C"],
-                [0.48, "#FED7AA"],
-                [0.5,  "#F8FAFC"],
-                [0.52, "#BAE6FD"],
-                [0.6,  "#0EA5E9"],
-                [0.8,  "#1D4ED8"],
-                [1.0,  "#1E3A8A"],
-            ],
+            colorscale=_CS_R,
             zmid=0,
             zmin=-0.5, zmax=0.5,
             colorbar=dict(
@@ -500,6 +495,8 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
             ),
         ))
 
+        du.textes_cellules(fig_hm, x_labels, all_indices, cell_text, z_mat, -0.5, 0.5, _CS_R)
+
         annotations = []
         for ri, hm_idx in enumerate(all_indices):
             for ci, lag in enumerate(lags_shown):
@@ -514,6 +511,7 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
                     star_txt = "*"
                 else:
                     continue
+                _z_etoile = z_mat[ri][ci] if z_mat[ri][ci] is not None else 0.0
                 annotations.append(dict(
                     x=x_labels[ci],
                     y=hm_idx,
@@ -523,7 +521,8 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
                     yanchor="bottom",
                     xshift=18,
                     yshift=-2,
-                    font=dict(size=15, color="#000000", family="Inter,sans-serif"),
+                    font=dict(size=15, family="Inter,sans-serif",
+                              color=du.couleur_sur_fond(_z_etoile, -0.5, 0.5, _CS_R)),
                 ))
 
         for sep in [4, 6, 10]:
@@ -552,6 +551,25 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
         )
         fig_hm.update_xaxes(automargin=True).update_yaxes(automargin=True)
         st.plotly_chart(fig_hm, use_container_width=True, config=_CHART_CFG("heatmap_correlations"))
+
+        # Tests multiples : repere de lecture, sans changer les etoiles (le
+        # script 04 n'applique pas de FDR, choix du memoire). Suivi de revue
+        # 28/09/2026, point 12.
+        _p_vals = [v for row in p_active_mat for v in row
+                   if v is not None and not pd.isna(v)]
+        if _p_vals:
+            _n_t = len(_p_vals)
+            _n_sig = sum(v < 0.05 for v in _p_vals)
+            # Benjamini-Hochberg a 5 % : plus grand rang k tel que p(k) <= 0,05 k / m
+            _tri = sorted(_p_vals)
+            _n_bh = max((k for k in range(1, _n_t + 1) if _tri[k - 1] <= 0.05 * k / _n_t),
+                        default=0)
+            st.markdown(
+                f'<p class="pnl-sub" style="margin-top:4px;">{_n_t} tests sur cette carte · '
+                f'{_n_sig} significatifs à 5 % · environ {0.05 * _n_t:.1f}'.replace(".", ",")
+                + f' attendus par hasard · {_n_bh} restent significatifs après correction '
+                'de Benjamini-Hochberg (FDR 5 %)</p>',
+                unsafe_allow_html=True)
 
     # ── Top correlations ───────────────────────────────────────────────────
     with top_col:

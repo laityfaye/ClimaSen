@@ -23,7 +23,7 @@ import re
 
 from .tools.common import INDICES, METRIQUES, PHASES, PHASES_TOUTES
 
-PAGES = ("Evenements", "Indices SST", "Teleconnexions", "Clustering", "Pipeline",
+PAGES = ("Accueil", "Evenements", "Indices SST", "Teleconnexions", "Clustering", "Pipeline",
          "Veille")
 
 MAX_CONTEXT_CHARS = 2000
@@ -82,6 +82,8 @@ def _intervalle(mini, maxi):
 # Le libelle (2e element) est ce que lit le modele: il dit ce que represente le
 # filtre, pas le nom technique de la cle Streamlit.
 CHAMPS = {
+    # Page d'accueil (suivi de revue 28/09/2026, S3) : aucun filtre.
+    "Accueil": {},
     "Evenements": {
         "annees": (_intervalle(1900, 2100), "periode affichee"),
         "phases": (_liste(_enum(PHASES), 3), "phases affichees"),

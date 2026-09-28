@@ -1,0 +1,74 @@
+{
+  "date_calcul": "2026-09-28",
+  "pixels": {
+    "boite": 450,
+    "senegal": 259,
+    "hors_senegal": 191
+  },
+  "seuils_pixels": {
+    "boite": 40,
+    "masque_40": 40,
+    "masque_prop": 23
+  },
+  "controle_catalogue": {
+    "catalogue": 1317,
+    "boite_recalculee": 1317,
+    "communs": 1317
+  },
+  "variantes": {
+    "boite": {
+      "evenements": 1317,
+      "communs_avec_boite": 1317,
+      "perdus_vs_boite": 0,
+      "nouveaux_vs_boite": 0,
+      "max_precip_change_sur_communs": 0,
+      "max_precip_ecart_median_mm": 0.0
+    },
+    "masque_40": {
+      "evenements": 901,
+      "communs_avec_boite": 901,
+      "perdus_vs_boite": 416,
+      "nouveaux_vs_boite": 0,
+      "max_precip_change_sur_communs": 343,
+      "max_precip_ecart_median_mm": 0.0
+    },
+    "masque_prop": {
+      "evenements": 1361,
+      "communs_avec_boite": 1207,
+      "perdus_vs_boite": 110,
+      "nouveaux_vs_boite": 154,
+      "max_precip_change_sur_communs": 487,
+      "max_precip_ecart_median_mm": 0.0
+    }
+  },
+  "series_annuelles_vs_boite": {
+    "masque_40": {
+      "Phase_1_debut": {
+        "annees_communes": 43,
+        "r_max_precip_annuel": 0.95
+      },
+      "Phase_2_pleine": {
+        "annees_communes": 43,
+        "r_max_precip_annuel": 0.897
+      },
+      "Phase_3_fin": {
+        "annees_communes": 43,
+        "r_max_precip_annuel": 0.895
+      }
+    },
+    "masque_prop": {
+      "Phase_1_debut": {
+        "annees_communes": 43,
+        "r_max_precip_annuel": 0.957
+      },
+      "Phase_2_pleine": {
+        "annees_communes": 43,
+        "r_max_precip_annuel": 0.939
+      },
+      "Phase_3_fin": {
+        "annees_communes": 43,
+        "r_max_precip_annuel": 0.915
+      }
+    }
+  }
+}

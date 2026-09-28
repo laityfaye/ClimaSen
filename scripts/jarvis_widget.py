@@ -75,6 +75,7 @@ def _mode() -> str:
 # (jarvis/page_context.py, CHAMPS): un champ ajoute ici sans y etre declare
 # serait ignore cote serveur, jamais transmis au modele.
 CLES_CONTEXTE = {
+    "Accueil": {},
     "Evenements": {
         "annees": "evt_yr_range",
         "phases": "evt_phases_sel",

@@ -61,7 +61,6 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
     st.markdown(f"""
     <div class="pg-hdr">
       <div>
-        <p class="pg-bc">Dashboard &nbsp;/&nbsp; <b>Clustering</b></p>
         <h1 class="pg-ttl">Clustering KMeans SST</h1>
         <p class="pg-sub">Configurations océaniques du jour de chaque événement extrême · choix du nombre de configurations</p>
       </div>
@@ -827,7 +826,7 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
                                     _la_b.append(_yb)
                                 _lo_b.append(None)
                                 _la_b.append(None)
-                        _cl_fig_comp.add_trace(go.Scattermapbox(
+                        _cl_fig_comp.add_trace(go.Scattermap(
                             lat=_la_b, lon=_lo_b, mode="lines",
                             line=dict(width=1.1, color=("rgba(226,232,240,0.35)"
                                                         if kw.get("dark_mode") else
@@ -836,13 +835,13 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
                         ))
 
                     # Pixels precipitation (halo blanc pour lisibilite)
-                    _cl_fig_comp.add_trace(go.Scattermapbox(
+                    _cl_fig_comp.add_trace(go.Scattermap(
                         lat=_cl_lats, lon=_cl_lons,
                         mode="markers",
                         marker=dict(size=11, color="white", opacity=0.30),
                         hoverinfo="skip", showlegend=False,
                     ))
-                    _cl_fig_comp.add_trace(go.Scattermapbox(
+                    _cl_fig_comp.add_trace(go.Scattermap(
                         lat=_cl_lats, lon=_cl_lons,
                         mode="markers",
                         marker=dict(
@@ -875,12 +874,12 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
                     ))
 
                     # Centroide de precipitation
-                    _cl_fig_comp.add_trace(go.Scattermapbox(
+                    _cl_fig_comp.add_trace(go.Scattermap(
                         lat=[_cl_ctr_lat], lon=[_cl_ctr_lon], mode="markers",
                         marker=dict(size=20, color="white", opacity=0.85),
                         hoverinfo="skip", showlegend=False,
                     ))
-                    _cl_fig_comp.add_trace(go.Scattermapbox(
+                    _cl_fig_comp.add_trace(go.Scattermap(
                         lat=[_cl_ctr_lat], lon=[_cl_ctr_lon], mode="markers",
                         marker=dict(
                             size=13, color=_cl_cl_color, opacity=1.0,
@@ -895,7 +894,7 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
                     ))
 
                     _cl_fig_comp.update_layout(
-                        mapbox=_cl_bmap,
+                        map=_cl_bmap,
                         margin=dict(l=0, r=0, t=0, b=0),
                         height=500,
                         plot_bgcolor="rgba(0,0,0,0)",

@@ -76,7 +76,6 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
         st.markdown(f"""
         <div class="pg-hdr">
           <div>
-            <p class="pg-bc">Dashboard &nbsp;/&nbsp; <b>Événements</b></p>
             <h1 class="pg-ttl">Ev&eacute;nements de Pr&eacute;cipitation Extr&ecirc;me</h1>
             <p class="pg-sub">
               S&eacute;n&eacute;gal &nbsp;&middot;&nbsp; CHIRPS 0,25&deg;
@@ -397,7 +396,7 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
         _margin = dict(l=0, r=0, t=28, b=0)
 
         def _make_hover_trace(lats, lons, texts):
-            return go.Scattermapbox(
+            return go.Scattermap(
                 lat=lats, lon=lons,
                 mode="markers",
                 marker=dict(size=10, opacity=0, color="rgba(0,0,0,0)"),
@@ -483,7 +482,7 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
 
         def _trace_contour(nom_fichier, width, color):
             lats_b, lons_b = _contour_lignes(nom_fichier)
-            return go.Scattermapbox(lat=lats_b, lon=lons_b, mode="lines",
+            return go.Scattermap(lat=lats_b, lon=lons_b, mode="lines",
                                     line=dict(width=width, color=color),
                                     hoverinfo="none", showlegend=False)
 
@@ -501,17 +500,17 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
                     2.0, "rgba(241,245,249,0.80)" if _sombre else "rgba(15,23,42,0.72)"))
             # Marqueur pixel maximum : halo + point central
             if _mx_lat is not None:
-                fig.add_trace(go.Scattermapbox(
+                fig.add_trace(go.Scattermap(
                     lat=[_mx_lat], lon=[_mx_lon], mode="markers",
                     marker=dict(size=26, color="#F59E0B", opacity=0.18),
                     hoverinfo="skip", showlegend=False,
                 ))
-                fig.add_trace(go.Scattermapbox(
+                fig.add_trace(go.Scattermap(
                     lat=[_mx_lat], lon=[_mx_lon], mode="markers",
                     marker=dict(size=16, color="#FBBF24", opacity=0.85),
                     hoverinfo="skip", showlegend=False,
                 ))
-                fig.add_trace(go.Scattermapbox(
+                fig.add_trace(go.Scattermap(
                     lat=[_mx_lat], lon=[_mx_lon], mode="markers",
                     marker=dict(size=7, color="#FFFFFF", opacity=1.0),
                     hovertemplate=(
@@ -522,22 +521,22 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
                     showlegend=False,
                 ))
             # Centroide : effet radar 3 anneaux
-            fig.add_trace(go.Scattermapbox(
+            fig.add_trace(go.Scattermap(
                 lat=[_ctr_lat], lon=[_ctr_lon], mode="markers",
                 marker=dict(size=34, color=ROSE, opacity=0.10),
                 hoverinfo="skip", showlegend=False,
             ))
-            fig.add_trace(go.Scattermapbox(
+            fig.add_trace(go.Scattermap(
                 lat=[_ctr_lat], lon=[_ctr_lon], mode="markers",
                 marker=dict(size=22, color=ROSE, opacity=0.22),
                 hoverinfo="skip", showlegend=False,
             ))
-            fig.add_trace(go.Scattermapbox(
+            fig.add_trace(go.Scattermap(
                 lat=[_ctr_lat], lon=[_ctr_lon], mode="markers",
                 marker=dict(size=13, color="white", opacity=0.92),
                 hoverinfo="skip", showlegend=False,
             ))
-            fig.add_trace(go.Scattermapbox(
+            fig.add_trace(go.Scattermap(
                 lat=[_ctr_lat], lon=[_ctr_lon], mode="markers",
                 marker=dict(size=8, color=ROSE, opacity=1.0),
                 hovertemplate=(
@@ -593,7 +592,7 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
 
                 with st.spinner("Chargement..."):
                     _fig1 = go.Figure()
-                    _fig1.add_trace(go.Densitymapbox(
+                    _fig1.add_trace(go.Densitymap(
                         lat=_lats_ev, lon=_lons_ev,
                         z=_prec_ev,
                         radius=18,
@@ -603,7 +602,7 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
                         showscale=False,
                         hoverinfo="skip",
                     ))
-                    _fig1.add_trace(go.Scattermapbox(
+                    _fig1.add_trace(go.Scattermap(
                         lat=_lats_ev, lon=_lons_ev,
                         mode="markers",
                         marker=dict(
@@ -635,7 +634,7 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
                     ))
                     _add_overlays(_fig1)
                     _fig1.update_layout(
-                        mapbox=_bmap, margin=_mgn, height=440,
+                        map=_bmap, margin=_mgn, height=440,
                         plot_bgcolor="rgba(0,0,0,0)",
                         paper_bgcolor="rgba(0,0,0,0)",
                     )
@@ -679,7 +678,7 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
 
                 with st.spinner("Chargement..."):
                     _fig2 = go.Figure()
-                    _fig2.add_trace(go.Scattermapbox(
+                    _fig2.add_trace(go.Scattermap(
                         lat=_lats_ev, lon=_lons_ev,
                         mode="markers",
                         marker=dict(
@@ -711,7 +710,7 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
                     ))
                     _add_overlays(_fig2)
                     _fig2.update_layout(
-                        mapbox=_bmap, margin=_mgn, height=440,
+                        map=_bmap, margin=_mgn, height=440,
                         plot_bgcolor="rgba(0,0,0,0)",
                         paper_bgcolor="rgba(0,0,0,0)",
                     )
