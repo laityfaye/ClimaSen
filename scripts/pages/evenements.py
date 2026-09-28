@@ -472,7 +472,7 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
         ]
 
         _sombre = bool(kw.get("dark_mode", False))
-        _bmap = du.basemap(_ctr_lat, _ctr_lon, 6.2, dark=_sombre)
+        _bmap = du.basemap(*du.SENEGAL_CENTRE, du.SENEGAL_ZOOM, dark=_sombre)
         _mgn = dict(l=0, r=0, t=0, b=0)
 
         # Pixel avec precipitation maximale
@@ -641,19 +641,15 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
                     )
                     st.plotly_chart(
                         _fig1, use_container_width=True,
-                        config={
-                            "displayModeBar": True,
-                            "modeBarButtonsToRemove": [
-                                "lasso2d", "select2d", "autoScale2d",
-                                "hoverClosestMapbox",
-                            ],
-                            "displaylogo": False,
+                        config=dict(du.CARTE_CONFIG, **{
                             "toImageButtonOptions": {
                                 "format": "png",
                                 "filename": f"precip_{_sel_date}",
                             },
-                        },
+                        }),
                     )
+                    st.caption("Molette ou pincement : zoom · glisser : déplacer · "
+                               "⌂ : revenir au Sénégal entier · ⛶ : plein écran")
 
             # --- Onglet 2 : Anomalies ---
             with _tab_a:
@@ -721,19 +717,15 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
                     )
                     st.plotly_chart(
                         _fig2, use_container_width=True,
-                        config={
-                            "displayModeBar": True,
-                            "modeBarButtonsToRemove": [
-                                "lasso2d", "select2d", "autoScale2d",
-                                "hoverClosestMapbox",
-                            ],
-                            "displaylogo": False,
+                        config=dict(du.CARTE_CONFIG, **{
                             "toImageButtonOptions": {
                                 "format": "png",
                                 "filename": f"anom_{_sel_date}",
                             },
-                        },
+                        }),
                     )
+                    st.caption("Molette ou pincement : zoom · glisser : déplacer · "
+                               "⌂ : revenir au Sénégal entier · ⛶ : plein écran")
 
         # ── Panneau d'information de l'evenement ──────────────────────────────
         with _minfo:

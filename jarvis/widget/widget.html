@@ -773,6 +773,32 @@
 
   /* Apercu du dashboard: l'interface s'efface, la page reste visible
      derriere l'iframe transparente. */
+  /* Miniature J.A.R.V.I.S pendant l'analyse d'une page : meme interface,
+     reduite dans une fenetre de ~420 x 560 px, la page reste visible. */
+  body.hud.analyse{--hud-haut:52px;--hud-bas:104px;--hud-pile:96px;--hud-marge:10px;
+    --hud-lat:calc(100vw - 20px)}
+  body.hud.analyse #hud{border:1px solid rgba(0,229,255,.55);border-radius:14px;
+    box-shadow:0 0 24px rgba(0,229,255,.25)}
+  body.hud.analyse #hud-horloge, body.hud.analyse #hud-pied, body.hud.analyse #hud-astuce,
+  body.hud.analyse #hud-accueil{display:none}
+  body.hud.analyse #hud-menu-btn{top:10px;left:10px;padding:5px 10px;font-size:.62rem}
+  body.hud.analyse #hud-coin{top:10px;right:10px;gap:5px}
+  body.hud.analyse #hud-coin .hud-icone{width:28px;height:28px}
+  body.hud.analyse #hud-boutons{bottom:26px;transform:translateX(-50%) scale(.78);transform-origin:50% 100%}
+  body.hud.analyse #hud-statut{bottom:7px;font-size:.66rem}
+  body.hud.analyse .compose{bottom:96px;width:calc(100vw - 20px);max-width:none}
+  body.hud.analyse #hud-soustitre{font-size:.8rem;max-height:6.5em;width:calc(100vw - 28px)}
+  #analyse-agrandir{display:none}
+  body.hud.analyse #analyse-agrandir{display:block;position:fixed;left:10px;top:46px;
+    z-index:5;font:700 .6rem/1 var(--mono);letter-spacing:.1em;
+    color:var(--cyan);background:rgba(0,229,255,.08);border:1px solid rgba(0,229,255,.45);
+    border-radius:4px;padding:6px 9px;cursor:pointer}
+  body.hud.analyse #analyse-agrandir:hover{background:rgba(0,229,255,.2)}
+  /* Colonne d'analyse : panneau pleine hauteur colle au bord droit. */
+  body.analyse:not(.hud) #panel{border-radius:0;border-right:0;border-top:0;border-bottom:0;
+    box-shadow:-8px 0 30px rgba(0,0,0,.35);animation:none}
+  body.analyse.mobile:not(.hud) #panel{border-radius:14px 14px 0 0;border-top:1px solid var(--border)}
+  body.analyse #grip, body.analyse #agrandir{display:none}
   #apercu-retour{display:none}
   body.hud.apercu #hud{background:transparent}
   body.hud.apercu #hud > *:not(#sout-barre):not(#apercu-retour){visibility:hidden}
@@ -903,6 +929,7 @@
     </div>
     <div class="sb-ligne"><div id="sb-etapes" style="flex:1"></div><span id="sb-etat"></span></div>
   </section>
+  <button type="button" id="analyse-agrandir" title="Revenir au plein ecran">&#9670; PLEIN ECRAN</button>
   <button type="button" id="apercu-retour">&#9670; RETOUR A JARVIS</button>
   <div id="hud-horloge">
     <span class="hh-coin hh-hg"></span><span class="hh-coin hh-hd"></span>
@@ -1228,6 +1255,27 @@
     try{
       var s = frame.style, mobile = estMobile();
       document.body.classList.toggle("mobile", mobile);
+      // Analyse de la page : colonne a droite (volet en bas sur telephone),
+      // le dashboard analyse reste visible a gauche.
+      if(document.body.classList.contains("analyse") && state.open){
+        var za = zoneVisible();
+        if(mobile){
+          var ha = Math.round(za.h * 0.5);
+          s.setProperty("top", (za.top + za.h - ha) + "px", "important");
+          s.setProperty("height", ha + "px", "important");
+          s.setProperty("width", "100vw", "important");
+          s.setProperty("right", "0", "important");
+        }else{
+          var hm = Analyse.hauteur();
+          s.setProperty("top", (za.top + za.h - hm - 18) + "px", "important");
+          s.setProperty("height", hm + "px", "important");
+          s.setProperty("width", Analyse.largeur() + "px", "important");
+          s.setProperty("right", "18px", "important");
+        }
+        s.setProperty("max-width", "100vw", "important");
+        s.setProperty("bottom", "auto", "important");
+        return true;
+      }
       if(pleinEcranVoulu()){
         var z = zoneVisible();
         s.setProperty("top", z.top + "px", "important");
@@ -1715,9 +1763,134 @@
 
     $("nav-toast-voir").addEventListener("click", function(){ apercu(true); });
     $("apercu-retour").addEventListener("click", function(){ apercu(false); });
+    $("analyse-agrandir").addEventListener("click", function(){ Analyse.retour(); });
 
     return {naviguer: naviguer, disponible: function(){ return !!champ(); },
             apercu: apercu, enApercu: enApercu};
+  })();
+
+  /* ---------- Analyse visible -------------------------------------------------
+     Quand Jarvis lit la page pour l'analyser ou l'interpreter, on doit VOIR ce
+     qu'il regarde (demande de Laity, 27/09/2026) :
+       1. en plein ecran, il passe en colonne a droite : le dashboard reste
+          visible (et utilisable), la page est decalee pour ne pas etre cachee ;
+       2. chaque graphique / indicateur lu recoit un cadre numerote sur la page
+          elle-meme ("JARVIS - 1"), et la page defile jusqu'au premier.
+     Les cadres sont des elements AJOUTES au <body> de la page hote, en
+     position fixe, sans evenements souris : aucun conteneur Streamlit n'est
+     modifie. Seul padding-right du bloc principal change (comme le mode
+     "pousse"), remis a zero en sortie. */
+  var Analyse = (function(){
+    var actif = false, cadres = [], cibles = [], boucle = null;
+    var ID_STYLE = "jarvis-analyse-style";
+
+    function largeurColonne(){ return Math.round(Math.min(420, Math.max(320, vue().w * 0.30))); }
+    function hauteurMini(){ return Math.round(Math.min(560, zoneVisible().h - 36)); }
+    function colonneActive(){ return document.body.classList.contains("analyse"); }
+
+    function hote(){ try{ return window.parent.document; }catch(e){ return null; } }
+
+    function styleHote(doc){
+      if(doc.getElementById(ID_STYLE)){ return; }
+      var st = doc.createElement("style");
+      st.id = ID_STYLE;
+      st.textContent =
+        ".jarvis-cadre{position:fixed;pointer-events:none;z-index:2147482000;" +
+        "border:2px solid #00E5FF;border-radius:12px;box-shadow:0 0 0 4px rgba(0,229,255,.18)," +
+        "0 0 22px rgba(0,229,255,.35);transition:opacity .3s ease}" +
+        ".jarvis-cadre.lit{animation:jarvis-lit 1.6s ease-in-out infinite}" +
+        ".jarvis-cadre.kpi{border-width:1.5px;box-shadow:0 0 0 3px rgba(0,229,255,.12)}" +
+        ".jarvis-cadre b{position:absolute;left:10px;top:-11px;font:700 10px/1 ui-monospace,Consolas,monospace;" +
+        "letter-spacing:.08em;color:#03080C;background:#00E5FF;padding:4px 7px;border-radius:4px;" +
+        "white-space:nowrap}" +
+        "@keyframes jarvis-lit{0%,100%{box-shadow:0 0 0 4px rgba(0,229,255,.18),0 0 14px rgba(0,229,255,.25)}" +
+        "50%{box-shadow:0 0 0 7px rgba(0,229,255,.10),0 0 30px rgba(0,229,255,.55)}}";
+      (doc.head || doc.documentElement).appendChild(st);
+    }
+
+    function placer(){
+      for(var i = 0; i < cadres.length; i++){
+        var c = cadres[i], r = c.cible.getBoundingClientRect();
+        var cache = !c.cible.isConnected || r.width === 0 || r.height === 0;
+        c.el.style.display = cache ? "none" : "block";
+        if(cache){ continue; }
+        c.el.style.left = (r.left - 6) + "px";
+        c.el.style.top = (r.top - 6) + "px";
+        c.el.style.width = (r.width + 12) + "px";
+        c.el.style.height = (r.height + 12) + "px";
+      }
+      boucle = window.requestAnimationFrame ? requestAnimationFrame(placer) : setTimeout(placer, 100);
+    }
+
+    function effacerCadres(){
+      if(boucle !== null){
+        if(window.cancelAnimationFrame){ cancelAnimationFrame(boucle); } else { clearTimeout(boucle); }
+        boucle = null;
+      }
+      cadres.forEach(function(c){ if(c.el.parentNode){ c.el.parentNode.removeChild(c.el); } });
+      cadres = [];
+    }
+
+    // Miniature en bas a droite (telephone : volet en bas), page visible.
+    function colonne(on){
+      document.body.classList.toggle("analyse", !!on);
+      remember("analyse", on ? "1" : "0");
+      cadrer();
+    }
+
+    // Retenu par capturerVue() : les elements reellement lus.
+    function retenir(graphes, kpis){ cibles = {graphes: graphes || [], kpis: kpis || []}; }
+
+    function debut(){
+      var doc = hote();
+      if(!doc || !cibles || !(cibles.graphes.length || cibles.kpis.length)){ return; }
+      // L'interface J.A.R.V.I.S reste, en miniature (demande de Laity).
+      if(!state.open){ open(false); }
+      if(!Hud.actif()){ Hud.entrer(true); }
+      actif = true;
+      colonne(true);
+      effacerCadres();
+      styleHote(doc);
+      var n = 0;
+      cibles.graphes.forEach(function(gd){
+        n += 1;
+        var el = doc.createElement("div");
+        el.className = "jarvis-cadre lit";
+        el.innerHTML = "<b>JARVIS \u00b7 " + n + "</b>";
+        doc.body.appendChild(el);
+        cadres.push({el: el, cible: gd});
+      });
+      cibles.kpis.forEach(function(k){
+        var el = doc.createElement("div");
+        el.className = "jarvis-cadre kpi lit";
+        doc.body.appendChild(el);
+        cadres.push({el: el, cible: k});
+      });
+      placer();
+      var premier = cibles.graphes[0] || cibles.kpis[0];
+      try{ premier.scrollIntoView({behavior: "smooth", block: "center"}); }catch(e){}
+    }
+
+    // Reponse terminee : les cadres restent (on relit en ecoutant), sans pulsation.
+    function repos(){ cadres.forEach(function(c){ c.el.classList.remove("lit"); }); }
+
+    // Nouvelle question, fermeture, retour au plein ecran.
+    function fin(garderColonne){
+      effacerCadres();
+      actif = false;
+      if(!garderColonne && colonneActive()){ colonne(false); }
+    }
+
+    // Bouton "agrandir" de la miniature : retour au plein ecran.
+    function retour(){
+      fin();
+      if(Hud.actif()){ cadrer(); } else { Hud.entrer(true); }
+    }
+
+    return {retenir: retenir, debut: debut, repos: repos, fin: fin, retour: retour,
+            colonne: colonne, colonneActive: colonneActive, largeur: largeurColonne,
+            hauteur: hauteurMini,
+            actif: function(){ return actif; }};
   })();
 
   /* ---------- Mode soutenance ------------------------------------------------
@@ -2525,6 +2698,7 @@
 
     function entrer(sansDemarrage){
       if(actif){ return; }
+      Analyse.fin();
       actif = true;
       if(!state.open){ open(false); }
       document.body.classList.add("hud");
@@ -2890,6 +3064,10 @@
       return visible(a) - visible(b);
     });
     graphes = graphes.slice(0, MAX_GRAPHIQUES);
+    var kpisLus = tableau(doc.querySelectorAll(".kpi")).slice(0, 12).filter(function(k){
+      return texteDe(k.querySelector(".kpi-lbl"), 80) && texteDe(k.querySelector(".kpi-val"), 40);
+    });
+    Analyse.retenir(graphes, kpisLus);
 
     var vue = {
       page_titre: texteDe(doc.querySelector(".pg-ttl"), 200),
@@ -2931,7 +3109,16 @@
     if(!voulu || !pageHote()){ return Promise.resolve(); }
     outil("Lecture de la page affich\u00e9e");
     return avecDelai(capturerVue(), 12000)
-      .then(function(vue){ if(vue && (vue.graphiques.length || vue.indicateurs.length)){ body.page_view = vue; } })
+      .then(function(vue){
+        if(vue && (vue.graphiques.length || vue.indicateurs.length)){
+          body.page_view = vue;
+          // On voit ce que Jarvis analyse : cadres numerotes sur la page.
+          Analyse.debut();
+          var titres = vue.graphiques.map(function(g, k){ return (k + 1) + ". " + (g.titre || "graphique"); });
+          if(vue.indicateurs.length){ titres.push(vue.indicateurs.length + " indicateur(s)"); }
+          outil("Analyse de la page \u2014 " + titres.join(" \u00b7 "));
+        }
+      })
       .catch(function(){ /* sans vue, on repond quand meme */ });
   }
 
@@ -3403,6 +3590,7 @@
     if(Soutenance.visible()){ Soutenance.pause(true); }
     state.busy = true; refreshSend(); clearWarn();
     arreterLecture();
+    Analyse.fin(true);
     Orbe.etat("reflexion");
     bubble("user", text);
     input.value = ""; autoGrow();
@@ -3481,6 +3669,7 @@
       .then(function(){
         typing(false);
         clearOutil();
+        Analyse.repos();
         state.busy = false; refreshSend();
         state.requete = null;
         if(target && target._raw){ Hud.soustitre(target._raw, true); }
@@ -3607,6 +3796,7 @@
   }
 
   function shut(){
+    Analyse.fin();
     if(Hud.actif()){ Hud.sortir(); }
     state.open = false;
     arreterLecture();
@@ -3848,7 +4038,10 @@
   pousser(false);
   boot().then(function(){
     // Jarvis se rouvre en mode J.A.R.V.I.S, sans rejouer le demarrage.
-    if(recall("open") === "1"){ Hud.entrer(true); }
+    if(recall("open") === "1"){
+      if(recall("analyse") === "1"){ Hud.entrer(true); Analyse.colonne(true); }
+      else { Hud.entrer(true); }
+    }
     Soutenance.reprendreApresRechargement();
   });
 })();

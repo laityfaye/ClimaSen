@@ -72,6 +72,26 @@ def basemap(center_lat, center_lon, zoom, style=None, dark=False):
     return dict(style=style, center=center, zoom=zoom)
 
 
+# Vue par defaut des cartes du Senegal : TOUT le pays, centre sur sa boite
+# (12,3-16,7 N / 17,55-11,35 W). Zoom 5,65 : le pays entier tient dans la
+# colonne de ~510 px x 440 px (tuiles de 512 px : 2^z >= 510*360/(512*7)).
+# Revue de Laity 27/09/2026 : la carte etait centree sur l'evenement (zoom
+# 6,2) et coupait Dakar et le nord.
+SENEGAL_CENTRE = (14.5, -14.45)
+SENEGAL_ZOOM = 5.65
+
+# Plotly zoome de x1,05 par clic sur "+"/"-" (invisible a cette echelle) :
+# on retire ces boutons, la molette / le pincement zooment, "Reset view"
+# recentre sur le pays.
+CARTE_CONFIG = {
+    "displayModeBar": True,
+    "scrollZoom": True,
+    "displaylogo": False,
+    "modeBarButtonsToRemove": ["lasso2d", "select2d", "autoScale2d",
+                               "hoverClosestMapbox", "zoomInMapbox", "zoomOutMapbox"],
+}
+
+
 def get_palette(dark_mode: bool) -> dict:
     if dark_mode:
         return dict(BG="#0F172A", CARD="#1E293B", TEXT="#F1F5F9",

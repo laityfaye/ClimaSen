@@ -803,7 +803,7 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
                         [0.90, "#7c3aed"], [1.00, "#1e1b4b"],
                     ]
 
-                    _cl_bmap = du.basemap(_cl_ctr_lat, _cl_ctr_lon, 6.2,
+                    _cl_bmap = du.basemap(*du.SENEGAL_CENTRE, du.SENEGAL_ZOOM,
                                           dark=bool(kw.get("dark_mode", False)))
 
                     _cl_fig_comp = go.Figure()
@@ -902,19 +902,11 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
                     with st.spinner("Chargement de la carte..."):
                         st.plotly_chart(
                             _cl_fig_comp, use_container_width=True, key="cl_carto_composite",
-                            config={
-                                "displayModeBar": True,
-                                "modeBarButtonsToRemove": [
-                                    "lasso2d", "select2d", "autoScale2d",
-                                    "hoverClosestMapbox",
-                                ],
-                                "displaylogo": False,
-                                "toImageButtonOptions": {
-                                    "format": "png",
-                                    "filename": f"cluster{_cl_carto_sel}_{sel_phase}_composite",
-                                    "scale": 3,
-                                },
-                            },
+                            config=dict(du.CARTE_CONFIG, toImageButtonOptions={
+                                "format": "png",
+                                "filename": f"cluster{_cl_carto_sel}_{sel_phase}_composite",
+                                "scale": 3,
+                            }),
                         )
 
                 # ── Panneau statistiques (1/3) ─────────────────────────

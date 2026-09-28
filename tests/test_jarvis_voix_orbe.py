@@ -166,7 +166,9 @@ def test_la_bulle_ouvre_le_plein_ecran_directement():
     fab = SOURCE[SOURCE.index('fab.addEventListener("click"'):]
     fab = fab[:fab.index("});") + 3]
     assert "Hud.entrer()" in fab
-    assert 'if(recall("open") === "1"){ Hud.entrer(true); }' in SOURCE
+    remontage = SOURCE[SOURCE.index('if(recall("open") === "1"){'):]
+    remontage = remontage[:300]
+    assert "else { Hud.entrer(true); }" in remontage
     echap = SOURCE[SOURCE.index('if(e.key !== "Escape"){ return; }'):]
     echap = echap[:echap.index("});")]
     lignes = [l.strip() for l in echap.splitlines()]
@@ -214,3 +216,34 @@ def test_fond_d_ecran_du_hud():
     css = SOURCE[SOURCE.index("<style>"):SOURCE.index("</style>")]
     assert "@media (prefers-reduced-motion:reduce)" in css
     assert "body.hud.hud-accueil-visible #hud-fond text{opacity:0}" in css
+
+
+def test_analyse_de_page_visible():
+    """Demande de Laity (27/09/2026): quand Jarvis analyse la page, on voit ce
+    qu'il analyse. J.A.R.V.I.S en miniature (la page reste visible), cadres
+    numerotes sur les graphiques lus, retires a la question suivante."""
+    assert "var Analyse = (function(){" in SOURCE
+    # la capture retient les elements reellement lus, puis les encadre
+    assert "Analyse.retenir(graphes, kpisLus);" in SOURCE
+    joindre = SOURCE[SOURCE.index("function joindreVue(body, text){"):]
+    joindre = joindre[:joindre.index("function typing(")]
+    assert "Analyse.debut();" in joindre
+    # l'interface J.A.R.V.I.S reste, en miniature ; bouton pour revenir au plein ecran
+    debut = SOURCE[SOURCE.index("    function debut(){"):]
+    debut = debut[:debut.index("    function repos(){")]
+    assert "if(!Hud.actif()){ Hud.entrer(true); }" in debut and "Hud.sortir()" not in debut
+    assert 'id="analyse-agrandir"' in SOURCE and "body.hud.analyse #hud{" in SOURCE
+    assert "premier.scrollIntoView(" in debut
+    entrer = SOURCE[SOURCE.index("function entrer(sansDemarrage){"):]
+    assert entrer[:200].count("Analyse.fin();") == 1
+    # cadres: elements ajoutes au body de l'hote, sans evenements souris,
+    # sous l'iframe (z-index 2147483000)
+    assert "pointer-events:none;z-index:2147482000" in SOURCE
+    # nouvelle question : cadres effaces, colonne gardee ; fermeture : tout retire
+    assert "Analyse.fin(true);" in SOURCE
+    shut = SOURCE[SOURCE.index("  function shut(){"):]
+    assert "Analyse.fin();" in shut[:120]
+    # cadrer() place la colonne avant le plein ecran
+    cadrer = SOURCE[SOURCE.index("  function cadrer(){"):]
+    cadrer = cadrer[:cadrer.index("  function setHeight(")]
+    assert cadrer.index('classList.contains("analyse")') < cadrer.index("if(pleinEcranVoulu()){")
