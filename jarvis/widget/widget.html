@@ -2871,6 +2871,25 @@
      et son image. Rien n'est modifie dans la page (voir la regle sur les
      conteneurs parents, plus haut). */
   var MOTS_VUE = /(graphique|graphe|courbe|carte|figure|heatmap|diagramme|histogramme|camembert|barres|ce que (je vois|j'ai sous|tu vois)|cette page|ce tableau|ces chiffres|dashboard|tableau de bord|interpr[e\u00e8\u00e9]t|affich|what i see|this (chart|graph|page|map))/i;
+  // MOTS_VUE seul ratait les questions sans mot "graphique" posees depuis une
+  // page ("explique-moi les clusters" sur Clustering) : Jarvis commentait
+  // alors en plein ecran une page cachee (constate 28/09/2026). On lit donc
+  // aussi la page quand on demande une explication, ou quand la question
+  // porte sur le sujet de la page ouverte.
+  var MOTS_EXPLICATION = /(expli|d[eé]tail|d[eé]cri|signifi|veut dire|comprendre|ici|cette (partie|section|zone)|ce (bloc|panneau|r[eé]sultat))/i;
+  var SUJETS_PAGE = {
+    "Clustering": /(cluster|configuration|kmeans|k-means|silhouette|coude|centro[iï]de|motif)/i,
+    "Teleconnexions": /(corr[eé]l|t[eé]l[eé]connexion|lag|d[eé]calage|nuage)/i,
+    "Evenements": /([eé]v[eé]nement|extr[eê]me|intensit|r[eé]partition)/i,
+    "Indices SST": /(indice|sst|temp[eé]rature|anomalie)/i,
+    "Veille": /(veille|bulletin|risque|pr[eé]-?saison|projection)/i,
+    "Pipeline": /(pipeline|[eé]tape|script|traitement)/i
+  };
+  function vueVoulue(text){
+    if(MOTS_VUE.test(text) || MOTS_EXPLICATION.test(text)){ return true; }
+    var ctx = contexteHote(), sujet = ctx && SUJETS_PAGE[ctx.page];
+    return !!(sujet && sujet.test(text));
+  }
   var MAX_GRAPHIQUES = 4, MAX_IMAGES = 3, MAX_IMAGE_CHARS = 400000;
   // Liste EXACTE: un motif comme /map$/ attrapait aussi "heatmap", dont
   // l'image etait alors ecartee (constate sur la page Teleconnexions).
@@ -3115,7 +3134,7 @@
   }
 
   function joindreVue(body, text){
-    var voulu = state.joindreVue || MOTS_VUE.test(text);
+    var voulu = state.joindreVue || vueVoulue(text);
     basculerVue(false);
     if(!voulu || !pageHote()){ return Promise.resolve(); }
     outil("Lecture de la page affich\u00e9e");
@@ -3128,6 +3147,10 @@
           var titres = vue.graphiques.map(function(g, k){ return (k + 1) + ". " + (g.titre || "graphique"); });
           if(vue.indicateurs.length){ titres.push(vue.indicateurs.length + " indicateur(s)"); }
           outil("Analyse de la page \u2014 " + titres.join(" \u00b7 "));
+        } else {
+          // Rien de lisible (onglet vide, images seules) : la page reste
+          // au moins visible pendant qu'il en parle.
+          Analyse.montrerPage();
         }
       })
       .catch(function(){ /* sans vue, on repond quand meme */ });
