@@ -36,6 +36,54 @@ try:
 except TypeError:  # Streamlit sans parametre key
     _jarvis_slot = st.container()
 
+# ─── Langue de la page ───────────────────────────────────────────────────────
+# Streamlit declare <html lang="en"> : Chrome propose alors de "traduire" la
+# page et traduit aussi les noms des icones Material (rainy -> pluvieux,
+# home -> maison), qui s'affichent en texte. On declare la page en francais et
+# on marque chaque icone translate="no". Un <script> dans st.markdown n'est
+# pas execute : il faut un composant (iframe de meme origine) qui agit sur la
+# page parente. Place ici, en deuxieme position, pour rester stable entre les
+# executions (pas de rechargement a chaque changement de page).
+import streamlit.components.v1 as _components
+st.markdown("<style>.st-key-langue_fr{display:none !important}</style>",
+            unsafe_allow_html=True)
+with st.container(key="langue_fr"):
+    _components.html("""<script>
+(function () {
+  var d;
+  try { d = window.parent.document; } catch (e) { return; }
+  if (!d) return;
+  // Un observateur laisse par une iframe precedente meurt avec elle : on le
+  // remplace au lieu de s'en remettre a un drapeau.
+  if (d.__langueFr) { try { d.__langueFr.disconnect(); } catch (e) {} }
+  d.documentElement.lang = "fr";
+  var ICONES = '.material-symbols-rounded, .material-icons, [data-testid="stIconMaterial"]';
+  function marque(racine) {
+    if (!racine || !racine.querySelectorAll) return;
+    racine.querySelectorAll(ICONES).forEach(function (el) {
+      if (el.getAttribute("translate") !== "no") {
+        el.setAttribute("translate", "no");
+        el.classList.add("notranslate");
+      }
+    });
+  }
+  marque(d);
+  d.__langueFr = new MutationObserver(function (muts) {
+    for (var i = 0; i < muts.length; i++) {
+      var n = muts[i].addedNodes;
+      for (var j = 0; j < n.length; j++) {
+        if (n[j].nodeType === 1) {
+          if (n[j].matches && n[j].matches(ICONES)) marque(n[j].parentNode);
+          else marque(n[j]);
+        }
+      }
+    }
+    if (d.documentElement.lang !== "fr") d.documentElement.lang = "fr";
+  });
+  d.__langueFr.observe(d.body, { childList: true, subtree: true });
+})();
+</script>""", height=0)
+
 # ─── Anti-FOUC + Splash (injecte fond ET ecran de chargement immediatement) ───
 # S'execute des la premiere connexion WebSocket, avant tout autre rendu Python.
 # Utilise sessionStorage pour n'afficher le splash qu'au premier chargement de l'onglet.
