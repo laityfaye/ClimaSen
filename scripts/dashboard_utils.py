@@ -55,10 +55,16 @@ def basemap(center_lat, center_lon, zoom, style=None, dark=False):
     style = style or BASEMAP_STYLE
     center = dict(lat=center_lat, lon=center_lon)
     if style == "white-bg" and dark:
+        # Calque plein sous les traces plutot qu'un style MapLibre ecrit a la
+        # main : ce dernier levait "Map error." dans le navigateur (constate en
+        # production le 29/09/2026 apres le passage a go.Scattermap).
+        monde = {"type": "Feature", "properties": {}, "geometry": {
+            "type": "Polygon",
+            "coordinates": [[[-180, -85], [180, -85], [180, 85], [-180, 85], [-180, -85]]]}}
         return dict(
-            style={"version": 8, "sources": {}, "layers": [
-                {"id": "fond", "type": "background",
-                 "paint": {"background-color": "#1E293B"}}]},
+            style="white-bg",
+            layers=[dict(sourcetype="geojson", source=monde, type="fill",
+                         color="#1E293B", below="traces")],
             center=center, zoom=zoom)
     if style == "esri-gray":
         return dict(
