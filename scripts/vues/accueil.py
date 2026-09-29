@@ -21,6 +21,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import streamlit as st
+import streamlit.components.v1 as components
 
 RACINE = Path(__file__).resolve().parent.parent.parent
 if str(RACINE) not in sys.path:
@@ -99,6 +100,67 @@ def _signal_oceanique():
         return None
 
 
+WIDGET = RACINE / "jarvis" / "widget" / "widget.html"
+GLOBE = Path(__file__).resolve().parent / "globe_accueil.html"
+# Memes balises que le fond HUD de Jarvis (scripts/23_build_jarvis_fond_hud.py).
+BALISES_GLOBE = [("NINO 3.4", -145, 0), ("NINO 1+2", -85, -5), ("TNA", -35, 14),
+                 ("ATL3", -10, 0), ("TSA", -10, -10), ("AMO", -40, 40),
+                 ("IOD", 75, -2)]
+
+
+@st.cache_data
+def _fond_hud():
+    """Planisphere en points du mode J.A.R.V.I.S, repris tel quel du widget
+    (entre les marqueurs FOND_HUD). Chaine vide si introuvable."""
+    try:
+        txt = WIDGET.read_text(encoding="utf-8")
+        a = txt.index("<!-- FOND_HUD:DEBUT -->") + len("<!-- FOND_HUD:DEBUT -->")
+        b = txt.index("<!-- FOND_HUD:FIN -->")
+        return txt[a:b].strip().replace('id="hud-fond"', 'id="acc-fond"')
+    except (OSError, ValueError):
+        return ""
+
+
+@st.cache_data
+def _points_terres(pas=1.9):
+    """Points repartis uniformement sur les terres (lon, lat), pour le globe.
+    Espacement ~constant sur la sphere : le pas en longitude grandit avec la
+    latitude."""
+    import gzip
+    import json
+    from matplotlib.path import Path as Chemin
+    try:
+        with gzip.open(RACINE / "jarvis" / "cartes" / "fond_carte.json.gz", "rt",
+                       encoding="utf-8") as f:
+            terres = json.load(f)["terres"]
+    except (OSError, KeyError, ValueError):
+        return []
+    grille = []
+    for lat in np.arange(-56, 80, pas):
+        n = max(1, int(360 * np.cos(np.radians(lat)) / pas))
+        for lon in np.linspace(-180, 180, n, endpoint=False):
+            grille.append((lon, lat))
+    grille = np.array(grille)
+    dedans = np.zeros(len(grille), bool)
+    for anneau in terres:
+        a = np.asarray(anneau)
+        if len(a) < 4:
+            continue
+        (x0, y0), (x1, y1) = a.min(0), a.max(0)
+        sel = ((grille[:, 0] >= x0) & (grille[:, 0] <= x1)
+               & (grille[:, 1] >= y0) & (grille[:, 1] <= y1) & ~dedans)
+        if sel.any():
+            dedans[np.flatnonzero(sel)[Chemin(a).contains_points(grille[sel])]] = True
+    return [[round(float(x), 1), round(float(y), 1)] for x, y in grille[dedans]]
+
+
+def _globe_html():
+    import json
+    return (GLOBE.read_text(encoding="utf-8")
+            .replace("__TERRES__", json.dumps(_points_terres(), separators=(",", ":")))
+            .replace("__BALISES__", json.dumps(BALISES_GLOBE)))
+
+
 def _courbe_svg(par_an):
     """Courbe animee du nombre d'evenements par saison (SVG en ligne)."""
     annees = list(par_an.index)
@@ -148,31 +210,72 @@ def _courbe_svg(par_an):
 
 CSS = """
 <style>
-/* ── Bandeau d'ouverture ─────────────────────────────────────────────── */
+/* ── Bandeau d'ouverture : fond du mode J.A.R.V.I.S + globe 3D ──────── */
 .st-key-acc_hero {
   position: relative; overflow: hidden; border-radius: 22px;
-  padding: 34px 36px 30px 36px !important; margin: 6px 0 22px 0;
+  padding: 38px 40px 34px 40px !important; margin: 6px 0 22px 0; min-height: 470px;
+  justify-content: center;
   background:
-    radial-gradient(900px 380px at 88% -10%, rgba(56,189,248,.35), transparent 60%),
-    radial-gradient(700px 420px at -10% 110%, rgba(129,140,248,.45), transparent 60%),
-    linear-gradient(135deg, #0B1026 0%, #1E1B4B 48%, #0C4A6E 100%);
-  box-shadow: 0 24px 60px -24px rgba(30,27,75,.65);
+    radial-gradient(620px 420px at 74% 50%, rgba(0,229,255,.10), transparent 70%),
+    radial-gradient(ellipse at 50% 45%, #041018 0%, #020406 70%);
+  border: 1px solid rgba(0,229,255,.22);
+  box-shadow: 0 24px 60px -24px rgba(0,229,255,.28), inset 0 0 80px rgba(0,229,255,.05);
 }
-/* Pluie : fines trainees obliques qui defilent */
+/* Grille HUD (48 px, comme .hud-grille du widget) */
 .st-key-acc_hero::before {
-  content: ""; position: absolute; inset: -40% -10%; pointer-events: none;
-  background-image: repeating-linear-gradient(104deg,
-      rgba(255,255,255,.10) 0 1px, transparent 1px 26px);
-  mask-image: linear-gradient(180deg, transparent, #000 30%, #000 70%, transparent);
-  animation: acc-pluie 1.6s linear infinite; opacity: .55;
+  content: ""; position: absolute; inset: 0; pointer-events: none; opacity: .5;
+  background-image: linear-gradient(rgba(0,229,255,.05) 1px, transparent 1px),
+                    linear-gradient(90deg, rgba(0,229,255,.05) 1px, transparent 1px);
+  background-size: 48px 48px;
+  mask-image: radial-gradient(ellipse at 50% 50%, #000 40%, transparent 95%);
 }
-@keyframes acc-pluie { to { transform: translate3d(-26px, 110px, 0); } }
+/* Crochets d'angle HUD */
+.st-key-acc_hero::after {
+  content: ""; position: absolute; inset: 12px; pointer-events: none; z-index: 2;
+  --c: rgba(0,229,255,.6);
+  background:
+    linear-gradient(var(--c),var(--c)) top left / 22px 1.5px no-repeat,
+    linear-gradient(var(--c),var(--c)) top left / 1.5px 22px no-repeat,
+    linear-gradient(var(--c),var(--c)) top right / 22px 1.5px no-repeat,
+    linear-gradient(var(--c),var(--c)) top right / 1.5px 22px no-repeat,
+    linear-gradient(var(--c),var(--c)) bottom left / 22px 1.5px no-repeat,
+    linear-gradient(var(--c),var(--c)) bottom left / 1.5px 22px no-repeat,
+    linear-gradient(var(--c),var(--c)) bottom right / 22px 1.5px no-repeat,
+    linear-gradient(var(--c),var(--c)) bottom right / 1.5px 22px no-repeat;
+}
 .st-key-acc_hero > * { position: relative; z-index: 1; }
+/* Calques de fond : planisphere HUD puis globe (iframe), sous le contenu.
+   Streamlit 1.54 enveloppe chaque conteneur dans un stLayoutWrapper. */
+.st-key-acc_hero > :has(> .st-key-acc_fond), .st-key-acc_hero > :has(> .st-key-acc_globe) {
+  position: absolute !important; inset: 0; z-index: 0; pointer-events: none;
+  margin: 0 !important; width: 100% !important; height: 100% !important;
+}
+:is(.st-key-acc_fond, .st-key-acc_globe), :is(.st-key-acc_fond, .st-key-acc_globe) * {
+  width: 100% !important; height: 100% !important; }
+.st-key-acc_globe iframe { border: 0 !important; background: transparent !important;
+                           color-scheme: normal; animation: acc-globe 1.6s ease both; }
+@keyframes acc-globe { from { opacity: 0; transform: scale(.94); } to { opacity: 1; transform: none; } }
+#acc-fond { position: absolute; inset: 0; width: 100%; height: 100%; opacity: .55;
+            animation: hf-apparition 2.4s ease both; }
+#acc-fond .hf-graticule { fill: none; stroke: rgba(0,229,255,.06); stroke-width: .6;
+                          vector-effect: non-scaling-stroke; }
+#acc-fond .hf-terres { fill: url(#hf-points); stroke: rgba(0,229,255,.16); stroke-width: .7;
+                       vector-effect: non-scaling-stroke; }
+#acc-fond pattern circle { fill: rgba(0,229,255,.28); }
+#acc-fond .hf-balayage { fill: url(#hf-balayage); animation: hf-balayage 16s linear infinite; }
+#acc-fond text, #acc-fond .hf-point, #acc-fond .hf-onde { display: none; }
+/* Texte centre a gauche, courbe calee en bas a droite pour laisser le
+   globe (et le Senegal) visibles au-dessus. */
+.st-key-acc_hero [data-testid="stColumn"]:has(#acc-courbe) {
+  margin-top: auto !important; margin-bottom: 0 !important; }
+#acc-courbe { max-width: 340px; margin-left: auto; }
+@keyframes hf-apparition { from { opacity: 0; } to { opacity: .55; } }
+@keyframes hf-balayage { from { transform: translateX(0); } to { transform: translateX(420px); } }
 
 #acc-hero .acc-badge {
   display: inline-flex; align-items: center; gap: 8px; padding: 6px 14px;
-  border-radius: 99px; background: rgba(255,255,255,.08);
-  border: 1px solid rgba(255,255,255,.16); color: #C7D2FE !important;
+  border-radius: 99px; background: rgba(0,229,255,.06);
+  border: 1px solid rgba(0,229,255,.30); color: #A5F3FC !important;
   font-size: .72rem; font-weight: 600; letter-spacing: .3px;
   animation: acc-monte .7s ease both;
 }
@@ -189,7 +292,7 @@ CSS = """
   color: #FFFFFF !important; animation: acc-monte .8s .1s ease both;
 }
 #acc-hero .acc-degrade {
-  background: linear-gradient(90deg, #7DD3FC, #A5B4FC 45%, #F0ABFC);
+  background: linear-gradient(90deg, #22D3EE, #A5B4FC 50%, #F0ABFC);
   -webkit-background-clip: text; background-clip: text;
   color: transparent !important; -webkit-text-fill-color: transparent;
 }
@@ -204,16 +307,17 @@ CSS = """
 .st-key-acc_cta { gap: 10px !important; margin-top: 14px; animation: acc-monte .8s .3s ease both; }
 .st-key-acc_cta [data-testid="stPageLink"] a {
   padding: 11px 20px !important; border-radius: 12px !important;
-  border: 1px solid rgba(255,255,255,.22) !important;
-  background: rgba(255,255,255,.08) !important; transition: all .2s ease;
+  border: 1px solid rgba(0,229,255,.35) !important;
+  background: rgba(2,12,18,.55) !important; backdrop-filter: blur(6px); transition: all .2s ease;
 }
 /* Le premier bouton est l'appel principal, le second reste en verre depoli. */
 .st-key-acc_cta > [data-testid="stElementContainer"]:first-child [data-testid="stPageLink"] a {
-  background: linear-gradient(135deg, #6366F1, #0EA5E9) !important; border-color: transparent !important;
-  box-shadow: 0 10px 26px -10px rgba(99,102,241,.9);
+  background: linear-gradient(135deg, #0891B2, #6366F1) !important; border-color: rgba(0,229,255,.5) !important;
+  box-shadow: 0 0 22px -6px rgba(0,229,255,.75);
 }
 .st-key-acc_cta [data-testid="stPageLink"] a:hover {
-  transform: translateY(-2px); background: rgba(255,255,255,.16) !important;
+  transform: translateY(-2px); background: rgba(0,229,255,.14) !important;
+  box-shadow: 0 0 24px -6px rgba(0,229,255,.8);
 }
 .st-key-acc_cta [data-testid="stPageLink"] a p,
 .st-key-acc_cta [data-testid="stPageLink"] a span {
@@ -222,8 +326,9 @@ CSS = """
 
 /* Courbe des saisons */
 #acc-courbe .acc-carte-courbe {
-  background: rgba(15,23,42,.45); border: 1px solid rgba(255,255,255,.12);
-  border-radius: 18px; padding: 16px 16px 8px 16px; backdrop-filter: blur(6px);
+  background: rgba(2,10,16,.62); border: 1px solid rgba(0,229,255,.25);
+  border-radius: 14px; padding: 12px 14px 6px 14px; backdrop-filter: blur(8px);
+  box-shadow: 0 18px 40px -20px rgba(0,0,0,.8);
   animation: acc-monte .9s .25s ease both;
 }
 #acc-courbe .acc-leg { color: #CBD5E1 !important; font-size: .74rem; font-weight: 600; margin: 0; }
@@ -378,7 +483,7 @@ CSS = """
   .st-key-acc_hero { padding: 24px 20px 22px 20px !important; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .st-key-acc_hero::before, #acc-hero *, #acc-courbe *, #acc-kpi *, #acc-ins *,
+  #acc-fond, #acc-fond *, .st-key-acc_globe iframe, #acc-hero *, #acc-courbe *, #acc-kpi *, #acc-ins *,
   .acc-courbe * { animation: none !important; opacity: 1 !important; stroke-dashoffset: 0 !important; }
 }
 </style>
@@ -403,6 +508,12 @@ def run(BG, CARD, TEXT, MUTED, BORDER, df=None, year_range=None, liens=None,
 
     # ── 1. Bandeau d'ouverture ──────────────────────────────────────────
     with st.container(key="acc_hero"):
+        fond = _fond_hud()
+        if fond:
+            with st.container(key="acc_fond"):
+                _md(fond)
+        with st.container(key="acc_globe"):
+            components.html(_globe_html(), height=470)
         gauche, droite = st.columns([1.25, 1], gap="large", vertical_alignment="center")
         with gauche:
             _md(f"""

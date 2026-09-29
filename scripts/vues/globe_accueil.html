@@ -1,0 +1,222 @@
+<!doctype html>
+<html lang="fr"><head><meta charset="utf-8">
+<style>
+  html, body { margin: 0; height: 100%; background: transparent; overflow: hidden; }
+  canvas { display: block; width: 100%; height: 100%; }
+</style></head>
+<body><canvas id="g" aria-hidden="true"></canvas>
+<script>
+/* Globe holographique de l'accueil ClimatSen (style J.A.R.V.I.S).
+   Terres en points (Natural Earth, calculees cote Python), Senegal en ambre,
+   balises des indices oceaniques et arcs animes ocean -> Senegal : l'idee de
+   la page, "quand l'ocean annonce les pluies extremes". Canvas 2D, aucune
+   bibliotheque. */
+(function () {
+  var TERRES = __TERRES__;             // [[lon, lat], ...]
+  var BALISES = __BALISES__;           // [[nom, lon, lat], ...]
+  var SENEGAL = [-14.5, 14.4];
+  var cv = document.getElementById("g"), cx = cv.getContext("2d");
+  var calme = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var RAD = Math.PI / 180, W = 0, H = 0, dpr = 1;
+  var INCL = -12 * RAD;                // inclinaison de l'axe vers le spectateur
+  var t0 = performance.now();
+
+  function taille() {
+    dpr = Math.min(window.devicePixelRatio || 1, 2);
+    W = cv.clientWidth; H = cv.clientHeight;
+    cv.width = W * dpr; cv.height = H * dpr;
+    cx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+  window.addEventListener("resize", function () {
+    taille();
+    if (calme) requestAnimationFrame(dessine);      // image fixe : on la refait
+  });
+  taille();
+
+  function vec(lon, lat) {
+    var a = lon * RAD, b = lat * RAD;
+    return [Math.cos(b) * Math.sin(a), Math.sin(b), Math.cos(b) * Math.cos(a)];
+  }
+  var PTS = TERRES.map(function (p) { return vec(p[0], p[1]); });
+  var SEN = vec(SENEGAL[0], SENEGAL[1]);
+  var BAL = BALISES.map(function (b) { return { nom: b[0], v: vec(b[1], b[2]) }; });
+
+  /* Arc de grand cercle eleve (slerp + bosse d'altitude). */
+  function arc(a, b, n) {
+    var d = Math.acos(Math.max(-1, Math.min(1, a[0]*b[0] + a[1]*b[1] + a[2]*b[2])));
+    var s = Math.sin(d) || 1e-6, out = [];
+    for (var i = 0; i <= n; i++) {
+      var t = i / n, ka = Math.sin((1 - t) * d) / s, kb = Math.sin(t * d) / s;
+      var h = 1 + 0.16 * Math.sin(Math.PI * t) * Math.min(1, d);
+      out.push([(ka*a[0] + kb*b[0]) * h, (ka*a[1] + kb*b[1]) * h, (ka*a[2] + kb*b[2]) * h]);
+    }
+    return out;
+  }
+  var ARCS = BAL.map(function (b, i) { return { p: arc(b.v, SEN, 48), dec: i * 0.37 }; });
+
+  /* Graticule : meridiens tous les 30 deg, paralleles tous les 30 deg. */
+  var GRAT = [];
+  for (var lo = -180; lo < 180; lo += 30) {
+    var m = []; for (var la = -90; la <= 90; la += 5) m.push(vec(lo, la)); GRAT.push(m);
+  }
+  for (var la2 = -60; la2 <= 60; la2 += 30) {
+    var q = []; for (var lo2 = -180; lo2 <= 180; lo2 += 5) q.push(vec(lo2, la2)); GRAT.push(q);
+  }
+
+  var rot = 0, cr = 1, sr = 0, ci = Math.cos(INCL), si = Math.sin(INCL);
+  function tourne(v) {                 // rotation autour de l'axe, puis inclinaison
+    var x = v[0] * cr + v[2] * sr, z = -v[0] * sr + v[2] * cr, y = v[1];
+    return [x, y * ci - z * si, y * si + z * ci];
+  }
+
+  function cadre() {
+    // Globe a droite sur grand ecran, en haut a droite sur mobile.
+    var large = W > 760;
+    var R = large ? Math.min(H * 0.41, W * 0.21) : Math.min(W * 0.36, H * 0.26);
+    var X = large ? W * 0.70 : W - R * 0.75;
+    var Y = large ? H * 0.43 : R * 0.95;
+    return { R: R, X: X, Y: Y };
+  }
+
+  function dessine(now) {
+    // Le premier horodatage de requestAnimationFrame peut preceder t0.
+    var t = Math.max(0, (now - t0) / 1000);
+    // Balancement lent autour de l'Atlantique (centre -30, +/-75 deg) : le
+    // Senegal reste toujours visible, le Pacifique et l'ocean Indien
+    // passent tour a tour sur la face avant.
+    var centre = calme ? -20 : -30 + 75 * Math.sin(t * 2 * Math.PI / 46);
+    rot = -centre * RAD;
+    cr = Math.cos(rot); sr = Math.sin(rot);
+    var c = cadre(), R = c.R, X = c.X, Y = c.Y;
+    cx.clearRect(0, 0, W, H);
+
+    // Halo d'atmosphere
+    var halo = cx.createRadialGradient(X, Y, R * 0.9, X, Y, R * 1.45);
+    halo.addColorStop(0, "rgba(0,229,255,0.20)");
+    halo.addColorStop(0.35, "rgba(0,229,255,0.07)");
+    halo.addColorStop(1, "rgba(0,229,255,0)");
+    cx.fillStyle = halo; cx.beginPath(); cx.arc(X, Y, R * 1.45, 0, 7); cx.fill();
+
+    // Corps du globe : sphere sombre eclairee en haut a gauche
+    var corps = cx.createRadialGradient(X - R * 0.35, Y - R * 0.4, R * 0.1, X, Y, R);
+    corps.addColorStop(0, "rgba(14,64,84,0.92)");
+    corps.addColorStop(0.6, "rgba(4,24,36,0.94)");
+    corps.addColorStop(1, "rgba(2,8,14,0.96)");
+    cx.fillStyle = corps; cx.beginPath(); cx.arc(X, Y, R, 0, 7); cx.fill();
+
+    // Graticule (face avant seulement)
+    cx.strokeStyle = "rgba(0,229,255,0.10)"; cx.lineWidth = 0.7;
+    GRAT.forEach(function (ligne) {
+      cx.beginPath(); var dedans = false;
+      ligne.forEach(function (v) {
+        var p = tourne(v);
+        if (p[2] > 0) {
+          var px = X + p[0] * R, py = Y - p[1] * R;
+          if (dedans) cx.lineTo(px, py); else cx.moveTo(px, py);
+          dedans = true;
+        } else dedans = false;
+      });
+      cx.stroke();
+    });
+
+    // Terres en points : face arriere a peine visible, face avant ombree
+    var taillePt = Math.max(1.1, R / 150);
+    for (var i = 0; i < PTS.length; i++) {
+      var p = tourne(PTS[i]), px = X + p[0] * R, py = Y - p[1] * R;
+      if (p[2] <= 0) {
+        cx.fillStyle = "rgba(0,229,255," + (0.07 + 0.05 * (1 + p[2])).toFixed(3) + ")";
+        cx.fillRect(px, py, taillePt * 0.8, taillePt * 0.8);
+      } else {
+        var lum = 0.35 + 0.65 * p[2];
+        cx.fillStyle = "rgba(" + Math.round(90 + 110 * lum) + ",240,255," + (0.35 + 0.6 * lum).toFixed(3) + ")";
+        cx.fillRect(px - taillePt / 2, py - taillePt / 2, taillePt, taillePt);
+      }
+    }
+
+    // Liseré lumineux du limbe
+    var limbe = cx.createRadialGradient(X, Y, R * 0.82, X, Y, R * 1.02);
+    limbe.addColorStop(0, "rgba(0,229,255,0)");
+    limbe.addColorStop(0.85, "rgba(0,229,255,0.16)");
+    limbe.addColorStop(1, "rgba(0,229,255,0.55)");
+    cx.fillStyle = limbe; cx.beginPath(); cx.arc(X, Y, R * 1.02, 0, 7); cx.fill();
+
+    // Arcs ocean -> Senegal, avec une impulsion qui voyage vers le Senegal
+    ARCS.forEach(function (a) {
+      var q = a.p.map(tourne), n = q.length;
+      cx.lineWidth = 1.1;
+      for (var k = 1; k < n; k++) {
+        if (q[k][2] < -0.05 || q[k - 1][2] < -0.05) continue;
+        var f = Math.min(1, (q[k][2] + 0.05) * 3);
+        cx.strokeStyle = "rgba(0,229,255," + (0.28 * f).toFixed(3) + ")";
+        cx.beginPath();
+        cx.moveTo(X + q[k - 1][0] * R, Y - q[k - 1][1] * R);
+        cx.lineTo(X + q[k][0] * R, Y - q[k][1] * R);
+        cx.stroke();
+      }
+      if (calme) return;
+      var ph = ((t * 0.32 + a.dec) % 1), j = Math.floor(ph * (n - 1)), pp = q[j];
+      if (pp[2] > 0) {
+        var g = cx.createRadialGradient(X + pp[0] * R, Y - pp[1] * R, 0, X + pp[0] * R, Y - pp[1] * R, 7);
+        g.addColorStop(0, "rgba(180,250,255,0.95)"); g.addColorStop(1, "rgba(0,229,255,0)");
+        cx.fillStyle = g; cx.beginPath(); cx.arc(X + pp[0] * R, Y - pp[1] * R, 7, 0, 7); cx.fill();
+      }
+    });
+
+    // Balises des indices (etiquette masquee si elle gene celle du Senegal)
+    var s = tourne(SEN), sx = X + s[0] * R, sy = Y - s[1] * R;
+    cx.font = "600 " + Math.max(9, Math.round(R / 22)) + "px ui-monospace, Consolas, monospace";
+    BAL.forEach(function (b) {
+      var p = tourne(b.v); if (p[2] <= 0.05) return;
+      var px = X + p[0] * R, py = Y - p[1] * R, a = Math.min(1, p[2] * 2.2);
+      cx.fillStyle = "rgba(0,229,255," + a.toFixed(3) + ")";
+      cx.beginPath(); cx.arc(px, py, 2.4, 0, 7); cx.fill();
+      cx.strokeStyle = "rgba(0,229,255," + (0.5 * a).toFixed(3) + ")"; cx.lineWidth = 0.8;
+      cx.beginPath(); cx.arc(px, py, 5.5, 0, 7); cx.stroke();
+      if (s[2] > 0 && Math.abs(px - sx) < 80 && Math.abs(py - sy) < 22) return;
+      cx.fillStyle = "rgba(165,243,252," + (0.8 * a).toFixed(3) + ")";
+      cx.fillText(b.nom, px + 8, py - 6);
+    });
+
+    // Senegal : point ambre et ondes
+    if (s[2] > 0) {
+      for (var o = 0; o < 2; o++) {
+        var ph2 = calme ? 0.4 : ((t / 2.2 + o / 2) % 1);
+        cx.strokeStyle = "rgba(255,176,32," + (0.85 * (1 - ph2)).toFixed(3) + ")";
+        cx.lineWidth = 1.3;
+        cx.beginPath(); cx.arc(sx, sy, 4 + ph2 * R * 0.12, 0, 7); cx.stroke();
+      }
+      cx.shadowColor = "#FFB020"; cx.shadowBlur = 12;
+      cx.fillStyle = "#FFB020"; cx.beginPath(); cx.arc(sx, sy, 3.6, 0, 7); cx.fill();
+      cx.shadowBlur = 0;
+      cx.font = "700 " + Math.max(10, Math.round(R / 19)) + "px ui-monospace, Consolas, monospace";
+      cx.fillStyle = "rgba(255,196,90,0.95)";
+      cx.fillText("SÉNÉGAL", sx + 9, sy - 9);
+    }
+
+    // Anneaux HUD autour du globe
+    cx.save(); cx.translate(X, Y);
+    cx.strokeStyle = "rgba(0,229,255,0.35)"; cx.lineWidth = 1;
+    cx.setLineDash([2, 7]); cx.rotate(calme ? 0 : t * 0.12);
+    cx.beginPath(); cx.arc(0, 0, R * 1.14, 0, 7); cx.stroke();
+    cx.setLineDash([]); cx.rotate(calme ? 0 : -t * 0.32);
+    cx.strokeStyle = "rgba(0,229,255,0.55)"; cx.lineWidth = 1.6;
+    cx.beginPath(); cx.arc(0, 0, R * 1.22, 0, 0.9); cx.stroke();
+    cx.beginPath(); cx.arc(0, 0, R * 1.22, Math.PI, Math.PI + 0.45); cx.stroke();
+    cx.restore();
+
+    // Orbite inclinee avec un satellite
+    cx.save(); cx.translate(X, Y); cx.rotate(-0.42);
+    cx.strokeStyle = "rgba(0,229,255,0.16)"; cx.lineWidth = 1;
+    cx.beginPath(); cx.ellipse(0, 0, R * 1.36, R * 0.34, 0, 0, 7); cx.stroke();
+    var ang = calme ? 2 : t * 0.5, ox = Math.cos(ang) * R * 1.36, oy = Math.sin(ang) * R * 0.34;
+    if (oy > 0 || Math.abs(ox) > R) {                 // cache derriere le globe
+      cx.fillStyle = "#A5F3FC"; cx.shadowColor = "#00E5FF"; cx.shadowBlur = 10;
+      cx.beginPath(); cx.arc(ox, oy, 2.6, 0, 7); cx.fill(); cx.shadowBlur = 0;
+    }
+    cx.restore();
+
+    if (!calme) requestAnimationFrame(dessine);
+  }
+  requestAnimationFrame(dessine);
+})();
+</script></body></html>
