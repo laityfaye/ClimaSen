@@ -1146,9 +1146,9 @@
   var state = { open:false, busy:false, online:false, token:null, convId:null,
                admin:false, joindreVue:false, voix:false, continu:false,
                requete:null, sante:null,
-               // Sous-titres en plein ecran quand Jarvis parle: oui par
-               // defaut (choix de Laity du 30/09/2026), sauf si coupes.
-               soustitres: recall("soustitres") !== "0" };
+               // Sous-titres en plein ecran quand Jarvis parle: non par
+               // defaut (choix de Laity du 30/09/2026), sauf si actives.
+               soustitres: recall("soustitres") === "1" };
 
   /* ---------- Dimensionnement de l'iframe -------------------------------
      Le widget s'epingle lui-meme en bas a droite de la page hote. Si l'acces
