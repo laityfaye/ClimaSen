@@ -380,7 +380,10 @@ def _build_geo_traces():
                 cx, cy = zip(*poly.exterior.coords)
                 xs.extend(list(cx) + [None])
                 ys.extend(list(cy) + [None])
-        return xs, ys
+        # Tableaux NumPy (NaN = coupure, serialise en null) : une liste Python
+        # est validee par Plotly point par point, ~3 s par carte (recette
+        # 29/09/2026).
+        return np.array(xs, dtype=float), np.array(ys, dtype=float)
 
     try:
         land_shp = shpreader.natural_earth(
@@ -455,6 +458,31 @@ def _apply_geo_traces(fig):
             hoverinfo=td["hoverinfo"],
             name=td["name"],
         ))
+
+
+# ─── Nombres au format francais ──────────────────────────────────────────────
+# Recette 29/09/2026 : "1,317 evenements" et "0.171" cotoyaient "r = -0,42".
+# Partout : virgule decimale, espace fine insecable pour les milliers.
+def nb(v, fmt=".1f"):
+    """Formate v comme format(v, fmt), a la francaise (1 317 ; -0,42)."""
+    return format(v, fmt).replace(",", " ").replace(".", ",")
+
+
+_plotly_chart_st = st.plotly_chart
+
+
+def _plotly_chart_fr(fig, *args, **kwargs):
+    """st.plotly_chart avec separateurs francais (axes, infobulles) par defaut."""
+    try:
+        if fig.layout.separators is None:
+            fig.update_layout(separators=", ")
+    except AttributeError:
+        pass
+    return _plotly_chart_st(fig, *args, **kwargs)
+
+
+if getattr(st.plotly_chart, "__name__", "") != "_plotly_chart_fr":
+    st.plotly_chart = _plotly_chart_fr
 
 
 # ─── Visual helpers ───────────────────────────────────────────────────────────

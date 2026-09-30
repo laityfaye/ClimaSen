@@ -8,7 +8,7 @@ import plotly.graph_objects as go
 import streamlit as st
 import dashboard_utils as du
 from dashboard_utils import (
-    INDIGO, BLUE, EMERALD, AMBER, ROSE,
+    INDIGO, BLUE, EMERALD, AMBER, ROSE, nb,
     load_sst, svg_spark,
 )
 
@@ -42,7 +42,7 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
     <div class="pg-hdr">
       <div>
         <h1 class="pg-ttl">Indices de Température de Surface (SST)</h1>
-        <p class="pg-sub">Series temporelles journalieres · OISST v2 · 11 indices ·
+        <p class="pg-sub">Séries temporelles journalières · OISST v2 · 11 indices ·
           données du {sst_raw["date"].min():%d/%m/%Y} au {sst_raw["date"].max():%d/%m/%Y}</p>
       </div>
     </div>
@@ -97,16 +97,16 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
 
     k1, k2, k3, k4 = st.columns(4, gap="small")
     kpi_sst = [
-        (k1, f"background:rgba(79,70,229,0.13)", primary, f"{pv_last:+.3f}", "t-indigo",
+        (k1, f"background:rgba(79,70,229,0.13)", primary, f"{nb(pv_last, '+.3f')}", "t-indigo",
          pv_last_lbl, svg_spark(pv.values[-60:].tolist(), color=INDIGO)),
-        (k2, f"background:rgba(14,165,233,0.13)", "Moyenne", f"{pv_mean:+.3f}", "t-blue",
-         f"std = {pv_std:.3f}", svg_spark(
+        (k2, f"background:rgba(14,165,233,0.13)", "Moyenne", f"{nb(pv_mean, '+.3f')}", "t-blue",
+         f"std = {nb(pv_std, '.3f')}", svg_spark(
              sst.set_index("date")[primary].resample("YS").mean().values.tolist(),
              color=BLUE)),
-        (k3, f"background:rgba(16,185,129,0.13)", "Phase +", f"{pct_pos:.0f}%", "t-green",
+        (k3, f"background:rgba(16,185,129,0.13)", "Phase +", f"{nb(pct_pos, '.0f')}%", "t-green",
          "Temps en phase positive", None),
-        (k4, f"background:rgba(245,158,11,0.13)", "Phase -", f"{100-pct_pos:.0f}%", "t-amber",
-         "Temps en phase negative", None),
+        (k4, f"background:rgba(245,158,11,0.13)", "Phase -", f"{nb(100-pct_pos, '.0f')}%", "t-amber",
+         "Temps en phase négative", None),
     ]
     for col, icon_bg, lbl, val, tag_cls, sub, sp in kpi_sst:
         sp_html = sp if sp else ""
@@ -128,7 +128,7 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
     # ── Serie temporelle principale ────────────────────────────────────────
     st.markdown(
         f'<p class="pnl-ttl">Serie temporelle · {agg_mode}</p>'
-        f'<p class="pnl-sub">Anomalies SST · ligne zero = climatologie de reference</p>',
+        f'<p class="pnl-sub">Anomalies SST · ligne zéro = climatologie de référence</p>',
         unsafe_allow_html=True,
     )
 
@@ -150,7 +150,7 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
     plotly_base(fig_ts, h=310)
     fig_ts.update_layout(
         yaxis=dict(
-            title=dict(text="Anomalie SST (degC)", font=dict(size=11, color=MUTED)),
+            title=dict(text="Anomalie SST (°C)", font=dict(size=11, color=MUTED)),
             zeroline=False,
         ),
         xaxis=dict(title=None, rangeslider=dict(visible=False)),

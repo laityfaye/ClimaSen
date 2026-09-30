@@ -1423,6 +1423,18 @@ html, body {{
     /* Sparklines masquees */
     .kpi-spark {{ display: none !important; }}
     .kpi {{ padding: 12px 13px !important; }}
+    /* Marge basse : le bas de page defile au-dessus de la bulle Jarvis
+       epinglee en bas a droite (recette 29/09/2026). */
+    [data-testid="stMainBlockContainer"] {{ padding-bottom: 84px !important; }}
+    /* Titres de cartes sur deux lignes plutot que tronques
+       ("PAS ENCORE DE PREV...", recette 29/09/2026) */
+    .kpi-lbl {{
+        white-space: normal !important;
+        overflow: visible !important;
+        text-overflow: clip !important;
+        line-height: 1.3 !important;
+        overflow-wrap: break-word !important;
+    }}
     /* Valeur KPI un peu plus petite */
     .kpi-val {{ font-size: 1.15rem !important; }}
     /* Header en colonne */
@@ -1682,6 +1694,12 @@ if st.session_state.dark_mode:
 [data-testid="stMainBlockContainer"] textarea {{
     background: {CARD} !important;
     color: {TEXT} !important;
+}}
+/* Champ de saisie d'un select : fond transparent. Selon la version de
+   Streamlit, il est pose en absolu par-dessus la 1re etiquette d'un
+   multiselect ; un fond opaque la coupait ("ino34", recette 29/09/2026). */
+[data-testid="stMainBlockContainer"] [data-baseweb="select"] input {{
+    background: transparent !important;
 }}
 
 /* ── Selectbox / Multiselect (contenu principal) ── */

@@ -11,7 +11,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 import streamlit as st
 import dashboard_utils as du
 import admin_gate
-from dashboard_utils import INDIGO, BLUE, EMERALD, AMBER, ROSE, BASE
+from dashboard_utils import INDIGO, BLUE, EMERALD, AMBER, ROSE, BASE, nb
 
 SCRIPTS_DIR = BASE / "scripts"
 
@@ -67,7 +67,7 @@ PIPELINE_STEPS = [
                 {"path": "data/processed/phase_statistics_summary.json",
                  "label": "Statistiques par phase", "fmt": "json"},
                 {"path": "outputs/reports/detection_report.txt",
-                 "label": "Rapport de detection", "fmt": "txt"},
+                 "label": "Rapport de détection", "fmt": "txt"},
             ],
         },
     },
@@ -111,7 +111,7 @@ PIPELINE_STEPS = [
     },
     {
         "id": "03b", "num": 4,
-        "label": "Separation par phase de saison",
+        "label": "Séparation par phase de saison",
         "script": "03b_split_events_by_phase.py",
         "desc": "Split Début (Mai-Juin) / Pleine (Jul-Août) / Fin (Sep-Oct)",
         "category": "Export", "color": EMERALD,
@@ -156,7 +156,7 @@ PIPELINE_STEPS = [
         "id": "04", "num": 6,
         "label": "Téléconnexions (script principal)",
         "script": "04_teleconnections_analysis.py",
-        "desc": "Corrélations mensuelles SST x précipitations — detrend, AR1 (p_neff)",
+        "desc": "Corrélations interannuelles SST x précipitations extrêmes par phase — detrend, AR1 (p_neff)",
         "category": "Teleconnexions", "color": ROSE,
         "outputs": [
             "outputs/teleconnections/correlations_Phase_1_debut.csv",
@@ -308,7 +308,7 @@ PIPELINE_STEPS = [
         "id": "21", "num": 11, "veille": True,
         "label": "Veille — evaluation des variantes C3S",
         "script": "21_evaluer_c3s_variantes.py",
-        "desc": "8 modeles Copernicus, protocole fixe a l'avance, retro-previsions 1993-2016",
+        "desc": "8 modèles Copernicus, protocole fixé à l'avance, rétro-prévisions 1993-2016",
         "category": "Veille pre-saison", "color": ROSE,
         "outputs": ["outputs/veille/evaluation_c3s_variantes.json"],
         "exports": {
@@ -320,9 +320,9 @@ PIPELINE_STEPS = [
     },
     {
         "id": "22", "num": 12, "veille": True,
-        "label": "Veille — mise a jour mensuelle (nov-avr)",
+        "label": "Veille — mise à jour mensuelle (nov-avr)",
         "script": "22_veille_mensuelle.py",
-        "desc": "Telecharge les mois ecoules, met le cube a jour, bulletin provisoire",
+        "desc": "Télécharge les mois écoulés, met le cube à jour, bulletin provisoire",
         "category": "Veille pre-saison", "color": ROSE,
         "outputs": [],
         "exports": {},
@@ -588,17 +588,17 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
         st.markdown(
             f"<div class='bbox-vis'>"
             f"<div style='display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-bottom:10px;'>"
-            f"  <span class='bbox-pill'>Lat <span>{bb_lat_min:.2f}&deg; &rarr; {bb_lat_max:.2f}&deg; N</span></span>"
-            f"  <span class='bbox-pill'>Lon <span>{bb_lon_min:.2f}&deg; &rarr; {bb_lon_max:.2f}&deg;</span></span>"
-            f"  <span class='bbox-pill'>Hauteur <span>{dlat:.2f}&deg; &bull; {nlat} px</span></span>"
-            f"  <span class='bbox-pill'>Largeur <span>{dlon:.2f}&deg; &bull; {nlon} px</span></span>"
-            f"  <span class='bbox-pill'>Grille <span>{nlat} x {nlon} = {n_pix:,} px/jour</span></span>"
+            f"  <span class='bbox-pill'>Lat <span>{nb(bb_lat_min, '.2f')}&deg; &rarr; {nb(bb_lat_max, '.2f')}&deg; N</span></span>"
+            f"  <span class='bbox-pill'>Lon <span>{nb(bb_lon_min, '.2f')}&deg; &rarr; {nb(bb_lon_max, '.2f')}&deg;</span></span>"
+            f"  <span class='bbox-pill'>Hauteur <span>{nb(dlat, '.2f')}&deg; &bull; {nlat} px</span></span>"
+            f"  <span class='bbox-pill'>Largeur <span>{nb(dlon, '.2f')}&deg; &bull; {nlon} px</span></span>"
+            f"  <span class='bbox-pill'>Grille <span>{nlat} x {nlon} = {nb(n_pix, ',')} px/jour</span></span>"
             f"</div>"
             f"<div style='font-family:monospace;font-size:0.72rem;color:{MUTED};line-height:1.7;'>"
-            f"NW ({bb_lat_max:.2f}N, {bb_lon_min:.2f}) &mdash;&mdash;&mdash;"
-            f" NE ({bb_lat_max:.2f}N, {bb_lon_max:.2f})<br>"
-            f"SW ({bb_lat_min:.2f}N, {bb_lon_min:.2f}) &mdash;&mdash;&mdash;"
-            f" SE ({bb_lat_min:.2f}N, {bb_lon_max:.2f})"
+            f"NW ({nb(bb_lat_max, '.2f')}N, {nb(bb_lon_min, '.2f')}) &mdash;&mdash;&mdash;"
+            f" NE ({nb(bb_lat_max, '.2f')}N, {nb(bb_lon_max, '.2f')})<br>"
+            f"SW ({nb(bb_lat_min, '.2f')}N, {nb(bb_lon_min, '.2f')}) &mdash;&mdash;&mdash;"
+            f" SE ({nb(bb_lat_min, '.2f')}N, {nb(bb_lon_max, '.2f')})"
             f"</div></div>",
             unsafe_allow_html=True,
         )
@@ -619,7 +619,7 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
             st.markdown(
                 f"<div style='margin-top:4px;display:flex;gap:8px;align-items:center;'>"
                 f"<span style='font-weight:700;color:{TEXT};'>{dl_year_start} &ndash; {dl_year_end}</span>"
-                f"<span class='{sz_cls}'>{n_years_dl} ans &bull; ~{est_gb:.1f} GB</span>"
+                f"<span class='{sz_cls}'>{n_years_dl} ans &bull; ~{nb(est_gb, '.1f')} Go</span>"
                 f"</div>",
                 unsafe_allow_html=True,
             )
@@ -657,7 +657,7 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
                         f"<p style='font-size:0.72rem;color:{color};margin:2px 0;"
                         f"font-weight:{'700' if is_cur else '400'};'>"
                         f"{bullet} <code>{mf.name}</code>"
-                        f"<span style='color:{EMERALD};margin-left:6px;'>{sz_mb:.0f} MB</span></p>",
+                        f"<span style='color:{EMERALD};margin-left:6px;'>{nb(sz_mb, '.0f')} Mo</span></p>",
                         unsafe_allow_html=True,
                     )
             else:
@@ -730,7 +730,7 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
               {"<p style='font-size:0.75rem;color:" + MUTED + ";margin:0;'>Année en cours : <b>" + str(ch_year) + "</b> — " + str(ch_pct) + "%</p>" if ch_year else ""}
               {"<p style='font-size:0.72rem;color:#EF4444;margin:6px 0 0 0;'>" + str(len(ch_errors)) + " erreur(s) : " + ", ".join(str(e["year"]) for e in ch_errors) + "</p>" if ch_errors else ""}
               <p style="font-size:0.68rem;color:{MUTED};margin:6px 0 0 0;">
-                Derniere mise a jour : {chirps_status.get("updated_at", "")}
+                Dernière mise à jour : {chirps_status.get("updated_at", "")}
               </p>
               {"<p style='font-size:0.78rem;color:#22C55E;margin:8px 0 0 0;font-weight:600;'>" + str(chirps_status.get('n_days','')) + " jours &bull; " + str(chirps_status.get('n_lat','')) + "x" + str(chirps_status.get('n_lon','')) + " pixels &bull; " + str(chirps_status.get('size_mb','')) + " Mo</p>" if ch_state == "done" else ""}
             </div>
@@ -745,7 +745,7 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
                 if st.button("Actualiser la progression", key="btn_chirps_refresh"):
                     st.rerun()
             with col_can:
-                if st.button("Annuler le telechargement", key="btn_chirps_cancel"):
+                if st.button("Annuler le téléchargement", key="btn_chirps_cancel"):
                     CHIRPS_CANCEL_FILE.touch()
                     st.warning("Signal d'annulation envoyé. Arrêt après l'année en cours.")
                     st.rerun()
@@ -805,6 +805,18 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
                     zf.write(p, p.name)
             buf.seek(0)
             return buf.read()
+
+        # Contenu genere au clic plutot qu'a chaque affichage : lire tous les
+        # exports et zipper les figures faisait depasser 19 s au premier
+        # chargement (recette 29/09/2026). Streamlit accepte un callable pour
+        # data depuis peu ; sinon on retombe sur la lecture immediate.
+        _DL_DIFFERE = "callable" in (st.download_button.__doc__ or "")
+
+        def _contenu_zip(paths):
+            return (lambda: _make_zip(paths)) if _DL_DIFFERE else _make_zip(paths)
+
+        def _contenu_fichier(p):
+            return (lambda: p.read_bytes()) if _DL_DIFFERE else p.read_bytes()
 
         def run_script(script_path):
             if not admin_gate.est_admin():
@@ -880,21 +892,21 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
                                 dl_key = f"dl_{step['id']}_{grp_key}_{i + col_idx}"
                                 if fmt == "zip_glob":
                                     zip_name  = e.get("zip_name", "export.zip")
-                                    zip_bytes = _make_zip(matched)
+                                    # Taille des fichiers sources : des PNG,
+                                    # que le ZIP ne comprime quasiment pas.
+                                    taille_zip = sum(p.stat().st_size for p in matched)
                                     st.download_button(
-                                        label=f"ZIP · {e['label']} ({_taille(len(zip_bytes))})",
-                                        data=zip_bytes, file_name=zip_name,
+                                        label=f"ZIP · {e['label']} ({_taille(taille_zip)})",
+                                        data=_contenu_zip(matched), file_name=zip_name,
                                         mime="application/zip", key=dl_key,
                                         use_container_width=True,
                                     )
                                 else:
                                     mime    = _FMT_MIME.get(fmt, "application/octet-stream")
                                     fmt_icon = _FMT_ICON.get(fmt, fmt.upper())
-                                    with open(ep, "rb") as fh:
-                                        file_bytes_dl = fh.read()
                                     st.download_button(
                                         label=f"{fmt_icon} · {e['label']} ({_taille(ep.stat().st_size)})",
-                                        data=file_bytes_dl, file_name=ep.name,
+                                        data=_contenu_fichier(ep), file_name=ep.name,
                                         mime=mime, key=dl_key, use_container_width=True,
                                     )
                 if has_any:
@@ -920,7 +932,7 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
           </div>
           <div style='text-align:right;margin-left:24px;flex-shrink:0;'>
             <div style='font-size:1.6rem;font-weight:800;color:#fff;line-height:1;'>{_n_done}/{_n_total}</div>
-            <div style='font-size:0.72rem;color:rgba(255,255,255,.7);margin-top:2px;'>étapes executees</div>
+            <div style='font-size:0.72rem;color:rgba(255,255,255,.7);margin-top:2px;'>étapes exécutées</div>
             <div style='background:rgba(255,255,255,.2);border-radius:99px;height:5px;margin-top:8px;width:90px;'>
               <div style='background:#fff;border-radius:99px;height:5px;width:{_pct_done}%;'></div>
             </div>
@@ -974,6 +986,7 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
             "Clustering":     {"color": AMBER},
             "Visualisation":  {"color": EMERALD},
         }
+        CAT_LIB = {"Detection": "Détection", "Teleconnexions": "Téléconnexions"}
         CAT_ORDER = ["Detection", "Export", "SST", "Teleconnexions", "Clustering", "Visualisation"]
         steps_by_cat = {}
         for s in PIPELINE_STEPS:
@@ -990,7 +1003,7 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
             st.markdown(
                 f"<div style='display:flex;align-items:center;gap:10px;margin:22px 0 10px 0;'>"
                 f"  <span class='cat-label' style='color:{cat_color};border-color:{cat_color};'>"
-                f"    {cat}"
+                f"    {CAT_LIB.get(cat, cat)}"
                 f"  </span>"
                 f"  <span style='font-size:0.72rem;color:{MUTED};'>"
                 f"    {cat_done}/{cat_total} exécuté{'s' if cat_done>1 else ''}"
@@ -1144,7 +1157,7 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
               Fichiers SST (OISST v2 &nbsp;1983-2023)
             </span>
             <span style="font-size:0.82rem;color:{MUTED};">
-              {n_present} / {n_total} &nbsp;|&nbsp; {total_size_gb:.1f} Go
+              {n_present} / {n_total} &nbsp;|&nbsp; {nb(total_size_gb, '.1f')} Go
             </span>
           </div>
           <div style="background:{BORDER};border-radius:99px;height:8px;overflow:hidden;">
@@ -1162,7 +1175,7 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
         st.markdown(
             f'<p style="font-size:0.78rem;color:{MUTED};margin:0 0 14px 0;">'
             "Le serveur télécharge directement les données OISST v2 depuis <b>NOAA PSL</b>. "
-            "Le telechargement reprend automatiquement en cas de coupure. "
+            "Le téléchargement reprend automatiquement en cas de coupure. "
             "Seuls les fichiers manquants sont telecharges.</p>",
             unsafe_allow_html=True,
         )
@@ -1192,7 +1205,7 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
                   Statut : {status_html}
                 </span>
                 <span style="font-size:0.78rem;color:{MUTED};">
-                  {done}/{to_dl} telecharges &nbsp;({already} deja presents)
+                  {done}/{to_dl} telecharges &nbsp;({already} déjà présents)
                 </span>
               </div>
               <div style="background:{BORDER};border-radius:99px;height:7px;overflow:hidden;margin-bottom:8px;">
@@ -1202,7 +1215,7 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
               {"<p style='font-size:0.75rem;color:" + MUTED + ";margin:0;'>Fichier en cours : <b>" + str(cur_year) + "</b> — " + str(cur_pct) + "%</p>" if cur_year else ""}
               {"<p style='font-size:0.72rem;color:#EF4444;margin:6px 0 0 0;'>" + str(len(errors_dl)) + " erreur(s) : " + ", ".join(str(e["year"]) for e in errors_dl) + "</p>" if errors_dl else ""}
               <p style="font-size:0.68rem;color:{MUTED};margin:6px 0 0 0;">
-                Derniere mise a jour : {dl_status.get("updated_at", "")}
+                Dernière mise à jour : {dl_status.get("updated_at", "")}
               </p>
             </div>
             """, unsafe_allow_html=True)
@@ -1215,9 +1228,9 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
                 if st.button("Actualiser la progression", key="btn_sst_refresh"):
                     st.rerun()
             with col_b:
-                if st.button("Annuler le telechargement", key="btn_sst_cancel"):
+                if st.button("Annuler le téléchargement", key="btn_sst_cancel"):
                     CANCEL_FILE.touch()
-                    st.warning("Signal d'annulation envoyé. Le telechargement s'arretera apres le fichier en cours.")
+                    st.warning("Signal d'annulation envoyé. Le téléchargement s'arrêtera après le fichier en cours.")
                     st.rerun()
         else:
             col_yr1, col_yr2, col_dl = st.columns([1, 1, 2])
@@ -1263,7 +1276,7 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
                     f"<div style='display:flex;justify-content:space-between;"
                     f"padding:5px 12px;border-bottom:1px solid {BORDER};font-size:0.78rem;'>"
                     f"<span style='color:{color};'>{f.name}</span>"
-                    f"<span style='color:{MUTED};'>{size_mb:.0f} Mo</span>"
+                    f"<span style='color:{MUTED};'>{nb(size_mb, '.0f')} Mo</span>"
                     f"</div>"
                 )
             st.markdown(
@@ -1281,7 +1294,7 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
             )
             st.markdown(
                 f'<p style="font-size:0.78rem;color:{MUTED};margin:0 0 12px 0;">'
-                f"Supprimez les {n_present} fichiers SST ({total_size_gb:.1f} Go) "
+                f"Supprimez les {n_present} fichiers SST ({nb(total_size_gb, '.1f')} Go) "
                 "une fois le clustering terminé.</p>",
                 unsafe_allow_html=True,
             )
@@ -1294,7 +1307,7 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
                     st.rerun()
             else:
                 st.warning(
-                    f"Supprimer {n_present} fichier(s) ({total_size_gb:.1f} Go) ? "
+                    f"Supprimer {n_present} fichier(s) ({nb(total_size_gb, '.1f')} Go) ? "
                     "Cette action est irreversible."
                 )
                 col_yes, col_no = st.columns(2)

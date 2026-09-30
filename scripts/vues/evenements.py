@@ -10,7 +10,7 @@ import plotly.graph_objects as go
 import streamlit as st
 import dashboard_utils as du
 from dashboard_utils import (
-    INDIGO, BLUE, EMERALD, AMBER, ROSE, PHASE_C, PHASE_L, BASE,
+    INDIGO, BLUE, EMERALD, AMBER, ROSE, PHASE_C, PHASE_L, BASE, nb,
     load_events_pixels, load_events_summary, load_dept_geojson, svg_spark,
 )
 
@@ -44,7 +44,9 @@ def _contour_lignes(nom_fichier, tol=0.01):
                     px, py = x, y
             lons_b.append(None)
             lats_b.append(None)
-    return lats_b, lons_b
+    # Tableaux NumPy (NaN = coupure de trait) : Plotly valide une liste Python
+    # element par element, ~2 s par affichage de la page (recette 29/09/2026).
+    return (np.array(lats_b, dtype=float), np.array(lons_b, dtype=float))
 
 
 def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
@@ -76,7 +78,7 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
         st.markdown(f"""
         <div class="pg-hdr">
           <div>
-            <h1 class="pg-ttl">Ev&eacute;nements de Pr&eacute;cipitation Extr&ecirc;me</h1>
+            <h1 class="pg-ttl">&Eacute;v&eacute;nements de pr&eacute;cipitation extr&ecirc;me</h1>
             <p class="pg-sub">
               S&eacute;n&eacute;gal &nbsp;&middot;&nbsp; CHIRPS 0,25&deg;
               &nbsp;&middot;&nbsp; {year_range[0]}&ndash;{year_range[1]}
@@ -123,8 +125,8 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
         Analyse spatiale &mdash; Cartographie
       </span>
       <div style="height:1px;flex:1;background:{BORDER};"></div>
-      <span class="sec-hdr-sub" style="font-size:0.67rem;color:{MUTED};white-space:nowrap;">
-        6 ev&eacute;nements &middot; plus/moins intense, grande/petite couverture &amp; anomalie
+      <span class="sec-hdr-sub" style="font-size:0.67rem;color:{MUTED};text-align:right;min-width:0;">
+        6 &eacute;v&eacute;nements types &middot; extr&ecirc;mes d&#39;intensit&eacute;, de couverture et d&#39;anomalie
       </span>
     </div>
     """, unsafe_allow_html=True)
@@ -319,12 +321,12 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
                 _fg, _bg = _CRIT_COLORS.get(_c0, (INDIGO, "rgba(79,70,229,0.13)"))
                 _ph = _row_m.iloc[0]["season_phase"] if not _row_m.empty else ""
                 _pmax = (
-                    f"{_pmax_by_date[_d]:.1f}" if _d in _pmax_by_date
-                    else (f"{_row_m.iloc[0]['precip_max']:.1f}" if not _row_m.empty else "-")
+                    f"{nb(_pmax_by_date[_d], '.1f')}" if _d in _pmax_by_date
+                    else (f"{nb(_row_m.iloc[0]['precip_max'], '.1f')}" if not _row_m.empty else "-")
                 )
                 _amax = (
-                    f"{_amax_by_date[_d]:.1f}" if _d in _amax_by_date
-                    else (f"{_row_m.iloc[0]['anomaly_max']:.1f}" if not _row_m.empty else "-")
+                    f"{nb(_amax_by_date[_d], '.1f')}" if _d in _amax_by_date
+                    else (f"{nb(_row_m.iloc[0]['anomaly_max'], '.1f')}" if not _row_m.empty else "-")
                 )
                 _is_sel = (_d == _sel_date)
                 _border = f"2px solid {INDIGO}" if _is_sel else f"1px solid {BORDER}"
@@ -411,8 +413,8 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
         _anom_ev  = _ev_sel["anomaly_standardized"].tolist()
 
         _hover_txt = [
-            f"<b>{r['precipitation_mm']:.1f} mm</b> &nbsp;|&nbsp; "
-            f"{r['anomaly_standardized']:.1f}<br>"
+            f"<b>{nb(r['precipitation_mm'], '.1f')} mm</b> &nbsp;|&nbsp; "
+            f"{nb(r['anomaly_standardized'], '.1f')}<br>"
             f"Région : {r['region']}<br>"
             f"Categorie : {r['intensity_category']}"
             for _, r in _ev_sel.iterrows()
@@ -514,8 +516,8 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
                     lat=[_mx_lat], lon=[_mx_lon], mode="markers",
                     marker=dict(size=7, color="#FFFFFF", opacity=1.0),
                     hovertemplate=(
-                        f"<b>Maximum : {_mx_val:.1f} mm</b><br>"
-                        f"{_mx_lat:.3f}N  {abs(_mx_lon):.3f}W"
+                        f"<b>Maximum : {nb(_mx_val, '.1f')} mm</b><br>"
+                        f"{nb(_mx_lat, '.3f')}N  {nb(abs(_mx_lon), '.3f')}W"
                         "<extra></extra>"
                     ),
                     showlegend=False,
@@ -541,7 +543,7 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
                 marker=dict(size=8, color=ROSE, opacity=1.0),
                 hovertemplate=(
                     "<b>Centre de gravite</b><br>"
-                    f"{_ctr_lat:.3f}N  {abs(_ctr_lon):.3f}W"
+                    f"{nb(_ctr_lat, '.3f')}N  {nb(abs(_ctr_lon), '.3f')}W"
                     "<extra></extra>"
                 ),
                 showlegend=False,
@@ -554,7 +556,7 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
             _c0_hdr = _get_crit0(_sel_date)
             _fg_hdr, _ = _CRIT_COLORS.get(_c0_hdr, (INDIGO, ""))
             _crit_hdr  = _CRIT_FR.get(_c0_hdr, "")
-            _mx_lbl = f"{_mx_val:.1f} mm" if _mx_val is not None else "-"
+            _mx_lbl = f"{nb(_mx_val, '.1f')} mm" if _mx_val is not None else "-"
 
             # Variable pixel sizes proportional to precipitation intensity
             _szs = [
@@ -758,22 +760,22 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
                 v = _ri.get(key, None)
                 if v is None or (isinstance(v, float) and pd.isna(v)):
                     return default
-                return fmt.format(v) if fmt else str(v)
+                return nb(v, fmt) if fmt else str(v)
 
             # Stats calculees sur _ev_sel (deja filtre aux frontieres Senegal)
             # pour etre coherentes avec ce qui est affiche sur la carte
             if len(_ev_sel) > 0:
-                _pmax_v    = f"{_ev_sel['precipitation_mm'].max():.1f}"
-                _pmoy_v    = f"{_ev_sel['precipitation_mm'].mean():.1f}"
-                _amax_v    = f"{_ev_sel['anomaly_standardized'].max():.1f}"
-                _amoy_v    = f"{_ev_sel['anomaly_standardized'].mean():.1f}"
+                _pmax_v    = f"{nb(_ev_sel['precipitation_mm'].max(), '.1f')}"
+                _pmoy_v    = f"{nb(_ev_sel['precipitation_mm'].mean(), '.1f')}"
+                _amax_v    = f"{nb(_ev_sel['anomaly_standardized'].max(), '.1f')}"
+                _amoy_v    = f"{nb(_ev_sel['anomaly_standardized'].mean(), '.1f')}"
                 _ext_n_v   = int((_ev_sel["anomaly_standardized"] > 2.0).sum())
                 _ext_pct_v = _ext_n_v / len(_ev_sel) * 100
             else:
-                _pmax_v    = _sv("precip_max",    "{:.1f}")
-                _pmoy_v    = _sv("precip_mean",   "{:.1f}")
-                _amax_v    = _sv("anomaly_max",   "{:.1f}")
-                _amoy_v    = _sv("anomaly_mean",  "{:.1f}")
+                _pmax_v    = _sv("precip_max",    ".1f")
+                _pmoy_v    = _sv("precip_mean",   ".1f")
+                _amax_v    = _sv("anomaly_max",   ".1f")
+                _amoy_v    = _sv("anomaly_mean",  ".1f")
                 _ext_pct_v = float(_sv("extreme_percentage", "{}", "0"))
             _mregion_v = _top_reg  # calculee depuis _ev_sel, coherent avec la carte
             _etype_v   = _sv("event_type")
@@ -829,14 +831,14 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
             if not _cat.empty:
                 _cat_max = float(_cat.iloc[0]["max_precip"])
                 try:
-                    _ecart = abs(_cat_max - float(_pmax_v)) >= 0.05
+                    _ecart = abs(_cat_max - float(_pmax_v.replace(",", "."))) >= 0.05
                 except ValueError:
                     _ecart = True
                 if _ecart:
                     _cat_row = (
                         f'<div style="font-size:0.70rem;color:{MUTED};padding:4px 0 6px 0;'
                         f'border-bottom:1px solid {BORDER};line-height:1.45">'
-                        f'Catalogue : <b style="color:{TEXT}">{_cat_max:.1f} mm</b> &mdash; '
+                        f'Catalogue : <b style="color:{TEXT}">{nb(_cat_max, ".1f")} mm</b> &mdash; '
                         f'maximum sur la bo&#238;te de d&#233;tection (12,3-16,7&#176;N, '
                         f'17,55-11,35&#176;W), qui inclut des pixels des pays voisins.</div>')
 
@@ -872,7 +874,7 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
                 + f'<div style="display:flex;justify-content:space-between;'
                 + f'align-items:baseline;margin-bottom:3px;">'
                 + f'<span style="font-size:0.75rem;color:{MUTED}">Couverture spatiale</span>'
-                + f'<span style="font-size:0.85rem;font-weight:700;color:{AMBER}">{_ext_pct_v:.1f}%</span>'
+                + f'<span style="font-size:0.85rem;font-weight:700;color:{AMBER}">{nb(_ext_pct_v, ".1f")}%</span>'
                 + f'</div>' + _pbar(_ext_pct_v, AMBER) + f'</div>'
                 + _mrow("R&#233;gion principale", _mregion_v)
                 + f'<div style="padding:5px 0;border-bottom:1px solid {BORDER};">'
@@ -882,7 +884,7 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
                 + f'<span style="font-size:0.85rem;font-weight:700;color:{ROSE}">{_top_reg}</span>'
                 + f'</div>'
                 + f'<div style="font-size:0.72rem;color:{MUTED};">'
-                + f'max {_top_reg_max:.1f} mm &nbsp;&#183;&nbsp; moy. {_top_reg_mean:.1f} mm</div>'
+                + f'max {nb(_top_reg_max, ".1f")} mm &nbsp;&#183;&nbsp; moy. {nb(_top_reg_mean, ".1f")} mm</div>'
                 + f'</div>'
                 + _section("Classification", "&#127981;", EMERALD)
                 + f'<div style="margin-top:4px;display:flex;flex-wrap:wrap;gap:5px;">'
@@ -931,7 +933,7 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
     _bdg_clr = ROSE  if _active else INDIGO
     _bdg_bg  = "rgba(244,63,94,0.10)"  if _active else "rgba(79,70,229,0.10)"
     _bot_bdr = f"2px solid {ROSE}"     if _active else f"1px solid {BORDER}"
-    _pct_str = f"&nbsp;&middot;&nbsp;{_pct_c:.0f}%" if _active else ""
+    _pct_str = f"&nbsp;&middot;&nbsp;{nb(_pct_c, '.0f')}%" if _active else ""
 
     _pills = "".join(
         f'<span style="font-size:0.67rem;font-weight:600;color:{PHASE_C.get(p, MUTED)};'
@@ -962,7 +964,7 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
         <div style="flex:1;min-width:16px;height:1px;background:{BORDER};"></div>
         <span style="font-size:0.70rem;font-weight:600;color:{_bdg_clr};
               background:{_bdg_bg};border-radius:20px;padding:3px 12px;white-space:nowrap;">
-          {_n_cur:,}&nbsp;&eacute;v&eacute;nements{_pct_str}
+          {nb(_n_cur, ',')}&nbsp;&eacute;v&eacute;nements{_pct_str}
         </span>
       </div>
     </div>
@@ -1019,7 +1021,7 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
         with hh:
             st.markdown(
                 '<p class="pnl-ttl">Évolution annuelle des événements extrêmes</p>'
-                '<p class="pnl-sub">Nombre d\'evenements par annee · decompose par phase saisonniere</p>',
+                '<p class="pnl-sub">Nombre d\'événements par année · décomposé par phase saisonnière</p>',
                 unsafe_allow_html=True,
             )
         with hs:
@@ -1034,10 +1036,10 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
 
         st.markdown(f"""
         <div class="chips">
-          <div class="chip">Moy. annuelle &nbsp;<b>{avg_yr_n:.0f} evt/an</b></div>
+          <div class="chip">Moy. annuelle &nbsp;<b>{nb(avg_yr_n, '.0f')} evt/an</b></div>
           <div class="chip">Record &nbsp;<b>{int(max_yr_row['year'])} — {int(max_yr_row['n'])} evt</b></div>
           <div class="chip">Année calme &nbsp;<b>{int(min_yr_row['year'])} — {int(min_yr_row['n'])} evt</b></div>
-          <div class="chip">Tendance &nbsp;<b>{"+" if slope>=0 else ""}{slope:.2f} evt/an</b></div>
+          <div class="chip">Tendance &nbsp;<b>{"+" if slope>=0 else ""}{nb(slope, '.2f')} evt/an</b></div>
         </div>
         """, unsafe_allow_html=True)
 
@@ -1107,7 +1109,7 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
             font=dict(size=22, color=TEXT, family="Inter"), showarrow=False,
         )
         fig_d.add_annotation(
-            text="evenements", x=0.5, y=0.41,
+            text="événements", x=0.5, y=0.41,
             font=dict(size=10, color=MUTED, family="Inter"), showarrow=False,
         )
         fig_d.update_layout(
@@ -1126,7 +1128,7 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
             <div class="leg-row">
               <div class="leg-dot" style="background:{PHASE_C[ph]}"></div>
               <span class="leg-lbl">{PHASE_L[ph]}</span>
-              <span class="leg-pct">{pct:.0f}%</span>
+              <span class="leg-pct">{nb(pct, '.0f')}%</span>
               <b class="leg-val">{n}</b>
             </div>
             """, unsafe_allow_html=True)
@@ -1170,7 +1172,9 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
         ))
         plotly_base(fig_m, h=260 if is_mobile else 300)
         fig_m.update_layout(
-            margin=dict(l=2, r=2, t=10, b=30),
+            # Marge haute : la barre d'outils Plotly recouvrait la 1re ligne
+            # (recette 29/09/2026).
+            margin=dict(l=2, r=2, t=34, b=30),
             xaxis=dict(tickfont=dict(size=10, color=TEXT), dtick=5, showgrid=False),
             yaxis=dict(tickfont=dict(size=11, color=TEXT), autorange="reversed",
                        showgrid=False),
@@ -1222,6 +1226,6 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
                      style="width:{bar_w:.0f}%;background:{GRAD[min(i,7)]}"></div>
               </div>
               <span class="rg-n">{row['n']}</span>
-              <span class="rg-pct">{pct:.1f}%</span>
+              <span class="rg-pct">{nb(pct, '.1f')}%</span>
             </div>
             """, unsafe_allow_html=True)

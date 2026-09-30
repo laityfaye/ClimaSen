@@ -625,8 +625,9 @@
   #hud-soustitre button{display:block;flex:none;align-self:center;margin-top:3px;background:none;border:0;
     color:var(--cyan);font-family:var(--mono);font-size:.62rem;letter-spacing:.14em;
     cursor:pointer;text-decoration:underline}
-  /* Transcription ouverte: le texte y est deja, le sous-titre la chevaucherait. */
-  body.hud.hud-transcription #hud-soustitre{display:none}
+  /* Transcription ouverte: le sous-titre reste affiche (choix de Laity du
+     30/09/2026). Pas de chevauchement: la transcription s'arrete a --hud-bas,
+     calcule au-dessus du sous-titre. */
   #hud-coin{position:absolute;top:18px;right:20px;z-index:1;display:flex;align-items:center;gap:12px}
   #hud-coin .hud-icone{width:34px;height:34px;border-radius:50%;cursor:pointer;display:flex;
     align-items:center;justify-content:center;background:transparent;
@@ -707,6 +708,9 @@
   /* iOS zoome toute la page au focus d'un champ de moins de 16 px, et ne
      dezoome pas ensuite: l'interface restait decalee. */
   body.mobile textarea{font-size:16px}
+  /* Bulle repliee plus petite: a 58 px elle masquait le coin des cartes et
+     graphiques du dashboard (recette 29/09/2026). */
+  body.mobile #fab, body.mobile #fab .orbe{width:46px;height:46px}
   body.mobile header{padding:10px 12px}
   body.mobile .hclose{width:38px;height:38px}
   body.mobile #hud-btn{padding:0 11px}
@@ -909,7 +913,7 @@
     <button type="button" data-action="soustitres" id="hm-soustitres">SOUS-TITRES : OFF</button>
     <button type="button" data-action="continu" id="hm-continu">ECOUTE CONTINUE : OFF</button>
     <button type="button" data-action="clavier" id="hm-clavier">CLAVIER VISUEL</button>
-    <button type="button" data-action="transcription" id="hm-transcription">TRANSCRIPTION : OFF</button>
+    <button type="button" data-action="transcription" id="hm-transcription">TRANSCRIPTION : ON</button>
     <div class="hm-section cyan">SESSION</div>
     <button type="button" data-action="admin" id="hm-admin">MODE ADMINISTRATEUR</button>
     <button type="button" data-action="sortir">&#8617; RETOUR AU DASHBOARD</button>
@@ -1142,8 +1146,9 @@
   var state = { open:false, busy:false, online:false, token:null, convId:null,
                admin:false, joindreVue:false, voix:false, continu:false,
                requete:null, sante:null,
-               // Sous-titres en plein ecran quand Jarvis parle: non par defaut.
-               soustitres: recall("soustitres") === "1" };
+               // Sous-titres en plein ecran quand Jarvis parle: oui par
+               // defaut (choix de Laity du 30/09/2026), sauf si coupes.
+               soustitres: recall("soustitres") !== "0" };
 
   /* ---------- Dimensionnement de l'iframe -------------------------------
      Le widget s'epingle lui-meme en bas a droite de la page hote. Si l'acces
@@ -2546,7 +2551,16 @@
     return sortie;
   }
 
-  var lectureNo = 0, enLecture = false, audioCourant = null;
+  var lectureNo = 0, enLecture = false, audioCourant = null, lectureCourante = null;
+
+  /* Affichage cale sur la voix (demande de Laity du 30/09/2026) : Jarvis
+     ecrit sa reponse en 2-3 s mais met 15 s ou plus a la dire. Quand une
+     lecture porte `surPhrase`, la transcription et le sous-titre avancent
+     phrase par phrase, au moment ou la voix commence chacune ; `reveler`
+     montre tout, a la fin de la lecture ou si elle est interrompue. */
+  function revelerTout(L){
+    if(L && L.reveler){ var f = L.reveler; L.reveler = null; try{ f(); }catch(e){} }
+  }
   function parleEnCours(){ return enLecture || !!(synthese && synthese.speaking); }
 
   function finLecture(no){
@@ -2559,6 +2573,22 @@
      terminee part dans une file des qu'elle arrive; la voix la joue pendant
      que les suivantes se telechargent. Un texte complet (accueil) passe
      par le meme chemin, en une fois. */
+  // Branche l'affichage d'une reponse sur sa lecture (voir revelerTout).
+  function calerSurVoix(L, cible){
+    L.affiche = 0;
+    L.surPhrase = function(item){
+      L.affiche = Math.max(L.affiche, item.fin);
+      cible.innerHTML = mini(avecReperes(cible._raw.slice(0, L.affiche)));
+      Hud.soustitre(item.texte, false);
+      scroll();
+    };
+    L.reveler = function(){
+      cible.innerHTML = mini(avecReperes(cible._raw));
+      if(cible._raw){ Hud.soustitre(cible._raw, true); }
+      scroll();
+    };
+  }
+
   function lireAVoixHaute(md){
     if(!synthese || !state.voix){ return; }
     var L = nouvelleLecture();
@@ -2568,7 +2598,7 @@
   function nouvelleLecture(){
     arreterLecture();
     enLecture = true;
-    return {no: lectureNo, file: [], fini: false, joue: false, consomme: 0,
+    return lectureCourante = {no: lectureNo, file: [], fini: false, joue: false, consomme: 0,
             lang: null,
             // Voix neuronale du serveur (Henri, comme JARVIS-pro); celle du
             // navigateur reste le repli, et la seule pour l'anglais.
@@ -2589,6 +2619,7 @@
       coupe = derniere;
     }
     if(coupe > 0){
+      var base = L.consomme, pos = 0;
       L.consomme += coupe;
       // Les reperes [[En]] ne sont pas lus : ils marquent la phrase a partir
       // de laquelle le cadre passe a l'element n (voir avancerLecture).
@@ -2596,17 +2627,27 @@
       for(var ip = 0; ip < parts.length; ip++){
         if(ip % 2 === 1){
           L.focusEnAttente = parts[ip] === "FIN" ? null : +parts[ip].slice(1);
+          pos += parts[ip].length + 4;
           continue;
         }
+        var debutPart = base + pos, longPart = parts[ip].length;
+        pos += longPart;
         var texte = textePourLecture(parts[ip]);
         if(!texte){ continue; }
         if(!L.lang){
           L.lang = langueDe(texte);
           if(L.lang !== "fr-FR"){ L.neuronal = false; }
         }
-        decouperPhrases(texte).forEach(function(p){
+        var phrases = decouperPhrases(texte), total = 0, cumul = 0;
+        phrases.forEach(function(p){ total += p.length; });
+        phrases.forEach(function(p, k){
+          cumul += p.length;
           // Telechargement lance tout de suite: pret quand son tour vient.
-          var item = {texte: p, audio: L.neuronal ? chargerAudio(p) : null};
+          // `fin` : position dans le texte brut jusqu'ou afficher quand la
+          // voix commence cette phrase (au prorata dans un meme morceau).
+          var item = {texte: p, audio: L.neuronal ? chargerAudio(p) : null,
+                      fin: k === phrases.length - 1 ? debutPart + longPart
+                           : debutPart + Math.round(longPart * cumul / (total || 1))};
           if(L.focusEnAttente !== undefined){
             item.focus = L.focusEnAttente;
             L.focusEnAttente = undefined;
@@ -2631,6 +2672,7 @@
     if(L.no !== lectureNo || L.joue){ return; }
     if(!L.file.length){
       if(L.fini){
+        revelerTout(L);
         if(L.focusEnAttente !== undefined){
           try{ Analyse.focus(L.focusEnAttente); }catch(e){}
           L.focusEnAttente = undefined;
@@ -2646,21 +2688,27 @@
     // Analyse complete : on montre l'element dont la phrase parle.
     if(item.focus !== undefined){ try{ Analyse.focus(item.focus); }catch(e){} }
     L.joue = true;
-    var suite = function(){ L.joue = false; avancerLecture(L); };
-    if(L.neuronal && item.audio){ jouerNeuronal(L, item, suite); }
-    else { jouerNavigateur(L, item.texte, suite); }
+    var debut = function(){
+      if(item.vu || L.no !== lectureNo){ return; }
+      item.vu = true;
+      if(L.surPhrase){ try{ L.surPhrase(item); }catch(e){} }
+    };
+    // Une phrase que la voix n'a pas pu dire s'affiche quand meme.
+    var suite = function(){ debut(); L.joue = false; avancerLecture(L); };
+    if(L.neuronal && item.audio){ jouerNeuronal(L, item, suite, debut); }
+    else { jouerNavigateur(L, item.texte, suite, debut); }
   }
 
   /* Au premier echec (service coupe, reseau lent, lecture refusee), toute
      la suite passe a la voix du navigateur: pas de melange de voix. */
-  function jouerNeuronal(L, item, suite){
+  function jouerNeuronal(L, item, suite, debut){
     var abandonne = false;
     function repli(){
       if(abandonne){ return; }
       abandonne = true;
       trace("voix neuronale indisponible: repli sur la voix du navigateur");
       L.neuronal = false;
-      if(L.no === lectureNo){ jouerNavigateur(L, item.texte, suite); }
+      if(L.no === lectureNo){ jouerNavigateur(L, item.texte, suite, debut); }
     }
     // Reseau lent: mieux vaut la voix du navigateur que 20 s de silence.
     var garde = setTimeout(repli, 5000);
@@ -2670,7 +2718,7 @@
       var url = URL.createObjectURL(blob);
       var a = new Audio(url);
       audioCourant = a;
-      a.onplaying = function(){ Orbe.etat("parole"); };
+      a.onplaying = function(){ Orbe.etat("parole"); if(debut){ debut(); } };
       a.onended = function(){ URL.revokeObjectURL(url); if(L.no === lectureNo){ suite(); } };
       a.onerror = function(){ URL.revokeObjectURL(url); repli(); };
       var lancement = a.play();
@@ -2680,13 +2728,13 @@
     }, function(){ clearTimeout(garde); repli(); });
   }
 
-  function jouerNavigateur(L, texte, suite){
+  function jouerNavigateur(L, texte, suite, debut){
     var p = new SpeechSynthesisUtterance(texte);
     p.lang = L.lang || "fr-FR";
     var voix = choisirVoix(p.lang);
     if(voix){ p.voice = voix; }
     p.rate = 1.03;
-    p.onstart = function(){ Orbe.etat("parole"); };
+    p.onstart = function(){ Orbe.etat("parole"); if(debut){ debut(); } };
     p.onend = function(){ if(L.no === lectureNo){ suite(); } };
     p.onerror = function(e){
       if(e && (e.error === "interrupted" || e.error === "canceled")){ return; }
@@ -2705,6 +2753,8 @@
   }
 
   function arreterLecture(){
+    revelerTout(lectureCourante);
+    lectureCourante = null;
     lectureNo++;
     enLecture = false;
     if(audioCourant){ try{ audioCourant.pause(); }catch(e){} audioCourant = null; }
@@ -2917,6 +2967,9 @@
       if(synthese && window.SpeechSynthesisUtterance && recall("voix") !== "0"){
         basculerVoix(true);
       }
+      // Transcription ouverte par defaut (choix de Laity du 30/09/2026),
+      // sauf si l'utilisateur l'a fermee lui-meme.
+      document.body.classList.toggle("hud-transcription", recall("transcription") !== "0");
       majMenu();
       statut(Orbe.courant());
       $("hud-soustitre").textContent = "";
@@ -2981,9 +3034,12 @@
                    parole: "parle..."};
     function statut(e){ var el = $("hud-statut"); if(el){ el.textContent = STATUTS[e] || ""; } }
 
-    function transcription(oui){
-      document.body.classList.toggle("hud-transcription",
+    // auto: ouverture decidee par Jarvis (figure, proposition), qui ne doit
+    // pas ecraser le choix memorise de l'utilisateur.
+    function transcription(oui, auto){
+      var ouverte = document.body.classList.toggle("hud-transcription",
         oui === undefined ? !document.body.classList.contains("hud-transcription") : !!oui);
+      if(!auto){ remember("transcription", ouverte ? "1" : "0"); }
       majMenu();
       setTimeout(function(){ scroll(true); }, 30);
     }
@@ -3900,7 +3956,7 @@
     if(actionsVues[a.id]){ return; }
     actionsVues[a.id] = true;
     // Une proposition se lit avant d'etre approuvee: on l'affiche.
-    if(Hud.actif()){ Hud.transcription(true); }
+    if(Hud.actif()){ Hud.transcription(true, true); }
     var c = contenuAction(a);
     var el = document.createElement("div");
     el.className = "action";
@@ -4230,9 +4286,10 @@
         Analyse.repos();
         state.busy = false; refreshSend();
         state.requete = null;
-        if(target && target._raw){ Hud.soustitre(target._raw, true); }
+        // Voix active : le texte complet attend la fin de la lecture.
+        if(target && target._raw && !(lecture && lecture.reveler)){ Hud.soustitre(target._raw, true); }
         var autres = figuresRecues.filter(function(f){ return !f.carte; });
-        if(autres.length && Hud.actif()){ Hud.transcription(true); }
+        if(autres.length && Hud.actif()){ Hud.transcription(true, true); }
         // Deux cartes dans la meme reponse (debut vs pleine saison...): on
         // les montre cote a cote plutot que l'une apres l'autre.
         var cartesRecues = figuresRecues.filter(function(f){ return f.carte; });
@@ -4303,14 +4360,16 @@
         if(target === null){ target = bubble("bot", ""); target._raw = ""; }
         target._raw += data.text;
         if(state.voix && synthese){
-          if(!lecture){ lecture = nouvelleLecture(); }
+          if(!lecture){ lecture = nouvelleLecture(); calerSurVoix(lecture, target); }
           alimenterLecture(lecture, target._raw, false);
         } else {
           var marque = dernierRepere(target._raw);
           if(marque !== undefined){ Analyse.focus(marque); }
         }
-        target.innerHTML = mini(avecReperes(target._raw));
-        Hud.soustitre(target._raw, false);
+        if(!lecture || !lecture.reveler){
+          target.innerHTML = mini(avecReperes(target._raw));
+          Hud.soustitre(target._raw, false);
+        }
         scroll();
       } else if(name === "error"){
         typing(false);

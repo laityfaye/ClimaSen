@@ -52,7 +52,10 @@ SCHEMA = {
                                   "max_precip (intensite maximale mensuelle)."},
         "lag": {"type": "integer",
                 "description": "Decalage en mois entre l indice SST et la pluie "
-                               "(0 a 5). Omettre pour obtenir tous les lags."},
+                               "(0 a 5). Omettre pour obtenir tous les lags: "
+                               "c est obligatoire quand la question ne precise "
+                               "pas de decalage (la plus forte correlation se "
+                               "cherche sur les lags 0 a 5)."},
         "only_significant": {"type": "boolean",
                              "description": "Ne garder que les correlations "
                                             "significatives (p_neff < 0.05). "

@@ -100,7 +100,7 @@ CHAMPS = {
         "type_correlation": (_enum(("Pearson", "Spearman")), "coefficient"),
         "significatives_seulement": (_booleen, "filtre significatives seulement"),
         "p_value": (_enum(("p brute", "p neff (AR1)")), "p-value utilisee"),
-        "phase_lag0": (_enum(PHASES_TOUTES), "phase du tableau lag 0"),
+        "phase_lag0": (_enum(PHASES_TOUTES), "phase du tableau au decalage 0 (vue partielle)"),
         "indices_series": (_liste(_enum(INDICES), len(INDICES)),
                            "indices traces dans les series"),
     },

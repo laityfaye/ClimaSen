@@ -11,7 +11,7 @@ import streamlit as st
 import dashboard_utils as du
 import admin_gate
 from dashboard_utils import (
-    INDIGO, BLUE, EMERALD, AMBER, ROSE, PHASE_C, BASE,
+    INDIGO, BLUE, EMERALD, AMBER, ROSE, PHASE_C, BASE, nb,
     load_clustering, load_cluster_pixels, load_dept_geojson,
     load_sst_centroid, _get_region_grid, _apply_geo_traces,
 )
@@ -37,6 +37,9 @@ def _ligne_etat(hier, cid, muted, text):
             f'<b style="color:{text};">{c["etat"]}</b> ({int(round(100 * c["part"]))} %)</p>')
 
 
+# En cache : ~3 s par affichage sinon (import scipy + V de Cramer, recette
+# 29/09/2026). La page Pipeline vide st.cache_data apres un recalcul.
+@st.cache_data(show_spinner=False)
 def _hierarchie(phase, events):
     if _etats is None:
         return None
@@ -106,7 +109,7 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
         st.markdown(
             f'<p style="font-size:0.78rem;color:{MUTED};margin:0 0 12px 0;">'
             "Definissez le nombre de clusters K pour chaque phase, puis lancez le script. "
-            "Les resultats seront recharges automatiquement.</p>",
+            "Les résultats seront rechargés automatiquement.</p>",
             unsafe_allow_html=True,
         )
 
@@ -152,7 +155,7 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
             )
 
         if st.session_state["cluster_result"] == "success":
-            st.success("Clustering terminé avec succes ! Les resultats affiches sont mis a jour.")
+            st.success("Clustering terminé avec succès ! Les résultats affichés sont mis à jour.")
             if st.button("Fermer ce message", key="btn_reload_cl"):
                 st.session_state["cluster_result"] = None
                 st.rerun()
@@ -223,12 +226,12 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
     k_opt    = metrics.get("optimal_k", metrics.get("k_elbow", "?"))
     sil_best = metrics.get("best_silhouette_score", None)
     k_sil    = metrics.get("k_silhouette", "?")
-    sil_str  = f"{sil_best:.3f}" if sil_best is not None else "-"
+    sil_str  = f"{nb(sil_best, '.3f')}" if sil_best is not None else "-"
     n_clust  = chars["cluster"].nunique()
 
     kpi_items = [
         ("&#128202;", "Événements",     str(n_ev),   "cette phase"),
-        ("&#127981;", "k retenu",       str(k_opt),  "coude + interpretabilite"),
+        ("&#127981;", "k retenu",       str(k_opt),  "coude + interprétabilité"),
         ("&#128200;", "Silhouette max", sil_str,     f"k={k_sil}"),
         ("&#127987;", "Clusters",       str(n_clust), "dans ce graphe"),
     ]
@@ -316,12 +319,12 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
     st.markdown(
         f'<div style="background:{CARD};border:1px solid {BORDER};border-radius:12px;'
         f'padding:12px 16px;margin:2px 0 14px 0;font-size:0.78rem;color:{TEXT};line-height:1.55;">'
-        f'<b>Comment k a ete choisi.</b> La courbe d&#39;inertie n&#39;a pas de coude net et la '
+        f'<b>Comment k a été choisi.</b> La courbe d&#39;inertie n&#39;a pas de coude net et la '
         f'silhouette augmente avec k (maximum {sil_str} a k = {k_sil}) : aucune valeur de k '
-        f'n&#39;est statistiquement optimale, et des silhouettes inferieures a 0,2 indiquent des '
+        f'n&#39;est statistiquement optimale, et des silhouettes inférieures à 0,2 indiquent des '
         f'groupes faiblement separes. k = {k_opt}'
-        + (f' (silhouette {sil_retenu:.3f})' if isinstance(sil_retenu, (int, float)) else '') +
-        f' est un choix d&#39;<b>interpretabilite</b> : assez de configurations pour distinguer '
+        + (f' (silhouette {nb(sil_retenu, ".3f")})' if isinstance(sil_retenu, (int, float)) else '') +
+        f' est un choix d&#39;<b>interprétabilité</b> : assez de configurations pour distinguer '
         f'les grands états océaniques, des effectifs suffisants par cluster pour des composites '
         f'lisibles. Les clusters sont a lire comme une typologie descriptive, pas comme des '
         f'regimes nettement separes ; la stabilite est controlee par l&#39;analyse saisonnière '
@@ -413,7 +416,7 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
             title=dict(text="Couverture vs Intensité (taille = nb evt)",
                        font=dict(size=13, color=TEXT), x=0, pad=dict(l=0)),
             xaxis=dict(title="Couverture moyenne (%)", gridcolor=BORDER),
-            yaxis=dict(title="Precip max moyenne (mm)", gridcolor=BORDER),
+            yaxis=dict(title="Précip. max moyenne (mm)", gridcolor=BORDER),
             plot_bgcolor=CARD, paper_bgcolor=CARD,
             font=dict(color=TEXT, size=11),
             margin=dict(l=10, r=30, t=60, b=10), height=320,
@@ -493,7 +496,7 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
             f'letter-spacing:.07em;margin:4px 0 4px 2px;">États océaniques &rarr; configurations</h3>'
             f'<p style="font-size:0.74rem;color:{MUTED};margin:0 0 10px 2px;">'
             f'Niveau 1 : 4 états saisonniers robustes (composites par saison, significatifs face au '
-            f'hasard, script 24). Niveau 2 : les clusters d&#39;événements ci-dessous, rattaches a l&#39;etat '
+            f'hasard, script 24). Niveau 2 : les clusters d&#39;événements ci-dessous, rattachés à l&#39;état '
             f'ou tombent au moins {int(100 * hier["seuil_rattachement"])} % de leurs événements. '
             f'V de Cramer = {hier["cramer_v"]} (1 = emboitement parfait).</p>',
             unsafe_allow_html=True)
@@ -510,7 +513,7 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
                 f'<b style="color:{TEXT};">{enfants}</b></p>'
                 f'<p style="font-size:0.72rem;color:{MUTED};margin:2px 0;">Événements : '
                 f'<b style="color:{TEXT};">{e["n_evenements"]}</b> &middot; Nino 3.4 : '
-                f'<b style="color:{TEXT};">{e["indices_moyens"]["Nino34"]:+.2f}</b></p>'
+                f'<b style="color:{TEXT};">{nb(e["indices_moyens"]["Nino34"], "+.2f")}</b></p>'
                 f'<p style="font-size:0.68rem;color:{MUTED};margin:4px 0 0 0;">{annees}</p>'
                 f'</div>', unsafe_allow_html=True)
         # Repartition des evenements de chaque cluster entre les etats
@@ -527,8 +530,11 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
             barmode="stack", height=max(220, 34 * len(ks) + 90),
             paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
             font=dict(color=MUTED, size=11), margin=dict(l=10, r=10, t=10, b=10),
-            legend=dict(orientation="h", y=-0.18, x=0.5, xanchor="center"),
-            xaxis=dict(title="evenements", gridcolor=BORDER), yaxis=dict(autorange="reversed"))
+            # Couleur explicite : sinon la legende prend la couleur du theme
+            # Streamlit (texte sombre sur fond sombre, recette 29/09/2026).
+            legend=dict(orientation="h", y=-0.18, x=0.5, xanchor="center",
+                        traceorder="normal", font=dict(color=TEXT, size=11)),
+            xaxis=dict(title="événements", gridcolor=BORDER), yaxis=dict(autorange="reversed"))
         st.plotly_chart(fig_h, use_container_width=True, config={"displayModeBar": False},
                         key="cl_hierarchie")
 
@@ -545,10 +551,10 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
         with card_cols[i % len(card_cols)]:
             cid    = row.cluster
             color  = cl_colors[i % len(cl_colors)]
-            pct    = f"{row.percentage:.1f}%"
-            mp     = f"{row.mean_max_precip:.1f} mm"
-            cov    = f"{row.mean_coverage_percent:.1f}%"
-            anom   = f"{row.mean_max_anomaly:.1f}"
+            pct    = f"{nb(row.percentage, '.1f')}%"
+            mp     = f"{nb(row.mean_max_precip, '.1f')} mm"
+            cov    = f"{nb(row.mean_coverage_percent, '.1f')}%"
+            anom   = f"{nb(row.mean_max_anomaly, '.1f')}"
             is_sel = (selected_cl == cid)
             b_w    = "3px" if is_sel else "2px"
             bg     = (f"linear-gradient(135deg,{color}28 0%,{color}0d 100%)"
@@ -649,12 +655,12 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
             colorscale="RdBu_r", zmin=-vlim, zmax=vlim, zsmooth=False,
             customdata=_rg_cent,
             colorbar=dict(
-                title=dict(text="Anomalie SST (degC)", side="right"),
+                title=dict(text="Anomalie SST (°C)", side="right"),
                 len=0.75, thickness=14,
             ),
             hovertemplate=(
                 "Lon: %{x:.2f}  Lat: %{y:.2f}<br>"
-                "Anomalie SST: <b>%{z:.3f} degC</b><br>"
+                "Anomalie SST: <b>%{z:.3f} °C</b><br>"
                 "Région: %{customdata}<extra></extra>"
             ),
         ))
@@ -692,7 +698,7 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
     <h2 style="font-size:1.05rem;font-weight:800;color:{TEXT};margin:0 0 6px 0;">
       Analyse spatiale &mdash; Cartographie</h2>
     <p style="font-size:0.78rem;color:{MUTED};margin:0 0 16px 0;">
-      Précipitation moyenne composite sur le Sénégal (tous événements representatifs
+      Précipitation moyenne composite sur le Sénégal (tous événements représentatifs
       du cluster).</p>
     """, unsafe_allow_html=True)
 
@@ -863,7 +869,7 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
                                 bgcolor="rgba(255,255,255,0.0)",
                             ),
                         ),
-                        customdata=[[f"{a:+.1f}", rg, f"{p:.1f}"]
+                        customdata=[[f"{nb(a, '+.1f')}", rg, f"{nb(p, '.1f')}"]
                                     for a, rg, p in zip(_cl_anom, _cl_regs, _cl_prec)],
                         hovertemplate=(
                             "<b>%{customdata[2]} mm</b> moy. &nbsp;|&nbsp; %{customdata[0]}&sigma;<br>"
@@ -887,7 +893,7 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
                         ),
                         hovertemplate=(
                             f"<b>Barycentre C{_cl_carto_sel}</b><br>"
-                            f"{_cl_ctr_lat:.2f}N  {abs(_cl_ctr_lon):.2f}W"
+                            f"{nb(_cl_ctr_lat, '.2f')}N  {nb(abs(_cl_ctr_lon), '.2f')}W"
                             "<extra></extra>"
                         ),
                         showlegend=False,
@@ -939,9 +945,9 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
                     st.markdown(
                         f'<p style="margin:0 0 10px 0;font-size:0.70rem;font-weight:700;'
                         f'color:{MUTED};text-transform:uppercase;letter-spacing:.05em;">'
-                        f'Régions les plus arrosees &nbsp;'
+                        f'Régions les plus arrosées &nbsp;'
                         f'<span style="font-weight:400;text-transform:none;'
-                        f'letter-spacing:0;">(precip. moyenne)</span></p>',
+                        f'letter-spacing:0;">(précip. moyenne)</span></p>',
                         unsafe_allow_html=True,
                     )
                     _cl_reg_ref = float(_cl_reg_stats["mean_p"].max()) if len(_cl_reg_stats) else 1.0
@@ -958,7 +964,7 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
                             f'white-space:nowrap;overflow:hidden;'
                             f'text-overflow:ellipsis;max-width:65%;">{_rname}</span>'
                             f'<span style="font-size:0.74rem;font-weight:700;'
-                            f'color:{BLUE};">{_rrow["mean_p"]:.1f} mm</span>'
+                            f'color:{BLUE};">{nb(_rrow["mean_p"], ".1f")} mm</span>'
                             f'</div>'
                             + _sp_bar(_rpct, INDIGO if _is_top else BLUE)
                             + f'</div>',
@@ -973,7 +979,7 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
     <h2 style="font-size:1.05rem;font-weight:800;color:{TEXT};margin:0 0 6px 0;">
       Cartes SST — Qualité publication (cartopy)</h2>
     <p style="font-size:0.78rem;color:{MUTED};margin:0 0 16px 0;">
-      Figures multi-panneaux generees par le script 14 : anomalies SST globales
+      Figures multi-panneaux générées par le script 14 : anomalies SST globales
       (tropiques) et zoom Atlantique / Afrique de l'Ouest pour chaque cluster.
       Hachurage des anomalies |z| &gt; 0.5 sigma (signal robuste).</p>
     """, unsafe_allow_html=True)
@@ -999,16 +1005,16 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
         except (OSError, ValueError):
             pass
         if meta and meta.get("effectifs") == effectifs_page:
-            st.caption(f"k = {meta['k']} · figure generee le {meta.get('genere_le', '?')} "
-                       f"a partir du clustering affiche sur cette page.")
+            st.caption(f"k = {meta['k']} · figure générée le {meta.get('genere_le', '?')} "
+                       f"à partir du clustering affiché sur cette page.")
             st.image(str(img_path), use_container_width=True)
         elif meta:
             st.warning(
-                f"Figure non affichee : elle provient d'un autre clustering "
+                f"Figure non affichée : elle provient d'un autre clustering "
                 f"(k = {meta.get('k')}, {meta.get('genere_le', '?')}) que celui de la page "
                 f"(k = {len(effectifs_page)}). Relancer l'étape 14 du pipeline.")
         else:
-            st.warning("Figure non affichee : son origine (k, date) est inconnue. "
+            st.warning("Figure non affichée : son origine (k, date) est inconnue. "
                        "Relancer l'étape 14 du pipeline pour la regenerer.")
     else:
         st.info(

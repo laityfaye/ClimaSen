@@ -7,7 +7,7 @@ import plotly.graph_objects as go
 import streamlit as st
 import dashboard_utils as du
 from dashboard_utils import (
-    INDIGO, BLUE, EMERALD, AMBER, ROSE,
+    INDIGO, BLUE, EMERALD, AMBER, ROSE, nb,
     load_telecon, _sig_from_p_neff,
 )
 
@@ -190,14 +190,14 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
         p_active = pnom if use_p_brute0 else p
 
         cell_text = [
-            [f"{v:+.2f}" if v is not None else "" for v in row]
+            [f"{nb(v, '+.2f')}" if v is not None else "" for v in row]
             for row in z
         ]
         customdata = [
             [
                 [
-                    f"{pnom[ri][ci]:.4f}" if pnom[ri][ci] is not None else "N/A",
-                    f"{p[ri][ci]:.4f}" if p[ri][ci] is not None else "N/A",
+                    f"{nb(pnom[ri][ci], '.4f')}" if pnom[ri][ci] is not None else "N/A",
+                    f"{nb(p[ri][ci], '.4f')}" if p[ri][ci] is not None else "N/A",
                     f"{int(neff[ri][ci])}" if neff[ri][ci] is not None else "N/A",
                     f"{int(n[ri][ci])}" if n[ri][ci] is not None else "N/A",
                 ]
@@ -318,7 +318,7 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
         if df_ph0_top.empty:
             st.markdown(
                 f'<p style="color:{MUTED};font-size:0.78rem;margin-top:12px;">'
-                'Aucun resultat.</p>', unsafe_allow_html=True
+                'Aucun résultat.</p>', unsafe_allow_html=True
             )
         else:
             GRAD_POS = ["#1E3A8A", "#1D4ED8", "#3B82F6", "#93C5FD"]
@@ -333,7 +333,7 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
                 # et sortait de sa colonne.
                 bar_w    = min(100, int(abs(r_val) / 0.5 * 100))
                 r_clr    = "#1D4ED8" if is_pos else "#B91C1C"
-                r_str    = f"{r_val:+.3f}"
+                r_str    = f"{nb(r_val, '+.3f')}"
                 badge    = _sig_from_p_neff(rec.get(p_active_col0))
                 sig_badge = ""
                 if badge:
@@ -447,7 +447,7 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
             row_t = []
             for ci in range(len(lags_shown)):
                 r_v = z_mat[ri][ci]
-                row_t.append(f"{r_v:+.2f}" if r_v is not None else "")
+                row_t.append(f"{nb(r_v, '+.2f')}" if r_v is not None else "")
             cell_text.append(row_t)
 
         customdata_mat = []
@@ -459,8 +459,8 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
                 ne = neff_mat[ri][ci]
                 nv = n_mat[ri][ci]
                 row_cd.append([
-                    f"{pn:.4f}" if pn is not None else "N/A",
-                    f"{pe:.4f}" if pe is not None else "N/A",
+                    f"{nb(pn, '.4f')}" if pn is not None else "N/A",
+                    f"{nb(pe, '.4f')}" if pe is not None else "N/A",
                     f"{int(ne)}" if ne is not None else "N/A",
                     f"{int(nv)}" if nv is not None else "N/A",
                 ])
@@ -592,7 +592,7 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
         if df_top.empty:
             st.markdown(
                 f'<p style="color:{MUTED};font-size:0.78rem;margin-top:12px;">'
-                'Aucun resultat.</p>', unsafe_allow_html=True
+                'Aucun résultat.</p>', unsafe_allow_html=True
             )
         else:
             GRAD_POS = ["#1E3A8A", "#1D4ED8", "#3B82F6", "#93C5FD"]
@@ -605,7 +605,7 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
                 bar_clr  = GRAD_POS[min(i, 3)] if is_pos else GRAD_NEG[min(i, 3)]
                 bar_w    = min(100, int(abs(r_val) / 0.5 * 100))
                 r_clr    = "#1D4ED8" if is_pos else "#B91C1C"
-                r_str    = f"{r_val:+.3f}"
+                r_str    = f"{nb(r_val, '+.3f')}"
                 badge    = _sig_from_p_neff(rec.get(p_active_col))
                 sig_badge = ""
                 if badge:
@@ -639,7 +639,7 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
     _profil_star_clr = "#F59E0B" if not use_p_brute else "#60A5FA"
     st.markdown(
         '<p class="pnl-ttl">Profil de corrélation par indice (r vs lag)</p>'
-        '<p class="pnl-sub">Évolution du coefficient r en fonction du decalage temporel'
+        '<p class="pnl-sub">Évolution du coefficient r en fonction du décalage temporel'
         f' &nbsp;&middot;&nbsp; <span style="color:{_profil_star_clr};">&#9733;</span> = significatif '
         f'({_profil_p_label} : 0,05 / 0,01 / 0,001)</p>',
         unsafe_allow_html=True,
@@ -669,13 +669,13 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
             p = row.get(p_active_col, float("nan"))
             if pd.notna(p) and p < 0.001:
                 symbols.append("star"); sizes.append(18)
-                texts.append("***"); hover_extra.append(f"*** {_plbl}={p:.4f}")
+                texts.append("***"); hover_extra.append(f"*** {_plbl}={nb(p, '.4f')}")
             elif pd.notna(p) and p < 0.01:
                 symbols.append("star"); sizes.append(16)
-                texts.append("**"); hover_extra.append(f"** {_plbl}={p:.4f}")
+                texts.append("**"); hover_extra.append(f"** {_plbl}={nb(p, '.4f')}")
             elif pd.notna(p) and p < 0.05:
                 symbols.append("star"); sizes.append(14)
-                texts.append("*"); hover_extra.append(f"* {_plbl}={p:.4f}")
+                texts.append("*"); hover_extra.append(f"* {_plbl}={nb(p, '.4f')}")
             else:
                 symbols.append("circle"); sizes.append(6)
                 texts.append(""); hover_extra.append("")
@@ -837,6 +837,10 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
     fig_cb.update_yaxes(showgrid=True, gridcolor=BORDER, tickfont=dict(size=10, color=MUTED),
                         automargin=True, zeroline=False)
     fig_cb.update_yaxes(range=[-sst_ylim, sst_ylim], row=1, col=1)
+    # Axe borne aux annees presentes : l'ajustement automatique allait
+    # jusqu'a 2025 pour des donnees qui s'arretent en 2023 (recette 29/09/2026).
+    if common_years:
+        fig_cb.update_xaxes(range=[min(common_years) - 0.6, max(common_years) + 0.6])
     st.markdown(
         '<p class="pnl-ttl">Anomalies SST annuelles &amp; &eacute;v&eacute;nements extr&ecirc;mes</p>'
         '<p class="pnl-sub">'
@@ -872,7 +876,7 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
          "p brute (Pearson/Spearman) sans correction"),
         (mk3, "background:rgba(245,158,11,0.13)", "Sig. AR1 (p_neff)", f"{int(n_sig_ar1)}", "t-amber",
          "p_neff Chelton 1983 · recommande"),
-        (mk4, "background:rgba(14,165,233,0.13)", "r max |.|", f"{abs(best_r):.3f}", "t-blue",
+        (mk4, "background:rgba(14,165,233,0.13)", "r max |.|", f"{nb(abs(best_r), '.3f')}", "t-blue",
          f"{best_row['index']} lag {int(best_row['lag_months'])}m" if best_row is not None else ""),
     ]
     for col, icon_bg, lbl, val, tag_cls, sub in kpi_tc:
