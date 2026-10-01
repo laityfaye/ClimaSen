@@ -2132,6 +2132,8 @@
       }
       Hud.entrer(true);
       Hud.menu(false);
+      // La presentation se suit sur l'ecran et le sous-titre : transcription fermee.
+      Hud.transcription(false, true);
       actif = true;
       document.body.classList.add("soutenance");
       // La narration se lit: on active la voix si le navigateur en a une.
@@ -2967,9 +2969,11 @@
       if(synthese && window.SpeechSynthesisUtterance && recall("voix") !== "0"){
         basculerVoix(true);
       }
-      // Transcription ouverte par defaut (choix de Laity du 30/09/2026),
-      // sauf si l'utilisateur l'a fermee lui-meme.
-      document.body.classList.toggle("hud-transcription", recall("transcription") !== "0");
+      // Transcription FERMEE a l'ouverture (choix de Laity du 01/10/2026,
+      // remplace celui du 30/09) : l'accueil et sa presentation se lisent sur
+      // l'orbe et le sous-titre. Elle s'ouvre d'elle-meme a la premiere
+      // reponse a une question (voir ask/handle "delta").
+      document.body.classList.remove("hud-transcription");
       majMenu();
       statut(Orbe.courant());
       $("hud-soustitre").textContent = "";
@@ -4357,7 +4361,12 @@
       } else if(name === "delta"){
         typing(false);
         clearOutil();
-        if(target === null){ target = bubble("bot", ""); target._raw = ""; }
+        if(target === null){
+          target = bubble("bot", ""); target._raw = "";
+          // Reponse a une question : la transcription s'ouvre (sans memoriser
+          // ce choix). Pas pendant une presentation guidee, qui garde l'ecran.
+          if(Hud.actif() && !Soutenance.visible()){ Hud.transcription(true, true); }
+        }
         target._raw += data.text;
         if(state.voix && synthese){
           if(!lecture){ lecture = nouvelleLecture(); calerSurVoix(lecture, target); }
