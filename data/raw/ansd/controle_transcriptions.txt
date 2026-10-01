@@ -1,0 +1,45 @@
+== Tableau III-2 (pauvrete) : somme des parts de population 100.0 %, des contributions 100.0 %
+== Tableau VII-11 (assainissement) : totaux par region de 99.9 a 100.1 %
+== Indicateurs regionaux : moyenne ponderee (part de population) vs national
+   acces_eau_potable_menages_pct                 moyenne 81.7 / national 93.7 (p. 80, texte VII.2.2.1) -> ECART
+   acces_electricite_menages_pct                 moyenne 80.1 / national 82.3 (p. 78, texte VII.2.1.2) -> ECART
+   insecurite_alimentaire_moderee_ou_grave_pct   moyenne 31.3 / national 29.9 (p. 93, Figure VIII-3) -> ok
+   insecurite_alimentaire_grave_pct              moyenne 4.1 / national 3.9 (p. 93, Figure VIII-3) -> ok
+   menages_ayant_subi_un_choc_3_ans_pct          moyenne 63.9 / national 62.0 (p. 95, Figure VIII-5) -> ok
+== Tableau VIII-2 (chocs par milieu) : national entre min et max des milieux
+   prix_eleves_produits_alimentaires        ok
+   maladie_grave_ou_accident_membre         ok
+   deces_membre                             ok
+   prix_eleves_intrants_agricoles           ok
+   inondations                              ok
+== Atlas RGPH-5 : 164 lignes, 9 cartes, departements inconnus : aucun
+   densite                  haute  9, basse 10
+   eau_boisson_amelioree    haute  9, basse 10
+   eclairage_electricite    haute  8, basse 10
+   femmes_cheffes_menage    haute  7, basse 11
+   menages_proprietaires    haute  9, basse  7
+   part_0_5_ans             haute  8, basse 10
+   prevalence_handicap      haute  8, basse 10
+   rapport_dependance       haute  9, basse 10
+   taux_urbanisation        haute  9, basse 10
+== Densite : classes de l'Atlas vs densite du script 26 (RGPH-5 / superficie OCHA)
+   classe > 349 : Dakar        calcule    16290 ok
+   classe > 349 : Guédiawaye   calcule    26526 ok
+   classe > 349 : Keur Massar  calcule    16824 ok
+   classe > 349 : Mbacké       calcule      607 ok
+   classe > 349 : Mbour        calcule      495 ok
+   classe > 349 : Pikine       calcule    16735 ok
+   classe > 349 : Rufisque     calcule     2288 ok
+   classe > 349 : Saint Louis  calcule      484 ok
+   classe > 349 : Thiès        calcule      548 ok
+   classe < 39  : Bakel        calcule       28 ok
+   classe < 39  : Goudiry      calcule       11 ok
+   classe < 39  : Koumpentoum  calcule       29 ok
+   classe < 39  : Kédougou     calcule       18 ok
+   classe < 39  : Linguère     calcule       20 ok
+   classe < 39  : Podor        calcule       38 ok
+   classe < 39  : Ranérou      calcule        7 ok
+   classe < 39  : Salémata     calcule       14 ok
+   classe < 39  : Saraya       calcule       12 ok
+   classe < 39  : Tambacounda  calcule       32 ok
+   departements dans une classe extreme selon le calcul mais non cites par l'Atlas : aucun

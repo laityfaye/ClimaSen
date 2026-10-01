@@ -1,0 +1,7 @@
+,geometrique,moyenne_simple,alea_x2,exposition_x2,vulnerabilite_x2,sans_vulnerabilite
+geometrique,1.0,0.845,0.947,0.899,0.95,0.674
+moyenne_simple,0.845,1.0,0.872,0.695,0.867,0.578
+alea_x2,0.947,0.872,1.0,0.767,0.899,0.67
+exposition_x2,0.899,0.695,0.767,1.0,0.772,0.813
+vulnerabilite_x2,0.95,0.867,0.899,0.772,1.0,0.457
+sans_vulnerabilite,0.674,0.578,0.67,0.813,0.457,1.0

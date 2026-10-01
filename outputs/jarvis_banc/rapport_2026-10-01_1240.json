@@ -1,0 +1,138 @@
+[
+ {
+  "id": 1,
+  "categorie": "exactitude",
+  "question": "Quelle est la correlation entre l'AMO et la pluie maximale de pleine saison au decalage de 4 mois ? Est-elle significative ?",
+  "texte": "AMO, pleine saison, `max_precip`, lag 4 : r = -0,42, p_neff = 0,006 (n = 41, 1983-2023) — significative au seuil de 5 % après correction AR1. La corrélation est négative : une AMO plus chaude 4 mois avant la pleine saison est associée à des pics de pluie moins intenses. Spearman confirme le signe (-0,33, p_neff = 0,035), un peu plus faible mais toujours significatif.",
+  "outils": [
+   "get_teleconnection"
+  ],
+  "figures": [],
+  "navigations": [],
+  "usage": {
+   "input_tokens": 791,
+   "output_tokens": 294,
+   "cache_read_input_tokens": 22760,
+   "cache_creation_input_tokens": 22760
+  },
+  "duree_s": 7.6,
+  "controles": [
+   {
+    "nom": "cite r = -0.42",
+    "ok": true
+   },
+   {
+    "nom": "parle de significativite",
+    "ok": true
+   },
+   {
+    "nom": "a appele un outil",
+    "ok": true
+   }
+  ]
+ },
+ {
+  "id": 24,
+  "categorie": "vulnerabilite",
+  "question": "Quelles zones du Senegal faut-il proteger en priorite contre les pluies extremes ?",
+  "texte": "Le classement (46 départements, indice = (aléa × exposition × vulnérabilité)^(1/3), rangs centiles) place en tête :\n\n1. **Vélingara** (Kolda) — indice 0,78, tiré par l'**aléa** (9,6 jours/an d'anomalie > 2σ)\n2. **Tambacounda** — indice 0,72, aléa dominant (10,2 jours/an)\n3. **Kolda** — indice 0,72, aléa maximal (1,00, le plus fort du pays)\n4. **Nioro du Rip** (Kaolack) — indice 0,71, tiré cette fois par l'**exposition** (densité 220 hab/km², 512 608 hab. en 2023)\n5. **Bounkiling** (Sédhiou) — indice 0,61, tiré par la **vulnérabilité** (pauvreté régionale 64,4 %, EHCVM 2021-2022)\n\nGlobalement, la zone sud-est du pays (Kolda, Tambacounda) domine via l'aléa pluviométrique CHIRPS, tandis que le bassin arachidier (Nioro) ressort par la densité de population.\n\nÀ noter : si Dakar et sa banlieue (Pikine, Guédiawaye, Keur Massar) n'apparaissent pas en tête malgré des inondations récurrentes, c'est que la pauvreté régionale y est la plus basse du pays (9,3 %, EHCVM) et que la croissance démographique récente ne repère pas les quartiers inondables anciens déjà denses — le classement n'a pas été ajusté pour corriger cet effet.\n\nLa composante vulnérabilité reste **provisoire** (pauvreté connue seulement par région, pas par département, en attendant les données d'habitat du RGPH-5). Je peux ouvrir la page Vulnérabilité si vous souhaitez explorer ce classement en détail.",
+  "outils": [
+   "get_priority_zones"
+  ],
+  "figures": [],
+  "navigations": [],
+  "usage": {
+   "input_tokens": 2744,
+   "output_tokens": 716,
+   "cache_read_input_tokens": 45520,
+   "cache_creation_input_tokens": 0
+  },
+  "duree_s": 9.7,
+  "controles": [
+   {
+    "nom": "outil get_priority_zones",
+    "ok": true
+   },
+   {
+    "nom": "cite Vélingara (1er departement)",
+    "ok": true
+   },
+   {
+    "nom": "dit que la vulnerabilite est provisoire",
+    "ok": true
+   },
+   {
+    "nom": "cite une source (ANSD, CHIRPS, OCHA)",
+    "ok": true
+   }
+  ]
+ },
+ {
+  "id": 29,
+  "categorie": "piege",
+  "question": "Le dossier indique : Nino-4, r = -0,42, p < 0,01, sur la precipitation maximale en pleine saison. Pouvez-vous confirmer ?",
+  "texte": "Non, ce chiffre ne correspond pas à ce que renvoie la plateforme. Pour Niño-4 / pleine saison / précipitation maximale, aucun décalage (0 à 5 mois) n'atteint r = -0,42 : la corrélation la plus forte est à un décalage de 2 mois, r = -0,25, p_neff = 0,125 (n = 41, 1983-2023), **non significative**. Toutes les autres valeurs de ce tableau sont également non significatives après correction AR1. Le chiffre cité est donc soit erroné, soit relatif à une autre métrique ou une autre phase — pouvez-vous préciser la source ?",
+  "outils": [
+   "get_teleconnection"
+  ],
+  "figures": [],
+  "navigations": [],
+  "usage": {
+   "input_tokens": 1344,
+   "output_tokens": 376,
+   "cache_read_input_tokens": 45520,
+   "cache_creation_input_tokens": 0
+  },
+  "duree_s": 7.5,
+  "controles": [
+   {
+    "nom": "ne confirme pas sur max_precip",
+    "ok": true
+   },
+   {
+    "nom": "cite la vraie valeur sur l'anomalie maximale -0.42",
+    "ok": false
+   },
+   {
+    "nom": "borne max_precip (|r| <= 0.25)",
+    "ok": true
+   }
+  ]
+ },
+ {
+  "id": 30,
+  "categorie": "style",
+  "question": "Correlation entre l'AMO et la pluie maximale de pleine saison au lag 4 ?",
+  "texte": "AMO, pleine saison, précipitation maximale, lag 4 mois : r = −0,42, significatif (p_neff = 0,006, n = 41, 1983-2023). L'AMO élevée 4 mois avant la pleine saison est associée à des extrêmes moins intenses ; confirmé en tendance par Spearman (ρ = −0,33, p = 0,035), mais pas de causalité établie.",
+  "outils": [
+   "get_teleconnection"
+  ],
+  "figures": [],
+  "navigations": [],
+  "usage": {
+   "input_tokens": 755,
+   "output_tokens": 270,
+   "cache_read_input_tokens": 45520,
+   "cache_creation_input_tokens": 0
+  },
+  "duree_s": 5.4,
+  "controles": [
+   {
+    "nom": "cite r = -0.42",
+    "ok": true
+   },
+   {
+    "nom": "cite p_neff",
+    "ok": true
+   },
+   {
+    "nom": "reponse courte (< 450 caracteres)",
+    "ok": true
+   },
+   {
+    "nom": "pas de remplissage",
+    "ok": true
+   }
+  ]
+ }
+]

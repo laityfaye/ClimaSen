@@ -211,6 +211,7 @@ _NAV = [
     ("Teleconnexions", "Téléconnexions",    "hub",           "teleconnexions"),
     ("Clustering",     "Clustering",        "bubble_chart",  "clustering"),
     ("Veille",         "Veille pré-saison", "notifications", "veille-pre-saison"),
+    ("Vulnerabilite",  "Vulnérabilité",     "shield",        "vulnerabilite"),
     ("Pipeline",       "Pipeline",          "settings",      "pipeline"),
     ("A propos",       "À propos",          "info",          "a-propos"),
 ]
@@ -1022,12 +1023,28 @@ section[data-testid="stSidebar"] [data-baseweb="tag"] span {{
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
+    /* Carte etroite : la mini-courbe passe sous le texte au lieu de l'ecraser. */
+    flex-wrap: wrap; row-gap: 8px;
     transition: box-shadow 0.2s;
 }}
 .kpi:hover {{
     box-shadow: 0 4px 8px rgba(0,0,0,0.07), 0 12px 30px rgba(79,70,229,0.1);
 }}
-.kpi-body  {{ flex: 1; min-width: 0; }}
+.kpi-body  {{ flex: 1; min-width: 110px; }}
+/* Une rangee de chiffres cles (une carte .kpi par colonne) : toutes les cartes
+   prennent la hauteur de la plus haute, meme quand une etiquette passe a la ligne. */
+/* Chaine flex (et non des hauteurs en %) : Streamlit insere un niveau sans hauteur
+   entre stMarkdown et stMarkdownContainer, ou un height: 100% s'effondre. */
+[data-testid="stHorizontalBlock"]:has(> [data-testid="stColumn"] .kpi) {{ align-items: stretch !important; }}
+[data-testid="stColumn"]:has(.kpi) {{ display: flex !important; flex-direction: column; }}
+[data-testid="stColumn"]:has(.kpi) > [data-testid="stVerticalBlock"],
+[data-testid="stElementContainer"]:has(> [data-testid="stMarkdown"] .kpi),
+[data-testid="stMarkdown"]:has(.kpi),
+[data-testid="stMarkdown"]:has(.kpi) > div,
+[data-testid="stMarkdownContainer"]:has(> .kpi) {{
+    flex: 1 1 auto; display: flex !important; flex-direction: column;
+}}
+[data-testid="stMarkdownContainer"] > .kpi {{ flex: 1 1 auto; }}
 .kpi-spark {{ flex-shrink: 0; padding-top: 4px; }}
 .kpi-icon  {{
     width: 38px; height: 38px; border-radius: 10px;
@@ -1048,8 +1065,11 @@ section[data-testid="stSidebar"] [data-baseweb="tag"] span {{
 .kpi-tag {{
     display: inline-flex; align-items: center; gap: 3px;
     font-size: 0.68rem; font-weight: 600;
-    padding: 3px 8px; border-radius: 99px;
-    white-space: nowrap;
+    padding: 3px 8px; border-radius: 12px;
+    /* Un libelle long passe a la ligne au lieu de deborder de la carte
+       (Teleconnexions : "p brute (Pearson/Spearman) sans correction"). */
+    white-space: normal; max-width: 100%; box-sizing: border-box;
+    line-height: 1.3;
 }}
 .t-indigo {{ background: rgba(79,70,229,0.12);  color:{INDIGO}; }}
 .t-blue   {{ background: rgba(14,165,233,0.12); color:#0284C7; }}
@@ -2019,6 +2039,7 @@ import vues.indices_sst    as _pg_indices_sst
 import vues.clustering     as _pg_clustering
 import vues.pipeline       as _pg_pipeline
 import vues.veille_presaison as _pg_veille
+import vues.vulnerabilite  as _pg_vulnerabilite
 import vues.a_propos       as _pg_a_propos
 
 _page_kw = dict(
@@ -2052,6 +2073,8 @@ def _dispatch_page(page):
         _pg_pipeline.run(**_page_kw)
     elif page == "Veille":
         _pg_veille.run(**_page_kw)
+    elif page == "Vulnerabilite":
+        _pg_vulnerabilite.run(**_page_kw)
     elif page == "A propos":
         _pg_a_propos.run(**_page_kw)
 

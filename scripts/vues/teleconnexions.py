@@ -875,7 +875,7 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
         (mk2, "background:rgba(16,185,129,0.13)", "Sig. nominale", f"{int(n_sig_nom)}", "t-green",
          "p brute (Pearson/Spearman) sans correction"),
         (mk3, "background:rgba(245,158,11,0.13)", "Sig. AR1 (p_neff)", f"{int(n_sig_ar1)}", "t-amber",
-         "p_neff Chelton 1983 · recommande"),
+         "p_neff Chelton 1983 · recommandé"),
         (mk4, "background:rgba(14,165,233,0.13)", "r max |.|", f"{nb(abs(best_r), '.3f')}", "t-blue",
          f"{best_row['index']} lag {int(best_row['lag_months'])}m" if best_row is not None else ""),
     ]

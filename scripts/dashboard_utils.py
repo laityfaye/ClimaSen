@@ -198,6 +198,55 @@ def load_dept_geojson():
         return json.load(f)
 
 
+# ─── Module Vulnerabilite (scripts 26, 27, 28) ────────────────────────────────
+# Une seule lecture pour la page Vulnerabilite et l'outil Jarvis
+# get_priority_zones : les deux affichent donc les memes chiffres.
+VULNERABILITE = BASE / "outputs" / "vulnerabilite"
+
+
+@st.cache_data(ttl=300)
+def load_vulnerabilite():
+    """{"departements": DataFrame, "arrondissements": DataFrame ou None,
+    "resume": dict, "resume_arrondissements": dict ou None}, ou None si le
+    script 26 n'a pas tourne."""
+    import json
+    dep = VULNERABILITE / "indice_risque_departements.csv"
+    if not dep.exists():
+        return None
+
+    def _json(nom):
+        p = VULNERABILITE / nom
+        return json.loads(p.read_text(encoding="utf-8")) if p.exists() else None
+
+    def _csv(chemin):
+        return pd.read_csv(chemin, encoding="utf-8") if chemin.exists() else None
+
+    arr = VULNERABILITE / "indice_risque_arrondissements.csv"
+    ansd = BASE / "data" / "raw" / "ansd"
+    return {
+        "departements": pd.read_csv(dep, encoding="utf-8"),
+        "arrondissements": _csv(arr),
+        "resume": _json("resume.json") or {},
+        "resume_arrondissements": _json("resume_arrondissements.json"),
+        # Script 29 : sensibilite aux poids et validation contre les inondations.
+        "robustesse": _json("robustesse/resume.json"),
+        "robustesse_auc": _csv(VULNERABILITE / "robustesse" / "validation_auc_departements.csv"),
+        # Transcriptions EHCVM 2021-2022 par region (rapport final ANSD).
+        "ehcvm_assainissement": _csv(ansd / "ehcvm_2021-2022_assainissement_par_region.csv"),
+        "ehcvm_services": _csv(ansd / "ehcvm_2021-2022_services_chocs_par_region.csv"),
+    }
+
+
+@st.cache_data
+def load_contours_simplifies(niveau):
+    """Contours alleges (script 28) : niveau "admin2" ou "admin3". None si absent."""
+    import json
+    p = BASE / "data" / "processed" / ("contours_%s_simplifies.geojson" % niveau)
+    if not p.exists():
+        return None
+    return json.loads(p.read_text(encoding="utf-8"))
+
+
 # ─── Short-path helper (handles accented Windows paths for NetCDF4) ───────────
 import ctypes as _ctypes
 from ctypes import wintypes as _wt

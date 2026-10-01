@@ -3,8 +3,9 @@ option A ; refonte visuelle demandee par Laity le 28/09/2026).
 
 Bandeau anime avec la courbe des saisons, chiffres cles, trois decouvertes
 CALCULEES a partir des donnees (jamais ecrites en dur : elles suivent le
-catalogue et les correlations du script 04), parcours de la methode, etat de
-la veille et une carte cliquable par section.
+catalogue et les correlations du script 04), parcours de la methode en quatre
+temps (detecter, relier, localiser, anticiper), etat de la veille et une carte
+cliquable par section, dont le module Vulnerabilite (01/10/2026).
 
 Le logo de la barre laterale et le premier element du fil d'Ariane menent ici.
 Les liens sont des st.page_link : ils changent l'URL sans recharger
@@ -35,6 +36,9 @@ SECTIONS = (
      "Quels océans, et avec combien de mois d'avance, pèsent sur l'intensité des extrêmes."),
     ("Veille", "notifications", "Anticiper",
      "Le bulletin de risque d'année extrême, avant la saison des pluies."),
+    ("Vulnerabilite", "shield", "Protéger",
+     "Où le risque est le plus fort : aléa, population et pauvreté croisés pour les "
+     "46 départements et 125 arrondissements."),
     ("Indices SST", "waves", "Observer",
      "Les 11 indices de température de surface de la mer, de 1983 à 2023."),
     ("Clustering", "bubble_chart", "Classer",
@@ -400,9 +404,9 @@ CSS = """
 #acc-ins .acc-ins .material-symbols-rounded { color: rgba(255,255,255,.9) !important;
                                              font-size: 26px; float: right; }
 
-/* ── Methode en trois temps ──────────────────────────────────────────── */
-#acc-met .acc-grille3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px;
-                        position: relative; }
+/* ── Methode en quatre temps ──────────────────────────────────────────── */
+#acc-met .acc-grille-met { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px;
+                           position: relative; }
 #acc-met .acc-etape {
   background: __CARD__; border: 1px solid __BORDER__; border-radius: 16px;
   padding: 20px; position: relative;
@@ -433,7 +437,22 @@ CSS = """
 #acc-veille .acc-v-txt b { color: __TEXT__ !important; }
 
 /* ── Cartes de section, cliquables en entier ─────────────────────────── */
-[class*="st-key-acc_sec_"] { position: relative; }
+[class*="st-key-acc_sec_"] { position: relative; margin-bottom: 16px; }
+/* Meme taille pour toutes les cartes : chaque colonne s'etire sur la hauteur de sa
+   rangee, et la carte remplit toute la chaine colonne > bloc > texte. La hauteur
+   minimale (plus longue description a 4 colonnes) aligne aussi les deux rangees. */
+.st-key-acc_sections [data-testid="stHorizontalBlock"] { align-items: stretch !important; }
+.st-key-acc_sections [data-testid="stColumn"] { display: flex; flex-direction: column; }
+.st-key-acc_sections [data-testid="stColumn"] > [data-testid="stVerticalBlock"],
+.st-key-acc_sections [data-testid="stColumn"] > div > [data-testid="stVerticalBlock"] {
+  flex: 1 1 auto; height: 100%;
+}
+[class*="st-key-acc_sec_"] { flex: 1 1 auto; height: calc(100% - 16px); }
+[class*="st-key-acc_sec_"] [data-testid="stElementContainer"]:has(.acc-sec),
+[class*="st-key-acc_sec_"] [data-testid="stElementContainer"]:has(.acc-sec) [data-testid="stMarkdown"],
+[class*="st-key-acc_sec_"] [data-testid="stElementContainer"]:has(.acc-sec) [data-testid="stMarkdownContainer"] {
+  height: 100%;
+}
 [class*="st-key-acc_sec_"] [data-testid="stElementContainer"]:has([data-testid="stPageLink"]) {
   position: absolute !important; inset: 0; z-index: 3; margin: 0 !important;
   width: 100% !important; max-width: none !important; height: 100% !important;
@@ -445,7 +464,7 @@ CSS = """
 }
 .acc-sec {
   background: __CARD__; border: 1px solid __BORDER__; border-radius: 18px; padding: 20px;
-  height: 100%; min-height: 150px; transition: transform .25s ease, box-shadow .25s ease,
+  height: 100%; min-height: 268px; box-sizing: border-box; transition: transform .25s ease, box-shadow .25s ease,
   border-color .25s ease; position: relative; overflow: hidden;
 }
 [class*="st-key-acc_sec_"]:hover .acc-sec {
@@ -476,9 +495,17 @@ CSS = """
 #acc-pied .acc-pied b { color: __TEXT__ !important; }
 
 /* ── Petits ecrans ───────────────────────────────────────────────────── */
+@media (max-width: 1200px) {
+  #acc-met .acc-grille-met { grid-template-columns: repeat(2, 1fr); }
+  #acc-met .acc-fleche { display: none; }
+  /* Cartes de section : 2 par rangee au lieu de 4 */
+  .st-key-acc_sections [data-testid="stHorizontalBlock"] { flex-wrap: wrap; row-gap: 1rem; }
+  .st-key-acc_sections [data-testid="stColumn"] { flex: 1 1 calc(50% - 1rem) !important;
+                                                  min-width: calc(50% - 1rem) !important; }
+}
 @media (max-width: 900px) {
   #acc-kpi .acc-grille4 { grid-template-columns: repeat(2, 1fr); }
-  #acc-ins .acc-grille3, #acc-met .acc-grille3 { grid-template-columns: 1fr; }
+  #acc-ins .acc-grille3, #acc-met .acc-grille-met { grid-template-columns: 1fr; }
   #acc-met .acc-fleche { display: none; }
   .st-key-acc_hero { padding: 24px 20px 22px 20px !important; }
 }
@@ -524,7 +551,8 @@ def run(BG, CARD, TEXT, MUTED, BORDER, df=None, year_range=None, liens=None,
     <span class="acc-degrade">les pluies extrêmes</span> du Sénégal</div>
   <p class="acc-sous">{a1 - a0 + 1} saisons de pluie passées au crible du satellite, reliées
     à la température de trois océans. ClimatSen montre où, quand et avec quelle force
-    frappent les extrêmes, et ce que les océans en laissaient deviner.</p>
+    frappent les extrêmes, qui y est exposé, et ce que les océans en laissaient
+    deviner.</p>
 </div>""")
             with st.container(key="acc_cta", horizontal=True):
                 for cle, lib, ic in (("Evenements", "Explorer les événements", "arrow_forward"),
@@ -597,12 +625,15 @@ def run(BG, CARD, TEXT, MUTED, BORDER, df=None, year_range=None, liens=None,
 
     # ── 4. Methode ──────────────────────────────────────────────────────
     _md('<div id="acc-t2"><p class="acc-surtitre">La démarche</p>'
-        '<div class="acc-h2">Détecter, relier, anticiper</div></div>')
+        '<div class="acc-h2">Détecter, relier, localiser, anticiper</div></div>')
     etapes = (
         ("Détecter", "Chaque jour depuis 1981, les pluies satellitaires CHIRPS sont comparées "
                      "à la normale : un extrême, c'est au moins 40 pixels au-delà de +2 écarts-types."),
         ("Relier", "Les extrêmes de chaque phase de la saison sont confrontés à 11 indices de "
                    "température des océans, avec 0 à 5 mois d'avance."),
+        ("Localiser", "Un indice de risque croise la fréquence des extrêmes (CHIRPS), la "
+                      "population (ANSD RGPH-5) et la pauvreté (ANSD EHCVM), département par "
+                      "département. Vulnérabilité encore provisoire."),
         ("Anticiper", "Une veille pré-saison traduit ces liens en bulletin indicatif, en "
                       "affichant honnêtement sa compétence réelle."),
     )
@@ -611,7 +642,7 @@ def run(BG, CARD, TEXT, MUTED, BORDER, df=None, year_range=None, liens=None,
         + ('<span class="material-symbols-rounded acc-fleche">chevron_right</span>'
            if i < len(etapes) - 1 else '') + '</div>'
         for i, (t, txt) in enumerate(etapes))
-    _md(f'<div id="acc-met"><div class="acc-grille3">{cartes}</div></div>')
+    _md(f'<div id="acc-met"><div class="acc-grille-met">{cartes}</div></div>')
 
     # ── 5. Etat de la veille ────────────────────────────────────────────
     veille = _etat_veille()
@@ -627,24 +658,32 @@ def run(BG, CARD, TEXT, MUTED, BORDER, df=None, year_range=None, liens=None,
     # ── 6. Sections ─────────────────────────────────────────────────────
     _md('<div id="acc-t3"><p class="acc-surtitre">La plateforme</p>'
         '<div class="acc-h2">Par où commencer ?</div></div>')
-    couleurs = ("#6366F1", "#10B981", "#F59E0B", "#0EA5E9", "#A855F7", "#64748B")
-    cols = st.columns(3, gap="medium")
-    for i, (cle, ic, accroche, desc) in enumerate(SECTIONS):
-        page = liens.get(cle)
-        if page is None:
-            continue
-        with cols[i % 3], st.container(key=f"acc_sec_{i}"):
-            _md(f'<div class="acc-sec" style="--c:{couleurs[i]}">'
-                f'<div class="acc-sec-haut">'
-                f'<span class="material-symbols-rounded acc-ic">{ic}</span>'
-                f'<span class="material-symbols-rounded acc-go">arrow_forward</span></div>'
-                f'<p class="acc-accroche">{e(accroche)}</p>'
-                f'<p class="acc-nom">{e(page.title)}</p>'
-                f'<p class="acc-desc">{e(desc.format(n=_entier(n_ev)))}</p></div>')
-            st.page_link(page, label=f"Ouvrir {page.title}", query_params=query_params)
+    # La couleur suit la section (et non sa position) : ajouter une section ne
+    # repeint pas les autres.
+    couleurs = {"Evenements": "#6366F1", "Teleconnexions": "#10B981", "Veille": "#F59E0B",
+                "Vulnerabilite": "#F43F5E", "Indices SST": "#0EA5E9",
+                "Clustering": "#A855F7", "A propos": "#64748B"}
+    n_cols = 4
+    sections = [(i, s) for i, s in enumerate(SECTIONS) if s[0] in liens]
+    # Une rangee de colonnes par ligne de cartes : les cartes restent alignees.
+    with st.container(key="acc_sections"):
+        for debut in range(0, len(sections), n_cols):
+            cols = st.columns(n_cols, gap="medium")
+            for col, (i, (cle, ic, accroche, desc)) in zip(cols, sections[debut:debut + n_cols]):
+                page = liens[cle]
+                with col, st.container(key=f"acc_sec_{i}"):
+                    _md(f'<div class="acc-sec" style="--c:{couleurs.get(cle, "#64748B")}">'
+                        f'<div class="acc-sec-haut">'
+                        f'<span class="material-symbols-rounded acc-ic">{ic}</span>'
+                        f'<span class="material-symbols-rounded acc-go">arrow_forward</span></div>'
+                        f'<p class="acc-accroche">{e(accroche)}</p>'
+                        f'<p class="acc-nom">{e(page.title)}</p>'
+                        f'<p class="acc-desc">{e(desc.format(n=_entier(n_ev)))}</p></div>')
+                    st.page_link(page, label=f"Ouvrir {page.title}", query_params=query_params)
 
     # ── 7. Pied ─────────────────────────────────────────────────────────
     _md('<div id="acc-pied"><p class="acc-pied">Données : <b>CHIRPS v2.0</b> (pluie, 0,25°) · '
         '<b>NOAA OISST v2</b> (température de surface de la mer) · <b>Copernicus C3S</b> '
-        '(prévision saisonnière)<br>Résultats statistiques et descriptifs : ClimatSen ne '
+        '(prévision saisonnière) · <b>ANSD</b> (RGPH-5 2023, EHCVM 2021-2022) · '
+        '<b>OCHA COD-AB</b> (limites administratives)<br>Résultats statistiques et descriptifs : ClimatSen ne '
         'remplace pas les bulletins officiels de l\'ANACIM.</p></div>')

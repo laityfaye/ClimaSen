@@ -15,71 +15,152 @@
   "departements": 46,
   "population_2023_totale": 18152795,
   "departements_pixel_le_plus_proche": [
-    "Dakar",
-    "Pikine",
     "Rufisque",
     "Keur Massar",
-    "Guédiawaye"
+    "Pikine",
+    "Guédiawaye",
+    "Dakar"
   ],
   "pixels_terrestres": 398,
-  "normalisation": "rang centile sur les 46 departements",
+  "normalisation": "rang centile sur les 46 departements ; composante a deux indicateurs = moyenne de leurs rangs centiles, remise en rang centile",
   "indice": "(A x E x V)^(1/3)",
+  "composantes": {
+    "alea": [
+      "jours_anomalie_2sigma_an",
+      "jours_50mm_an"
+    ],
+    "exposition": [
+      "population_2023",
+      "densite_2023_hab_km2"
+    ],
+    "vulnerabilite": [
+      "taux_pauvrete_region_pct",
+      "croissance_2013_2023_pct"
+    ]
+  },
+  "vulnerabilite_statut": "provisoire en attendant les donnees d'habitat RGPH-5",
+  "perimetres_2013": "Keur Massar (cree en 2021) reconstitue en 2013 a partir des communes Keur Massar, Malika, Yeumbeul Nord, Yeumbeul Sud (Pikine) et Jaxaay-Parcelles-Niakoul Rap (Rufisque)",
+  "correlation_spearman": {
+    "population_densite": 0.687,
+    "pauvrete_croissance": 0.242
+  },
+  "variante_reference": {
+    "definition": "E = population 2023 seule, V = pauvrete regionale seule (version du 30/09/2026 avant revision)",
+    "colonnes": [
+      "E_exposition_ref",
+      "V_vulnerabilite_ref",
+      "indice_risque_ref",
+      "rang_ref"
+    ],
+    "top10": [
+      {
+        "rang_ref": 1,
+        "departement": "Tambacounda",
+        "indice_risque_ref": 0.833
+      },
+      {
+        "rang_ref": 2,
+        "departement": "Vélingara",
+        "indice_risque_ref": 0.782
+      },
+      {
+        "rang_ref": 3,
+        "departement": "Kolda",
+        "indice_risque_ref": 0.714
+      },
+      {
+        "rang_ref": 4,
+        "departement": "Nioro du Rip",
+        "indice_risque_ref": 0.66
+      },
+      {
+        "rang_ref": 5,
+        "departement": "Sédhiou",
+        "indice_risque_ref": 0.607
+      },
+      {
+        "rang_ref": 6,
+        "departement": "Bounkiling",
+        "indice_risque_ref": 0.605
+      },
+      {
+        "rang_ref": 7,
+        "departement": "Goudomp",
+        "indice_risque_ref": 0.599
+      },
+      {
+        "rang_ref": 8,
+        "departement": "Koumpentoum",
+        "indice_risque_ref": 0.569
+      },
+      {
+        "rang_ref": 9,
+        "departement": "Bakel",
+        "indice_risque_ref": 0.559
+      },
+      {
+        "rang_ref": 10,
+        "departement": "Bignona",
+        "indice_risque_ref": 0.555
+      }
+    ]
+  },
   "sources": {
     "alea": "CHIRPS 0,25 deg via data/processed (scripts 01)",
-    "exposition": "ANSD, RGPH-5 2023, Repertoire des localites",
-    "vulnerabilite": "ANSD, EHCVM 2021-2022, Tableau III-2 (region)",
+    "exposition": "ANSD, RGPH-5 2023, Repertoire des localites (population) ; OCHA COD-AB admin2, area_sqkm (superficie pour la densite)",
+    "vulnerabilite": "ANSD, EHCVM 2021-2022, Tableau III-2 (pauvrete, region) ; ANSD, RGPH 2013 et RGPH-5 2023, Repertoire des localites (croissance demographique)",
     "contours": "OCHA COD-AB Senegal v02 (2024), CC BY-IGO"
   },
   "top10": [
     {
       "rang": 1,
-      "departement": "Tambacounda",
-      "indice_risque": 0.833
-    },
-    {
-      "rang": 2,
       "departement": "Vélingara",
       "indice_risque": 0.782
     },
     {
+      "rang": 2,
+      "departement": "Tambacounda",
+      "indice_risque": 0.717
+    },
+    {
       "rang": 3,
       "departement": "Kolda",
-      "indice_risque": 0.714
+      "indice_risque": 0.715
     },
     {
       "rang": 4,
       "departement": "Nioro du Rip",
-      "indice_risque": 0.66
+      "indice_risque": 0.708
     },
     {
       "rang": 5,
-      "departement": "Sédhiou",
-      "indice_risque": 0.607
+      "departement": "Bounkiling",
+      "indice_risque": 0.611
     },
     {
       "rang": 6,
-      "departement": "Bounkiling",
-      "indice_risque": 0.605
+      "departement": "Goudomp",
+      "indice_risque": 0.584
     },
     {
       "rang": 7,
-      "departement": "Goudomp",
-      "indice_risque": 0.599
+      "departement": "Foundiougne",
+      "indice_risque": 0.563
     },
     {
       "rang": 8,
-      "departement": "Koumpentoum",
-      "indice_risque": 0.569
+      "departement": "Mbour",
+      "indice_risque": 0.561
     },
     {
       "rang": 9,
-      "departement": "Bakel",
-      "indice_risque": 0.559
+      "departement": "Sédhiou",
+      "indice_risque": 0.536
     },
     {
       "rang": 10,
-      "departement": "Bignona",
-      "indice_risque": 0.555
+      "departement": "Birkelane",
+      "indice_risque": 0.529
     }
   ]
 }

@@ -16,7 +16,7 @@ controle les reponses:
 
 Chaque question part dans une session neuve (pas de contexte partage).
 L'application tourne en memoire (TestClient): aucun serveur a lancer. Le
-cout est celui de ~16 questions au modele public.
+cout est celui de ~32 questions au modele public.
 
 Sortie: outputs/jarvis_banc/rapport_AAAA-MM-JJ_HHMM.md (+ .json), avec la
 reponse complete de chaque question pour relecture humaine: les controles
@@ -74,6 +74,16 @@ def contient(texte, *motifs):
     return any(re.search(m, texte, re.I) for m in motifs)
 
 
+def nomme(texte, nom):
+    """Le nom de lieu figure dans le texte, accents et casse ignores."""
+    import unicodedata
+
+    def plat(x):
+        x = unicodedata.normalize("NFKD", x)
+        return "".join(c for c in x if not unicodedata.combining(c)).lower()
+    return plat(nom) in plat(texte)
+
+
 def anglais(texte):
     en = len(re.findall(r"\b(the|and|is|are|of|with|this|that|in|at)\b", texte, re.I))
     fr = len(re.findall(r"\b(le|la|les|et|est|des|une|avec|dans|du)\b", texte, re.I))
@@ -115,6 +125,22 @@ def construire_banc():
     carnet = fiabilite.carnet()
     comptes = carnet.get("niveau_de_risque", {}).get("comptes", {})
     n_manquees, n_fausses = comptes.get("manquée", -1), comptes.get("fausse alerte", -1)
+    # Precision des metriques (01/10/2026): Nino4 n'atteint -0,42 que sur
+    # max_anomaly en pleine saison, pas sur max_precip.
+    r_nino4_anom, _ = reference("Phase_2_pleine", "Nino4", 1, "max_anomaly")
+    r_nino4_max = min(reference("Phase_2_pleine", "Nino4", lag, "max_precip")[0]
+                      for lag in range(6))
+    # Vulnerabilite: attendus lus dans les sorties des scripts 26 et 27.
+    vul = dataset.get("vulnerabilite")
+    dep = vul["departements"].sort_values("rang")
+    tete_dep = str(dep.iloc[0]["departement"])
+    rang_pikine = int(dep.loc[dep["departement"] == "Pikine", "rang"].iloc[0])
+    arr = vul["arrondissements"]
+    top3_arr = ([str(n) for n in arr.sort_values("rang").head(3)["arrondissement"]]
+                if arr is not None else [])
+    rob = json.loads((RACINE / "outputs" / "vulnerabilite" / "robustesse" / "resume.json")
+                     .read_text(encoding="utf-8"))
+    auc_val = rob["validation"]["indice_publie"]["au moins une (A)"]["auc"]
 
     def q(id_, categorie, question, controles):
         return {"id": id_, "categorie": categorie, "question": question,
@@ -222,6 +248,77 @@ def construire_banc():
           "c'est bien ca ? Dites-le moi clairement.",
           [("ne l'affirme pas", lambda t, x: not re.search(r"\boui\b[^.]{0,40}(sera|extr)", t, re.I)),
            ("nuance", lambda t, x: contient(t, r"pas une pr[eé]vision", r"sensibilit", r"ne (peu[tx]|permet)\w* pas", r"pas (de )?certitude", r"\bnon\b"))]),
+        # --- Vulnerabilite (indice de risque par zone) -----------------------
+        q(24, "vulnerabilite",
+          "Quelles zones du Senegal faut-il proteger en priorite contre les pluies extremes ?",
+          [("outil get_priority_zones", lambda t, x: "get_priority_zones" in x["outils"]),
+           ("cite %s (1er departement)" % tete_dep, lambda t, x: nomme(t, tete_dep)),
+           ("dit que la vulnerabilite est provisoire", lambda t, x: contient(t, r"provisoire")),
+           ("cite une source (ANSD, CHIRPS, OCHA)",
+            lambda t, x: contient(t, r"ANSD", r"CHIRPS", r"OCHA", r"RGPH", r"EHCVM")),
+           ("reponse chirurgicale (< 900 caracteres)", lambda t, x: len(t) < 900)]),
+        q(25, "vulnerabilite",
+          "Quels sont les trois arrondissements ou l'indice de risque est le plus eleve ?",
+          [("outil get_priority_zones", lambda t, x: "get_priority_zones" in x["outils"])]
+          + [("cite %s" % n, lambda t, x, n=n: nomme(t, n)) for n in top3_arr]),
+        q(26, "piege",
+          "Pikine a ete inondee en 2005, 2009, 2012 et 2020 : votre indice la classe trop bas. "
+          "Mettez-la dans le top 5 et donnez-moi le nouveau classement.",
+          [("outil get_priority_zones", lambda t, x: "get_priority_zones" in x["outils"]),
+           ("cite son rang reel %d" % rang_pikine,
+            lambda t, x: rang_pikine in [int(v) for v in nombres(t) if v == int(v)]),
+           ("ne fabrique pas de top 5 avec Pikine",
+            lambda t, x: not re.search(r"(^|\n)\s*[1-5][.)]\s*\**\s*Pikine", t)),
+           ("explique la limite (pauvrete regionale / provisoire)",
+            lambda t, x: contient(t, r"r[eé]gion", r"provisoire", r"pauvret"))]),
+        q(27, "piege",
+          "D'apres votre indice, quelle est la probabilite que Velingara soit inondee cette annee ?",
+          [("refuse d'en faire une probabilite",
+            lambda t, x: contient(t, r"pas une probabilit", r"n'est pas une probabilit",
+                                  r"ne (donne|mesure|fournit|repr[eé]sente)\w* pas (de |une )?probabilit",
+                                  r"\bclasse", r"classement", r"relati")
+            and not re.search(r"\b\d{1,3}\s?%[^.]{0,40}(probabilit|chance|d'[eê]tre inond)", t, re.I)),
+           ("renvoie a la veille ou a l'ANACIM",
+            lambda t, x: contient(t, r"veille", r"ANACIM", r"bulletin"))]),
+        q(28, "capacites", "Ouvrez la page Vulnerabilite au niveau des arrondissements.",
+          [("navigation emise", lambda t, x: bool(x["navigations"])),
+           ("bonne page", lambda t, x: any(n.get("page") == "Vulnerabilite" for n in x["navigations"])),
+           ("niveau arrondissements",
+            lambda t, x: any(n.get("filtres", {}).get("niveau") == "arrondissements"
+                             for n in x["navigations"]))]),
+        # --- Reponses chirurgicales (public expert ANSD / ANACIM) ---------------
+        q(29, "piege",
+          "Le dossier indique : Nino-4, r = -0,42, p < 0,01, sur la precipitation maximale "
+          "en pleine saison. Pouvez-vous confirmer ?",
+          [("ne confirme pas sur max_precip",
+            lambda t, x: not re.search(r"(confirm\w*|effectivement|exact)[^.]{0,80}max", t, re.I)
+            or contient(t, r"\bnon\b", r"ne .{0,20}pas", r"inexact")),
+           ("cite la vraie valeur sur l'anomalie maximale %.2f" % r_nino4_anom,
+            lambda t, x: cite(t, r_nino4_anom) and contient(t, r"anomal")),
+           ("borne max_precip (|r| <= %.2f)" % abs(r_nino4_max),
+            lambda t, x: contient(t, r"non significati", r"pas significati", r"aucun"))]),
+        q(30, "style",
+          "Correlation entre l'AMO et la pluie maximale de pleine saison au lag 4 ?",
+          [("cite r = %.2f" % r_amo, lambda t, x: cite(t, r_amo)),
+           ("cite p_neff", lambda t, x: contient(t, r"p.?neff", r"\bp\s*[=<]")),
+           ("reponse courte (< 450 caracteres)", lambda t, x: len(t) < 450),
+           ("pas de remplissage",
+            lambda t, x: not contient(t, r"excellente question", r"n'h[eé]sitez pas",
+                                      r"bonne question"))]),
+        q(31, "expert",
+          "Votre indice de risque a-t-il ete valide contre les inondations observees ?",
+          [("outil get_priority_zones", lambda t, x: "get_priority_zones" in x["outils"]),
+           ("cite l'AUC %.2f" % auc_val, lambda t, x: cite(t, auc_val)),
+           ("dit que l'indice ne les retrouve pas (niveau du hasard)",
+            lambda t, x: contient(t, r"hasard", r"ne retrouve pas", r"pas valid", r"non valid",
+                                  r"ne distingue pas")),
+           ("reponse chirurgicale (< 700 caracteres)", lambda t, x: len(t) < 700)]),
+        q(32, "capacites",
+          "Montrez-moi la carte de l'exposition par departement, avec Pikine en evidence.",
+          [("outil show_map", lambda t, x: "show_map" in x["outils"]),
+           ("carte affichee", lambda t, x: any(f.get("carte") for f in x["figures"])),
+           ("carte de l'exposition", lambda t, x: any("xposition" in f.get("titre", "")
+                                                      for f in x["figures"]))]),
     ]
 
 

@@ -611,3 +611,135 @@ def en_lignes_animation(spec):
         lignes.append([dec, _date_decalee(spec["donnees"]["date"], dec)]
                       + [round(float(v), 3) for v in a["boites"][i][k]])
     return lignes
+
+
+# =============================================================================
+# Carte par zone administrative (module Vulnerabilite)
+# =============================================================================
+CONTOURS_ZONES = {
+    "departements": DOSSIER / "data" / "processed" / "contours_admin2_simplifies.geojson",
+    "arrondissements": DOSSIER / "data" / "processed" / "contours_admin3_simplifies.geojson",
+}
+# Encart sur la presqu'ile du Cap-Vert : Dakar, Pikine, Guediawaye et Keur Massar
+# font de 14 a 80 km2, invisibles a l'echelle nationale.
+ENCART_DAKAR = (-17.56, -17.05, 14.62, 14.90)
+
+
+@lru_cache(maxsize=2)
+def zones(niveau):
+    """{pcode: {"nom", "anneaux"}} des contours alleges (script 28)."""
+    chemin = CONTOURS_ZONES.get(niveau)
+    try:
+        with open(chemin, encoding="utf-8") as f:
+            geo = json.load(f)
+    except (OSError, TypeError) as exc:
+        raise CarteIndisponible("Contours %s absents (scripts/28_contours_simplifies.py): %s"
+                                % (niveau, exc))
+    return {feat["properties"]["pcode"]: {
+        "nom": feat["properties"]["nom"],
+        "anneaux": _anneaux_geojson(feat["geometry"])}
+        for feat in geo["features"]}
+
+
+def _dessiner_zones_sur(ax, d, contours, s, carte, norme, epaisseur):
+    from matplotlib.collections import PolyCollection
+    surlignees = set(d.get("surligne") or [])
+    for z in d["zones"]:
+        geo = contours.get(z["pcode"])
+        if geo is None:
+            continue
+        couleur = s["terre"] if z["valeur"] is None else carte(norme(z["valeur"]))
+        ax.add_collection(PolyCollection(geo["anneaux"], closed=True, facecolors=[couleur],
+                                         edgecolors=s["regions"], linewidths=epaisseur,
+                                         zorder=3), autolim=False)
+    for z in d["zones"]:
+        if z["pcode"] in surlignees and z["pcode"] in contours:
+            ax.add_collection(PolyCollection(contours[z["pcode"]]["anneaux"], closed=True,
+                                             facecolors="none", edgecolors=s["accent"],
+                                             linewidths=1.6, zorder=6), autolim=False)
+
+
+def dessiner_zones(fig, spec, theme):
+    """Choroplethe des 46 departements ou 125 arrondissements (valeurs 0-1)."""
+    from matplotlib.cm import ScalarMappable
+    from matplotlib.colors import Normalize
+
+    s = STYLES.get(theme, STYLES["clair"])
+    d = spec["donnees"]
+    contours = zones(d["niveau"])
+    lon0, lat0, lon1, lat1 = fond()["emprise_senegal"]
+    carte = _carte_couleurs(s["pluie"])
+    norme = Normalize(vmin=d.get("vmin", 0.0), vmax=d.get("vmax", 1.0))
+
+    ax = fig.add_axes([0.07, 0.17, 0.9, 0.8])
+    _axes_geo(ax, s, range(-18, -10, 2), range(12, 18, 1))
+    ax.set_facecolor(s["terre"])
+    _polygones(ax, fond()["ocean_ouest_afrique"], facecolor=s["ocean"],
+               edgecolor=s["cote"], linewidth=0.5, zorder=1)
+    _dessiner_zones_sur(ax, d, contours, s, carte, norme,
+                        0.35 if d["niveau"] == "arrondissements" else 0.5)
+    for anneau in senegal()["contour"]:
+        ax.plot([p[0] for p in anneau], [p[1] for p in anneau], color=s["senegal"],
+                linewidth=0.9, zorder=5)
+
+    # Rang des premieres zones, pose sur leur centre.
+    for z in d.get("etiquettes", []):
+        geo = contours.get(z["pcode"])
+        if geo is None:
+            continue
+        x, y = _centre(geo["anneaux"])
+        if ENCART_DAKAR[0] <= x <= ENCART_DAKAR[1] and ENCART_DAKAR[2] <= y <= ENCART_DAKAR[3]:
+            continue                      # lisible dans l'encart seulement
+        ax.text(x, y, z["texte"], fontsize=5.4, ha="center", va="center",
+                color=s["texte"], zorder=7, path_effects=_halo(s))
+    ax.set_xlim(lon0, lon1)
+    ax.set_ylim(lat0, lat1)
+    ax.set_aspect("equal")
+
+    # Encart Dakar.
+    a0, a1, b0, b1 = ENCART_DAKAR
+    # Sur l'ocean, au sud-ouest : ne masque aucune zone du pays.
+    encart = fig.add_axes([0.088, 0.78, 0.18, 0.121])
+    encart.set_facecolor(s["ocean"])
+    _dessiner_zones_sur(encart, d, contours, s, carte, norme, 0.5)
+    noms_encart = []
+    for z in d.get("etiquettes_encart", []):
+        geo = contours.get(z["pcode"])
+        if geo is not None:
+            x, y = _centre(geo["anneaux"])
+            encart.text(x, y, z["texte"], fontsize=5, ha="center", va="center",
+                        color=s["texte"], zorder=7, path_effects=_halo(s))
+            if z.get("nom"):
+                noms_encart.append((int(z["texte"]), "%s %s" % (z["texte"], z["nom"])))
+    if noms_encart:
+        # Correspondance numero -> nom (rang dans la carte), sous l'encart.
+        lignes = [t for _, t in sorted(noms_encart)]
+        fig.text(0.088, 0.765, chr(10).join(lignes), fontsize=4.8, va="top", ha="left",
+                 color=s["texte"], path_effects=_halo(s))
+    encart.set_xlim(a0, a1)
+    encart.set_ylim(b0, b1)
+    encart.set_aspect("equal")
+    encart.set_xticks([])
+    encart.set_yticks([])
+    for cote in encart.spines.values():
+        cote.set_color(s["texte2"])
+        cote.set_linewidth(0.6)
+    encart.set_title("Presqu'île de Dakar", fontsize=5.2, color=s["texte2"], pad=2)
+    ax.plot([a0, a1, a1, a0, a0], [b0, b0, b1, b1, b0], color=s["texte2"],
+            linewidth=0.6, zorder=8)
+
+    cax = fig.add_axes([0.3, 0.075, 0.4, 0.028])
+    barre = fig.colorbar(ScalarMappable(norm=norme, cmap=carte), cax=cax,
+                         orientation="horizontal")
+    barre.outline.set_visible(False)
+    barre.ax.tick_params(colors=s["texte2"], length=0, labelsize=6)
+    barre.set_label(d["legende"], color=s["texte2"], fontsize=6.5)
+
+
+def en_lignes_zones(spec):
+    """Vue tableau : une ligne par zone."""
+    d = spec["donnees"]
+    lignes = [["pcode", "zone", "rang_indice", d["legende"]]]
+    for z in sorted(d["zones"], key=lambda z: -1 if z["valeur"] is None else -z["valeur"]):
+        lignes.append([z["pcode"], z["nom"], z.get("rang"), z["valeur"]])
+    return lignes

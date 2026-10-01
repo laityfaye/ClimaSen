@@ -1,0 +1,177 @@
+{
+  "variantes": {
+    "geometrique": {
+      "poids_A_E_V": [
+        1,
+        1,
+        1
+      ],
+      "moyenne": "geo"
+    },
+    "moyenne_simple": {
+      "poids_A_E_V": [
+        1,
+        1,
+        1
+      ],
+      "moyenne": "arith"
+    },
+    "alea_x2": {
+      "poids_A_E_V": [
+        2,
+        1,
+        1
+      ],
+      "moyenne": "geo"
+    },
+    "exposition_x2": {
+      "poids_A_E_V": [
+        1,
+        2,
+        1
+      ],
+      "moyenne": "geo"
+    },
+    "vulnerabilite_x2": {
+      "poids_A_E_V": [
+        1,
+        1,
+        2
+      ],
+      "moyenne": "geo"
+    },
+    "sans_vulnerabilite": {
+      "poids_A_E_V": [
+        1,
+        1,
+        0
+      ],
+      "moyenne": "geo"
+    }
+  },
+  "sensibilite": [
+    {
+      "niveau": "departements",
+      "zones": 46,
+      "spearman_min": 0.413,
+      "spearman_vs_publie_min": 0.672,
+      "top10_communs_toutes_variantes": 5,
+      "top10_communs": [
+        "Vélingara",
+        "Tambacounda",
+        "Kolda",
+        "Nioro du Rip",
+        "Goudomp"
+      ],
+      "top10_union": 22,
+      "amplitude_rang_mediane": 15.0,
+      "amplitude_rang_max": 36,
+      "zone_amplitude_max": "Dakar"
+    },
+    {
+      "niveau": "arrondissements",
+      "zones": 125,
+      "spearman_min": 0.457,
+      "spearman_vs_publie_min": 0.674,
+      "top10_communs_toutes_variantes": 4,
+      "top10_communs": [
+        "Bonconto",
+        "Saré Coly Sallé",
+        "Koussanar",
+        "Dioulacolon"
+      ],
+      "top10_union": 17,
+      "amplitude_rang_mediane": 33.0,
+      "amplitude_rang_max": 107,
+      "zone_amplitude_max": "Parcelles Assainies"
+    }
+  ],
+  "validation": {
+    "inventaire": "data\\raw\\inondations\\zones_touchees_2005_2009_2012_2020.csv",
+    "bootstrap": 5000,
+    "graine": 20261001,
+    "indice_publie": {
+      "2005 (A)": {
+        "n_touches": 2,
+        "auc": 0.148,
+        "ic95_bas": 0.023,
+        "ic95_haut": 0.284,
+        "p_mann_whitney_unilateral": 0.9527
+      },
+      "2005 (A+B)": {
+        "n_touches": 3,
+        "auc": 0.109,
+        "ic95_bas": 0.023,
+        "ic95_haut": 0.225,
+        "p_mann_whitney_unilateral": 0.9919
+      },
+      "2009 (A)": {
+        "n_touches": 18,
+        "auc": 0.534,
+        "ic95_bas": 0.353,
+        "ic95_haut": 0.716,
+        "p_mann_whitney_unilateral": 0.3552
+      },
+      "2009 (A+B)": {
+        "n_touches": 21,
+        "auc": 0.535,
+        "ic95_bas": 0.358,
+        "ic95_haut": 0.711,
+        "p_mann_whitney_unilateral": 0.3457
+      },
+      "2012 (A)": {
+        "n_touches": 8,
+        "auc": 0.355,
+        "ic95_bas": 0.171,
+        "ic95_haut": 0.553,
+        "p_mann_whitney_unilateral": 0.8993
+      },
+      "2012 (A+B)": {
+        "n_touches": 10,
+        "auc": 0.325,
+        "ic95_bas": 0.164,
+        "ic95_haut": 0.497,
+        "p_mann_whitney_unilateral": 0.9546
+      },
+      "2020 (A)": {
+        "n_touches": 6,
+        "auc": 0.275,
+        "ic95_bas": 0.1,
+        "ic95_haut": 0.475,
+        "p_mann_whitney_unilateral": 0.9625
+      },
+      "2020 (A+B)": {
+        "n_touches": 6,
+        "auc": 0.275,
+        "ic95_bas": 0.1,
+        "ic95_haut": 0.475,
+        "p_mann_whitney_unilateral": 0.9625
+      },
+      "au moins une (A)": {
+        "n_touches": 22,
+        "auc": 0.491,
+        "ic95_bas": 0.322,
+        "ic95_haut": 0.665,
+        "p_mann_whitney_unilateral": 0.5481
+      },
+      "au moins une (A+B)": {
+        "n_touches": 24,
+        "auc": 0.53,
+        "ic95_bas": 0.354,
+        "ic95_haut": 0.693,
+        "p_mann_whitney_unilateral": 0.3666
+      },
+      "2 evenements ou plus (A)": {
+        "n_touches": 9,
+        "auc": 0.309,
+        "ic95_bas": 0.141,
+        "ic95_haut": 0.492,
+        "p_mann_whitney_unilateral": 0.9618
+      }
+    },
+    "spearman_nombre_evenements_indice": {
+      "rho": -0.117,
+      "p": 0.4394
+    }
+  }
+}

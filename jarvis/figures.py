@@ -157,10 +157,10 @@ def en_csv(spec: dict) -> str:
         ecrivain.writerow(["annee", d.get("x_label", "x"), d.get("y_label", "y")])
         ecrivain.writerows([list(pt) for pt in d["points"]])
         return sortie.getvalue()
-    if genre in ("carte_sst", "carte_senegal"):
+    if genre in ("carte_sst", "carte_senegal", "carte_zones"):
         from . import cartes
-        lignes = (cartes.en_lignes_sst(spec) if genre == "carte_sst"
-                  else cartes.en_lignes_senegal(spec))
+        lignes = {"carte_sst": cartes.en_lignes_sst, "carte_senegal": cartes.en_lignes_senegal,
+                  "carte_zones": cartes.en_lignes_zones}[genre](spec)
         ecrivain.writerows(lignes)
         return sortie.getvalue()
     if genre == "carte_chaleur":
@@ -396,15 +396,16 @@ GENRES_ANIMES = ("animation_sst",)
 
 # Cartes (jarvis/cartes): format large, mise en page geree par le dessin
 # lui-meme, et un theme qui porte aussi les couleurs de terre et d'ocean.
-FORMATS_CARTES = {"carte_sst": (7.2, 3.35), "carte_senegal": (6.0, 4.9)}
+FORMATS_CARTES = {"carte_sst": (7.2, 3.35), "carte_senegal": (6.0, 4.9),
+                  "carte_zones": (6.0, 4.9)}
 DPI_CARTES = 220
 
 
 def _dessin_carte(genre):
     def dessiner(fig, spec, p, theme):
         from . import cartes
-        (cartes.dessiner_sst if genre == "carte_sst" else cartes.dessiner_senegal)(
-            fig, spec, theme)
+        {"carte_sst": cartes.dessiner_sst, "carte_senegal": cartes.dessiner_senegal,
+         "carte_zones": cartes.dessiner_zones}[genre](fig, spec, theme)
     return dessiner
 
 

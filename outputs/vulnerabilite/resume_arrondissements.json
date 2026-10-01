@@ -1,0 +1,319 @@
+{
+  "echelle": "125 arrondissements OCHA COD-AB admin3 (v02, 2024)",
+  "arrondissements": 125,
+  "arrondissements_indice_calcule": 125,
+  "arrondissements_sans_indice": [],
+  "couverture_population": {
+    "2023": {
+      "rattachee": 18152795,
+      "totale": 18152795,
+      "part_pct": 100.0
+    },
+    "2013": {
+      "rattachee": 13508715,
+      "totale": 13508715,
+      "part_pct": 100.0
+    }
+  },
+  "methodes_2023": {
+    "chef_lieu_hdx": {
+      "lignes": 38,
+      "population": 2173527,
+      "part_pct": 11.974
+    },
+    "commune_gadm_dans_contour": {
+      "lignes": 37,
+      "population": 2728558,
+      "part_pct": 15.031
+    },
+    "departement_un_seul_arrondissement": {
+      "lignes": 7,
+      "population": 631527,
+      "part_pct": 3.479
+    },
+    "nom_arrondissement": {
+      "lignes": 456,
+      "population": 12162013,
+      "part_pct": 66.998
+    },
+    "point_osm": {
+      "lignes": 15,
+      "population": 457170,
+      "part_pct": 2.518
+    }
+  },
+  "methodes_2013": {
+    "commune": {
+      "lignes": 6386,
+      "population": 3099264,
+      "part_pct": 22.943
+    },
+    "localite": {
+      "lignes": 15991,
+      "population": 9742321,
+      "part_pct": 72.119
+    },
+    "majorite_commune_2013": {
+      "lignes": 1431,
+      "population": 661980,
+      "part_pct": 4.9
+    },
+    "nom_arrondissement": {
+      "lignes": 66,
+      "population": 5150,
+      "part_pct": 0.038
+    }
+  },
+  "controle_chef_lieu_osm": {
+    "accord": 39
+  },
+  "cas_approches_hors_contour": [
+    {
+      "COMMUNE": "KAHONE",
+      "detail": "OSM (-16.0369, 14.1588), hors contour : arrondissement le plus proche a 1.7 km"
+    }
+  ],
+  "controle_sommes_departements": {
+    "ecart_max_abs_2013": 0.0,
+    "ecart_max_abs_2023": 0.0,
+    "departements_en_ecart": []
+  },
+  "arrondissements_pixel_le_plus_proche": [
+    {
+      "arrondissement": "Dioulacolon",
+      "departement": "Kolda",
+      "superficie_km2": 555.8
+    },
+    {
+      "arrondissement": "Saré Bidji",
+      "departement": "Kolda",
+      "superficie_km2": 573.6
+    },
+    {
+      "arrondissement": "Niaguis",
+      "departement": "Ziguinchor",
+      "superficie_km2": 680.0
+    },
+    {
+      "arrondissement": "Djibanar",
+      "departement": "Goudomp",
+      "superficie_km2": 746.8
+    },
+    {
+      "arrondissement": "Diaroumé",
+      "departement": "Bounkiling",
+      "superficie_km2": 800.6
+    },
+    {
+      "arrondissement": "Moudéri",
+      "departement": "Bakel",
+      "superficie_km2": 1350.8
+    },
+    {
+      "arrondissement": "Sangalkam",
+      "departement": "Rufisque",
+      "superficie_km2": 186.6
+    },
+    {
+      "arrondissement": "Diamniadio",
+      "departement": "Rufisque",
+      "superficie_km2": 101.8
+    },
+    {
+      "arrondissement": "Jaxaay",
+      "departement": "Keur Massar",
+      "superficie_km2": 10.7
+    },
+    {
+      "arrondissement": "Karantaba",
+      "departement": "Goudomp",
+      "superficie_km2": 470.5
+    },
+    {
+      "arrondissement": "Malika",
+      "departement": "Keur Massar",
+      "superficie_km2": 25.5
+    },
+    {
+      "arrondissement": "Ngothie",
+      "departement": "Kaolack",
+      "superficie_km2": 453.7
+    },
+    {
+      "arrondissement": "Rufisque-Est",
+      "departement": "Rufisque",
+      "superficie_km2": 22.5
+    },
+    {
+      "arrondissement": "Sans nom HDX (N/A)",
+      "departement": "Rufisque",
+      "superficie_km2": 46.9
+    },
+    {
+      "arrondissement": "Thiénaba",
+      "departement": "Thiès",
+      "superficie_km2": 539.3
+    },
+    {
+      "arrondissement": "Séssène",
+      "departement": "Mbour",
+      "superficie_km2": 693.5
+    },
+    {
+      "arrondissement": "Almadies",
+      "departement": "Dakar",
+      "superficie_km2": 29.7
+    },
+    {
+      "arrondissement": "Ouadiour",
+      "departement": "Gossas",
+      "superficie_km2": 519.1
+    },
+    {
+      "arrondissement": "Thiaroye",
+      "departement": "Pikine",
+      "superficie_km2": 31.4
+    },
+    {
+      "arrondissement": "Loudia Wolof",
+      "departement": "Oussouye",
+      "superficie_km2": 460.0
+    },
+    {
+      "arrondissement": "Niakhène",
+      "departement": "Tivaouane",
+      "superficie_km2": 792.2
+    },
+    {
+      "arrondissement": "Yeumbeul",
+      "departement": "Keur Massar",
+      "superficie_km2": 9.6
+    },
+    {
+      "arrondissement": "Taïf",
+      "departement": "Mbacké",
+      "superficie_km2": 584.0
+    },
+    {
+      "arrondissement": "Guédiawaye",
+      "departement": "Guédiawaye",
+      "superficie_km2": 14.1
+    },
+    {
+      "arrondissement": "Grand Dakar",
+      "departement": "Dakar",
+      "superficie_km2": 19.1
+    },
+    {
+      "arrondissement": "Parcelles Assainies",
+      "departement": "Dakar",
+      "superficie_km2": 14.9
+    },
+    {
+      "arrondissement": "Pikine Dagoudane",
+      "departement": "Pikine",
+      "superficie_km2": 14.2
+    },
+    {
+      "arrondissement": "Dakar Plateau",
+      "departement": "Dakar",
+      "superficie_km2": 14.8
+    }
+  ],
+  "periode_alea": "1981-2023",
+  "mois": [
+    5,
+    6,
+    7,
+    8,
+    9,
+    10
+  ],
+  "normalisation": "rang centile sur les arrondissements peuples ; composante a deux indicateurs = moyenne de leurs rangs centiles, remise en rang centile",
+  "indice": "(A x E x V)^(1/3)",
+  "composantes": {
+    "alea": [
+      "jours_anomalie_2sigma_an",
+      "jours_50mm_an"
+    ],
+    "exposition": [
+      "population_2023",
+      "densite_2023_hab_km2"
+    ],
+    "vulnerabilite": [
+      "taux_pauvrete_region_pct",
+      "croissance_2013_2023_pct"
+    ]
+  },
+  "vulnerabilite_statut": "provisoire en attendant les donnees d'habitat RGPH-5 ; la pauvrete est regionale (EHCVM), identique pour tous les arrondissements d'une region",
+  "sources": {
+    "alea": "CHIRPS 0,25 deg via data/processed (scripts 01)",
+    "population": "ANSD, RGPH 2013 et RGPH-5 2023, Repertoire des localites",
+    "pauvrete": "ANSD, EHCVM 2021-2022, Tableau III-2 (region)",
+    "contours_superficies_chefs_lieux": "OCHA COD-AB Senegal v02 (2024), CC BY-IGO",
+    "communes_des_villes": "GADM 4.1 niveau 4 (data/geographic)",
+    "communes_urbaines_sans_chef_lieu": "OpenStreetMap contributors (Nominatim), ODbL 1.0, data/raw/osm/communes_urbaines_osm.csv"
+  },
+  "top10": [
+    {
+      "rang": 1.0,
+      "arrondissement": "Bonconto",
+      "departement": "Vélingara",
+      "indice_risque": 0.792
+    },
+    {
+      "rang": 2.0,
+      "arrondissement": "Saré Coly Sallé",
+      "departement": "Vélingara",
+      "indice_risque": 0.786
+    },
+    {
+      "rang": 3.0,
+      "arrondissement": "Koussanar",
+      "departement": "Tambacounda",
+      "indice_risque": 0.778
+    },
+    {
+      "rang": 4.0,
+      "arrondissement": "Dioulacolon",
+      "departement": "Kolda",
+      "indice_risque": 0.733
+    },
+    {
+      "rang": 5.0,
+      "arrondissement": "Ida Mouride",
+      "departement": "Koungheul",
+      "indice_risque": 0.719
+    },
+    {
+      "rang": 6.0,
+      "arrondissement": "Paoscoto",
+      "departement": "Nioro du Rip",
+      "indice_risque": 0.708
+    },
+    {
+      "rang": 7.0,
+      "arrondissement": "Saré Bidji",
+      "departement": "Kolda",
+      "indice_risque": 0.705
+    },
+    {
+      "rang": 8.0,
+      "arrondissement": "Mabo",
+      "departement": "Birkelane",
+      "indice_risque": 0.685
+    },
+    {
+      "rang": 9.0,
+      "arrondissement": "Makacoutibantang",
+      "departement": "Tambacounda",
+      "indice_risque": 0.67
+    },
+    {
+      "rang": 10.0,
+      "arrondissement": "Bandafassi",
+      "departement": "Kédougou",
+      "indice_risque": 0.668
+    }
+  ]
+}

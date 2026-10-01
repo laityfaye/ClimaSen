@@ -10,7 +10,11 @@ Quatre cartes, reprises des modules Clustering et Evenements du dashboard:
   - sst_cluster: motif SST global du centroide d'un cluster K-Means;
   - cluster_senegal: composite sur le Senegal des evenements d'un cluster;
   - evenement: un evenement extreme, n'importe lequel des 1317;
-  - frequence_extremes: ou les extremes frappent le plus souvent.
+  - frequence_extremes: ou les extremes frappent le plus souvent;
+  - etat_oceanique: l'ocean de novembre a avril (veille pre-saison);
+  - vulnerabilite: l'indice de risque (ou une composante) par departement ou
+    arrondissement, memes chiffres que get_priority_zones et la page
+    Vulnerabilite (contours alleges du script 28).
 
 Difference avec le dashboard: le composite de cluster porte ici sur TOUS
 les evenements du cluster (grille CHIRPS du jour), la ou la page
@@ -29,7 +33,7 @@ PERMISSION = "public"
 DATASETS = ("events",)
 
 TYPES = ["sst_cluster", "cluster_senegal", "evenement", "frequence_extremes",
-         "etat_oceanique"]
+         "etat_oceanique", "vulnerabilite"]
 VARIABLES = ["precipitation", "anomalie"]
 SEUIL = 2.0
 
@@ -48,7 +52,10 @@ DESCRIPTION = (
     "novembre a avril avant la saison 'year', celle que le bulletin projette "
     "sur les configurations du memoire; pour la comparer a la configuration "
     "la plus proche, appelle aussi sst_cluster phase 'Toutes phases' avec le "
-    "cluster indique dans le resume: l'ecran les montre cote a cote). "
+    "cluster indique dans le resume: l'ecran les montre cote a cote), vulnerabilite "
+    "(INDICE DE RISQUE par zone : level departements (defaut) ou arrondissements, "
+    "component indice (defaut), alea, exposition ou vulnerabilite, zone = nom a mettre en "
+    "evidence ; encart sur la presqu'ile de Dakar ; memes chiffres que get_priority_zones). "
     "variable: precipitation (mm/jour) ou anomalie (sigma). Le "
     "resultat contient un resume chiffre: commente a partir de lui, pas de "
     "memoire. Utilise-la quand l'utilisateur demande une carte, ou qu'une "
@@ -77,6 +84,13 @@ SCHEMA = {
                            "produites dans la meme reponse."},
         "variable": {"type": "string", "enum": VARIABLES,
                      "description": "precipitation (defaut) ou anomalie."},
+        "level": {"type": "string", "enum": ["departements", "arrondissements"],
+                  "description": "vulnerabilite: echelle (defaut departements)."},
+        "component": {"type": "string",
+                      "enum": ["indice", "alea", "exposition", "vulnerabilite"],
+                      "description": "vulnerabilite: valeur cartographiee (defaut indice)."},
+        "zone": {"type": "string",
+                 "description": "vulnerabilite: zone a mettre en evidence (nom)."},
     },
     "required": ["type"],
 }
@@ -404,6 +418,103 @@ def _etat_oceanique(params, data):
     return spec, resume
 
 
+LIBELLES_COMPOSANTE = {
+    "indice": "indice de risque (A x E x V)^1/3",
+    "alea": "aléa (fréquence des pluies extrêmes, CHIRPS)",
+    "exposition": "exposition (population et densité, ANSD RGPH-5)",
+    "vulnerabilite": "vulnérabilité provisoire (pauvreté EHCVM, croissance)",
+}
+
+
+def _vulnerabilite(params, data):
+    """Indice de risque par zone : meme source et memes regles que get_priority_zones."""
+    from . import dataset
+    from . import vulnerabilite as outil_vul
+    from .common import normalise
+
+    try:
+        v = dataset.get("vulnerabilite")
+    except dataset.DataUnavailableError:
+        raise ToolInputError("Indice de risque non calcule "
+                             "(scripts/26_indice_risque_departements.py).")
+    niveau = outil_vul._niveau(params)
+    t = v["departements"] if niveau == "departements" else v["arrondissements"]
+    if t is None:
+        raise ToolInputError("Indice par arrondissement non calcule (script 27). "
+                             "Utilise level=departements.")
+    t = t.copy()
+    t["nom"] = (t["departement"] if niveau == "departements"
+                else t["arrondissement"]).fillna("Sans nom")
+    composante = champ_enum(params, "component", list(outil_vul.COMPOSANTES),
+                            defaut="indice")
+    colonne = outil_vul.COMPOSANTES[composante]
+    surligne = []
+    zone = champ_texte(params, "zone", maxi=60)
+    if zone:
+        cle = normalise(zone)
+        trouve = t[t["nom"].map(normalise) == cle]
+        if trouve.empty:
+            trouve = t[t["nom"].map(normalise).str.contains(cle, regex=False)]
+        if trouve.empty:
+            raise ToolInputError("Zone inconnue au niveau %s: %r." % (niveau, zone))
+        surligne = list(trouve["pcode"].head(3))
+
+    tri = t.sort_values(colonne, ascending=False)
+    zones = [{"pcode": r["pcode"], "nom": r["nom"],
+              "rang": int(r["rang"]) if r["rang"] == r["rang"] else None,
+              "valeur": arrondir(r[colonne], 3)} for _, r in tri.iterrows()]
+    # Rang dans la valeur cartographiee (1 = plus fort), pose sur les 5 premieres.
+    etiquettes = [{"pcode": z["pcode"], "texte": str(i + 1)} for i, z in enumerate(zones[:5])]
+    from .. import cartes as module_cartes
+    x0, x1, y0, y1 = module_cartes.ENCART_DAKAR
+    encart = []
+    rangs_carte = {z["pcode"]: i + 1 for i, z in enumerate(zones)}
+    for z in zones:
+        try:
+            geo = module_cartes.zones(niveau).get(z["pcode"])
+        except module_cartes.CarteIndisponible as exc:
+            raise ToolInputError(str(exc))
+        if geo is None:
+            continue
+        cx, cy = module_cartes._centre(geo["anneaux"])
+        if not (x0 <= cx <= x1 and y0 <= cy <= y1):
+            continue
+        # Departements : tous nommes. Arrondissements (une quinzaine, illisibles) :
+        # seulement les zones mises en evidence et celles du top 5.
+        rang = rangs_carte[z["pcode"]]
+        if niveau == "departements" or z["pcode"] in surligne or rang <= 5:
+            # Numero dans l'encart (trop petit pour des noms), nom dans la legende.
+            encart.append({"pcode": z["pcode"], "texte": str(rang), "nom": z["nom"][:20]})
+
+    libelle = LIBELLES_COMPOSANTE[composante]
+    spec = {
+        "genre": "carte_zones",
+        "titre": "Indice de risque" if composante == "indice" else libelle.split(" (")[0].capitalize(),
+        "sous_titre": "%d %s · rang centile 0 (faible) à 1 (fort) · vulnérabilité provisoire"
+                      % (len(zones), niveau),
+        "donnees": {"niveau": niveau, "zones": zones, "vmin": 0.0, "vmax": 1.0,
+                    "legende": libelle + " · rang centile", "surligne": surligne,
+                    "etiquettes": etiquettes, "etiquettes_encart": encart},
+        "source": outil_vul.SOURCES,
+    }
+    par_valeur = {z["pcode"]: (i + 1, z) for i, z in enumerate(zones)}
+    resume = {
+        "niveau": niveau, "composante": composante, "nombre_de_zones": len(zones),
+        "cinq_plus_fortes": [{"rang_carte": i + 1, "nom": z["nom"], "valeur": z["valeur"],
+                              "rang_indice": z["rang"]} for i, z in enumerate(zones[:5])],
+        "trois_plus_faibles": [{"nom": z["nom"], "valeur": z["valeur"]} for z in zones[-3:]],
+        "zones_mises_en_evidence": [{"nom": par_valeur[p][1]["nom"],
+                                     "rang_carte": par_valeur[p][0],
+                                     "valeur": par_valeur[p][1]["valeur"],
+                                     "rang_indice": par_valeur[p][1]["rang"]}
+                                    for p in surligne],
+        "fiabilite": outil_vul._fiabilite(v, niveau),
+        "regle": ("rang centile, pas une probabilite ni une carte des inondations ; "
+                  "vulnerabilite provisoire ; dire la reserve une fois"),
+    }
+    return spec, resume
+
+
 MOIS_FR = ["janvier", "février", "mars", "avril", "mai", "juin", "juillet",
            "août", "septembre", "octobre", "novembre", "décembre"]
 
@@ -419,6 +530,7 @@ _TYPES = {
     "evenement": _evenement,
     "frequence_extremes": _frequence_extremes,
     "etat_oceanique": _etat_oceanique,
+    "vulnerabilite": _vulnerabilite,
 }
 
 

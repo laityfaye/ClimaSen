@@ -24,11 +24,13 @@ import re
 from .tools.common import INDICES, METRIQUES, PHASES, PHASES_TOUTES
 
 PAGES = ("Accueil", "Evenements", "Indices SST", "Teleconnexions", "Clustering", "Pipeline",
-         "Veille")
+         "Veille", "Vulnerabilite")
 
 MAX_CONTEXT_CHARS = 2000
 
 _DATE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+# P-code OCHA d'un departement (SN0703) ou d'un arrondissement (SN070301).
+_PCODE = re.compile(r"^SN\d{4}(\d{2})?$")
 
 
 # --- validateurs: renvoient la valeur nettoyee, ou None si elle est rejetee --
@@ -52,6 +54,10 @@ def _booleen(v):
 
 def _date(v):
     return v if isinstance(v, str) and _DATE.match(v) else None
+
+
+def _pcode(v):
+    return v if isinstance(v, str) and _PCODE.match(v) else None
 
 
 def _liste(valider_element, maxi):
@@ -117,6 +123,12 @@ CHAMPS = {
     },
     "Veille": {
         "saison": (_entier(1981, 2100), "saison du bulletin de veille pre-saison affiche"),
+    },
+    "Vulnerabilite": {
+        "niveau": (_enum(("departements", "arrondissements")), "echelle de l'indice de risque"),
+        "composante": (_enum(("indice", "alea", "exposition", "vulnerabilite")),
+                       "composante affichee sur la carte"),
+        "zone": (_pcode, "P-code de la zone dont la fiche est ouverte"),
     },
 }
 

@@ -112,7 +112,7 @@ def test_accueil_est_la_page_par_defaut():
 
 
 @pytest.mark.parametrize("page", ["Evenements", "Indices SST", "Teleconnexions", "Veille",
-                                  "A propos"])
+                                  "Vulnerabilite", "A propos"])
 def test_page_demandee_en_session_est_rejointe(page):
     # Menu lateral, Jarvis (navigate_dashboard) : la page demandee en session est
     # rejointe par st.switch_page, qui met aussi l'URL a jour.

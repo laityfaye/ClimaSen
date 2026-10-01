@@ -30,7 +30,7 @@ def test_les_outils_publics_sont_declares():
                     "find_analog_years", "navigate_dashboard",
                     "animate_sst_event", "get_seasonal_outlook",
                     "present_bulletin_briefing", "get_bulletin_reliability",
-                    "explore_ocean_scenario"}
+                    "explore_ocean_scenario", "get_priority_zones"}
 
 
 def test_chaque_declaration_est_complete():

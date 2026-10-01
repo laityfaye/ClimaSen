@@ -1,0 +1,47 @@
+rang,pcode,departement,region,indice_risque,A_alea,E_exposition,V_vulnerabilite,touche_2005,touche_2009,touche_2012,touche_2020,n_evenements_A
+1,SN0703,Vélingara,Kolda,0.7816,0.9022,0.6087,0.8696,,A,,,1
+2,SN1204,Tambacounda,Tambacounda,0.7175,0.9348,0.4783,0.8261,,A,,,1
+3,SN0701,Kolda,Kolda,0.7155,1.0,0.5435,0.6739,,A,,,1
+4,SN0503,Nioro du Rip,Kaolack,0.7076,0.587,0.7935,0.7609,,,,,0
+5,SN1101,Bounkiling,Sédhiou,0.6108,0.6957,0.3587,0.913,,,,,0
+6,SN1102,Goudomp,Sédhiou,0.5844,0.9022,0.4239,0.5217,,,,,0
+7,SN0302,Foundiougne,Fatick,0.5633,0.6304,0.6522,0.4348,,B,,,0
+8,SN1301,Mbour,Thiès,0.5613,0.5435,0.8804,0.3696,,A,,,1
+9,SN1103,Sédhiou,Sédhiou,0.5364,0.8043,0.3152,0.6087,,A,,,1
+10,SN0401,Birkelane,Kaffrine,0.5288,0.4457,0.3913,0.8478,,,,,0
+11,SN0901,Kanel,Matam,0.5191,0.7174,0.3587,0.5435,,,,,0
+12,SN0502,Kaolack,Kaolack,0.5133,0.2717,0.8478,0.587,,A,A,,2
+13,SN0801,Kébémer,Louga,0.5123,0.5652,0.5761,0.413,,,A,,1
+14,SN1203,Koumpentoum,Tambacounda,0.5106,0.6739,0.2065,0.9565,,,,,0
+15,SN0702,Médina-Yorofoula,Kolda,0.5029,0.8587,0.2065,0.7174,,,,,0
+16,SN0104,Rufisque,Dakar,0.4987,0.2717,0.913,0.5,,A,,A,2
+17,SN0403,Koungheul,Kaffrine,0.4976,0.4891,0.2826,0.8913,,,,,0
+18,SN0902,Matam,Matam,0.4846,0.413,0.5761,0.4783,,A,,,1
+19,SN1403,Ziguinchor,Ziguinchor,0.4816,0.6522,0.6304,0.2717,,B,,,0
+20,SN0402,Kaffrine,Kaffrine,0.4786,0.3478,0.5,0.6304,,A,,,1
+21,SN1201,Bakel,Tambacounda,0.4573,0.7391,0.163,0.7935,,,,,0
+22,SN0601,Kédougou,Kédougou,0.4366,0.9783,0.087,0.9783,,A,,,1
+23,SN1202,Goudiry,Tambacounda,0.43,0.7826,0.1087,0.9348,,,,,0
+24,SN0105,Keur Massar,Dakar,0.4134,0.2717,0.9565,0.2717,,A,B,A,2
+25,SN0603,Saraya,Kédougou,0.3966,0.9565,0.0652,1.0,,,,,0
+26,SN1401,Bignona,Ziguinchor,0.3856,0.7609,0.3152,0.2391,,,,,0
+27,SN1303,Tivaouane,Thiès,0.3806,0.1522,0.7935,0.4565,,,,,0
+28,SN0203,Mbacké,Diourbel,0.3636,0.087,0.9783,0.5652,,,A,,1
+29,SN0803,Louga,Louga,0.3503,0.1957,0.6739,0.3261,,,,,0
+30,SN0802,Linguère,Louga,0.3468,0.4457,0.2391,0.3913,,,,,0
+31,SN0303,Gossas,Fatick,0.3386,0.4891,0.2609,0.3043,,,,,0
+32,SN0201,Bambey,Diourbel,0.3225,0.5217,0.7391,0.087,,,A,,1
+33,SN0301,Fatick,Fatick,0.3209,0.3261,0.7174,0.1413,,A,A,,2
+34,SN1302,Thiès,Thiès,0.3002,0.2174,0.8804,0.1413,,A,,A,2
+35,SN1003,Saint Louis,Saint-Louis,0.2902,0.1739,0.7609,0.1848,,A,A,,2
+36,SN0103,Pikine,Dakar,0.2852,0.3804,0.9348,0.0652,A,A,A,A,4
+37,SN1402,Oussouye,Ziguinchor,0.271,0.8261,0.1304,0.1848,,,,,0
+38,SN0602,Salémata,Kédougou,0.2662,0.8587,0.0326,0.6739,,,,,0
+39,SN0404,Malem-Hodar,Kaffrine,0.2565,0.1304,0.163,0.7935,,,,,0
+40,SN0903,Ranérou,Matam,0.2448,0.6087,0.0326,0.7391,,,,,0
+41,SN0501,Guinguinéo,Kaolack,0.2316,0.0435,0.4239,0.6739,,,,,0
+42,SN0102,Guédiawaye,Dakar,0.2137,0.2717,0.8261,0.0435,A,A,B,A,3
+43,SN0101,Dakar,Dakar,0.2022,0.3804,1.0,0.0217,B,B,A,A,2
+44,SN0202,Diourbel,Diourbel,0.2018,0.1087,0.6957,0.1087,,,,,0
+45,SN1002,Podor,Saint-Louis,0.1948,0.0652,0.5217,0.2174,,A,,,1
+46,SN1001,Dagana,Saint-Louis,0.1511,0.0217,0.4565,0.3478,,A,,,1

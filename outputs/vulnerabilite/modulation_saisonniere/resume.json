@@ -1,0 +1,339 @@
+{
+  "facteurs_testes": {
+    "faible": 0.9,
+    "normal": 1.0,
+    "eleve": 1.1,
+    "tres_eleve": 1.1,
+    "indetermine": 1.0
+  },
+  "effet_classement": [
+    {
+      "niveau_bulletin": "faible",
+      "facteur_alea": 0.9,
+      "variante": "avant_normalisation",
+      "spearman_vs_reference": 1.0,
+      "departements_changeant_de_rang": 0,
+      "departements_changeant_de_rang_noms": "",
+      "variation_indice_mediane_pct": 0.0
+    },
+    {
+      "niveau_bulletin": "faible",
+      "facteur_alea": 0.9,
+      "variante": "apres_normalisation",
+      "spearman_vs_reference": 1.0,
+      "departements_changeant_de_rang": 0,
+      "departements_changeant_de_rang_noms": "",
+      "variation_indice_mediane_pct": -3.45
+    },
+    {
+      "niveau_bulletin": "normal",
+      "facteur_alea": 1.0,
+      "variante": "avant_normalisation",
+      "spearman_vs_reference": 1.0,
+      "departements_changeant_de_rang": 0,
+      "departements_changeant_de_rang_noms": "",
+      "variation_indice_mediane_pct": 0.0
+    },
+    {
+      "niveau_bulletin": "normal",
+      "facteur_alea": 1.0,
+      "variante": "apres_normalisation",
+      "spearman_vs_reference": 1.0,
+      "departements_changeant_de_rang": 0,
+      "departements_changeant_de_rang_noms": "",
+      "variation_indice_mediane_pct": 0.0
+    },
+    {
+      "niveau_bulletin": "eleve",
+      "facteur_alea": 1.1,
+      "variante": "avant_normalisation",
+      "spearman_vs_reference": 1.0,
+      "departements_changeant_de_rang": 0,
+      "departements_changeant_de_rang_noms": "",
+      "variation_indice_mediane_pct": 0.0
+    },
+    {
+      "niveau_bulletin": "eleve",
+      "facteur_alea": 1.1,
+      "variante": "apres_normalisation",
+      "spearman_vs_reference": 0.9998,
+      "departements_changeant_de_rang": 4,
+      "departements_changeant_de_rang_noms": "Kolda, Nioro du Rip, Kédougou, Goudiry",
+      "variation_indice_mediane_pct": 3.23
+    },
+    {
+      "niveau_bulletin": "tres_eleve",
+      "facteur_alea": 1.1,
+      "variante": "avant_normalisation",
+      "spearman_vs_reference": 1.0,
+      "departements_changeant_de_rang": 0,
+      "departements_changeant_de_rang_noms": "",
+      "variation_indice_mediane_pct": 0.0
+    },
+    {
+      "niveau_bulletin": "tres_eleve",
+      "facteur_alea": 1.1,
+      "variante": "apres_normalisation",
+      "spearman_vs_reference": 0.9998,
+      "departements_changeant_de_rang": 4,
+      "departements_changeant_de_rang_noms": "Kolda, Nioro du Rip, Kédougou, Goudiry",
+      "variation_indice_mediane_pct": 3.23
+    },
+    {
+      "niveau_bulletin": "indetermine",
+      "facteur_alea": 1.0,
+      "variante": "avant_normalisation",
+      "spearman_vs_reference": 1.0,
+      "departements_changeant_de_rang": 0,
+      "departements_changeant_de_rang_noms": "",
+      "variation_indice_mediane_pct": 0.0
+    },
+    {
+      "niveau_bulletin": "indetermine",
+      "facteur_alea": 1.0,
+      "variante": "apres_normalisation",
+      "spearman_vs_reference": 1.0,
+      "departements_changeant_de_rang": 0,
+      "departements_changeant_de_rang_noms": "",
+      "variation_indice_mediane_pct": 0.0
+    }
+  ],
+  "bilan_retrospectif_1998_2023": [
+    {
+      "niveau": "eleve",
+      "saisons": 9,
+      "saisons_extremes": 5,
+      "part_extremes_pct": 55.6
+    },
+    {
+      "niveau": "faible",
+      "saisons": 3,
+      "saisons_extremes": 1,
+      "part_extremes_pct": 33.3
+    },
+    {
+      "niveau": "normal",
+      "saisons": 14,
+      "saisons_extremes": 7,
+      "part_extremes_pct": 50.0
+    }
+  ],
+  "part_extremes_toutes_saisons_pct": 50.0,
+  "annees_extremes_avec_niveau_faible": [
+    2009
+  ],
+  "competence": {
+    "projection_prevision_reelle": {
+      "calculable": true,
+      "n": 26,
+      "annees_extremes": 15,
+      "auc": 0.533,
+      "p_permutation": 0.395,
+      "brier_skill_score": 0.054,
+      "annees": [
+        {
+          "annee": 1998,
+          "probabilite": 0.36,
+          "base": 0.333,
+          "observe": 0
+        },
+        {
+          "annee": 1999,
+          "probabilite": 0.397,
+          "base": 0.312,
+          "observe": 1
+        },
+        {
+          "annee": 2000,
+          "probabilite": 0.491,
+          "base": 0.353,
+          "observe": 1
+        },
+        {
+          "annee": 2001,
+          "probabilite": 0.383,
+          "base": 0.333,
+          "observe": 0
+        },
+        {
+          "annee": 2002,
+          "probabilite": 0.343,
+          "base": 0.316,
+          "observe": 1
+        },
+        {
+          "annee": 2003,
+          "probabilite": 0.273,
+          "base": 0.35,
+          "observe": 1
+        },
+        {
+          "annee": 2004,
+          "probabilite": 0.329,
+          "base": 0.333,
+          "observe": 0
+        },
+        {
+          "annee": 2005,
+          "probabilite": 0.311,
+          "base": 0.318,
+          "observe": 1
+        },
+        {
+          "annee": 2006,
+          "probabilite": 0.388,
+          "base": 0.348,
+          "observe": 0
+        },
+        {
+          "annee": 2007,
+          "probabilite": 0.332,
+          "base": 0.333,
+          "observe": 0
+        },
+        {
+          "annee": 2008,
+          "probabilite": 0.385,
+          "base": 0.32,
+          "observe": 1
+        },
+        {
+          "annee": 2009,
+          "probabilite": 0.4,
+          "base": 0.346,
+          "observe": 1
+        },
+        {
+          "annee": 2010,
+          "probabilite": 0.291,
+          "base": 0.333,
+          "observe": 1
+        },
+        {
+          "annee": 2011,
+          "probabilite": 0.432,
+          "base": 0.321,
+          "observe": 0
+        },
+        {
+          "annee": 2012,
+          "probabilite": 0.382,
+          "base": 0.345,
+          "observe": 1
+        },
+        {
+          "annee": 2013,
+          "probabilite": 0.357,
+          "base": 0.333,
+          "observe": 0
+        },
+        {
+          "annee": 2014,
+          "probabilite": 0.33,
+          "base": 0.323,
+          "observe": 0
+        },
+        {
+          "annee": 2015,
+          "probabilite": 0.297,
+          "base": 0.344,
+          "observe": 1
+        },
+        {
+          "annee": 2016,
+          "probabilite": 0.276,
+          "base": 0.333,
+          "observe": 0
+        },
+        {
+          "annee": 2017,
+          "probabilite": 0.345,
+          "base": 0.324,
+          "observe": 1
+        },
+        {
+          "annee": 2018,
+          "probabilite": 0.436,
+          "base": 0.343,
+          "observe": 0
+        },
+        {
+          "annee": 2019,
+          "probabilite": 0.309,
+          "base": 0.333,
+          "observe": 0
+        },
+        {
+          "annee": 2020,
+          "probabilite": 0.323,
+          "base": 0.324,
+          "observe": 1
+        },
+        {
+          "annee": 2021,
+          "probabilite": 0.421,
+          "base": 0.342,
+          "observe": 1
+        },
+        {
+          "annee": 2022,
+          "probabilite": 0.469,
+          "base": 0.333,
+          "observe": 1
+        },
+        {
+          "annee": 2023,
+          "probabilite": 0.386,
+          "base": 0.325,
+          "observe": 1
+        }
+      ],
+      "p_corrige_variantes": 1.0
+    },
+    "c3s_ecmwf_calibre": {
+      "n": 36,
+      "annees_extremes": 12,
+      "auc": 0.594,
+      "p_permutation": 0.192,
+      "brier_skill_score": 0.03,
+      "correlation_pluie_empreinte": 0.27
+    },
+    "c3s_variantes": [
+      {
+        "variante": "V1",
+        "n_modeles": 1,
+        "auc": 0.547,
+        "p": 0.3725
+      },
+      {
+        "variante": "V2",
+        "n_modeles": 8,
+        "auc": 0.484,
+        "p": 0.538
+      },
+      {
+        "variante": "V3",
+        "n_modeles": 8,
+        "auc": 0.492,
+        "p": 0.525
+      },
+      {
+        "variante": "V4",
+        "n_modeles": 8,
+        "auc": 0.492,
+        "p": 0.5275
+      },
+      {
+        "variante": "V5",
+        "n_modeles": 1,
+        "auc": 0.641,
+        "p": 0.149
+      }
+    ]
+  },
+  "bulletin_courant": {
+    "annee": 2027,
+    "statut": "partiel",
+    "niveau": "indetermine"
+  }
+}

@@ -1,0 +1,11 @@
+niveau_bulletin,facteur_alea,variante,spearman_vs_reference,departements_changeant_de_rang,departements_changeant_de_rang_noms,variation_indice_mediane_pct
+faible,0.9,avant_normalisation,1.0,0,,0.0
+faible,0.9,apres_normalisation,1.0,0,,-3.45
+normal,1.0,avant_normalisation,1.0,0,,0.0
+normal,1.0,apres_normalisation,1.0,0,,0.0
+eleve,1.1,avant_normalisation,1.0,0,,0.0
+eleve,1.1,apres_normalisation,0.9998,4,"Kolda, Nioro du Rip, Kédougou, Goudiry",3.23
+tres_eleve,1.1,avant_normalisation,1.0,0,,0.0
+tres_eleve,1.1,apres_normalisation,0.9998,4,"Kolda, Nioro du Rip, Kédougou, Goudiry",3.23
+indetermine,1.0,avant_normalisation,1.0,0,,0.0
+indetermine,1.0,apres_normalisation,1.0,0,,0.0

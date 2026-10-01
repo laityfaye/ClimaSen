@@ -35,6 +35,7 @@ FILTRES = {
     "Clustering": ("phase", "cluster", "metrique_barres"),
     "Pipeline": ("onglet",),
     "Veille": ("saison",),
+    "Vulnerabilite": ("niveau", "composante", "zone"),
 }
 PAGES = tuple(FILTRES)
 
@@ -47,7 +48,9 @@ DESCRIPTION = (
     + ". Valeurs: phases Phase_1_debut, "
     "Phase_2_pleine, Phase_3_fin (Toutes phases, ou All_phases pour le "
     "Clustering); indices SST en noms courts (AMO, TNA...); annees = "
-    "[debut, fin]. Un filtre invalide est ignore et signale."
+    "[debut, fin]; Vulnerabilite: niveau departements|arrondissements, composante "
+    "indice|alea|exposition|vulnerabilite, zone = P-code (SN0703, SN070301...) renvoye "
+    "par get_priority_zones. Un filtre invalide est ignore et signale."
 )
 
 SCHEMA = {

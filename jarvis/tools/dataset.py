@@ -104,6 +104,7 @@ LOADERS = {
     "indices":      "load_sst",
     "correlations": "load_telecon",
     "clustering":   "load_clustering",
+    "vulnerabilite": "load_vulnerabilite",
 }
 
 # Jeux qui ne viennent pas du dashboard. L'index documentaire (Phase 3) est

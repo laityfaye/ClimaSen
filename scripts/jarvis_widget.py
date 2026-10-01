@@ -102,6 +102,11 @@ CLES_CONTEXTE = {
     "Veille": {
         "saison": "veille_annee",
     },
+    "Vulnerabilite": {
+        "niveau": "vul_niveau",
+        "composante": "vul_composante",
+        "zone": "vul_zone",
+    },
     "Pipeline": {
         "onglet": "pip_tab",
     },
