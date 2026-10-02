@@ -67,3 +67,7 @@ LINUX/
 # et previsions Copernicus telechargees (le cache se reconstitue seul).
 data/processed/sst_cube_1deg.npz
 data/raw/c3s/
+
+# Rasters bruts de l alea urbain (script 32), retelecharges si absents
+data/raw/copernicus_dem/
+data/raw/ghsl/

@@ -1,0 +1,126 @@
+pcode,nom,departement,region,bati_km2,U_abs_km2,U
+SN060201,Dar Salam,Salémata,Kédougou,0.7002,0.5832,0.8329
+SN120201,Dianké Makan,Goudiry,Tambacounda,1.1,0.8011,0.7283
+SN060302,Bembou,Saraya,Kédougou,2.3551,1.6198,0.6878
+SN070203,Fafacourou,Médina-Yorofoula,Kolda,1.023,0.668,0.653
+SN120203,Bala,Goudiry,Tambacounda,1.2041,0.7527,0.6251
+SN070201,Ndorna,Médina-Yorofoula,Kolda,2.4735,1.4992,0.6061
+SN060301,Sabodala,Saraya,Kédougou,1.9488,1.1341,0.582
+SN120401,Missira,Tambacounda,Tambacounda,4.0215,2.2436,0.5579
+SN060102,Fongolembi,Kédougou,Kédougou,0.6361,0.3381,0.5316
+SN070101,Mampatim,Kolda,Kolda,5.5114,2.8476,0.5167
+SN120202,Koular,Goudiry,Tambacounda,2.3644,1.2099,0.5117
+SN070102,Saré Bidji,Kolda,Kolda,6.8061,3.3578,0.4933
+SN070103,Dioulacolon,Kolda,Kolda,2.7601,1.3611,0.4932
+SN060101,Bandafassi,Kédougou,Kédougou,5.0124,2.4271,0.4842
+SN110103,Diaroumé,Bounkiling,Sédhiou,1.8792,0.9013,0.4796
+SN060202,Dakatéli,Salémata,Kédougou,0.2987,0.1399,0.4682
+SN070301,Bonconto,Vélingara,Kolda,6.0224,2.6565,0.4411
+SN010403,Diamniadio,Rufisque,Dakar,5.7085,2.5029,0.4385
+SN110201,Simbandi Brassou,Goudomp,Sédhiou,2.6317,1.0917,0.4148
+SN070302,Pakour,Vélingara,Kolda,2.3936,0.9774,0.4083
+SN120403,Koussanar,Tambacounda,Tambacounda,9.8124,3.9634,0.4039
+SN120402,Makacoutibantang,Tambacounda,Tambacounda,2.3936,0.9525,0.3979
+SN070202,Niaming,Médina-Yorofoula,Kolda,3.7517,1.3812,0.3682
+SN120204,Bouinguel Bamba,Goudiry,Tambacounda,1.2602,0.4609,0.3657
+SN110102,Bogal,Bounkiling,Sédhiou,4.5437,1.6525,0.3637
+SN090301,Vélingara,Ranérou,Matam,3.608,1.2995,0.3602
+SN120101,Kéniéba,Bakel,Tambacounda,1.1954,0.4221,0.3531
+SN110101,Bona,Bounkiling,Sédhiou,2.8874,0.9668,0.3348
+SN010402,Rufisque-Est,Rufisque,Dakar,7.5072,2.4192,0.3223
+SN110303,Djirédji,Sédhiou,Sédhiou,2.0658,0.5983,0.2896
+SN010501,Jaxaay,Keur Massar,Dakar,3.438,0.9917,0.2884
+SN050301,Paoscoto,Nioro du Rip,Kaolack,9.1365,2.5299,0.2769
+SN010404,N/A,Rufisque,Dakar,2.8873,0.7965,0.2758
+SN010101,Almadies,Dakar,Dakar,9.0629,2.4648,0.272
+SN080204,Dodji,Linguère,Louga,3.4003,0.9244,0.2719
+SN010102,Grand Dakar,Dakar,Dakar,7.7233,2.099,0.2718
+SN110301,Diendé,Sédhiou,Sédhiou,4.9062,1.3273,0.2705
+SN010103,Parcelles Assainies,Dakar,Dakar,6.3556,1.6516,0.2599
+SN010201,Guédiawaye,Guédiawaye,Dakar,5.4157,1.3873,0.2562
+SN010303,Pikine Dagoudane,Pikine,Dakar,5.1199,1.3079,0.2555
+SN130201,Keur Moussa,Thiès,Thiès,24.6689,6.2839,0.2547
+SN010104,Dakar Plateau,Dakar,Dakar,5.7318,1.4517,0.2533
+SN050302,Wak Ngouna,Nioro du Rip,Kaolack,5.0473,1.2588,0.2494
+SN040101,Mabo,Birkelane,Kaffrine,3.9647,0.9731,0.2454
+SN110203,Karantaba,Goudomp,Sédhiou,1.1607,0.2786,0.24
+SN040202,Katakel,Kaffrine,Kaffrine,5.654,1.3349,0.2361
+SN140104,Sindian,Bignona,Ziguinchor,3.3508,0.7847,0.2342
+SN010502,Malika,Keur Massar,Dakar,5.1204,1.1901,0.2324
+SN120103,Bellé,Bakel,Tambacounda,2.1089,0.4751,0.2253
+SN140301,Niaguis,Ziguinchor,Ziguinchor,10.1819,2.2484,0.2208
+SN040201,Gnibi,Kaffrine,Kaffrine,5.622,1.2327,0.2193
+SN130102,Sindia,Mbour,Thiès,29.7752,6.3149,0.2121
+SN010401,Sangalkam,Rufisque,Dakar,12.4148,2.6142,0.2106
+SN120302,Bamba Tialène,Koumpentoum,Tambacounda,4.193,0.8624,0.2057
+SN110302,Djibabouya,Sédhiou,Sédhiou,2.3907,0.4833,0.2022
+SN120102,Moudéri,Bakel,Tambacounda,4.2119,0.8499,0.2018
+SN070303,Saré Coly Sallé,Vélingara,Kolda,8.2535,1.6501,0.1999
+SN120301,Koutiaba Wolof,Koumpentoum,Tambacounda,3.2342,0.6462,0.1998
+SN040302,Ida Mouride,Koungheul,Kaffrine,4.788,0.9439,0.1971
+SN050303,Médina Sabakh,Nioro du Rip,Kaolack,4.813,0.9269,0.1926
+SN010503,Yeumbeul,Keur Massar,Dakar,3.6866,0.6845,0.1857
+SN080201,Yang-Yang,Linguère,Louga,2.614,0.458,0.1752
+SN040402,Sagna,Malem-Hodar,Kaffrine,2.9312,0.5101,0.174
+SN130203,Noto,Thiès,Thiès,4.5035,0.7619,0.1692
+SN130303,Méouane,Tivaouane,Thiès,10.5672,1.7852,0.1689
+SN020302,Taïf,Mbacké,Diourbel,1.8477,0.3064,0.1658
+SN040301,Missira Wadène,Koungheul,Kaffrine,2.6616,0.4354,0.1636
+SN050202,Koumbal,Kaolack,Kaolack,15.9228,2.5765,0.1618
+SN080203,Barkédji,Linguère,Louga,3.7545,0.5972,0.1591
+SN020201,Ndoulo,Diourbel,Diourbel,10.2051,1.5963,0.1564
+SN030202,Toubakouta,Foundiougne,Fatick,8.6949,1.3405,0.1542
+SN090102,Orkadiéré,Kanel,Matam,6.0665,0.9305,0.1534
+SN010302,Thiaroye,Pikine,Dakar,9.3267,1.3983,0.1499
+SN100203,Saldé,Podor,Saint-Louis,3.3583,0.4995,0.1487
+SN040303,Lour Escale,Koungheul,Kaffrine,2.1188,0.3023,0.1427
+SN080304,Sakal,Louga,Louga,6.2548,0.8805,0.1408
+SN110202,Djibanar,Goudomp,Sédhiou,4.7815,0.6624,0.1385
+SN100102,Mbane,Dagana,Saint-Louis,6.2155,0.854,0.1374
+SN080202,Sagata Diolof,Linguère,Louga,5.7967,0.7894,0.1362
+SN090101,Ouro Sidi,Kanel,Matam,5.5331,0.7507,0.1357
+SN020301,Ndame,Mbacké,Diourbel,53.3484,7.2162,0.1353
+SN090202,Agnam Civol,Matam,Matam,4.2962,0.5705,0.1328
+SN040401,Darou Minam 2,Malem-Hodar,Kaffrine,1.5228,0.1975,0.1297
+SN140102,Tanghori,Bignona,Ziguinchor,6.1636,0.7992,0.1297
+SN080101,Ndande,Kébémer,Louga,7.8085,0.9902,0.1268
+SN090201,Ogo,Matam,Matam,11.8442,1.4466,0.1221
+SN080303,Mbédiène,Louga,Louga,10.3286,1.1944,0.1156
+SN040102,Keur Mboucki,Birkelane,Kaffrine,2.1373,0.2428,0.1136
+SN130302,Pambal,Tivaouane,Thiès,10.3974,1.1704,0.1126
+SN050102,Nguélou,Guinguinéo,Kaolack,2.505,0.2779,0.1109
+SN050101,Mbadakhoune,Guinguinéo,Kaolack,4.4938,0.4629,0.103
+SN100202,Thillé Boubakar,Podor,Saint-Louis,4.4736,0.4602,0.1029
+SN140202,Cabrousse,Oussouye,Ziguinchor,2.3915,0.2433,0.1017
+SN140302,Niassia,Ziguinchor,Ziguinchor,1.0253,0.0922,0.09
+SN140101,Kataba 1,Bignona,Ziguinchor,6.793,0.584,0.086
+SN100201,Gamadji Sarré,Podor,Saint-Louis,8.1361,0.6943,0.0853
+SN080102,Darou Mousty,Kébémer,Louga,6.2334,0.5026,0.0806
+SN080301,Keur Momar Sarr,Louga,Louga,5.212,0.4179,0.0802
+SN130202,Thiénaba,Thiès,Thiès,8.1279,0.6373,0.0784
+SN050203,Ndiédiéng,Kaolack,Kaolack,4.6563,0.3604,0.0774
+SN130101,Séssène,Mbour,Thiès,8.5531,0.6223,0.0728
+SN020101,Lambaye,Bambey,Diourbel,6.8784,0.4655,0.0677
+SN020303,Kaèl,Mbacké,Diourbel,2.3442,0.1582,0.0675
+SN140201,Loudia Wolof,Oussouye,Ziguinchor,2.4552,0.1642,0.0669
+SN020103,Baba Garage,Bambey,Diourbel,2.8224,0.1743,0.0618
+SN130301,Niakhène,Tivaouane,Thiès,3.8823,0.2158,0.0556
+SN140103,Tendouck,Bignona,Ziguinchor,3.9223,0.209,0.0533
+SN100301,Rao,Saint Louis,Saint-Louis,14.0587,0.7344,0.0522
+SN130304,Mérina Dakhar,Tivaouane,Thiès,5.8366,0.2927,0.0502
+SN030301,Colobane,Gossas,Fatick,2.5709,0.1241,0.0483
+SN020202,Ndindy,Diourbel,Diourbel,2.8845,0.1357,0.047
+SN080302,Koki,Louga,Louga,4.0617,0.1896,0.0467
+SN080103,Sagata Geth,Kébémer,Louga,4.7563,0.2089,0.0439
+SN100204,Cas Cas,Podor,Saint-Louis,5.1476,0.2229,0.0433
+SN030302,Ouadiour,Gossas,Fatick,3.1056,0.1206,0.0388
+SN130103,Fissel,Mbour,Thiès,4.6304,0.1796,0.0388
+SN030101,Ndiob,Fatick,Fatick,3.8864,0.1239,0.0319
+SN030201,Djilor,Foundiougne,Fatick,5.8518,0.1814,0.031
+SN020102,Ngoye,Bambey,Diourbel,7.0134,0.2173,0.031
+SN050201,Ngothie,Kaolack,Kaolack,3.6534,0.1046,0.0286
+SN030103,Tataguine,Fatick,Fatick,7.0237,0.1932,0.0275
+SN100101,Ndiaye Ngènt,Dagana,Saint-Louis,7.056,0.1684,0.0239
+SN030104,Niakhar,Fatick,Fatick,5.0093,0.1103,0.022
+SN030203,Niodior,Foundiougne,Fatick,1.1628,0.0222,0.0191
+SN030102,Fimla,Fatick,Fatick,6.008,0.091,0.0151

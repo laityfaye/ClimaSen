@@ -1,0 +1,88 @@
+{
+  "protocole": "outputs/vulnerabilite/alea_urbain/PROTOCOLE.md (commit 8a6800d)",
+  "n_departements": 46,
+  "n_touches_A": 22,
+  "bootstrap": 5000,
+  "graine": 20261001,
+  "T1": {
+    "auc": 0.468,
+    "ic95": [
+      0.307,
+      0.638
+    ],
+    "p_mann_whitney": 0.6498,
+    "critere_satisfait": false
+  },
+  "T2": {
+    "coef_rang_U": 1.128,
+    "lr": 0.666,
+    "p": 0.4144,
+    "coef_rang_population": 5.979,
+    "critere_satisfait": false
+  },
+  "T3_U_abs": {
+    "auc": 0.676,
+    "ic95": [
+      0.498,
+      0.826
+    ]
+  },
+  "T4_U_x_E": {
+    "auc": 0.693,
+    "ic95": [
+      0.519,
+      0.848
+    ]
+  },
+  "reference_population": {
+    "auc": 0.845,
+    "ic95": [
+      0.72,
+      0.945
+    ]
+  },
+  "decision": "T1 non satisfait : piste testee et ecartee, resultat publie tel quel.",
+  "sensibilite_pour_information": [
+    {
+      "fenetre": 11,
+      "seuil_m": -1.0,
+      "auc": 0.564,
+      "ic95": [
+        0.4,
+        0.731
+      ]
+    },
+    {
+      "fenetre": 41,
+      "seuil_m": -1.0,
+      "auc": 0.366,
+      "ic95": [
+        0.21,
+        0.534
+      ]
+    },
+    {
+      "fenetre": 21,
+      "seuil_m": -0.5,
+      "auc": 0.468,
+      "ic95": [
+        0.301,
+        0.638
+      ]
+    },
+    {
+      "fenetre": 21,
+      "seuil_m": -2.0,
+      "auc": 0.447,
+      "ic95": [
+        0.288,
+        0.625
+      ]
+    }
+  ],
+  "couverture": {
+    "cellules_sans_altitude_dans_le_pays": 0,
+    "bati_total_km2": 703.3,
+    "part_nationale_du_bati_en_terrain_bas": 0.19
+  }
+}
