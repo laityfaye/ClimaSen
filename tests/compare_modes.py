@@ -32,7 +32,7 @@ MESURE = """() => {
         };
     });
     const jarvis = Array.from(document.querySelectorAll('iframe'))
-        .find(f => (f.srcdoc || '').indexOf('Jarvis ClimatSen') !== -1);
+        .find(f => (f.srcdoc || '').indexOf('Iris ClimatSen') !== -1);
     const rj = jarvis ? jarvis.getBoundingClientRect() : null;
     const rb = bloc ? bloc.getBoundingClientRect() : null;
     return {
@@ -76,7 +76,7 @@ def principal():
         limite = time.time() + 90
         while time.time() < limite:
             pret = page.evaluate("""() => Array.from(document.querySelectorAll('iframe'))
-                .some(f => (f.srcdoc || '').indexOf('Jarvis ClimatSen') !== -1)
+                .some(f => (f.srcdoc || '').indexOf('Iris ClimatSen') !== -1)
                 && document.querySelectorAll('.js-plotly-plot').length > 0""")
             if pret:
                 break

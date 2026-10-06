@@ -80,7 +80,7 @@ class Settings(BaseSettings):
     # --- Voix neuronale (jarvis/voix.py) ---------------------------------------
     # false = le widget utilise la voix du navigateur (plus robotique).
     tts_enabled: bool = True
-    tts_voice: str = "fr-FR-HenriNeural"      # la voix de JARVIS-pro
+    tts_voice: str = "fr-FR-DeniseNeural"     # voix feminine, pour Iris
     tts_rate: str = "+5%"
     # Par ADRESSE: une reponse orale fait 2 a 5 appels, l'accueil 3 a 6.
     tts_rate_limit_capacity: int = 60

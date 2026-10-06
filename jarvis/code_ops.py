@@ -120,8 +120,8 @@ def _verifier_ecriture(rel: str) -> Path:
             "Ecriture refusee: seuls scripts/, src/ et tests/ sont modifiables "
             "(demande: %s)." % rel)
     if rel in FICHIERS_ECRITURE_INTERDITS:
-        raise RefusCode("Ce fichier releve de la securite de Jarvis et n'est "
-                        "pas modifiable par Jarvis: %s" % rel)
+        raise RefusCode("Ce fichier releve de la securite d'Iris et n'est "
+                        "pas modifiable par Iris: %s" % rel)
     if chemin.suffix.lower() not in EXTENSIONS_ECRITURE:
         raise RefusCode("Type de fichier non modifiable: %s" % chemin.suffix)
     return chemin
@@ -326,7 +326,7 @@ def appliquer_modification(payload: dict) -> dict:
         actuel = chemin.read_text(encoding="utf-8")
         if empreinte(actuel) != payload["empreinte_avant"]:
             raise RefusCode("Le fichier a change depuis la proposition: rien "
-                            "n'a ete ecrit. Redemander a Jarvis.")
+                            "n'a ete ecrit. Redemander a Iris.")
         horodatage = time.strftime("%Y%m%d-%H%M%S")
         sauvegarde = SAUVEGARDES / ("%s.%s.bak" % (rel.replace("/", "__"), horodatage))
         sauvegarde.parent.mkdir(parents=True, exist_ok=True)

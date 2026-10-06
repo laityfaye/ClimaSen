@@ -38,8 +38,8 @@ VARIABLES = ["precipitation", "anomalie"]
 SEUIL = 2.0
 
 DESCRIPTION = (
-    "Affiche une CARTE sur l'ecran de l'utilisateur (grand format en mode "
-    "J.A.R.V.I.S, sous ta reponse dans la bulle). Types: sst_cluster "
+    "Affiche une CARTE sur l'ecran de l'utilisateur (grand format en plein "
+    "ecran, sous ta reponse dans la bulle). Types: sst_cluster "
     "(anomalies SST globales 60S-60N du centroide d'un cluster K-Means, avec "
     "les boites des indices: le motif oceanique du cluster; phase et cluster "
     "requis), cluster_senegal (composite sur le Senegal de tous les "

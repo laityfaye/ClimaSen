@@ -33,7 +33,7 @@ def test_tts_rend_du_mp3_avec_la_voix_configuree(client, token, faux_tts):
     assert r.status_code == 200
     assert r.headers["content-type"] == "audio/mpeg"
     assert r.content == b"ID3-faux-mp3"
-    assert faux_tts == [("Bonjour, je suis Jarvis.", "fr-FR-HenriNeural", "+5%")]
+    assert faux_tts == [("Bonjour, je suis Jarvis.", "fr-FR-DeniseNeural", "+5%")]
 
 
 def test_tts_exige_un_jeton(client, faux_tts):

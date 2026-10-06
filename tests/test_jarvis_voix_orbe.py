@@ -120,7 +120,7 @@ def test_accueil_par_profil_et_local():
     accueil = SOURCE[SOURCE.index("function texteAccueil("):]
     accueil = accueil[:accueil.index("function saluer(")]
     assert "fetch(" not in accueil                    # aucun appel au modele
-    admin, public = accueil.split("return s + \", je suis **Jarvis**")
+    admin, public = accueil.split("return s + \", je suis **Iris**")
     # Les capacites admin n'apparaissent pas dans l'accueil public.
     assert "**Code**" in admin and "**Code**" not in public
     assert "approbation" in admin

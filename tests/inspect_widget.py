@@ -51,7 +51,7 @@ def principal():
         while time.time() < limite:
             vue_jarvis = page.evaluate("""() => Array.from(
                 document.querySelectorAll('iframe')).some(
-                f => (f.srcdoc || '').indexOf('Jarvis ClimatSen') !== -1)""")
+                f => (f.srcdoc || '').indexOf('Iris ClimatSen') !== -1)""")
             if vue_jarvis:
                 break
             time.sleep(1.5)
@@ -75,7 +75,7 @@ def principal():
                     zIndex: cs.zIndex,
                     rect: {x: Math.round(r.x), y: Math.round(r.y),
                            w: Math.round(r.width), h: Math.round(r.height)},
-                    estJarvis: (f.srcdoc || '').indexOf('Jarvis ClimatSen') !== -1,
+                    estJarvis: (f.srcdoc || '').indexOf('Iris ClimatSen') !== -1,
                 };
             });
         }""")
@@ -144,7 +144,7 @@ def principal():
                 time.sleep(1.2)
                 apres = page.evaluate("""() => {
                     const f = Array.from(document.querySelectorAll('iframe'))
-                        .find(x => (x.srcdoc || '').indexOf('Jarvis ClimatSen') !== -1);
+                        .find(x => (x.srcdoc || '').indexOf('Iris ClimatSen') !== -1);
                     const r = f.getBoundingClientRect();
                     return {w: Math.round(r.width), h: Math.round(r.height),
                             x: Math.round(r.x), y: Math.round(r.y)};

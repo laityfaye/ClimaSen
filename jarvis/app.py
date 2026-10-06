@@ -354,7 +354,7 @@ def create_app(settings: Optional[Settings] = None) -> FastAPI:
                 pass
 
     app = FastAPI(
-        title="Jarvis ClimatSen",
+        title="Iris ClimatSen",
         version=__version__,
         docs_url="/jarvis/docs" if settings.env == "dev" else None,
         openapi_url="/jarvis/openapi.json" if settings.env == "dev" else None,

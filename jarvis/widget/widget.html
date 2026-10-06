@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Jarvis ClimatSen</title>
+<title>Iris ClimatSen</title>
 <style>
   /* Palette ClimatSen : bleu ocean profond, turquoise, accent corail.
      Alignee sur les constantes du dashboard (scripts/dashboard_utils.py). */
@@ -467,7 +467,7 @@
   body.hud .msg.user::before,body.hud .msg.bot::before{display:block;margin-bottom:5px;
     font-family:var(--mono);font-size:.54rem;font-weight:700;letter-spacing:.22em;white-space:normal}
   body.hud .msg.user::before{content:"VOUS";color:rgba(230,251,255,.55);text-align:right}
-  body.hud .msg.bot::before{content:"J.A.R.V.I.S";color:rgba(0,229,255,.6)}
+  body.hud .msg.bot::before{content:"I.R.I.S";color:rgba(0,229,255,.6)}
   body.hud .fig{width:100%}
   /* Le bandeau passe au-dessus des fenetres: opaque, sinon il se lisait
      a travers le titre de la carte. */
@@ -853,7 +853,7 @@
   <canvas id="hud-orbe2d" class="orbe" aria-hidden="true"></canvas>
   <div class="hud-grille"></div>
   <button id="hud-menu-btn" type="button" aria-expanded="false">&#9670; MENU</button>
-  <div id="hud-astuce">DEMANDEZ : "JARVIS, QUE MONTRE CETTE PAGE ?"</div>
+  <div id="hud-astuce">DEMANDEZ : "IRIS, QUE MONTRE CETTE PAGE ?"</div>
   <div id="hud-accueil" hidden>
     <div class="ha-col ha-g">
       <button type="button" class="ha-tuile" data-q="Quels oceans influencent le plus les pluies extremes de pleine saison au Senegal, et avec quel decalage ?">
@@ -880,7 +880,7 @@
       </button>
     </div>
   </div>
-  <nav id="hud-menu" aria-label="Commandes de Jarvis">
+  <nav id="hud-menu" aria-label="Commandes d'Iris">
     <div class="hm-titre">&#9670; CONTROLES_SYSTEME // CLIMATSEN</div>
     <div class="hm-section">ANALYSES CLIMATIQUES</div>
     <button type="button" data-q="Montre-moi la carte des correlations de pleine saison et dis-moi lesquelles sont vraiment robustes.">TELECONNEXIONS // PLEINE SAISON</button>
@@ -934,7 +934,7 @@
     <div class="sb-ligne"><div id="sb-etapes" style="flex:1"></div><span id="sb-etat"></span></div>
   </section>
   <button type="button" id="analyse-agrandir" title="Revenir au plein ecran">&#9670; PLEIN ECRAN</button>
-  <button type="button" id="apercu-retour">&#9670; RETOUR A JARVIS</button>
+  <button type="button" id="apercu-retour">&#9670; RETOUR A IRIS</button>
   <div id="hud-horloge">
     <span class="hh-coin hh-hg"></span><span class="hh-coin hh-hd"></span>
     <span class="hh-coin hh-bg"></span><span class="hh-coin hh-bd"></span>
@@ -956,7 +956,7 @@
     </button>
     <div id="hud-lien" class="hors">&#9679; <span id="hud-lien-txt">connexion</span></div>
   </div>
-  <section id="hud-ecran" aria-label="Carte affichee par Jarvis">
+  <section id="hud-ecran" aria-label="Carte affichee par Iris">
     <span class="hh-coin hh-hg"></span><span class="hh-coin hh-hd"></span>
     <span class="hh-coin hh-bg"></span><span class="hh-coin hh-bd"></span>
     <div class="ec-tete">
@@ -978,22 +978,22 @@
   </section>
   <div id="hud-soustitre" aria-live="polite"></div>
   <div id="hud-boutons">
-    <button class="hud-rond" id="hud-micro" type="button" title="Parler a Jarvis (la reconnaissance vocale du navigateur peut transmettre l'audio a son fournisseur)" aria-label="Parler a Jarvis" hidden>
+    <button class="hud-rond" id="hud-micro" type="button" title="Parler a Iris (la reconnaissance vocale du navigateur peut transmettre l'audio a son fournisseur)" aria-label="Parler a Iris" hidden>
       <svg viewBox="0 0 24 24"><path d="M12 14a3 3 0 0 0 3-3V5a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.9V21h2v-3.1A7 7 0 0 0 19 11h-2z"/></svg>
     </button>
     <button class="hud-rond" id="hud-stop" type="button" title="Arreter (voix et reponse en cours)" aria-label="Arreter">
       <svg viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="1.5"/></svg>
     </button>
-    <button class="hud-rond" id="hud-continu" type="button" title="Ecoute continue : commencez vos phrases par &laquo; Jarvis &raquo;" aria-label="Ecoute continue" aria-pressed="false" hidden>
+    <button class="hud-rond" id="hud-continu" type="button" title="Ecoute continue : commencez vos phrases par &laquo; Iris &raquo;" aria-label="Ecoute continue" aria-pressed="false" hidden>
       <svg viewBox="0 0 24 24"><path d="M12 3a7 7 0 0 0-7 7c0 2.7 1.2 4 2.3 5.2.9 1 1.7 1.9 1.7 3.3a2.5 2.5 0 0 0 5 0h-2a.5.5 0 0 1-1 0c0-2.2-1.2-3.5-2.2-4.6C7.8 12.8 7 11.9 7 10a5 5 0 0 1 10 0h2a7 7 0 0 0-7-7zm0 4a3 3 0 0 0-3 3h2a1 1 0 0 1 2 0c0 .8-.4 1.2-1 1.8-.7.7-1.5 1.5-1.5 3.2h2c0-.8.4-1.2 1-1.8.7-.7 1.5-1.5 1.5-3.2a3 3 0 0 0-3-3z"/></svg>
     </button>
   </div>
   <div id="hud-statut">en attente</div>
-  <div id="hud-pied">J.A.R.V.I.S &middot; CLIMATSEN &middot; BY INNOSFT.COM</div>
+  <div id="hud-pied">I.R.I.S &middot; CLIMATSEN &middot; BY INNOSFT.COM</div>
   <div id="hud-boot" hidden>
     <div class="hb-anneau"><i></i></div>
-    <div class="hb-titre">J.A.R.V.I.S</div>
-    <div class="hb-sous">JUST A RATHER VERY INTELLIGENT SYSTEM</div>
+    <div class="hb-titre">I.R.I.S</div>
+    <div class="hb-sous">INTELLIGENCE DE RECHERCHE SUR LES INTEMPERIES DU SENEGAL</div>
     <div class="hb-sous2">CLIMATSEN &middot; BUILD INNOSOFT &middot; 2026</div>
     <div class="hb-sep">&#9670; INITIALISATION DES PROTOCOLES &#9670;</div>
     <div id="hb-modules"></div>
@@ -1009,11 +1009,11 @@
       <canvas class="orbe" id="orbe-tete" aria-hidden="true"></canvas>
     </div>
     <div class="htxt">
-      <div class="htitle">Jarvis<span class="badge-admin">ADMIN</span></div>
+      <div class="htitle">Iris<span class="badge-admin">ADMIN</span></div>
       <div class="hsub"><span class="dot" id="dot"></span><span id="status">Assistant ClimatSen</span></div>
     </div>
     <button class="hquit" id="quit" title="Revenir au profil public">Quitter</button>
-    <button class="hclose" id="hud-btn" title="Mode J.A.R.V.I.S plein ecran" aria-label="Mode J.A.R.V.I.S plein ecran">&#9670; J.A.R.V.I.S</button>
+    <button class="hclose" id="hud-btn" title="Mode I.R.I.S plein ecran" aria-label="Mode I.R.I.S plein ecran">&#9670; I.R.I.S</button>
     <button class="hclose" id="voix" title="Lire les reponses a voix haute" aria-label="Lecture vocale" aria-pressed="false" hidden>
       <svg viewBox="0 0 24 24"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3A4.5 4.5 0 0 0 14 8v8a4.5 4.5 0 0 0 2.5-4zM14 3.2v2.1a7 7 0 0 1 0 13.4v2.1a9 9 0 0 0 0-17.6z"/></svg>
     </button>
@@ -1029,7 +1029,7 @@
   <div id="log">
     <div class="intro" id="intro">
       <div class="big">&#127783;</div>
-      <h4>Bonjour, je suis Jarvis</h4>
+      <h4>Bonjour, je suis Iris</h4>
       <p>L'assistant de ClimatSen&nbsp;: les pluies extr&ecirc;mes au S&eacute;n&eacute;gal,<br>
       les oc&eacute;ans qui les influencent, et la veille avant chaque saison.</p>
       <div class="chips">
@@ -1062,7 +1062,7 @@
 <div id="nav-toast" role="status" aria-live="polite"><span>&#9670; DASHBOARD // <b id="nav-toast-page"></b></span><button type="button" id="nav-toast-voir">VOIR</button></div>
 
 <div class="fab-wrap">
-  <button id="fab" title="Ouvrir Jarvis" aria-label="Ouvrir l'assistant Jarvis">
+  <button id="fab" title="Ouvrir Iris" aria-label="Ouvrir l'assistante Iris">
     <canvas class="orbe" id="orbe-fab" aria-hidden="true"></canvas>
     <span class="badge"></span>
   </button>
@@ -1545,7 +1545,7 @@
       .then(function(blob){
         var lien = document.createElement("a");
         lien.href = URL.createObjectURL(blob);
-        lien.download = "jarvis-figure.csv";
+        lien.download = "iris-figure.csv";
         document.body.appendChild(lien);
         lien.click();
         setTimeout(function(){ URL.revokeObjectURL(lien.href); lien.remove(); }, 1000);
@@ -1704,7 +1704,7 @@
         var lien = document.createElement("a");
         lien.href = url;
         // Une animation est un GIF: l'extension suit le type recu.
-        lien.download = url.indexOf("data:image/gif") === 0 ? "jarvis-animation.gif" : "jarvis-carte.png";
+        lien.download = url.indexOf("data:image/gif") === 0 ? "iris-animation.gif" : "iris-carte.png";
         document.body.appendChild(lien);
         lien.click();
         setTimeout(function(){ lien.remove(); }, 500);
@@ -1929,7 +1929,7 @@
         n += 1;
         var el = doc.createElement("div");
         el.className = "jarvis-cadre lit";
-        el.innerHTML = "<b>JARVIS \u00b7 " + n + "</b>";
+        el.innerHTML = "<b>IRIS \u00b7 " + n + "</b>";
         doc.body.appendChild(el);
         cadres.push({el: el, cible: gd});
       });
@@ -2010,7 +2010,7 @@
       var el = doc.createElement("div");
       el.className = "jarvis-cadre courant";
       var b = doc.createElement("b");
-      b.textContent = "JARVIS \u00b7 " + n + "/" + parcours.items.length +
+      b.textContent = "IRIS \u00b7 " + n + "/" + parcours.items.length +
                       (it.titre ? " \u00b7 " + it.titre.slice(0, 70) : "");
       el.appendChild(b);
       doc.body.appendChild(el);
@@ -2127,7 +2127,7 @@
       $("sb-label").textContent = prog.chemin === "briefing"
         ? "\u25c6 BRIEFING VEILLE" : "\u25c6 SOUTENANCE";
       if(!state.online || !state.token){
-        warn("Soutenance indisponible.", "Jarvis n'est pas connecte au serveur.");
+        warn("Soutenance indisponible.", "Iris n'est pas connecte au serveur.");
         return;
       }
       Hud.entrer(true);
@@ -2467,7 +2467,7 @@
       if(state.continu){
         // Ecoute continue, comme dans JARVIS-pro: seules les phrases qui
         // contiennent le mot d'appel partent, le reste est ignore.
-        var m = v.match(/\bjarvis\b[\s,.:;!?-]*(.*)$/i);
+        var m = v.match(/\biris\b[\s,.:;!?-]*(.*)$/i);
         if(m && m[1].trim()){ input.value = ""; autoGrow(); ask(m[1].trim()); }
         else { input.value = debut; autoGrow(); refreshSend(); relancerEcoute(); }
         return;
@@ -2602,7 +2602,7 @@
     enLecture = true;
     return lectureCourante = {no: lectureNo, file: [], fini: false, joue: false, consomme: 0,
             lang: null,
-            // Voix neuronale du serveur (Henri, comme JARVIS-pro); celle du
+            // Voix neuronale du serveur (Denise); celle du
             // navigateur reste le repli, et la seule pour l'anglais.
             neuronal: !!(state.sante && state.sante.tts && state.token)};
   }
@@ -2741,7 +2741,7 @@
     p.onerror = function(e){
       if(e && (e.error === "interrupted" || e.error === "canceled")){ return; }
       if(e && e.error === "not-allowed"){
-        warn("Lecture vocale bloquee.", "Cliquez une fois dans la fenetre Jarvis, puis reessayez.");
+        warn("Lecture vocale bloquee.", "Cliquez une fois dans la fenetre Iris, puis reessayez.");
       }
       if(L.no === lectureNo){ suite(); }
     };
@@ -3858,7 +3858,7 @@
         (enProd ? "Documents et code ne sont accessibles que sur ton poste, pas sur ce serveur.\n\n" : "") +
         "Rien n'est écrit, exécuté ni diffusé sans ton approbation d'un clic.";
     }
-    return s + ", je suis **Jarvis**, l'assistant de ClimatSen. Je travaille sur les pluies extrêmes " +
+    return s + ", je suis **Iris**, l'assistante de ClimatSen. Je travaille sur les pluies extrêmes " +
       "au Sénégal depuis 1981 et sur les océans qui les influencent.\n\n" +
       "- **Comprendre** : les événements extrêmes, les indices océaniques, les **Téléconnexions** et les " +
       "régimes océaniques, chiffres tirés des données et sources citées.\n" +
@@ -3893,7 +3893,7 @@
     if(admin){
       return s + " Laity. Ta session administrateur est ouverte. En plus de tout ce que je fais pour les visiteurs, je peux chercher dans ton m\u00e9moire et te proposer des corrections, lire le code du projet, lancer une analyse, tenir la veille mois par mois, et pr\u00e9parer la diffusion du bulletin. Rien n'est \u00e9crit ni envoy\u00e9 sans ton accord. On commence par quoi ?";
     }
-    return s + ", je suis Jarvis, l'assistant de Climat-Sen. Je vous aide \u00e0 comprendre les pluies extr\u00eames au S\u00e9n\u00e9gal et les oc\u00e9ans qui les influencent, cartes \u00e0 l'appui. Je tiens aussi la veille avant chaque saison : je peux vous dire quel risque elle annonce, et \u00e0 quel point on peut s'y fier. Et si vous le voulez, je vous pr\u00e9sente le bulletin \u00e0 voix haute. Parlez-moi, ou \u00e9crivez-moi : que puis-je faire pour vous ?";
+    return s + ", je suis Iris, l'assistante de Climat-Sen. Je vous aide \u00e0 comprendre les pluies extr\u00eames au S\u00e9n\u00e9gal et les oc\u00e9ans qui les influencent, cartes \u00e0 l'appui. Je tiens aussi la veille avant chaque saison : je peux vous dire quel risque elle annonce, et \u00e0 quel point on peut s'y fier. Et si vous le voulez, je vous pr\u00e9sente le bulletin \u00e0 voix haute. Parlez-moi, ou \u00e9crivez-moi : que puis-je faire pour vous ?";
   }
 
   function quitterAdmin(){
@@ -4180,7 +4180,7 @@
       .catch(function(err){
         trace("backend injoignable :", err && err.message);
         setOnline(false, "Hors ligne");
-        warn("Jarvis est momentanement indisponible.",
+        warn("Iris est momentanement indisponible.",
              "La plateforme, elle, fonctionne normalement. Reessayez dans un instant.");
       });
   }
@@ -4384,7 +4384,7 @@
         typing(false);
         clearOutil();
         failed = true;
-        warn("Jarvis n'a pas pu repondre.", data.message || "");
+        warn("Iris n'a pas pu repondre.", data.message || "");
       }
     }
   }

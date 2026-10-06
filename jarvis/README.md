@@ -1,4 +1,9 @@
-# Jarvis ClimatSen — backend
+# Iris ClimatSen — backend
+
+> L'assistante s'appelait « Jarvis » jusqu'au 06/10/2026. Seul le nom affiché a
+> changé : le package `jarvis/`, les variables `JARVIS_*`, le service
+> `jarvis.service` et le chemin `/jarvis/` gardent l'ancien nom, pour ne pas
+> toucher au déploiement.
 
 Assistant IA de la plateforme ClimatSen, adossé à l'API Claude (Anthropic).
 Un seul cerveau, deux profils d'accès : **public** (widget en lecture seule) et
@@ -9,7 +14,7 @@ dashboard, outils d'analyse), 8 (figures), 9 (lecture visuelle du dashboard),
 10 (code et tâches), 11 (voix et orbe) et 12 (revue de sécurité) sont codées
 et testées. **Reste à faire** : les essais contre la vraie API, bloqués par un
 crédit Anthropic épuisé au moment du développement. **Une seule interface** : la
-bulle Jarvis du dashboard. On y tape son mot de passe dans le champ de saisie
+bulle Iris du dashboard. On y tape son mot de passe dans le champ de saisie
 pour passer en profil administrateur.
 
 ---
@@ -25,14 +30,14 @@ cp .env.example .env
 py -3 -c "import secrets; print(secrets.token_urlsafe(48))"   # → JARVIS_SECRET_KEY
 #   puis renseigner ANTHROPIC_API_KEY dans .env
 
-# 3. Backend Jarvis (port 8010 en local : JARVIS-pro occupe deja le 8000)
+# 3. Backend Iris (port 8010 en local : JARVIS-pro occupe deja le 8000)
 py -3 -m uvicorn jarvis.app:create_app --factory --reload --port 8010
 
 # 4. Dashboard, dans un second terminal (port 8501)
 py -3 -m streamlit run scripts/dashboard.py
 ```
 
-La bulle Jarvis apparaît en bas à droite du dashboard.
+La bulle Iris apparaît en bas à droite du dashboard.
 
 Vérification rapide sans navigateur :
 
@@ -53,7 +58,7 @@ py -3 -m pytest tests/test_jarvis_*.py -q
 Aucun test ne joint l'API Anthropic : le client Claude est remplacé par un
 double (`FakeClaude` dans `tests/conftest.py`). **La suite ne coûte rien.**
 
-Pour lancer l'ensemble du dépôt (Jarvis + téléconnexions, 581 tests, ~3 min) :
+Pour lancer l'ensemble du dépôt (Iris + téléconnexions, 581 tests, ~3 min) :
 
 ```bash
 py -3 -m pytest tests/ -q
@@ -124,7 +129,7 @@ jarvis/knowledge/
 ```
 
 **Une seule source de vérité.** Les outils passent par les loaders du dashboard,
-jamais par une relecture maison des CSV. Si Jarvis et le module Téléconnexions
+jamais par une relecture maison des CSV. Si Iris et le module Téléconnexions
 annonçaient deux chiffres différents pour la même question, la plateforme
 perdrait sa crédibilité.
 
@@ -142,7 +147,7 @@ rappelle dans chaque réponse, et le prompt système en fait une règle.
 
 ### La base documentaire (Phase 3)
 
-Le mémoire (18 400 mots) et l'article (10 200 mots) donnent à Jarvis de quoi
+Le mémoire (18 400 mots) et l'article (10 200 mots) donnent à Iris de quoi
 répondre aux questions de **méthode** : pourquoi CHIRPS, comment un événement
 extrême est détecté, ce que corrige l'AR1. Les outils de données disent
 *combien*, celui-ci dit *pourquoi*.
@@ -190,7 +195,7 @@ renvoyait tout le fil, n'importe qui pourrait pousser 200 000 tokens dans une
 requête et faire exploser la facture.
 
 **Service séparé du dashboard.** `jarvis.service` et `climatsen.service` sont
-deux unités systemd distinctes : une panne de Jarvis ne peut pas faire tomber la
+deux unités systemd distinctes : une panne de Iris ne peut pas faire tomber la
 plateforme.
 
 **Préfixe `/jarvis` dans les routes elles-mêmes.** Le chemin est identique en
@@ -213,7 +218,7 @@ dessus sans rien refondre.
 | `POST` | `/jarvis/api/chat/sync` | jeton | même chose, non streamée |
 | `GET` | `/jarvis/api/conversation/{id}` | jeton | relit un fil |
 | `GET` | `/jarvis/widget.html` | — | widget en autonome |
-| `GET` | `/jarvis/static/jarvis-orb.js` | — | orbe 3D du mode J.A.R.V.I.S (seul fichier servi) |
+| `GET` | `/jarvis/static/jarvis-orb.js` | — | orbe 3D du mode I.R.I.S (seul fichier servi) |
 | `POST` | `/jarvis/api/admin/login` | — | ouvre une session admin |
 | `POST` | `/jarvis/api/admin/logout` | jeton admin | ferme et révoque la session |
 | `GET` | `/jarvis/api/admin/me` | jeton admin | état de la session |
@@ -224,7 +229,7 @@ dessus sans rien refondre.
 | `POST` | `/jarvis/api/admin/actions/{id}/reject` | jeton admin | refuse une proposition |
 | `POST` | `/jarvis/api/admin/actions/{id}/revert` | jeton admin | annule une modification de code appliquée |
 
-Le jeton passe dans l'en-tête `X-Jarvis-Session`.
+Le jeton passe dans l'en-tête `X-Iris-Session`.
 
 Événements SSE : `meta` (conversation_id, modèle) → `tool`* (un par outil, juste
 avant sa lecture) → `delta`* (fragments de texte) → `done` (usage en tokens
@@ -314,7 +319,7 @@ sont testés.
 profil admin, ils travaillent sur les **fichiers vivants**, pas sur l'index figé
 qu'interroge `search_documents`.
 
-### Pourquoi Jarvis ne peut pas écrire
+### Pourquoi Iris ne peut pas écrire
 
 Un outil qui accepterait un paramètre `confirmer=true` ne prouverait rien :
 c'est le **modèle** qui compose les arguments. Il peut mettre ce drapeau
@@ -324,7 +329,7 @@ consigne de prompt ne protège pas un fichier.
 D'où la séparation en deux chemins :
 
 ```
-Jarvis  ──propose──>  registre d'actions  ──clic de l'utilisateur──>  serveur écrit
+Iris  ──propose──>  registre d'actions  ──clic de l'utilisateur──>  serveur écrit
 (outil)               (en attente, 30 min)   (route HTTP, pas un outil)
 ```
 
@@ -353,7 +358,7 @@ Après une modification, l'index documentaire est périmé : relancer
 ## Le contexte du dashboard (Phase 7)
 
 La bulle joint à chaque question **la page ouverte et les filtres réglés** :
-Jarvis comprend « ce graphique », « cette phase », « l'événement affiché »
+Iris comprend « ce graphique », « cette phase », « l'événement affiché »
 sans faire répéter la question.
 
 ```
@@ -493,7 +498,7 @@ protocole de la Phase 5. Les règles vivent dans `jarvis/code_ops.py`.
 
 **Écrire en place, pas sur une branche.** Le plan prévoyait une branche git
 dédiée. Mais le dossier de travail porte souvent des changements non
-commités : une branche partirait du dernier commit, et Jarvis modifierait une
+commités : une branche partirait du dernier commit, et Iris modifierait une
 autre version des fichiers que celle affichée. L'écriture se fait donc en
 place, encadrée à chaque étape :
 
@@ -549,10 +554,10 @@ bulle publique affichée sur chaque page, c'était hors de proportion. Ici, 90
 particules réparties en spirale de Fibonacci sur un canvas 2D, à 30 images
 par seconde au plus, en pause quand l'onglet est caché, et figées si
 l'utilisateur a demandé moins d'animations (`prefers-reduced-motion`). Quatre
-états : repos, écoute, réflexion (Jarvis lit les données), parole. Elle
+états : repos, écoute, réflexion (Iris lit les données), parole. Elle
 remplace l'icône du bouton flottant et l'avatar de l'en-tête.
 
-## L'interface J.A.R.V.I.S
+## L'interface I.R.I.S
 
 L'interface reprend celle de **JARVIS-pro**, l'assistant de bureau de Laity :
 noir, cyan `#00E5FF` lumineux, police monospace, coins en équerre, lignes de
@@ -561,15 +566,15 @@ thème du dashboard.
 
 **La bulle** (compacte) prend ce style, avec l'orbe 2D de la Phase 11 en cyan.
 
-**Le mode J.A.R.V.I.S** (bouton `◆ J.A.R.V.I.S` de l'en-tête) passe l'iframe
+**Le mode I.R.I.S** (bouton `◆ I.R.I.S` de l'en-tête) passe l'iframe
 en plein écran et reproduit l'écran de JARVIS-pro :
 
-- **écran de démarrage** « J.A.R.V.I.S », une fois par session. Chaque module
+- **écran de démarrage** « I.R.I.S », une fois par session. Chaque module
   affiche un **état réel** (serveur, clé Claude, nombre d'outils, lien au
   dashboard, voix, WebGL), jamais un « ONLINE » décoratif ;
 - **l'orbe 3D de la version bureau de JARVIS-pro** (`frontend/src/orb.ts`
   et ses neuf modèles), la même que sur ton écran, qui réagit aux états de
-  Jarvis (repos, écoute, réflexion, parole, avec le volume simulé de
+  Iris (repos, écoute, réflexion, parole, avec le volume simulé de
   JARVIS-pro) ;
 - **l'horloge HUD** (profil, heure, nombre d'outils), le badge de connexion,
   la consigne « DEMANDEZ : … » et la signature en pied de page ;
@@ -578,7 +583,7 @@ en plein écran et reproduit l'écran de JARVIS-pro :
   page, lecture vocale, écoute continue, mode admin, retour au dashboard) ;
 - **les trois boutons ronds** : micro, stop (coupe la voix, l'écoute **et la
   réponse en cours**), écoute continue. En écoute continue, seules les
-  phrases contenant « Jarvis » partent, comme le mot d'appel de JARVIS-pro.
+  phrases contenant « Iris » partent, comme le mot d'appel de JARVIS-pro.
   Dessous, le statut : *en attente*, *écoute...*, *analyse...*, *parle...* ;
 - **voix d'abord, comme JARVIS-pro** : au centre, l'orbe seule. La réponse
   s'affiche en sous-titre au-dessus des boutons. La transcription (icône
@@ -614,10 +619,10 @@ puis recopier le fichier dans `jarvis/hud/` en gardant l'en-tête de provenance.
 | Capacité | Où | Principe |
 |---|---|---|
 | Recalcul à la demande | `recompute_correlation`, `jarvis/analyses.py` | Fonctions **importées** du script 04 : sur la période complète, le recalcul redonne les CSV au 1/10 000 (330/330 vérifiées). Exclure des années, restreindre la période, comparer deux moitiés, tester l'influence de chaque année. Aucun code du modèle n'est exécuté. |
-| Années analogues | `find_analog_years` | Distance sur indices standardisés (mois qui précèdent la phase). Porte **toujours** la compétence mesurée (validation croisée) : r ≈ 0,1-0,2, non significative. Jarvis doit dire que ce n'est pas une prévision. |
+| Années analogues | `find_analog_years` | Distance sur indices standardisés (mois qui précèdent la phase). Porte **toujours** la compétence mesurée (validation croisée) : r ≈ 0,1-0,2, non significative. Iris doit dire que ce n'est pas une prévision. |
 | Pilotage du dashboard | `navigate_dashboard`, événement SSE `navigation` | Consigne validée par `page_context`, déposée par le widget dans un champ caché (`jarvis_nav_cmd`), appliquée par `appliquer_navigation()` avant la création des sélecteurs. |
 | Animation SST | `animate_sst_event`, archive `jarvis/cartes/sst_evenements.npz` | 30 événements (10 par phase), J-150 à J0 tous les 15 jours, GIF. Archive construite hors ligne par `scripts/17_build_jarvis_sst_evenements.py` (les 42 Go d'OISST ne sont pas sur le serveur). |
-| Comparaison | écran J.A.R.V.I.S | Bouton COMPARER ; deux cartes dans une même réponse s'affichent côte à côte. |
+| Comparaison | écran I.R.I.S | Bouton COMPARER ; deux cartes dans une même réponse s'affichent côte à côte. |
 | Mode soutenance | `jarvis/soutenance.py`, `/api/soutenance[/n]`, menu PRÉSENTATION | 8 étapes : page du dashboard, figure en grand, narration lue. **Narration composée par le code à partir des données** (aucun appel au modèle, rien d'inventé). Pause automatique quand le jury pose une question ; ← → espace pour piloter ; DASHBOARD montre la page à travers l'interface. |
 | Banc d'épreuve | `scripts/18_banc_epreuve_jarvis.py` | 16 questions à la vraie API (exactitude, pièges, sécurité, langue, capacités), attendus recalculés au lancement. Rapport dans `outputs/jarvis_banc/`. |
 
@@ -625,20 +630,20 @@ puis recopier le fichier dans `jarvis/hud/` en gardant l'en-tête de provenance.
 dans le HTML du widget mais dans un élément caché (`#jarvis-page-ctx`), et le
 widget occupe le **premier** emplacement de la page (`jarvis_slot`). Le HTML
 étant identique d'une exécution à l'autre, Streamlit ne recharge plus l'iframe
-à chaque clic : Jarvis ne se coupe plus en pleine phrase. Deux pièges constatés
+à chaque clic : Iris ne se coupe plus en pleine phrase. Deux pièges constatés
 en test de bout en bout : un emplacement en `position:fixed` enfermait l'iframe
 sous la barre latérale ; régler un filtre par `session_state` affichait un
 avertissement jaune (désactivé dans `.streamlit/config.toml`,
 `disableWidgetStateDuplicationWarning`).
 
 Après mise à jour : **redémarrer** Streamlit (le module `jarvis_widget` et la
-configuration sont lus au démarrage) et le service Jarvis, et déployer
+configuration sont lus au démarrage) et le service Iris, et déployer
 `jarvis/cartes/sst_evenements.npz`.
 
 ## Veille pré-saison (27/09/2026)
 
 Le bulletin d'avril (« la saison à venir sera-t-elle une année extrême ? ») est
-produit hors ligne par le paquet `veille/` (scripts 19 à 22) ; Jarvis ne lit
+produit hors ligne par le paquet `veille/` (scripts 19 à 22) ; Iris ne lit
 que ses sorties dans `outputs/veille/`.
 
 | Capacité | Où | Principe |
@@ -654,7 +659,7 @@ que ses sorties dans `outputs/veille/`.
 **Accueil et fond (27/09/2026).** La bulle ouvre directement le plein écran : quatre tuiles autour de l'orbe (comprendre, voir, anticiper, présenter), effacées à la première question. Fond d'écran : planisphère en points, graticule, balises des indices et Sénégal, SVG inline (~22 Ko) régénéré par `py -3 scripts/23_build_jarvis_fond_hud.py` entre les marqueurs `FOND_HUD` du widget ; animations coupées si `prefers-reduced-motion`.
 
 Déployer : `outputs/veille/` (bulletins, états, kits) et `pip install python-docx`
-dans le venv, puis redémarrer Jarvis et Streamlit.
+dans le venv, puis redémarrer Iris et Streamlit.
 
 ## Ajouter un outil
 
@@ -768,7 +773,7 @@ croisée d'une figure ou d'une proposition entre sessions, approbation ou
 annulation depuis un jeton public, secrets dans `deploy/`.
 
 **Risque résiduel assumé.** Une injection de consignes cachée dans un fichier
-lu par Jarvis peut l'amener à *proposer* une modification malveillante. Le
+lu par Iris peut l'amener à *proposer* une modification malveillante. Le
 garde-fou est humain : le diff complet est affiché, rien ne s'écrit sans un
 clic, et l'exécution demande un second clic. Relire le diff n'est pas une
 formalité.

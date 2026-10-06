@@ -75,7 +75,7 @@ def test_plein_ecran_ne_style_que_notre_iframe():
 
 
 def test_ecoute_continue_exige_le_mot_d_appel():
-    assert "bjarvis" in SOURCE
+    assert "biris" in SOURCE
     bloc = SOURCE[SOURCE.index("if(state.continu){"):]
     assert "ask(m[1].trim())" in bloc[:600]
 

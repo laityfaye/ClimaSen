@@ -1,13 +1,13 @@
-"""Synthese vocale neuronale (voix de Jarvis).
+"""Synthese vocale neuronale (voix d'Iris).
 
 La voix du navigateur (speechSynthesis) depend du systeme du visiteur: sous
 Windows elle sonne robotique. On synthetise donc cote serveur avec edge-tts,
-les voix neuronales Microsoft deja utilisees par JARVIS-pro
-(fr-FR-HenriNeural), sans cle ni cout.
+les voix neuronales Microsoft (comme JARVIS-pro), ici
+fr-FR-DeniseNeural, sans cle ni cout.
 
 edge-tts s'appuie sur le service en ligne de Microsoft Edge, sans contrat de
 service: il peut changer ou disparaitre. Le widget retombe alors de lui-meme
-sur la voix du navigateur -- une panne ici ne rend jamais Jarvis muet.
+sur la voix du navigateur -- une panne ici ne rend jamais Iris muette.
 
 Le texte envoye est deja celui qu'on a affiche au visiteur: aucune donnee
 nouvelle ne sort du serveur.

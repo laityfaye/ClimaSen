@@ -125,7 +125,7 @@ class RegistreActions:
             if action.expiree:
                 action.statut = EXPIREE
                 raise ActionIntrouvable(
-                    "Proposition expiree. Redemander a Jarvis.")
+                    "Proposition expiree. Redemander a Iris.")
             return action
 
     def obtenir(self, session_id: str, action_id: str) -> Action:
