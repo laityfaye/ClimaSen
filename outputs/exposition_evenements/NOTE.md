@@ -34,6 +34,12 @@ Les 553 communes du RGPH-5 ont toutes leur équivalent dans le fichier de l'ANSD
 
 **Pourquoi :** aucun contour public à jour des communes n'existe. GADM 4.1 en donne 431, dans un découpage ancien et sous une licence qui interdit la redistribution ; l'ANSD n'en publie pas.
 
+Sources vérifiées avant de reconstruire (octobre 2026) :
+- **ANSD** : interrogée par courriel, elle renvoie vers GADM et fournit les coordonnées des localités, sans contours ;
+- **OCHA (COD-AB 2024)** : contours jusqu'aux arrondissements (125), pas de communes ;
+- **GéoSénégal** (geosenegal.gouv.sn, données de l'ANAT) : la base au 1/200 000 décrit les limites administratives jusqu'à l'**arrondissement** (classe « région administrative de 3e ordre ») et date du découpage d'avant 2013 (elle mentionne les communautés rurales) ; la base au 1/50 000 ne compte que 62 feuilles, toutes dans la vallée du fleuve Sénégal (Dagana, Podor, Bakel, Matam, Saint-Louis...), sans la région de Dakar ;
+- **GADM 4.1** : 431 communes, découpage ancien, redistribution interdite.
+
 **Méthode :** chaque point du territoire est attribué à la localité ANSD la plus proche (diagramme de Voronoï), à l'intérieur de chacun des 46 départements OCHA 2024, puis les cellules sont regroupées par commune.
 
 **Résultat :** 552 communes (le fichier ANSD en compte 553, mais « NGUEUNE SARR » et « NGUEuNE SARR », dans le département de Louga, sont la même commune écrite deux fois), emboîtées dans les 46 départements actuels, pour une superficie totale de 196 767 km² (Sénégal : environ 196 700 km²). Pour les 406 communes qui existent aussi dans GADM, le recouvrement médian (IoU) est de 0,78, et 96 % dépassent 0,5.
