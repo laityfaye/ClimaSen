@@ -309,6 +309,40 @@ class ClaudeClient:
             "tools_used": outils_appeles,
         }
 
+    async def generer_json(self, system: str, messages: List[dict], schema: dict,
+                           profile: str = "public", max_tokens: int = 12000,
+                           effort: str = "medium", timeout: float = 180.0) -> dict:
+        """Un appel sans outils dont la reponse suit un schema JSON (rapports).
+
+        Sorties structurees (output_config.format): le texte renvoye est du
+        JSON valide pour `schema`. Delai propre plus long que le chat: une
+        redaction de rapport depasse souvent la minute.
+        """
+        thinking = {"type": "adaptive"}
+        if self.settings.thinking_public != "adaptive":
+            thinking = {"type": "disabled"}
+        kwargs = {
+            "model": self.model_for(profile),
+            "max_tokens": max_tokens,
+            "system": [{"type": "text", "text": system,
+                        "cache_control": {"type": "ephemeral"}}],
+            "messages": messages,
+            "thinking": thinking,
+            "output_config": {"effort": effort,
+                              "format": {"type": "json_schema", "schema": schema}},
+        }
+        try:
+            response = await self.client.with_options(timeout=timeout).messages.create(**kwargs)
+        except UpstreamError:
+            raise
+        except Exception as exc:
+            raise _translate(exc) from exc
+        texte = "".join(b.text for b in response.content
+                        if getattr(b, "type", None) == "text")
+        return {"text": texte, "usage": _usage_dict(response),
+                "stop_reason": getattr(response, "stop_reason", None),
+                "model": kwargs["model"]}
+
     async def complete(self, messages: List[dict], profile: str = "public",
                        tools: Optional[List[dict]] = None,
                        executor=None,

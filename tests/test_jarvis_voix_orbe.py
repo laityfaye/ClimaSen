@@ -43,7 +43,9 @@ def test_aucune_ressource_externe():
     assert not re.search(r"<script[^>]+src=", SOURCE)
     assert "cdn" not in SOURCE.lower() and "unpkg" not in SOURCE.lower()
     assert 's.src = API + "/static/" + nom;' in SOURCE
-    assert len(SOURCE) < 250_000          # three.js (600 Ko) n'est pas embarque
+    # three.js (600 Ko) n'est pas embarque. Plafond releve de 250 000 a 300 000
+    # avec la carte des rapports (07/10/2026): il detecte toujours three.js.
+    assert len(SOURCE) < 300_000
 
 
 def test_la_lecture_s_arrete_a_la_fermeture_et_a_la_question_suivante():

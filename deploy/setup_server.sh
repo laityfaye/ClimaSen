@@ -31,7 +31,11 @@ su - $APP_USER -c "
     python3 -m venv venv
     venv/bin/pip install --upgrade pip
     venv/bin/pip install -r requirements.txt
+    venv/bin/pip install -r jarvis/requirements.txt
 "
+# Rapports d'Iris: Chromium headless pour l'export PDF (dependances systeme en root).
+$APP_DIR/venv/bin/python -m playwright install-deps chromium
+su - $APP_USER -c "cd $APP_DIR && venv/bin/python -m playwright install chromium"
 
 echo "=== [6/8] Creation des dossiers de donnees ==="
 su - $APP_USER -c "

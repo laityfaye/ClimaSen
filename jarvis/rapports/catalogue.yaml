@@ -1,0 +1,193 @@
+# Catalogue des donnees que les figures a la demande peuvent lire.
+#
+# Seuls ces jeux et ces colonnes sont accessibles: un nom absent est refuse.
+# Chaque colonne porte sa NATURE, qui decide des agregations permises:
+#   stock        quantite additive (population, menages)   somme, moyenne, mediane, min, max
+#   mesure       grandeur physique (mm, sigma, jours/an)   moyenne, mediane, min, max
+#   taux         pourcentage ou densite                     moyenne, mediane, min, max
+#   rang         rang centile (indice de risque)            mediane, min, max
+#   correlation  coefficient r                              mediane, min, max
+#   probabilite  p-value                                    min, max
+#   categorie    libelle (groupement, filtre, comptage)
+#   code         code administratif (jointure, filtre)
+#   annee / mois entier temporel (groupement, axe)
+# Une agregation hors liste est refusee avec la raison (ex.: moyenne de rangs).
+#
+# chargeur: "dataset:<nom>[.<cle>]" (jarvis/tools/dataset.py) ou "fichier:<chemin>".
+jeux:
+  departements:
+    description: Indice de risque et donnees des 46 departements
+    chargeur: dataset:vulnerabilite.departements
+    source: CHIRPS v2 ; ANSD RGPH-5 ; ANSD EHCVM 2021-2022 ; OCHA COD-AB
+    periode: alea 1981-2023 ; population 2023
+    geo: {colonne: pcode, niveau: departements, nom: departement}
+    colonnes:
+      pcode: {nature: code}
+      departement: {nature: categorie, libelle: département}
+      region: {nature: categorie, libelle: région}
+      population_2023: {nature: stock, unite: habitants, libelle: population 2023}
+      population_2013: {nature: stock, unite: habitants, libelle: population 2013}
+      menages_2023: {nature: stock, unite: ménages, libelle: ménages 2023}
+      superficie_km2: {nature: stock, unite: km², libelle: superficie}
+      densite_2023_hab_km2: {nature: taux, unite: hab/km², libelle: densité 2023}
+      croissance_2013_2023_pct: {nature: taux, unite: "%", libelle: croissance 2013-2023}
+      taux_pauvrete_region_pct: {nature: taux, unite: "%", libelle: taux de pauvreté de la région, provisoire: true}
+      pauvres_estimes_2023: {nature: stock, unite: habitants, libelle: pauvres estimés 2023, provisoire: true}
+      jours_anomalie_2sigma_an: {nature: mesure, unite: jours/an, libelle: jours d'anomalie > 2 σ par an}
+      jours_50mm_an: {nature: mesure, unite: jours/an, libelle: jours de pluie > 50 mm par an}
+      A_alea: {nature: rang, unite: rang centile, libelle: aléa}
+      E_exposition: {nature: rang, unite: rang centile, libelle: exposition}
+      V_vulnerabilite: {nature: rang, unite: rang centile, libelle: vulnérabilité (provisoire), provisoire: true}
+      indice_risque: {nature: rang, unite: rang centile, libelle: indice de risque, provisoire: true}
+      rang: {nature: rang, unite: rang (1 = plus fort), libelle: rang de l'indice}
+  arrondissements:
+    description: Indice de risque et donnees des 125 arrondissements
+    chargeur: dataset:vulnerabilite.arrondissements
+    source: CHIRPS v2 ; ANSD RGPH-5 ; ANSD EHCVM 2021-2022 ; OCHA COD-AB
+    periode: alea 1981-2023 ; population 2023
+    geo: {colonne: pcode, niveau: arrondissements, nom: arrondissement}
+    colonnes:
+      pcode: {nature: code}
+      adm2_pcode: {nature: code}
+      arrondissement: {nature: categorie, libelle: arrondissement}
+      departement: {nature: categorie, libelle: département}
+      region: {nature: categorie, libelle: région}
+      n_communes_2023: {nature: stock, unite: communes, libelle: nombre de communes}
+      population_2023: {nature: stock, unite: habitants, libelle: population 2023}
+      population_2013: {nature: stock, unite: habitants, libelle: population 2013}
+      menages_2023: {nature: stock, unite: ménages, libelle: ménages 2023}
+      superficie_km2: {nature: stock, unite: km², libelle: superficie}
+      densite_2023_hab_km2: {nature: taux, unite: hab/km², libelle: densité 2023}
+      croissance_2013_2023_pct: {nature: taux, unite: "%", libelle: croissance 2013-2023}
+      taux_pauvrete_region_pct: {nature: taux, unite: "%", libelle: taux de pauvreté de la région, provisoire: true}
+      jours_anomalie_2sigma_an: {nature: mesure, unite: jours/an, libelle: jours d'anomalie > 2 σ par an}
+      jours_50mm_an: {nature: mesure, unite: jours/an, libelle: jours de pluie > 50 mm par an}
+      A_alea: {nature: rang, unite: rang centile, libelle: aléa}
+      E_exposition: {nature: rang, unite: rang centile, libelle: exposition}
+      V_vulnerabilite: {nature: rang, unite: rang centile, libelle: vulnérabilité (provisoire), provisoire: true}
+      indice_risque: {nature: rang, unite: rang centile, libelle: indice de risque, provisoire: true}
+      rang: {nature: rang, unite: rang (1 = plus fort), libelle: rang de l'indice}
+  communes:
+    description: Population 2023 des 553 communes et leur arrondissement
+    chargeur: fichier:data/processed/correspondance_communes_arrondissements.csv
+    source: ANSD RGPH-5
+    periode: "2023"
+    colonnes:
+      COMMUNE: {nature: categorie, libelle: commune}
+      Region: {nature: categorie, libelle: région}
+      Departement: {nature: categorie, libelle: département}
+      adm3_name: {nature: categorie, libelle: arrondissement}
+      adm3_pcode: {nature: code}
+      adm2_pcode: {nature: code}
+      population_2023: {nature: stock, unite: habitants, libelle: population 2023}
+      menages_2023: {nature: stock, unite: ménages, libelle: ménages 2023}
+  evenements:
+    description: Catalogue des 1317 evenements de pluie extreme (1981-2023)
+    chargeur: dataset:events
+    source: CHIRPS v2
+    periode: 1981-2023
+    annee: year
+    colonnes:
+      year: {nature: annee, libelle: année}
+      month: {nature: mois, libelle: mois}
+      phase: {nature: categorie, libelle: phase de saison}
+      max_precip: {nature: mesure, unite: mm/jour, libelle: intensité maximale}
+      mean_precip: {nature: mesure, unite: mm/jour, libelle: intensité moyenne}
+      max_anomaly: {nature: mesure, unite: σ, libelle: anomalie maximale}
+      coverage_percent: {nature: taux, unite: "% du territoire", libelle: couverture spatiale}
+      regions_affected: {nature: mesure, unite: régions, libelle: régions touchées}
+      max_intensity_region: {nature: categorie, libelle: région du maximum}
+      max_intensity_department: {nature: categorie, libelle: département du maximum}
+      centroid_region: {nature: categorie, libelle: région du centroïde}
+  correlations:
+    description: Correlations indices SST / metriques des extremes (script 04), toutes phases
+    chargeur: dataset:correlations
+    source: CHIRPS v2 ; NOAA OISST v2
+    periode: 1983-2023
+    colonnes:
+      phase: {nature: categorie, libelle: phase}
+      metric: {nature: categorie, libelle: métrique}
+      index: {nature: categorie, libelle: indice SST}
+      lag_months: {nature: mois, libelle: décalage (mois)}
+      pearson_r: {nature: correlation, unite: r de Pearson, libelle: r de Pearson}
+      spearman_r: {nature: correlation, unite: rho de Spearman, libelle: rho de Spearman}
+      pearson_p_neff: {nature: probabilite, unite: p-value, libelle: p corrigée (n_eff)}
+      n: {nature: stock, unite: saisons, libelle: nombre de saisons}
+  indices_sst_annuels:
+    description: Indices SST moyennes par annee (11 indices)
+    chargeur: dataset:indices
+    transformation: annuelle
+    source: NOAA OISST v2
+    periode: 1983-2023
+    annee: annee
+    colonnes:
+      annee: {nature: annee, libelle: année}
+      Nino12: {nature: mesure, unite: °C (anomalie), libelle: Niño 1+2}
+      Nino3: {nature: mesure, unite: °C (anomalie), libelle: Niño 3}
+      Nino34: {nature: mesure, unite: °C (anomalie), libelle: Niño 3.4}
+      Nino4: {nature: mesure, unite: °C (anomalie), libelle: Niño 4}
+      IOD: {nature: mesure, unite: °C (anomalie), libelle: IOD}
+      IOBM: {nature: mesure, unite: °C (anomalie), libelle: IOBM}
+      TNA: {nature: mesure, unite: °C (anomalie), libelle: TNA}
+      TSA: {nature: mesure, unite: °C (anomalie), libelle: TSA}
+      ATL3: {nature: mesure, unite: °C (anomalie), libelle: ATL3}
+      AMM: {nature: mesure, unite: °C (anomalie), libelle: AMM}
+      AMO: {nature: mesure, unite: °C (anomalie), libelle: AMO}
+  ehcvm_pauvrete:
+    description: Pauvrete par region (EHCVM 2021-2022)
+    chargeur: fichier:data/raw/ansd/ehcvm_2021-2022_pauvrete_par_region.csv
+    source: ANSD EHCVM 2021-2022
+    periode: 2021-2022
+    colonnes:
+      region: {nature: categorie, libelle: région}
+      taux_pauvrete_p0_pct: {nature: taux, unite: "%", libelle: taux de pauvreté}
+      profondeur_p1_pct: {nature: taux, unite: "%", libelle: profondeur de la pauvreté}
+      severite_p2_pct: {nature: taux, unite: "%", libelle: sévérité de la pauvreté}
+      consommation_moyenne_par_tete_fcfa: {nature: mesure, unite: FCFA, libelle: consommation par tête}
+      indice_gini: {nature: mesure, unite: indice de Gini, libelle: indice de Gini}
+  ehcvm_services:
+    description: Acces aux services et chocs par region (EHCVM 2021-2022)
+    chargeur: fichier:data/raw/ansd/ehcvm_2021-2022_services_chocs_par_region.csv
+    source: ANSD EHCVM 2021-2022
+    periode: 2021-2022
+    colonnes:
+      region: {nature: categorie, libelle: région}
+      acces_eau_potable_menages_pct: {nature: taux, unite: "% des ménages", libelle: accès à l'eau potable}
+      acces_electricite_menages_pct: {nature: taux, unite: "% des ménages", libelle: accès à l'électricité}
+      insecurite_alimentaire_moderee_ou_grave_pct: {nature: taux, unite: "% des ménages", libelle: insécurité alimentaire modérée ou grave}
+      insecurite_alimentaire_grave_pct: {nature: taux, unite: "% des ménages", libelle: insécurité alimentaire grave}
+      menages_ayant_subi_un_choc_3_ans_pct: {nature: taux, unite: "% des ménages", libelle: ménages ayant subi un choc (3 ans)}
+  ehcvm_assainissement:
+    description: Type de toilettes des menages par region (EHCVM 2021-2022)
+    chargeur: fichier:data/raw/ansd/ehcvm_2021-2022_assainissement_par_region.csv
+    source: ANSD EHCVM 2021-2022
+    periode: 2021-2022
+    colonnes:
+      region: {nature: categorie, libelle: région}
+      wc_chasse_eau_pct: {nature: taux, unite: "% des ménages", libelle: WC à chasse d'eau}
+      latrines_dallees_pct: {nature: taux, unite: "% des ménages", libelle: latrines dallées}
+      fosse_rudimentaire_trou_ouvert_pct: {nature: taux, unite: "% des ménages", libelle: fosse rudimentaire ou trou ouvert}
+      toilettes_publiques_pct: {nature: taux, unite: "% des ménages", libelle: toilettes publiques}
+  atlas_rgph5:
+    description: Departements cites dans les classes extremes de l'Atlas RGPH-5 (pas de valeurs par departement)
+    chargeur: fichier:data/raw/ansd/atlas_rgph5_2023_classes_extremes_departements.csv
+    source: ANSD Atlas démographique RGPH-5
+    periode: "2023"
+    colonnes:
+      indicateur: {nature: categorie, libelle: indicateur}
+      libelle: {nature: categorie, libelle: libellé}
+      departement: {nature: categorie, libelle: département}
+      groupe: {nature: categorie, libelle: classe}
+      seuil: {nature: categorie, libelle: seuil de la classe}
+      unite: {nature: categorie, libelle: unité}
+# Jointures autorisees: on rapporte des colonnes du jeu de droite dans le jeu
+# de gauche; la cle de droite doit etre unique. Noms compares sans accents ni casse.
+jointures:
+  - {gauche: departements, droite: ehcvm_pauvrete, cle_gauche: region, cle_droite: region}
+  - {gauche: departements, droite: ehcvm_services, cle_gauche: region, cle_droite: region}
+  - {gauche: departements, droite: ehcvm_assainissement, cle_gauche: region, cle_droite: region}
+  - {gauche: arrondissements, droite: ehcvm_pauvrete, cle_gauche: region, cle_droite: region}
+  - {gauche: arrondissements, droite: ehcvm_services, cle_gauche: region, cle_droite: region}
+  - {gauche: arrondissements, droite: ehcvm_assainissement, cle_gauche: region, cle_droite: region}
+  - {gauche: communes, droite: arrondissements, cle_gauche: adm3_pcode, cle_droite: pcode}
+  - {gauche: evenements, droite: departements, cle_gauche: max_intensity_department, cle_droite: departement}

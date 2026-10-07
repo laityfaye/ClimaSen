@@ -7,8 +7,12 @@ pydantic>=2.7
 pydantic-settings>=2.2
 edge-tts>=7.0         # voix neuronale (jarvis/voix.py), optionnelle
 python-docx>=1.1      # bulletin de veille diffusable (veille/diffusion.py)
+jinja2>=3.1           # rapports d'Iris: gabarit HTML (jarvis/rapports)
+pyyaml>=6.0           # rapports: catalogue de donnees et figures de reference
+playwright>=1.45      # rapports: PDF par Chromium headless (playwright install chromium)
 
 # Tests
 pytest>=8.0
 pytest-asyncio>=0.24
 httpx>=0.27          # requis par fastapi.testclient
+pypdf>=4.0           # tests: lecture des PDF de rapports

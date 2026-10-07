@@ -56,6 +56,9 @@ timescaledb_data/
 # Logs Jarvis (trafic public et audit admin)
 outputs/jarvis_logs/
 
+# Rapports generes par Iris (fichiers de session, purges au bout de 24 h)
+outputs/rapports_iris/
+
 # Projets JARVIS personnels (bureau Windows/Linux) - non integres a ClimatSen
 JARVIS-pro/
 LINUX/

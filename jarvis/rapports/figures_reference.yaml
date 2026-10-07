@@ -1,0 +1,71 @@
+# Figures de reference: produites par la chaine de traitement validee
+# (scripts 02, 04, 11, 24, 29), reutilisables telles quelles dans un rapport.
+# Chaque entree porte les metadonnees obligatoires d'un visuel. Le script
+# scripts/32_manifest_donnees.py verifie que chaque fichier existe et en
+# releve l'empreinte (outputs/figures_reference_index.json).
+#
+# id: identifiant stable, cite par Iris (generate_report: reference_figures)
+figures:
+  - id: synthese_correlations
+    fichier: outputs/teleconnections/visualizations/synthese_correlations.png
+    titre: Synthèse des corrélations indices SST / pluies extrêmes
+    legende: Vue d'ensemble des corrélations par phase, indice et métrique (script 04).
+    unite: r de Pearson (sans unité)
+    periode: 1983-2023
+    source: CHIRPS v2 ; NOAA OISST v2
+    statut: correle
+    types: [teleconnexions]
+  - id: lags_max_precip_pleine
+    fichier: outputs/teleconnections/visualizations/lag_max_precip_Pleine_saison_Jul-Aou.png
+    titre: Corrélation selon le décalage, intensité maximale, cœur de saison
+    legende: r de Pearson entre chaque indice et l'intensité maximale des pluies extrêmes de juillet-août, selon le décalage en mois (script 04).
+    unite: r de Pearson (sans unité)
+    periode: 1983-2023
+    source: CHIRPS v2 ; NOAA OISST v2
+    statut: correle
+    types: [teleconnexions]
+  - id: sst_patterns_toutes_phases
+    fichier: outputs/visualizations/clustering/sst_patterns/All_phases_sst_patterns_clusters.png
+    titre: Motifs de SST des configurations océaniques (toutes phases)
+    legende: Anomalies moyennes de température de surface de la mer de chaque configuration K-Means (script 11).
+    unite: °C (anomalie)
+    periode: 1983-2023
+    source: NOAA OISST v2
+    statut: observe
+    types: [teleconnexions, veille]
+  - id: etats_saisonniers_centroides
+    fichier: outputs/clustering_saisonnier/Toutes_phases_kmeans_centroides.png
+    titre: Les quatre états océaniques saisonniers
+    legende: Centroïdes des quatre états saisonniers (El Niño, La Niña, neutre, transition), analyse de contrôle (script 24).
+    unite: °C (anomalie)
+    periode: 1983-2023
+    source: NOAA OISST v2
+    statut: observe
+    types: [teleconnexions, veille]
+  - id: distribution_annuelle_phases
+    fichier: outputs/visualizations/Distribution/02_distribution_annuelle_phases.png
+    titre: Distribution annuelle des événements extrêmes par phase
+    legende: Nombre d'événements extrêmes par année et par phase de saison (script 02).
+    unite: nombre d'événements
+    periode: 1981-2023
+    source: CHIRPS v2
+    statut: observe
+    types: [historique]
+  - id: validation_inondations
+    fichier: outputs/vulnerabilite/robustesse/fig_validation_inondations.png
+    titre: Validation de l'indice face aux inondations documentées
+    legende: Capacité de l'indice et de ses composantes à distinguer les départements touchés par des inondations documentées (script 29).
+    unite: AUC (0,5 = hasard)
+    periode: 2005-2020
+    source: Inondations documentées (PDNA, UNOSAT, FICR, OCHA) ; indice CLIMAT-SEN
+    statut: observe
+    types: [vulnerabilite, veille]
+  - id: sensibilite_departements
+    fichier: outputs/vulnerabilite/robustesse/fig_sensibilite_departements.png
+    titre: Sensibilité du classement des départements aux pondérations
+    legende: Stabilité du classement de l'indice selon six variantes de pondération (script 29).
+    unite: rang
+    periode: aléa 1981-2023 ; population 2023
+    source: CHIRPS v2 ; ANSD RGPH-5 ; ANSD EHCVM 2021-2022
+    statut: observe
+    types: [vulnerabilite]

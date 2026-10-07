@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="generator" content="CLIMAT-SEN / Iris">
+<meta name="rapport-id" content="{{ m.id }}">
+<meta name="version-donnees" content="{{ m.version_donnees }}">
+<title>{{ m.titre }} — {{ m.sous_titre }}</title>
+<style>
+  :root {
+    --encre: #14212b; --encre2: #4a5863; --ligne: #d9e0e5; --fond: #ffffff; --doux: #f4f7f9;
+    --accent: #0b6e8a; --observe: #1f7a4d; --correle: #8a5a00; --projete: #6b3fa0; --methode: #4a5863;
+    --limite: #9a3412; --officiel: #0b4f8a; --hypothese: #4a5863;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--fond); color: var(--encre); }
+  body { font: 10.5pt/1.5 "Segoe UI", "DejaVu Sans", Arial, sans-serif; }
+  main { max-width: 820px; margin: 0 auto; padding: 32px 24px 48px; }
+  header.titre { border-bottom: 3px solid var(--accent); padding-bottom: 14px; margin-bottom: 18px; }
+  .marque { font-size: 9pt; letter-spacing: .08em; text-transform: uppercase; color: var(--accent); font-weight: 700; }
+  h1 { font-size: 21pt; line-height: 1.2; margin: 6px 0 4px; }
+  .sous-titre { font-size: 12pt; color: var(--encre2); margin: 0 0 12px; }
+  dl.meta { display: grid; grid-template-columns: max-content 1fr; gap: 2px 14px; margin: 0; font-size: 9pt; color: var(--encre2); }
+  dl.meta dt { font-weight: 600; color: var(--encre); }
+  dl.meta dd { margin: 0; }
+  h2 { font-size: 13.5pt; color: var(--accent); border-bottom: 1px solid var(--ligne); padding-bottom: 4px; margin: 26px 0 10px; break-after: avoid; }
+  p { margin: 0 0 9px; text-align: justify; hyphens: auto; }
+  .badge { display: inline-block; font-size: 7.5pt; font-weight: 700; text-transform: uppercase; letter-spacing: .04em;
+           border: 1px solid currentColor; border-radius: 3px; padding: 0 4px; margin-right: 6px; vertical-align: 1px; }
+  .badge.observe { color: var(--observe); } .badge.correle { color: var(--correle); }
+  .badge.projete { color: var(--projete); } .badge.methode { color: var(--methode); }
+  ul, ol { margin: 0 0 10px 20px; padding: 0; } li { margin-bottom: 4px; }
+  .encadre { border-left: 4px solid var(--hypothese); background: var(--doux); padding: 8px 12px; margin: 10px 0; break-inside: avoid; font-size: 9.5pt; }
+  .encadre strong { display: block; margin-bottom: 2px; }
+  .encadre.limite { border-color: var(--limite); } .encadre.officiel { border-color: var(--officiel); background: #eef4fa; }
+  .encadre.avertissement { border-color: var(--correle); background: #fdf7ec; }
+  figure { margin: 16px 0; break-inside: avoid; }
+  figure img { width: 100%; height: auto; border: 1px solid var(--ligne); }
+  figcaption, .legende-tableau { font-size: 8.5pt; color: var(--encre2); margin-top: 5px; }
+  figcaption b, .legende-tableau b { color: var(--encre); }
+  .meta-visuel { display: block; margin-top: 2px; }
+  .origine { font-style: italic; }
+  table { width: 100%; border-collapse: collapse; font-size: 8.5pt; margin: 14px 0 4px; break-inside: auto; }
+  th { background: var(--accent); color: #fff; text-align: left; padding: 4px 6px; font-weight: 600; }
+  td { padding: 3px 6px; border-bottom: 1px solid var(--ligne); vertical-align: top; }
+  tr { break-inside: avoid; }
+  tbody tr:nth-child(even) td { background: var(--doux); }
+  .bloc-tableau { margin-bottom: 14px; }
+  footer.pied { margin-top: 30px; border-top: 1px solid var(--ligne); padding-top: 8px; font-size: 8pt; color: var(--encre2); }
+  @media (max-width: 600px) { main { padding: 16px; } h1 { font-size: 17pt; } table { font-size: 7.5pt; } .bloc-tableau { overflow-x: auto; } }
+  .modifie { background: #fff6d6; box-shadow: -6px 0 0 #e0a100; border-radius: 2px; }
+  .modifie::before { content: "Modifié"; display: inline-block; font-size: 7pt; font-weight: 700;
+    text-transform: uppercase; color: #8a5a00; border: 1px solid #e0a100; border-radius: 3px;
+    padding: 0 4px; margin-right: 6px; vertical-align: 1px; }
+  figure.modifie::before, div.modifie::before { display: block; width: max-content; margin-bottom: 4px; }
+  @page { size: A4; margin: 16mm 14mm 18mm 14mm; }
+  @media print { main { max-width: none; padding: 0; } footer.pied { display: none; } }
+</style>
+</head>
+<body>
+<main>
+<header class="titre">
+  <div class="marque">CLIMAT-SEN · Rapport généré par Iris</div>
+  <h1>{{ m.titre }}</h1>
+  <p class="sous-titre">{{ m.sous_titre }}</p>
+  <dl class="meta">
+    <dt>Zone</dt><dd>{{ m.zone }}</dd>
+    <dt>Période</dt><dd>{{ m.periode }}</dd>
+    <dt>Public</dt><dd>{{ m.public }}</dd>
+    <dt>Généré le</dt><dd>{{ m.genere_le }}</dd>
+    <dt>Version des données</dt><dd>{{ m.version_donnees }} (code {{ m.commit }})</dd>
+    <dt>Référence</dt><dd>{{ m.id }}{% if m.version > 1 %} · version {{ m.version }}{% endif %}</dd>
+  </dl>
+</header>
+{% for s in sections %}
+<section id="{{ s.cle }}">
+  <h2>{{ loop.index }}. {{ s.titre }}</h2>
+  {% for b in s.blocs %}
+    {% if b.kind == "p" %}
+      <p{% if b.modifie %} class="modifie"{% endif %}>{% if b.statut %}<span class="badge {{ b.statut }}">{{ statuts[b.statut] }}</span>{% endif %}{{ b.texte }}</p>
+    {% elif b.kind == "liste" %}
+      {% if b.ordonnee %}<ol>{% else %}<ul>{% endif %}
+      {% for e in b.elements %}<li{% if b.modifies and b.modifies[loop.index0] %} class="modifie"{% endif %}>{{ e }}</li>{% endfor %}
+      {% if b.ordonnee %}</ol>{% else %}</ul>{% endif %}
+    {% elif b.kind == "encadre" %}
+      <div class="encadre {{ b.genre }}{% if b.modifie %} modifie{% endif %}">{% if b.titre %}<strong>{{ b.titre }}</strong>{% endif %}{{ b.texte }}</div>
+    {% elif b.kind == "figure" %}
+      <figure{% if b.modifie %} class="modifie"{% endif %}>
+        <img src="data:image/png;base64,{{ b.png64 }}" alt="{{ b.titre }}">
+        <figcaption><b>Figure {{ b.numero }} — {{ b.titre }}.</b> {{ b.legende }}
+          <span class="meta-visuel">Unité : {{ b.unite }} · Période : {{ b.periode }} · Source : {{ b.source }}{% if b.statut %} · Statut : {{ statuts[b.statut] }}{% endif %}</span>
+          <span class="meta-visuel origine">{{ b.origine_libelle }}</span>
+        </figcaption>
+      </figure>
+    {% elif b.kind == "tableau" %}
+      <div class="bloc-tableau{% if b.modifie %} modifie{% endif %}">
+      <table>
+        <caption style="caption-side: top; text-align: left; font-weight: 700; font-size: 9pt; padding-bottom: 4px;">Tableau {{ b.numero }} — {{ b.titre }}</caption>
+        <thead><tr>{% for c in b.colonnes %}<th>{{ c }}</th>{% endfor %}</tr></thead>
+        <tbody>{% for l in b.lignes %}<tr>{% for c in l %}<td>{{ c }}</td>{% endfor %}</tr>{% endfor %}</tbody>
+      </table>
+      <div class="legende-tableau">{{ b.legende }}
+        <span class="meta-visuel">Unité : {{ b.unite }} · Période : {{ b.periode }} · Source : {{ b.source }}{% if b.statut %} · Statut : {{ statuts[b.statut] }}{% endif %}</span></div>
+      </div>
+    {% endif %}
+  {% endfor %}
+</section>
+{% endfor %}
+<footer class="pied">CLIMAT-SEN · {{ m.id }} · généré le {{ m.genere_le }} · version des données {{ m.version_donnees }}.
+Ce document complète les alertes officielles de l'ANACIM sans les remplacer.</footer>
+</main>
+</body>
+</html>

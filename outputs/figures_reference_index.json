@@ -1,0 +1,65 @@
+{
+  "version_donnees": "D-d19243ea20",
+  "figures": [
+    {
+      "id": "synthese_correlations",
+      "fichier": "outputs/teleconnections/visualizations/synthese_correlations.png",
+      "types": [
+        "teleconnexions"
+      ],
+      "sha256": "ded74a125514395805baf6c513460f57f025abf3e33a53bc43eb825917bdb555"
+    },
+    {
+      "id": "lags_max_precip_pleine",
+      "fichier": "outputs/teleconnections/visualizations/lag_max_precip_Pleine_saison_Jul-Aou.png",
+      "types": [
+        "teleconnexions"
+      ],
+      "sha256": "7f729a500b647be5ee9971f38b1c11e51e65545d7b6fbc9cb422c27ebd09872d"
+    },
+    {
+      "id": "sst_patterns_toutes_phases",
+      "fichier": "outputs/visualizations/clustering/sst_patterns/All_phases_sst_patterns_clusters.png",
+      "types": [
+        "teleconnexions",
+        "veille"
+      ],
+      "sha256": "ed5f6eb4aec7fb3bfb81ffac3265d0923e4d9bc42a92d4cd4266a93e08f671f9"
+    },
+    {
+      "id": "etats_saisonniers_centroides",
+      "fichier": "outputs/clustering_saisonnier/Toutes_phases_kmeans_centroides.png",
+      "types": [
+        "teleconnexions",
+        "veille"
+      ],
+      "sha256": "6089bcb9b872d1481ede8e01db90cb88ea0f395ca6ba16d21cdf87c59fddf9da"
+    },
+    {
+      "id": "distribution_annuelle_phases",
+      "fichier": "outputs/visualizations/Distribution/02_distribution_annuelle_phases.png",
+      "types": [
+        "historique"
+      ],
+      "sha256": "6d9c946b302000cb8d494498a98f83c3b7971e667698c93db4dbda2bdc381fba"
+    },
+    {
+      "id": "validation_inondations",
+      "fichier": "outputs/vulnerabilite/robustesse/fig_validation_inondations.png",
+      "types": [
+        "vulnerabilite",
+        "veille"
+      ],
+      "sha256": "3a0d15f74bc98309c95761b10cb2f9a952873610331ef9a6f3698183c57b2c21"
+    },
+    {
+      "id": "sensibilite_departements",
+      "fichier": "outputs/vulnerabilite/robustesse/fig_sensibilite_departements.png",
+      "types": [
+        "vulnerabilite"
+      ],
+      "sha256": "e7d36c3159b7509b20b28537d86d7234458bd68f99a734e0693cef1b5a04f5b6"
+    }
+  ],
+  "manquantes": []
+}

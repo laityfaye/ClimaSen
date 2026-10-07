@@ -141,6 +141,66 @@
   .fig-liens{display:flex;justify-content:flex-end;margin-top:4px}
   .fig-liens button{background:none;border:0;padding:2px 0;color:var(--indigo);font-size:.7rem;cursor:pointer;text-decoration:underline}
   html[data-dark="true"] .fig-liens button{color:var(--turquoise)}
+  /* Rapports (generate_report): progression puis telechargements. */
+  .rapport .rap-etat{font-size:.74rem;color:var(--muted);margin:2px 0 6px}
+  .rapport .rap-barre{height:4px;border-radius:2px;background:var(--border);overflow:hidden;margin-bottom:6px}
+  .rapport .rap-barre i{display:block;height:100%;width:0;background:var(--indigo);transition:width .4s ease}
+  html[data-dark="true"] .rapport .rap-barre i{background:var(--turquoise)}
+  .rapport .rap-resume{font-size:.76rem;line-height:1.4;color:var(--text);margin:0 0 6px}
+  .rapport .rap-resume p{margin:0 0 4px}
+  .rapport .fig-liens{gap:12px;flex-wrap:wrap}
+  .rapport.echec .rap-etat{color:#B83232}
+  .rapport .rap-note{font-size:.74rem;line-height:1.4;color:var(--muted);font-style:italic;margin:0 0 6px}
+
+  /* ---- Apercu du rapport: a gauche, la transcription a droite --------------
+     Meme gabarit que l'ecran des cartes (#hud-ecran): l'utilisateur lit le
+     rapport et demande ses changements a Iris dans la conversation voisine.
+     Le rapport s'affiche dans une iframe srcdoc SANS scripts (sandbox). */
+  #apercu-rapport{display:none}
+  body.hud.rap-ouvert #apercu-rapport{display:flex;flex-direction:column;position:fixed;
+    top:var(--hud-haut);bottom:var(--hud-bas);left:var(--hud-marge);z-index:4;
+    width:calc(100vw - 2 * var(--hud-marge) - var(--hud-lat) - var(--hud-gap));
+    padding:10px 14px 10px;
+    background:linear-gradient(180deg,rgba(9,24,34,.97),rgba(4,12,18,.97));
+    border:1px solid rgba(0,229,255,.38);
+    box-shadow:0 24px 60px rgba(0,0,0,.55),0 0 44px rgba(0,229,255,.12);
+    animation:ecran-ouvre .5s cubic-bezier(.2,.8,.2,1);
+    transition:top .28s ease,bottom .28s ease,width .28s ease}
+  body.hud.rap-ouvert:not(.hud-transcription) #apercu-rapport{
+    width:min(980px,calc(100vw - 2 * var(--hud-marge)))}
+  body.hud.rap-ouvert #hud-ecran,body.hud.rap-ouvert #hud-accueil{display:none}
+  body.hud.rap-ouvert #hud-orbe,body.hud.rap-ouvert #hud-orbe2d{opacity:.2}
+  .ap-tete{display:flex;align-items:flex-start;gap:12px;padding-bottom:8px;margin-bottom:8px;
+    border-bottom:1px solid rgba(0,229,255,.2)}
+  .ap-textes{flex:1;min-width:0}
+  #ap-titre{font-family:"Segoe UI",system-ui,sans-serif;font-weight:700;font-size:1rem;color:#E0F7FF;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  #ap-sous{font-family:"Segoe UI",system-ui,sans-serif;font-size:.74rem;color:#7FB8C8;margin-top:2px}
+  #ap-note{font-family:"Segoe UI",system-ui,sans-serif;font-size:.74rem;color:#FDE68A;margin-top:4px;
+    line-height:1.35}
+  #ap-note:empty{display:none}
+  #ap-corps{flex:1;min-height:0;position:relative;border-radius:2px;overflow:hidden;background:#fff}
+  #ap-cadre{width:100%;height:100%;border:0;display:block;background:#fff}
+  #ap-corps.charge::after{content:"MISE \00C0 JOUR\2026";position:absolute;inset:0;display:flex;
+    align-items:center;justify-content:center;background:rgba(4,12,18,.55);color:var(--cyan);
+    font-size:.66rem;letter-spacing:.24em;animation:ec-pulse 1.1s ease-in-out infinite}
+  .ap-pied{display:flex;align-items:center;gap:8px;padding-top:8px;margin-top:8px;
+    border-top:1px solid rgba(0,229,255,.15);flex-wrap:wrap}
+  #ap-astuce{flex:1;min-width:180px;font-family:"Segoe UI",system-ui,sans-serif;font-size:.7rem;
+    color:rgba(207,247,255,.6)}
+  .ap-pied button,.ap-tete button{padding:6px 11px;background:rgba(0,229,255,.04);
+    border:1px solid rgba(0,229,255,.3);color:#CFF7FF;font-family:var(--mono);font-weight:700;
+    font-size:.6rem;letter-spacing:.12em;cursor:pointer;border-radius:3px}
+  .ap-pied button:hover,.ap-tete button:hover{background:rgba(0,229,255,.14);border-color:var(--cyan);color:#fff}
+  .ap-pied button:focus-visible,.ap-tete button:focus-visible{outline:1px solid var(--cyan);outline-offset:2px}
+  .ap-pied button[hidden]{display:none}
+  #ap-fermer:hover{background:rgba(255,77,109,.14);border-color:#FF4D6D;color:#FFD1DA}
+  /* Ecran etroit: l'apercu prend toute la largeur, la saisie reste dessous. */
+  @media (max-width:900px){
+    body.hud.rap-ouvert #apercu-rapport,
+    body.hud.rap-ouvert:not(.hud-transcription) #apercu-rapport{width:calc(100vw - 2 * var(--hud-marge))}
+    body.hud.rap-ouvert #log,body.hud.rap-ouvert #tr-tete{visibility:hidden}
+  }
   .msg li{margin:2px 0}
 
   .intro{padding:16px 6px;text-align:center;color:var(--muted)}
@@ -976,6 +1036,23 @@
       <button type="button" id="ec-fermer" title="Fermer (Echap)">&#10005; FERMER</button>
     </div>
   </section>
+  <aside id="apercu-rapport" aria-label="Aper&ccedil;u du rapport">
+    <span class="hh-coin hh-hg"></span><span class="hh-coin hh-hd"></span>
+    <span class="hh-coin hh-bg"></span><span class="hh-coin hh-bd"></span>
+    <div class="ap-tete">
+      <div class="ec-label">&#9670; APER&Ccedil;U // RAPPORT</div>
+      <div class="ap-textes"><div id="ap-titre"></div><div id="ap-sous"></div><div id="ap-note"></div></div>
+      <button type="button" id="ap-fermer" title="Fermer l'aper&ccedil;u (Echap)">&#10005; FERMER</button>
+    </div>
+    <div id="ap-corps"><iframe id="ap-cadre" title="Aper&ccedil;u du rapport" sandbox="allow-same-origin" referrerpolicy="no-referrer"></iframe></div>
+    <div class="ap-pied">
+      <div id="ap-astuce">Un point &agrave; modifier ? Demandez-le &agrave; Iris : &laquo; retire la figure 2 &raquo;, &laquo; simplifie le r&eacute;sum&eacute; &raquo;, &laquo; fais-le pour Rufisque &raquo;.</div>
+      <button type="button" id="ap-annuler" title="Revenir &agrave; la version pr&eacute;c&eacute;dente" hidden>&#8634; VERSION PR&Eacute;C&Eacute;DENTE</button>
+      <button type="button" data-format="pdf">PDF</button>
+      <button type="button" data-format="docx">WORD</button>
+      <button type="button" data-format="html">HTML</button>
+    </div>
+  </aside>
   <div id="hud-soustitre" aria-live="polite"></div>
   <div id="hud-boutons">
     <button class="hud-rond" id="hud-micro" type="button" title="Parler a Iris (la reconnaissance vocale du navigateur peut transmettre l'audio a son fournisseur)" aria-label="Parler a Iris" hidden>
@@ -1551,6 +1628,216 @@
         setTimeout(function(){ URL.revokeObjectURL(lien.href); lien.remove(); }, 1000);
       })
       .catch(function(){ warn("T\u00e9l\u00e9chargement impossible.", "La figure a peut-\u00eatre expir\u00e9."); });
+  }
+
+  /* ---------- Rapports (generate_report) -----------------------------------
+     Le rapport se prepare cote serveur; la carte suit sa progression puis
+     propose les fichiers. Tout passe par fetch: le jeton est en en-tete. */
+  var LIBELLES_FORMATS = {pdf: "PDF", docx: "Word", html: "HTML", csv: "Donn\u00e9es (CSV)"};
+  function rapportBloc(ref){
+    if(!ref || !ref.id) return;
+    if(intro && intro.parentNode){ intro.parentNode.removeChild(intro); intro = null; }
+    var carte = document.createElement("figure");
+    carte.className = "fig rapport";
+    var legende = document.createElement("figcaption");
+    var titre = document.createElement("strong");
+    titre.textContent = ref.titre || "Rapport";
+    legende.appendChild(titre);
+    var sous = document.createElement("span");
+    sous.textContent = ref.sous_titre || "";
+    legende.appendChild(sous);
+    var etat = document.createElement("div");
+    etat.className = "rap-etat";
+    etat.textContent = "Pr\u00e9paration du rapport\u2026";
+    var barre = document.createElement("div");
+    barre.className = "rap-barre";
+    var jauge = document.createElement("i");
+    barre.appendChild(jauge);
+    var resume = document.createElement("div");
+    resume.className = "rap-resume";
+    var liens = document.createElement("div");
+    liens.className = "fig-liens";
+    carte.appendChild(legende); carte.appendChild(etat); carte.appendChild(barre);
+    carte.appendChild(resume); carte.appendChild(liens);
+    log.appendChild(carte);
+    scroll();
+    var attendue = ref.version || 1;
+    if(attendue > 1){
+      // Modification demandee a Iris: une carte de suivi de la nouvelle version.
+      titre.textContent = "Mise \u00e0 jour du rapport \u2014 version " + attendue;
+      sous.textContent = (ref.modifications || []).join(" \u00b7 ");
+    }
+    var debut = Date.now();
+    function suivre(){
+      fetch(API + "/api/rapports/" + encodeURIComponent(ref.id), {headers: headers(), cache: "no-store"})
+        .then(function(r){ if(!r.ok){ throw new Error("HTTP " + r.status); } return r.json(); })
+        .then(function(d){
+          jauge.style.width = Math.round(100 * (d.progression || 0)) + "%";
+          if(attendue === 1){
+            if(d.titre){ titre.textContent = d.titre; }
+            if(d.sous_titre){ sous.textContent = d.sous_titre; }
+          }
+          if(d.statut === "termine" && attendue > 1 && (d.version || 0) < attendue){
+            // La modification a echoue: la version precedente reste en place.
+            carte.className = "fig rapport echec";
+            etat.textContent = d.erreur || "La modification n'a pas pu \u00eatre appliqu\u00e9e.";
+            barre.style.display = "none";
+            return;
+          }
+          if(d.statut === "termine" && attendue > 1){
+            var v = (d.versions || [])[(d.versions || []).length - 1] || {};
+            etat.textContent = "Version " + d.version + " pr\u00eate \u00b7 l'aper\u00e7u est \u00e0 jour";
+            barre.style.display = "none";
+            if(v.note_iris){
+              var n = document.createElement("p"); n.className = "rap-note";
+              n.textContent = "Iris : " + v.note_iris; resume.appendChild(n);
+            }
+            ajouterBoutons(d);
+            Apercu.ouvrir(ref.id, true);
+            scroll();
+            return;
+          }
+          if(d.statut === "termine"){
+            etat.textContent = "Rapport pr\u00eat \u00b7 donn\u00e9es " + (d.version_donnees || "") +
+              (d.redaction === "ia" ? " \u00b7 r\u00e9daction assist\u00e9e, chiffres v\u00e9rifi\u00e9s" : "");
+            barre.style.display = "none";
+            resume.textContent = "";
+            (d.resume || []).slice(0, 3).forEach(function(t){
+              var p = document.createElement("p"); p.textContent = t; resume.appendChild(p);
+            });
+            ajouterBoutons(d);
+            // Rapport pret: l'apercu s'ouvre a gauche, la conversation reste a droite.
+            Apercu.ouvrir(ref.id, false);
+            scroll();
+            return;
+          }
+          if(d.statut === "echec"){
+            carte.className = "fig rapport echec";
+            etat.textContent = d.erreur || "Le rapport n'a pas pu \u00eatre produit.";
+            barre.style.display = "none";
+            return;
+          }
+          etat.textContent = (d.etape || "Pr\u00e9paration") + "\u2026";
+          if(Date.now() - debut < 6 * 60 * 1000){ setTimeout(suivre, 1500); }
+          else { etat.textContent = "Le rapport tarde : r\u00e9essayez dans un instant."; }
+        })
+        .catch(function(){
+          etat.textContent = "Rapport indisponible : il a expir\u00e9 ou appartient \u00e0 une session pr\u00e9c\u00e9dente.";
+          barre.style.display = "none";
+        });
+    }
+    function ajouterBoutons(d){
+      liens.textContent = "";
+      var vue = document.createElement("button");
+      vue.type = "button";
+      vue.textContent = "Aper\u00e7u";
+      vue.addEventListener("click", function(){ Apercu.ouvrir(ref.id, false); });
+      liens.appendChild(vue);
+      ["pdf", "docx", "html", "csv"].forEach(function(f){
+        if((d.formats || []).indexOf(f) < 0) return;
+        var b = document.createElement("button");
+        b.type = "button";
+        b.textContent = LIBELLES_FORMATS[f];
+        b.addEventListener("click", function(){ telechargerRapport(ref.id, f); });
+        liens.appendChild(b);
+      });
+    }
+    suivre();
+  }
+
+  /* ---------- Apercu du rapport ---------------------------------------------
+     Panneau a gauche de l'interface plein ecran. Le HTML vient de
+     /api/rapports/{id}/apercu (changements de la derniere version surlignes)
+     et s'affiche en srcdoc dans une iframe sans scripts. */
+  var Apercu = (function(){
+    var courant = null, version = 0;
+    function el(id){ return $(id); }
+    function ouvrir(id, miseAJour){
+      if(!Hud.actif()){ Hud.entrer(true); }
+      if(Ecran.ouvert()){ Ecran.fermer(); }
+      Hud.transcription(true, true);
+      document.body.classList.add("rap-ouvert");
+      courant = id;
+      charger(id, miseAJour);
+    }
+    function charger(id, miseAJour){
+      var corps = el("ap-corps");
+      corps.classList.add("charge");
+      var etat = fetch(API + "/api/rapports/" + encodeURIComponent(id), {headers: headers(), cache: "no-store"})
+        .then(function(r){ if(!r.ok){ throw new Error("HTTP " + r.status); } return r.json(); });
+      var page = fetch(API + "/api/rapports/" + encodeURIComponent(id) + "/apercu", {headers: headers(), cache: "no-store"})
+        .then(function(r){ if(!r.ok){ throw new Error("HTTP " + r.status); } return r.text(); });
+      Promise.all([etat, page]).then(function(res){
+        var d = res[0], html = res[1];
+        if(courant !== id){ return; }
+        version = d.version || 1;
+        el("ap-titre").textContent = d.titre || "Rapport";
+        var v = (d.versions || [])[(d.versions || []).length - 1] || {};
+        var sous = (d.sous_titre || "") + " \u00b7 version " + version;
+        if(version > 1 && (v.notes || []).length){ sous += " \u00b7 " + v.notes.join(" \u00b7 "); }
+        el("ap-sous").textContent = sous;
+        el("ap-note").textContent = v.note_iris ? "Iris : " + v.note_iris : "";
+        el("ap-annuler").hidden = version < 2;
+        Array.prototype.forEach.call(document.querySelectorAll("#apercu-rapport [data-format]"), function(b){
+          b.hidden = (d.formats || []).indexOf(b.getAttribute("data-format")) < 0;
+        });
+        var cadre = el("ap-cadre");
+        cadre.onload = function(){
+          corps.classList.remove("charge");
+          if(!miseAJour){ return; }
+          // Nouvelle version: on amene le premier changement sous les yeux.
+          try{
+            var premier = cadre.contentDocument && cadre.contentDocument.querySelector(".modifie");
+            if(premier){ premier.scrollIntoView({block: "center"}); }
+          }catch(e){}
+        };
+        cadre.srcdoc = html;
+      }).catch(function(){
+        corps.classList.remove("charge");
+        el("ap-titre").textContent = "Aper\u00e7u indisponible";
+        el("ap-sous").textContent = "Le rapport a expir\u00e9 ou appartient \u00e0 une session pr\u00e9c\u00e9dente.";
+      });
+    }
+    function fermer(){ document.body.classList.remove("rap-ouvert"); }
+    function ouvert(){ return document.body.classList.contains("rap-ouvert"); }
+    function annuler(){
+      if(!courant){ return; }
+      var id = courant;
+      fetch(API + "/api/rapports/" + encodeURIComponent(id) + "/modifier",
+            {method: "POST", headers: headers(), body: JSON.stringify({params: {revert: true}})})
+        .then(function(r){ return r.json().then(function(j){ if(!r.ok){ throw new Error((j.error || {}).message || "HTTP " + r.status); } return j; }); })
+        .then(function(j){
+          rapportBloc({id: id, version: j.version, modifications: j.modifications,
+                       titre: j.titre, sous_titre: j.sous_titre});
+        })
+        .catch(function(e){ warn("Retour impossible.", e.message || ""); });
+    }
+    el("ap-fermer").addEventListener("click", fermer);
+    el("ap-annuler").addEventListener("click", annuler);
+    Array.prototype.forEach.call(document.querySelectorAll("#apercu-rapport [data-format]"), function(b){
+      b.addEventListener("click", function(){ if(courant){ telechargerRapport(courant, b.getAttribute("data-format")); } });
+    });
+    return {ouvrir: ouvrir, fermer: fermer, ouvert: ouvert,
+            courant: function(){ return courant; }, version: function(){ return version; }};
+  })();
+
+  function telechargerRapport(id, format){
+    fetch(API + "/api/rapports/" + encodeURIComponent(id) + "/fichier?format=" + format, {headers: headers()})
+      .then(function(r){
+        if(!r.ok){ throw new Error("HTTP " + r.status); }
+        var dispo = r.headers.get("Content-Disposition") || "";
+        var m = /filename="([^"]+)"/.exec(dispo);
+        return r.blob().then(function(blob){ return {blob: blob, nom: m ? m[1] : "rapport-climatsen." + format}; });
+      })
+      .then(function(f){
+        var lien = document.createElement("a");
+        lien.href = URL.createObjectURL(f.blob);
+        lien.download = f.nom;
+        document.body.appendChild(lien);
+        lien.click();
+        setTimeout(function(){ URL.revokeObjectURL(lien.href); lien.remove(); }, 1000);
+      })
+      .catch(function(){ warn("T\u00e9l\u00e9chargement impossible.", "Le rapport a peut-\u00eatre expir\u00e9."); });
   }
 
   /* ---------- Ecran J.A.R.V.I.S (cartes et figures) ------------------------
@@ -4228,6 +4515,8 @@
     // Les figures annoncees pendant le flux s'affichent SOUS la reponse,
     // une fois celle-ci terminee.
     var figuresRecues = [];
+    // Rapports lances par generate_report: une carte de suivi par rapport.
+    var rapportsRecus = [];
     // Presentation guidee demandee par un outil: lancee a la fin de la reponse.
     var presentationDemandee = null;
 
@@ -4301,6 +4590,7 @@
           Ecran.comparer(cartesRecues[cartesRecues.length - 2], cartesRecues[cartesRecues.length - 1]);
         }
         figuresRecues.forEach(figureBloc);
+        rapportsRecus.forEach(rapportBloc);
         orbeAuRepos();
         // Fin de l'analyse de la page : la miniature se referme quand Jarvis
         // a fini de parler (ou tout de suite sans voix). Pose AVANT la fin de
@@ -4349,6 +4639,8 @@
         if(data.carte && Hud.actif()){
           if(data.comparer){ Ecran.comparerAvecCourante(data); } else { Ecran.afficher(data); }
         }
+      } else if(name === "rapport"){
+        rapportsRecus.push(data);
       } else if(name === "navigation"){
         // Page du dashboard demandee par navigate_dashboard (deja validee
         // par le serveur): elle s'ouvre pendant que Jarvis en parle.
@@ -4646,6 +4938,7 @@
     if(e.key !== "Escape"){ return; }
     if(Hud.actif()){
       if(Tableau.enApercu()){ Tableau.apercu(false); }
+      else if(Apercu.ouvert()){ Apercu.fermer(); }
       else if(Ecran.zoome()){ Ecran.zoom(false); }
       else if(Ecran.ouvert()){ Ecran.fermer(); }
       else if($("hud-menu").classList.contains("ouvert")){ Hud.menu(false); }

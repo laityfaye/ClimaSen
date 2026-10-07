@@ -85,6 +85,13 @@ class ChatSyncResponse(BaseModel):
     figures: List[FigureRef] = Field(default_factory=list)
     # Pages du dashboard ouvertes par navigate_dashboard pendant ce tour.
     navigations: List[dict] = Field(default_factory=list)
+    # Rapports lances par generate_report pendant ce tour.
+    rapports: List[dict] = Field(default_factory=list)
+
+
+class RapportRequest(BaseModel):
+    """Demande directe de rapport: les memes champs que l'outil generate_report."""
+    params: dict = Field(default_factory=dict)
 
 
 class ChatMessage(BaseModel):

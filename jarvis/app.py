@@ -25,6 +25,7 @@ from fastapi.responses import (FileResponse, HTMLResponse, JSONResponse,
 from . import (__version__, actions, auth, briefing, code_ops, elevation, figures,
                page_context, page_view, soutenance, tools, voix)
 from .tools import dataset as tools_dataset
+from .tools.common import ToolInputError
 from .claude_client import ClaudeClient
 from .config import Settings, get_settings
 from .conversations import ConversationStore
@@ -32,8 +33,10 @@ from .errors import (AccessDeniedError, InvalidSessionError, JarvisError,
                      NotFoundError, PayloadTooLargeError, RateLimitedError)
 from .logging_conf import log_event, setup_logging
 from .models import (AdminLoginRequest, ChatRequest, ChatSyncResponse,
-                     ConversationResponse, HealthResponse, SessionResponse,
-                     TtsRequest)
+                     ConversationResponse, HealthResponse, RapportRequest,
+                     SessionResponse, TtsRequest)
+from .rapports.rendus import TYPES_MIME
+from .rapports.taches import GestionnaireRapports, QuotaRapports
 from .ratelimit import TokenBucket
 from .session import (JetonsRevoques, SessionInfo, issue_token,
                       verify_token)
@@ -117,6 +120,16 @@ class AppContext:
             settings.anthropic_api_key, settings.secret_key,
             getattr(settings, "admin_password_hash", "")))
         self.claude = ClaudeClient(settings)
+        # Rapports (jarvis/rapports): production en arriere-plan, fichiers
+        # gardes par session. Seau par ADRESSE pour la route directe: un
+        # rapport coute plus cher qu'une question.
+        self.rapports = GestionnaireRapports(
+            dossier=settings.rapports_dir, claude=self.claude,
+            ttl_seconds=settings.rapports_ttl_seconds,
+            max_par_session=settings.rapports_max_par_session,
+            par_heure=settings.rapports_par_heure, avec_pdf=settings.rapports_pdf,
+            redaction_ia=settings.rapports_redaction_ia)
+        self.rapports_bucket = TokenBucket(capacity=6, refill_per_second=6 / 3600.0)
 
     def bucket_for(self, profile: str) -> TokenBucket:
         return self.admin_bucket if profile == "admin" else self.bucket
@@ -131,7 +144,7 @@ class AppContext:
         return tools.specs_for(profile) or None
 
     def tool_executor(self, profile: str, session_id: str = "",
-                      figures_produites=None, navigations=None):
+                      figures_produites=None, navigations=None, rapports_produits=None):
         """Executeur lie au profil ET a la session.
 
         Les deux sont captures ici, cote serveur: le modele ne peut influencer
@@ -141,7 +154,9 @@ class AppContext:
         contexte = {"settings": self.settings,
                     "session_id": session_id,
                     "registre": self.actions,
-                    "figures": self.figures}
+                    "figures": self.figures,
+                    "rapports": self.rapports,
+                    "profile": profile}
 
         async def executer(nom, arguments):
             resultat = await tools.execute(
@@ -158,13 +173,18 @@ class AppContext:
             if (navigations is not None and nom in OUTILS_NAVIGATION
                     and not resultat.get("is_error")):
                 _noter_navigation(resultat, navigations)
+            if (rapports_produits is not None and nom in OUTILS_RAPPORTS
+                    and not resultat.get("is_error")):
+                _noter_rapport(resultat, rapports_produits)
             return resultat
         return executer
 
 
 # Outils qui deposent une figure a annoncer au widget.
 OUTILS_FIGURES = ("make_figure", "show_map", "recompute_correlation",
-                  "animate_sst_event")
+                  "animate_sst_event", "make_custom_figure")
+# Outil dont le resultat annonce un rapport en preparation (jarvis/rapports).
+OUTILS_RAPPORTS = ("generate_report", "edit_report")
 # Outil dont le resultat porte une consigne de navigation pour le dashboard.
 OUTILS_NAVIGATION = ("navigate_dashboard", "present_bulletin_briefing")
 # Presentations guidees qu'un outil peut lancer (liste fermee).
@@ -197,6 +217,23 @@ def _noter_figure(resultat: dict, figures_produites: list) -> None:
                                   "titre": secondaire.get("titre", ""),
                                   "sous_titre": secondaire.get("sous_titre", ""),
                                   "carte": False})
+
+
+def _noter_rapport(resultat: dict, rapports_produits: list) -> None:
+    """Releve le rapport lance par generate_report, dans le RESULTAT de
+    l'outil (jamais dans le texte du modele), pour l'annoncer au widget."""
+    try:
+        charge = json.loads(resultat.get("content") or "{}")
+    except ValueError:
+        return
+    ident = charge.get("rapport_id")
+    if isinstance(ident, str) and ident.isalnum():
+        rapports_produits.append({"id": ident, "titre": charge.get("titre", ""),
+                                  "sous_titre": charge.get("sous_titre", ""),
+                                  "statut": charge.get("statut", "lance"),
+                                  # Modification (edit_report): version attendue.
+                                  "version": charge.get("version", 1),
+                                  "modifications": charge.get("modifications") or []})
 
 
 def _noter_navigation(resultat: dict, navigations: list) -> None:
@@ -336,6 +373,7 @@ def create_app(settings: Optional[Settings] = None) -> FastAPI:
     @asynccontextmanager
     async def lifespan(app: FastAPI):
         app.state.ctx = AppContext(settings)
+        app.state.ctx.rapports.attacher(asyncio.get_running_loop())
         sweeper = asyncio.create_task(_sweep_loop(app))
         if settings.tools_enabled and settings.tools_preload:
             # En tache de fond: le service doit repondre a /health tout de
@@ -846,6 +884,8 @@ def create_app(settings: Optional[Settings] = None) -> FastAPI:
             annoncees = 0
             navigations = []
             nav_annoncees = 0
+            rapports_produits = []
+            rap_annonces = 0
             try:
                 yield _sse("meta", {"conversation_id": conv.conversation_id,
                                     "model": c.claude.model_for(session.profile)})
@@ -853,7 +893,7 @@ def create_app(settings: Optional[Settings] = None) -> FastAPI:
                     messages, session.profile,
                     tools=c.tool_specs(session.profile),
                     executor=c.tool_executor(session.profile, session.session_id,
-                                             produites, navigations),
+                                             produites, navigations, rapports_produits),
                     **_max_tokens(c, payload),
                 )
                 async for chunk in flux:
@@ -868,6 +908,9 @@ def create_app(settings: Optional[Settings] = None) -> FastAPI:
                     while nav_annoncees < len(navigations):
                         yield _sse("navigation", navigations[nav_annoncees])
                         nav_annoncees += 1
+                    while rap_annonces < len(rapports_produits):
+                        yield _sse("rapport", rapports_produits[rap_annonces])
+                        rap_annonces += 1
                     if isinstance(chunk, dict):
                         if chunk.get("type") == "tools":
                             # Sans ce signal, l'utilisateur voit plusieurs
@@ -911,6 +954,9 @@ def create_app(settings: Optional[Settings] = None) -> FastAPI:
             while nav_annoncees < len(navigations):
                 yield _sse("navigation", navigations[nav_annoncees])
                 nav_annoncees += 1
+            while rap_annonces < len(rapports_produits):
+                yield _sse("rapport", rapports_produits[rap_annonces])
+                rap_annonces += 1
             answer = "".join(parts)
             _commit(c, conv, payload.message, answer, produites)
             log_event("jarvis.%s" % session.profile, "chat_stream_done",
@@ -942,11 +988,12 @@ def create_app(settings: Optional[Settings] = None) -> FastAPI:
         conv, messages, _ = _prepare(request, payload, session, c)
         produites = []
         navigations = []
+        rapports_produits = []
         result = await c.claude.complete(
             messages, session.profile,
             tools=c.tool_specs(session.profile),
             executor=c.tool_executor(session.profile, session.session_id,
-                                     produites, navigations),
+                                     produites, navigations, rapports_produits),
             **_max_tokens(c, payload),
         )
         _commit(c, conv, payload.message, result["text"], produites)
@@ -962,6 +1009,7 @@ def create_app(settings: Optional[Settings] = None) -> FastAPI:
             usage=result.get("usage", {}),
             figures=produites,
             navigations=navigations,
+            rapports=rapports_produits,
         )
 
     @app.post("/jarvis/api/tts")
@@ -1071,6 +1119,102 @@ def create_app(settings: Optional[Settings] = None) -> FastAPI:
         type_image = "image/gif" if image[:4] == b"GIF8" else "image/png"
         return Response(image, media_type=type_image, headers=entetes)
 
+    # --- rapports (jarvis/rapports) ----------------------------------------------
+    @app.post("/jarvis/api/rapports")
+    async def rapport_demande(request: Request, payload: RapportRequest,
+                              session: SessionInfo = Depends(current_session),
+                              c: AppContext = Depends(ctx)):
+        """Demande directe (formulaire), sans passer par le chat.
+
+        Meme chemin que l'outil generate_report: une question de clarification
+        au plus, puis la production en arriere-plan."""
+        ip = _client_ip(request, c.settings.trusted_proxy_hops, c.settings.proxies)
+        allowed, retry_after = c.rapports_bucket.consume(ip)
+        if not allowed:
+            raise RateLimitedError(retry_after=retry_after)
+        try:
+            r = await asyncio.to_thread(c.rapports.preparer, payload.params,
+                                        session.session_id)
+        except ToolInputError as exc:
+            return JSONResponse(status_code=422, content={"error": {
+                "code": "invalid_request", "message": str(exc)}})
+        if r["statut"] == "question":
+            return r
+        try:
+            tache = c.rapports.lancer(session.session_id, r["spec"], session.profile,
+                                      payload.params)
+        except QuotaRapports as exc:
+            return JSONResponse(status_code=429, content={"error": {
+                "code": "rate_limited", "message": str(exc)}})
+        log_event("jarvis.%s" % session.profile, "rapport_lance",
+                  session_id=session.session_id, rapport=tache.id, type=tache.spec.type)
+        return {"statut": "lance" if not tache.depuis_cache else "pret",
+                "rapport": tache.vue()}
+
+    @app.get("/jarvis/api/rapports/{rapport_id}")
+    async def rapport_etat(rapport_id: str, session: SessionInfo = Depends(current_session),
+                           c: AppContext = Depends(ctx)):
+        if not rapport_id.isalnum() or len(rapport_id) > 64:
+            raise NotFoundError("Rapport introuvable.")
+        tache = c.rapports.obtenir(session.session_id, rapport_id)
+        if tache is None:
+            raise NotFoundError("Rapport introuvable.")
+        return tache.vue()
+
+    @app.get("/jarvis/api/rapports/{rapport_id}/apercu")
+    async def rapport_apercu(rapport_id: str, session: SessionInfo = Depends(current_session),
+                             c: AppContext = Depends(ctx)):
+        """HTML d'apercu de la version courante (changements surlignes).
+
+        Affiche par le widget dans une iframe srcdoc SANS scripts (sandbox): le
+        rapport ne contient de toute facon aucun script, et ses textes sont
+        echappes au rendu."""
+        if not rapport_id.isalnum() or len(rapport_id) > 64:
+            raise NotFoundError("Rapport introuvable.")
+        html = await asyncio.to_thread(c.rapports.apercu, session.session_id, rapport_id)
+        if html is None:
+            raise NotFoundError("Rapport introuvable.")
+        return Response(html.encode("utf-8"), media_type="text/html; charset=utf-8",
+                        headers={"Cache-Control": "private, no-store"})
+
+    @app.post("/jarvis/api/rapports/{rapport_id}/modifier")
+    async def rapport_modifier(rapport_id: str, request: Request, payload: RapportRequest,
+                               session: SessionInfo = Depends(current_session),
+                               c: AppContext = Depends(ctx)):
+        """Modification directe (meme chemin que l'outil edit_report)."""
+        from .rapports.taches import ModificationImpossible
+        if not rapport_id.isalnum() or len(rapport_id) > 64:
+            raise NotFoundError("Rapport introuvable.")
+        ip = _client_ip(request, c.settings.trusted_proxy_hops, c.settings.proxies)
+        allowed, retry_after = c.rapports_bucket.consume(ip)
+        if not allowed:
+            raise RateLimitedError(retry_after=retry_after)
+        if c.rapports.obtenir(session.session_id, rapport_id) is None:
+            raise NotFoundError("Rapport introuvable.")
+        try:
+            r = await asyncio.to_thread(c.rapports.modifier, session.session_id, rapport_id,
+                                        payload.params)
+        except (ModificationImpossible, ToolInputError) as exc:
+            return JSONResponse(status_code=422, content={"error": {
+                "code": "invalid_request", "message": str(exc)}})
+        return r
+
+    @app.get("/jarvis/api/rapports/{rapport_id}/fichier")
+    async def rapport_fichier(rapport_id: str, format: str = "pdf",
+                              session: SessionInfo = Depends(current_session),
+                              c: AppContext = Depends(ctx)):
+        """Fichier d'un rapport de CETTE session (pdf, docx, html, csv)."""
+        if not rapport_id.isalnum() or len(rapport_id) > 64 or format not in TYPES_MIME:
+            raise NotFoundError("Rapport introuvable.")
+        trouve = await asyncio.to_thread(c.rapports.fichier, session.session_id,
+                                         rapport_id, format)
+        if trouve is None:
+            raise NotFoundError("Rapport introuvable.")
+        contenu, nom = trouve
+        return Response(contenu, media_type=TYPES_MIME[format], headers={
+            "Content-Disposition": 'attachment; filename="%s"' % nom,
+            "Cache-Control": "private, no-store"})
+
     @app.get("/jarvis/admin", response_class=HTMLResponse)
     async def admin_console(c: AppContext = Depends(ctx)):
         """Console d'administration. La page elle-meme n'est pas un secret.
@@ -1123,6 +1267,7 @@ async def _sweep_loop(app: FastAPI) -> None:
             app.state.ctx.revoques.purger()
             app.state.ctx.actions.purger()
             app.state.ctx.figures.purger()
+            app.state.ctx.rapports.purger()
         except Exception:
             log.exception("Echec de la purge des conversations")
 

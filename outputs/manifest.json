@@ -1,0 +1,129 @@
+{
+  "version": 1,
+  "calcule_le": "2026-10-07T17:44:54Z",
+  "commit": "f923d2e",
+  "empreinte": "d19243ea204b78c312581020820ada6cac669a941984fa33f15119eb94d59a01",
+  "version_donnees": "D-d19243ea20",
+  "fichiers": {
+    "atlas_rgph5": {
+      "chemin": "data/raw/ansd/atlas_rgph5_2023_classes_extremes_departements.csv",
+      "source": "ANSD Atlas RGPH-5",
+      "periode": "2023",
+      "sha256": "6154467c1956c8c6ab20d78260ce77e36ec1d8c062910ea80391f9dab097e480",
+      "octets": 56508
+    },
+    "clusters": {
+      "chemin": "outputs/clustering/All_phases/All_phases_cluster_characteristics.csv",
+      "source": "NOAA OISST v2 (K-Means)",
+      "periode": "1983-2023",
+      "sha256": "048751e18a4d07e1eb17eb2fb010e83aea7d6b474c823e9867d8a4d5876ee88d",
+      "octets": 2324
+    },
+    "communes": {
+      "chemin": "data/processed/correspondance_communes_arrondissements.csv",
+      "source": "ANSD RGPH-5",
+      "periode": "2023",
+      "sha256": "170dfa374a4fdfd9670b28f6b388e5c55b8dc40d33d8c14b877174fbc1275258",
+      "octets": 71921
+    },
+    "correlations_p1": {
+      "chemin": "outputs/teleconnections/correlations_Phase_1_debut.csv",
+      "source": "CHIRPS v2 x NOAA OISST v2",
+      "periode": "1983-2023",
+      "sha256": "11248eaa39befad98924bf26aa42de1306b1e36047617fa2e72ca604efbfca67",
+      "octets": 32797
+    },
+    "correlations_p2": {
+      "chemin": "outputs/teleconnections/correlations_Phase_2_pleine.csv",
+      "source": "CHIRPS v2 x NOAA OISST v2",
+      "periode": "1983-2023",
+      "sha256": "af238eb02bc47149cb2bcea43173927ab4c7e5d3275def28333b0da7fbab405c",
+      "octets": 33053
+    },
+    "correlations_p3": {
+      "chemin": "outputs/teleconnections/correlations_Phase_3_fin.csv",
+      "source": "CHIRPS v2 x NOAA OISST v2",
+      "periode": "1983-2023",
+      "sha256": "4208b1abc424d224cecc59cc9db9408e5b919edd7b8d1e58b7fb297e87813e12",
+      "octets": 32917
+    },
+    "correlations_toutes": {
+      "chemin": "outputs/teleconnections/correlations_Toutes phases.csv",
+      "source": "CHIRPS v2 x NOAA OISST v2",
+      "periode": "1983-2023",
+      "sha256": "ff6e3ad42d28a994cca91d5dc4b990d24087226396e04c38f1658d45b4945c57",
+      "octets": 33047
+    },
+    "ehcvm_assainissement": {
+      "chemin": "data/raw/ansd/ehcvm_2021-2022_assainissement_par_region.csv",
+      "source": "ANSD EHCVM",
+      "periode": "2021-2022",
+      "sha256": "0d1f71cc33fa706f1c6c05a9493a5494cd5144b89e75c73b12a6cc4e112913b2",
+      "octets": 548
+    },
+    "ehcvm_pauvrete": {
+      "chemin": "data/raw/ansd/ehcvm_2021-2022_pauvrete_par_region.csv",
+      "source": "ANSD EHCVM",
+      "periode": "2021-2022",
+      "sha256": "c95007c77e6446c2bec989184709eeab10299fe46a5c77b143ac1de608db4258",
+      "octets": 770
+    },
+    "ehcvm_services": {
+      "chemin": "data/raw/ansd/ehcvm_2021-2022_services_chocs_par_region.csv",
+      "source": "ANSD EHCVM",
+      "periode": "2021-2022",
+      "sha256": "44a81789f1ec7df4f4e7cd5d76bcb383a4cdcf5b2d233b954f73bed290f39b5a",
+      "octets": 658
+    },
+    "etats_saisonniers": {
+      "chemin": "outputs/clustering_saisonnier/etats_saisonniers.json",
+      "source": "NOAA OISST v2 (K-Means saisonnier)",
+      "periode": "1983-2023",
+      "sha256": "8404d83b4fc205e30c9e287e4368938566be4a3ffd401c875d055b4b06e0c737",
+      "octets": 11422
+    },
+    "evenements": {
+      "chemin": "data/processed/extreme_events_phases_senegal.csv",
+      "source": "CHIRPS v2",
+      "periode": "1981-2023",
+      "sha256": "dec0c74f16168045391f0d64739b11a575e4ef7866957d55373847f1622735b7",
+      "octets": 432215
+    },
+    "indice_arrondissements": {
+      "chemin": "outputs/vulnerabilite/indice_risque_arrondissements.csv",
+      "source": "CHIRPS v2, ANSD RGPH-5, ANSD EHCVM",
+      "periode": "1981-2023 / 2023",
+      "sha256": "06a87284f41d0ecbcd22fff8198853babecd6358b75e7d25d8ffbd1d9cf8773f",
+      "octets": 25537
+    },
+    "indice_departements": {
+      "chemin": "outputs/vulnerabilite/indice_risque_departements.csv",
+      "source": "CHIRPS v2, ANSD RGPH-5, ANSD EHCVM",
+      "periode": "1981-2023 / 2023",
+      "sha256": "6eb3f6498556d04a48cacf87ba69081ae0c9ceb819737a05624646e3a0ef8008",
+      "octets": 9402
+    },
+    "indices_sst": {
+      "chemin": "data/raw/climate_indices/daily_indices_all.csv",
+      "source": "NOAA OISST v2",
+      "periode": "1983-2023",
+      "sha256": "f071ab840e35f8d56705c58c0ad6b030d14b7f954fabcf674ece2776587ec054",
+      "octets": 1388001
+    },
+    "robustesse_indice": {
+      "chemin": "outputs/vulnerabilite/robustesse/resume.json",
+      "source": "Inondations documentees 2005-2020",
+      "periode": "2005-2020",
+      "sha256": "bda670db47097409d7aa87293ef68aad9650802422d9060fc0b12b891a90d047",
+      "octets": 4049
+    },
+    "veille_competence": {
+      "chemin": "outputs/veille/competence_projection.json",
+      "source": "Veille pre-saison",
+      "periode": "1983-2023",
+      "sha256": "66df5b3b1b76f261ec3b70a07cda79578e8a03a7d2255bb355bd98f565555d26",
+      "octets": 8840
+    }
+  },
+  "absents": []
+}

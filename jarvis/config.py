@@ -141,6 +141,13 @@ class Settings(BaseSettings):
     # --- Reseau / logs --------------------------------------------------------
     allowed_origins: str = "http://localhost:8501,http://127.0.0.1:8501"
     log_dir: str = str(PROJECT_DIR / "outputs" / "jarvis_logs")
+    # Rapports generes par Iris (jarvis/rapports): fichiers gardes 24 h.
+    rapports_dir: str = str(PROJECT_DIR / "outputs" / "rapports_iris")
+    rapports_ttl_seconds: int = 86400
+    rapports_max_par_session: int = 10
+    rapports_par_heure: int = 6
+    rapports_pdf: bool = True                 # Chromium (playwright) requis
+    rapports_redaction_ia: bool = True        # sinon redaction gabarit seule
     log_prompts: bool = True                  # extrait tronque des questions
     log_preview_chars: int = 200
 

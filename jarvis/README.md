@@ -661,6 +661,60 @@ que ses sorties dans `outputs/veille/`.
 Déployer : `outputs/veille/` (bulletins, états, kits) et `pip install python-docx`
 dans le venv, puis redémarrer Iris et Streamlit.
 
+## Rapports professionnels (07/10/2026)
+
+« Rapport sur le risque à Pikine pour l'hivernage prochain » : Iris lance un
+rapport PDF / Word / HTML de structure fixe (contexte, résumé exécutif,
+méthodologie et sources, analyse illustrée, conclusions et recommandations,
+limites et traçabilité). Paquet `jarvis/rapports/`. **Le code calcule et dessine,
+le modèle ne fait que rédiger.**
+
+| Étape | Où | Principe |
+|---|---|---|
+| Demande | outil `generate_report`, `rapports/spec.py`, `gazetteer.py` | Zone résolue sur 14 régions, 46 départements, 125 arrondissements, 553 communes. « Hivernage prochain » calculé depuis la date du jour. **Une seule question** de clarification (zone ambiguë, période hors données, saison sans bulletin), comptée côté serveur ; ensuite valeurs par défaut écrites comme hypothèses. |
+| Faits | `faits.py`, `collecteurs/` | Chaque chiffre est un `Fait` (valeur, unité, source, période, statut observé / corrélé / projeté / méthode), lu par les mêmes outils que le dashboard (`get_priority_zones`, `show_map`, `make_figure`, `analyze_teleconnections`, `get_risk_cluster`, `get_seasonal_outlook`). IC 95 % des corrélations par Fisher sur n_eff. |
+| Rédaction | `redaction.py`, `prompts/rapport.md`, `ClaudeClient.generer_json` | Sorties structurées JSON ; le modèle écrit `{{fait:id}}`, jamais un chiffre. `verification.py` refuse un nombre inventé, un renvoi inconnu, une formule de certitude, une phrase qui remplacerait l'ANACIM, un résumé trop long ; 3 tentatives puis **repli sur la rédaction gabarit** (exacte, moins fluide). Statut des paragraphes recalculé d'après les faits cités. |
+| Textes fixes | `textes_fixes.py` | Mention ANACIM, avertissements corrélation / projection / indice, limites (couverture 1981-2023, 0,25°, vulnérabilité provisoire, biais Dakar, tests multiples…) : insérés par le code après la rédaction. |
+| Visuels | `document.py`, `figures.rendre(impression=True)` | Figure ou tableau sans titre, légende, unité, période ou source : refusé à la construction. Décimales à la française. |
+| Visuels absents | outil `make_custom_figure`, `moteur_figures.py`, `catalogue.yaml`, `figures_reference.yaml` | Figures de référence d'abord ; sinon grammaire bornée (jeu, filtres, jointure autorisée, agrégation, marque). Refus motivés : moyenne de rangs, somme de taux, nuage < 10 points, boîte < 5 valeurs, carte de chaleur hors corrélations, jointure < 50 %, chiffres dans le titre. |
+| Rendus | `rendus/` | Un modèle de document, trois rendus : HTML (Jinja2, échappé), PDF (Chromium headless via Playwright, pied de page avec version et pagination), Word (python-docx). |
+| Version | `manifest.py`, `scripts/32_manifest_donnees.py` | sha256 des 17 fichiers sources → « version des données » imprimée sur chaque page ; empreintes en annexe ; registre des faits exportable en CSV. |
+| Production | `taches.py`, `/api/rapports` (POST, GET `{id}`, GET `{id}/fichier?format=pdf\|docx\|html\|csv`), événement SSE `rapport` | En arrière-plan ; une tâche en cours et 6 rapports/heure par session ; fichiers lisibles par la seule session propriétaire, purgés après 24 h (`outputs/rapports_iris/`) ; cache sur (demande, version des données). Le widget affiche la progression puis les boutons de téléchargement. |
+
+**Aperçu et modifications.** Dès qu'un rapport est prêt, le widget l'ouvre
+dans un panneau d'aperçu à gauche de l'interface plein écran (même gabarit que
+l'écran des cartes ; conversation à droite). Le HTML vient de
+`GET /api/rapports/{id}/apercu` et s'affiche dans une iframe `srcdoc` sans
+scripts (`sandbox="allow-same-origin"`). L'utilisateur demande ses changements
+à Iris :
+
+| Demande | Outil | Effet |
+|---|---|---|
+| « le deuxième paragraphe », « la carte » | `read_report` | Plan de la version courante : paragraphes, recommandations, visuels étiquetés (« Figure 2 »), retirables ou non, historique. |
+| Texte (« simplifie le résumé », « ajoute une recommandation sur les écoles ») | `edit_report` `instruction` | `redaction.modifier` : le modèle repart de la rédaction actuelle, ne change que ce qui est demandé, même vérification ; il explique dans une note ce qu'il a fait ou refusé. Texte refusé et rien d'autre demandé : **aucune version créée**, l'explication s'affiche. |
+| Zone, période, phase, saison, public | `edit_report` `changes` | Faits et visuels recalculés (même règle de la question unique si la zone est ambiguë). |
+| Visuels | `remove_visuals`, `reference_figures`, `extra_figures` | Un visuel calculé retiré le reste après un changement de zone (`cle_visuel`) ; le tableau de traçabilité n'est pas retirable. |
+| « reviens en arrière » | `revert` (ou bouton VERSION PRÉCÉDENTE) | Nouvelle version identique à la précédente. |
+
+Chaque modification produit une **nouvelle version du même rapport** (même
+identifiant, 15 au plus, fichiers `outputs/rapports_iris/<id>/v<n>/`, nom de
+fichier suffixé `_v2`). L'aperçu surligne les blocs absents de la version
+précédente et y fait défiler ; les fichiers exportés ne portent jamais ces
+marques. Routes : `GET /api/rapports/{id}/apercu`,
+`POST /api/rapports/{id}/modifier` ; l'événement SSE `rapport` porte `version`
+et `modifications`.
+
+Coût mesuré (Sonnet 5) : ~3 centimes par rapport rédigé (5 k jetons en entrée,
+2 k en sortie, 25 à 60 s). Sans clé ou si l'API échoue, le rapport sort quand
+même, en rédaction gabarit. Réglages `.env` : `JARVIS_RAPPORTS_REDACTION_IA`,
+`JARVIS_RAPPORTS_PDF`, `JARVIS_RAPPORTS_PAR_HEURE`.
+
+Déployer : `pip install -r jarvis/requirements.txt` (jinja2, pyyaml, playwright),
+puis `python -m playwright install-deps chromium` (root) et
+`python -m playwright install chromium` ; `py -3 scripts/32_manifest_donnees.py`
+après chaque mise à jour des données. Sans Chromium, HTML et Word restent
+produits.
+
 ## Ajouter un outil
 
 1. Créer `jarvis/tools/<nom>.py` exposant `NAME`, `LABEL`, `PERMISSION`,

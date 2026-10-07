@@ -153,6 +153,11 @@ def en_csv(spec: dict) -> str:
         from . import cartes
         ecrivain.writerows(cartes.en_lignes_animation(spec))
         return sortie.getvalue()
+    if genre == "boites":
+        ecrivain.writerow([d.get("x_label", "groupe") or "groupe", d.get("y_label", "valeur")])
+        for groupe, valeurs in zip(d["groupes"], d["valeurs"]):
+            ecrivain.writerows([[groupe, v] for v in valeurs])
+        return sortie.getvalue()
     if genre == "nuage":
         ecrivain.writerow(["annee", d.get("x_label", "x"), d.get("y_label", "y")])
         ecrivain.writerows([list(pt) for pt in d["points"]])
@@ -283,7 +288,8 @@ def _barres(fig, spec, p):
         ax.invert_yaxis()
         ax.set_xlabel(d.get("y_label", ""))
         for pos, val in zip(positions, d["valeurs"]):
-            ax.annotate(_nombre(val), (val, pos), xytext=(3, 0),
+            ax.annotate(_nombre(val, d.get("decimales"), d.get("virgule", False)),
+                        (val, pos), xytext=(3, 0),
                         textcoords="offset points", va="center",
                         fontsize=6.5, color=p["encre2"])
         ax.margins(x=0.12)
@@ -304,10 +310,14 @@ def _barres(fig, spec, p):
         ax.set_ylabel(d.get("y_label", ""))
 
 
-def _nombre(v):
+def _nombre(v, decimales=None, virgule=False):
     if v is None:
         return ""
-    return ("%d" % v) if float(v).is_integer() else ("%.1f" % v)
+    if decimales is None:
+        texte = ("%d" % v) if float(v).is_integer() else ("%.1f" % v)
+    else:
+        texte = "%.*f" % (decimales, v)
+    return texte.replace(".", ",") if virgule else texte
 
 
 def _carte_chaleur(fig, spec, p):
@@ -388,8 +398,31 @@ def _nuage(fig, spec, p):
     ax.set_ylabel(d.get("y_label", ""))
 
 
+def _boites(fig, spec, p):
+    """Boites a moustaches par groupe (figures a la demande, jarvis/rapports)."""
+    d = spec["donnees"]
+    ax = fig.add_subplot(111)
+    _preparer_axes(ax, p)
+    boites = ax.boxplot(d["valeurs"], patch_artist=True, widths=0.55,
+                        medianprops={"color": p["encre"], "linewidth": 1.2},
+                        whiskerprops={"color": p["encre2"], "linewidth": 0.8},
+                        capprops={"color": p["encre2"], "linewidth": 0.8},
+                        flierprops={"marker": "o", "markersize": 2.5,
+                                    "markerfacecolor": p["encre2"], "markeredgewidth": 0})
+    for boite in boites["boxes"]:
+        boite.set_facecolor(p["series"][0])
+        boite.set_alpha(0.75)
+        boite.set_edgecolor(p["series"][0])
+    ax.set_xticks(range(1, len(d["groupes"]) + 1))
+    ax.set_xticklabels([str(g) for g in d["groupes"]],
+                       rotation=30 if len(d["groupes"]) > 6 else 0,
+                       ha="right" if len(d["groupes"]) > 6 else "center")
+    ax.set_xlabel(d.get("x_label", ""))
+    ax.set_ylabel(d.get("y_label", ""))
+
+
 _DESSINS = {"courbes": _courbes, "barres": _barres, "carte_chaleur": _carte_chaleur,
-            "nuage": _nuage}
+            "nuage": _nuage, "boites": _boites}
 
 # Figures animees (GIF): l'ecran J.A.R.V.I.S les affiche comme une carte.
 GENRES_ANIMES = ("animation_sst",)
@@ -399,6 +432,10 @@ GENRES_ANIMES = ("animation_sst",)
 FORMATS_CARTES = {"carte_sst": (7.2, 3.35), "carte_senegal": (6.0, 4.9),
                   "carte_zones": (6.0, 4.9)}
 DPI_CARTES = 220
+# Rapports (jarvis/rapports): figure affichee sur ~16 cm de large.
+LARGEUR_IMPRESSION = 6.0
+RAPPORT_HAUTEUR_IMPRESSION = 1.25
+DPI_IMPRESSION = 200
 
 
 def _dessin_carte(genre):
@@ -409,8 +446,12 @@ def _dessin_carte(genre):
     return dessiner
 
 
-def rendre(spec: dict, theme: str = "clair") -> bytes:
-    """Dessine la figure en PNG. Pur: ne depend que de la specification."""
+def rendre(spec: dict, theme: str = "clair", impression: bool = False) -> bytes:
+    """Dessine la figure en PNG. Pur: ne depend que de la specification.
+
+    impression=True: format des rapports (pleine largeur de page A4, 200 dpi)
+    au lieu de la bulle du widget. Les cartes gardent leur format, deja large.
+    """
     import matplotlib
     from matplotlib.backends.backend_agg import FigureCanvasAgg
     from matplotlib.figure import Figure as FigureMpl
@@ -426,6 +467,8 @@ def rendre(spec: dict, theme: str = "clair") -> bytes:
     carte = genre in FORMATS_CARTES
     largeur, hauteur = (FORMATS_CARTES[genre] if carte else
                         (LARGEUR_POUCES, spec.get("hauteur_pouces", 2.5)))
+    if impression and not carte:
+        largeur, hauteur = LARGEUR_IMPRESSION, hauteur * RAPPORT_HAUTEUR_IMPRESSION
     reglages = {"font.size": 7.5, "axes.labelsize": 7.5, "xtick.labelsize": 7,
                 "ytick.labelsize": 7, "font.family": "DejaVu Sans"}
     with _verrou_rendu, matplotlib.rc_context(reglages):
@@ -433,17 +476,32 @@ def rendre(spec: dict, theme: str = "clair") -> bytes:
         if carte:
             from . import cartes
             fond = cartes.STYLES[theme]["fond"]
-        fig = FigureMpl(figsize=(largeur, hauteur), dpi=DPI_CARTES if carte else DPI,
-                        facecolor=fond)
+        dpi = DPI_CARTES if carte else (DPI_IMPRESSION if impression else DPI)
+        fig = FigureMpl(figsize=(largeur, hauteur), dpi=dpi, facecolor=fond)
         FigureCanvasAgg(fig)
         if carte:
             _dessin_carte(genre)(fig, spec, p, theme)
         else:
             _DESSINS[genre](fig, spec, p)
             fig.tight_layout(pad=0.4)
+        if impression:
+            _virgules(fig)
         tampon = io.BytesIO()
         fig.savefig(tampon, format="png", facecolor=fond)
     return tampon.getvalue()
+
+
+def _virgules(fig):
+    """Rapports: decimales a la francaise sur les axes numeriques (0,2 et non
+    0.2). Les axes de categories et de coordonnees gardent leur format."""
+    from matplotlib.ticker import FuncFormatter, ScalarFormatter
+
+    def fr(valeur, _pos):
+        return ("%g" % valeur).replace(".", ",").replace("-", "−")
+    for ax in fig.axes:
+        for axe in (ax.xaxis, ax.yaxis):
+            if isinstance(axe.get_major_formatter(), ScalarFormatter):
+                axe.set_major_formatter(FuncFormatter(fr))
 
 
 def rendu_en_cache(figure: Figure, theme: str) -> bytes:
