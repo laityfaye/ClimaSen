@@ -37,7 +37,7 @@ Les 553 communes du RGPH-5 ont toutes leur équivalent dans le fichier de l'ANSD
 Sources vérifiées avant de reconstruire (octobre 2026) :
 - **ANSD** : interrogée par courriel, elle renvoie vers GADM et fournit les coordonnées des localités, sans contours ;
 - **OCHA (COD-AB 2024)** : contours jusqu'aux arrondissements (125), pas de communes ;
-- **GéoSénégal** (geosenegal.gouv.sn, données de l'ANAT) : la base au 1/200 000 décrit les limites administratives jusqu'à l'**arrondissement** (classe « région administrative de 3e ordre ») et date du découpage d'avant 2013 (elle mentionne les communautés rurales) ; la base au 1/50 000 ne compte que 62 feuilles, toutes dans la vallée du fleuve Sénégal (Dagana, Podor, Bakel, Matam, Saint-Louis...), sans la région de Dakar ;
+- **GéoSénégal** (geosenegal.gouv.sn, données de l'ANAT) : la base au 1/200 000 décrit les limites administratives jusqu'à l'**arrondissement** (classe « région administrative de 3e ordre ») et date du découpage d'avant 2013 (elle mentionne les communautés rurales) ; la base au 1/50 000 ne compte que 62 feuilles, toutes dans la vallée du fleuve Sénégal (Dagana, Podor, Bakel, Matam, Saint-Louis...), sans la région de Dakar. Les services cartographiques (ArcGIS, WMS, WMTS) annoncés sur la page « Description et accès aux services » pointent vers `basegeoweb.gouv.sn`, domaine qui n'existe plus (vérifié le 7 octobre 2026) ; aucune autre couche de communes n'est exposée par le portail ;
 - **GADM 4.1** : 431 communes, découpage ancien, redistribution interdite.
 
 **Méthode :** chaque point du territoire est attribué à la localité ANSD la plus proche (diagramme de Voronoï), à l'intérieur de chacun des 46 départements OCHA 2024, puis les cellules sont regroupées par commune.
