@@ -1,0 +1,67 @@
+{
+  "sources": {
+    "population": "ANSD, RGPH-5 2023, Repertoire des localites",
+    "coordonnees": "ANSD, coordonnees geographiques des localites (04/10/2026)",
+    "pluie": "CHIRPS 0,25 deg, anomalies du script 01"
+  },
+  "localites_rgph5_2023": 25317,
+  "population_2023": 18152795,
+  "precision_du_placement_part_population": {
+    "centre de la commune": 0.1823,
+    "centre de la commune ; pixel voisin (bord de grille)": 0.0001,
+    "localite (nom approche)": 0.0905,
+    "localite (nom identique)": 0.7262,
+    "localite (nom identique) ; pixel voisin (bord de grille)": 0.0009
+  },
+  "population_hors_grille": 0,
+  "communes": {
+    "alias verifie": {
+      "communes": 5,
+      "part_population": 0.0115
+    },
+    "commune decoupee": {
+      "communes": 10,
+      "part_population": 0.0119
+    },
+    "nom approche": {
+      "communes": 61,
+      "part_population": 0.0953
+    },
+    "nom identique": {
+      "communes": 477,
+      "part_population": 0.8813
+    }
+  },
+  "controle_pixels": {
+    "evenements": 1317,
+    "ecarts_avec_coverage_points": 0
+  },
+  "lecture": "population 2023 des zones touchees par chaque evenement passe",
+  "evenements_les_plus_peuples": [
+    {
+      "date": "2012-09-28",
+      "population_touchee_2023": 14205729,
+      "departement_le_plus_touche": "M’BACKE"
+    },
+    {
+      "date": "2022-10-24",
+      "population_touchee_2023": 13558762,
+      "departement_le_plus_touche": "M’BACKE"
+    },
+    {
+      "date": "1999-10-09",
+      "population_touchee_2023": 13270846,
+      "departement_le_plus_touche": "M’BACKE"
+    },
+    {
+      "date": "2000-10-16",
+      "population_touchee_2023": 13211973,
+      "departement_le_plus_touche": "M’BACKE"
+    },
+    {
+      "date": "1985-06-27",
+      "population_touchee_2023": 12940588,
+      "departement_le_plus_touche": "M’BACKE"
+    }
+  ]
+}
