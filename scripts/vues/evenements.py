@@ -842,6 +842,32 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
                         f'maximum sur la bo&#238;te de d&#233;tection (12,3-16,7&#176;N, '
                         f'17,55-11,35&#176;W), qui inclut des pixels des pays voisins.</div>')
 
+            # Habitants (RGPH-5 2023) des zones ou la pluie a ete extreme ce jour-la
+            # (script 33 : localites RGPH-5 placees grace aux coordonnees de l'ANSD).
+            _pop_row = ""
+            _pt = du.load_population_touchee()
+            _cle_pt = str(_sel_date)[:10]
+            if _pt is not None and _cle_pt in _pt.index:
+                _p = _pt.loc[_cle_pt]
+                _hab = int(_p["population_touchee_2023"])
+                _hab_txt = (f"{_hab / 1e6:.1f}".replace(".", ",") + "&nbsp;M"
+                            if _hab >= 1_000_000 else f"{_hab:,}".replace(",", "&#8239;"))
+                _dep_top = str(_p.get("departement_le_plus_touche", "") or "")
+                _pop_row = (
+                    f'<div style="padding:7px 0 6px 0;border-bottom:1px solid {BORDER};">'
+                    f'<div style="display:flex;justify-content:space-between;'
+                    f'align-items:baseline;">'
+                    f'<span style="font-size:0.75rem;color:{MUTED}">Habitants de la zone '
+                    f'touch&#233;e</span>'
+                    f'<span style="font-size:0.85rem;font-weight:700;color:{TEXT}">'
+                    f'{_hab_txt}</span></div>'
+                    f'<div style="font-size:0.70rem;color:{MUTED};line-height:1.45;'
+                    f'margin-top:2px">{nb(_p["part_population_nationale_pct"], ".1f")}&nbsp;% '
+                    f'de la population &#183; {int(_p["departements_touches"])} d&#233;partements'
+                    + (f' &#183; le plus d\'habitants : {_dep_top.title()}' if _dep_top else '')
+                    + '<br>ANSD, RGPH-5 2023 : habitants des pixels o&#249; la pluie a '
+                    'd&#233;pass&#233; +2&#963;, pas un nombre de sinistr&#233;s.</div></div>')
+
             _html_header = (
                 f'<div style="border-bottom:3px solid {_cr_fg2};'
                 f'padding:14px 16px 12px 16px;background:{_cr_bg2};">'
@@ -876,6 +902,7 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
                 + f'<span style="font-size:0.75rem;color:{MUTED}">Couverture spatiale</span>'
                 + f'<span style="font-size:0.85rem;font-weight:700;color:{AMBER}">{nb(_ext_pct_v, ".1f")}%</span>'
                 + f'</div>' + _pbar(_ext_pct_v, AMBER) + f'</div>'
+                + _pop_row
                 + _mrow("R&#233;gion principale", _mregion_v)
                 + f'<div style="padding:5px 0;border-bottom:1px solid {BORDER};">'
                 + f'<div style="display:flex;justify-content:space-between;'

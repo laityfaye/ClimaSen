@@ -247,6 +247,35 @@ def load_contours_simplifies(niveau):
     return json.loads(p.read_text(encoding="utf-8"))
 
 
+EXPOSITION = BASE / "outputs" / "exposition_evenements"
+
+
+@st.cache_data(ttl=300)
+def load_population_touchee():
+    """Habitants (RGPH-5 2023) des zones touchees par chaque evenement (script 33).
+
+    DataFrame indexe par la date "AAAA-MM-JJ", ou None si le script n'a pas tourne.
+    Lu par la fiche evenement ; a lire aussi par IRIS pour annoncer les memes chiffres.
+    """
+    p = EXPOSITION / "population_touchee_evenements.csv"
+    if not p.exists():
+        return None
+    return pd.read_csv(p, encoding="utf-8").set_index("date")
+
+
+@st.cache_data(ttl=300)
+def load_communes_reconstruites():
+    """Contours approximatifs des 552 communes et indicateurs RGPH-5 (script 34).
+
+    GeoJSON (dict) ou None si absent.
+    """
+    import json
+    p = BASE / "data" / "processed" / "communes_reconstruites_ansd.geojson"
+    if not p.exists():
+        return None
+    return json.loads(p.read_text(encoding="utf-8"))
+
+
 # ─── Short-path helper (handles accented Windows paths for NetCDF4) ───────────
 import ctypes as _ctypes
 from ctypes import wintypes as _wt

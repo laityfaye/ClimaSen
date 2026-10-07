@@ -182,6 +182,83 @@ def _carte(t, geo, colonne, libelle, zone, dark_mode, TEXT, MUTED, CARD):
     return fig
 
 
+INDICATEURS_COMMUNES = {
+    # cle -> (libelle, unite, echelle logarithmique)
+    "population_2023": ("Population 2023", "hab.", True),
+    "densite_hab_km2": ("Densité 2023", "hab./km²", True),
+    "jours_extremes_par_an": ("Jours de pluie extrême par an", "jours/an", False),
+}
+VUES_COMMUNES = {"senegal": ("Sénégal", du.SENEGAL_CENTRE, du.SENEGAL_ZOOM),
+                 "dakar": ("Région de Dakar", (14.76, -17.33), 9.4)}
+
+
+def _communes(dark_mode, TEXT, MUTED, CARD, BORDER):
+    """Carte des 552 communes actuelles (script 34) : contours APPROXIMATIFS reconstruits
+    a partir des coordonnees des localites transmises par l'ANSD, indicateurs RGPH-5."""
+    import numpy as np
+    geo = du.load_communes_reconstruites()
+    if geo is None:
+        return
+    lignes = []
+    for k, f in enumerate(geo["features"]):
+        f["properties"]["id_com"] = k        # identifiant stable pour Plotly
+        lignes.append(f["properties"])
+    import pandas as pd
+    c = pd.DataFrame(lignes)
+
+    st.markdown("<div style='height:14px'></div>", unsafe_allow_html=True)
+    st.markdown(
+        f'<p class="pnl-ttl">Les {len(c)} communes</p>'
+        f'<p class="pnl-sub">Contours approximatifs reconstruits à partir des coordonnées '
+        f'des localités transmises par l\'ANSD · population ANSD RGPH-5 2023 · pluie '
+        f'CHIRPS 1981-2023</p>', unsafe_allow_html=True)
+    c1, c2 = st.columns([1.3, 1], gap="small")
+    with c1:
+        cle = st.selectbox("Indicateur", list(INDICATEURS_COMMUNES), key="vul_com_indic",
+                           format_func=lambda k: INDICATEURS_COMMUNES[k][0])
+    with c2:
+        vue = st.radio("Vue", list(VUES_COMMUNES), key="vul_com_vue", horizontal=True,
+                       format_func=lambda k: VUES_COMMUNES[k][0])
+    libelle, unite, log = INDICATEURS_COMMUNES[cle]
+    val = pd.to_numeric(c[cle], errors="coerce")
+    z = np.log10(val.clip(lower=1)) if log else val
+    if log:
+        ticks = [10 ** p for p in range(int(np.floor(z.min())), int(np.ceil(z.max())) + 1)]
+        barre = dict(tickvals=[np.log10(t) for t in ticks],
+                     ticktext=[f"{t:,}".replace(",", " ") for t in ticks])
+    else:
+        barre = {}
+    noms = c["communes_rgph5"].fillna("").where(c["communes_rgph5"].fillna("") != "",
+                                                 c["commune_ansd"])
+    custom = list(zip(noms.str.title(), c["departement"],
+                      c["population_2023"].map(_entier), c["densite_hab_km2"].map(
+                          lambda x: _fr(x, 0)), c["jours_extremes_par_an"].map(_fr)))
+    echelle = ECHELLE_SOMBRE if dark_mode else ECHELLE_CLAIRE
+    fig = go.Figure(go.Choroplethmap(
+        geojson=geo, featureidkey="properties.id_com", locations=c["id_com"], z=z,
+        colorscale=echelle, marker=dict(line=dict(width=0.3, color=CARD), opacity=0.9),
+        customdata=custom,
+        hovertemplate=("<b>%{customdata[0]}</b> (%{customdata[1]})<br>"
+                       "Population 2023 : %{customdata[2]}<br>"
+                       "Densité : %{customdata[3]} hab./km²<br>"
+                       "Pluie extrême : %{customdata[4]} jours/an<extra></extra>"),
+        colorbar=dict(title=dict(text=_e(unite), font=dict(size=10, color=MUTED)),
+                      thickness=12, len=0.7, tickfont=dict(size=10, color=MUTED),
+                      outlinewidth=0, **barre),
+    ))
+    _, centre, zoom = VUES_COMMUNES[vue]
+    fig.update_layout(map=du.basemap(*centre, zoom, dark=dark_mode),
+                      margin=dict(l=0, r=0, t=0, b=0), height=460,
+                      paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+                      hoverlabel=dict(bgcolor=CARD, font_color=TEXT, font_size=12))
+    st.plotly_chart(fig, use_container_width=True, key="vul_carte_communes",
+                    config={"displaylogo": False})
+    st.caption("Les limites entre communes passent à mi-distance des localités voisines : "
+               "elles sont approximatives, pas officielles (aucun contour officiel à jour "
+               "n'est diffusé en données ouvertes). Jours de pluie extrême : moyenne vécue "
+               "par les habitants de la commune, pixels CHIRPS de 27 km environ.")
+
+
 def run(BG, CARD, TEXT, MUTED, BORDER, dark_mode=False, **kw):
 
     def plotly_base(fig, h=300):
@@ -369,6 +446,9 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dark_mode=False, **kw):
     st.download_button("Télécharger le tableau (CSV)",
                        (du.VULNERABILITE / fichier).read_bytes(), file_name=fichier,
                        mime="text/csv", key="vul_dl")
+
+    # ── Communes : contours reconstruits a partir des localites de l'ANSD ───
+    _communes(dark_mode, TEXT, MUTED, CARD, BORDER)
 
     # ── Methode, sources, limites ───────────────────────────────────────────
     r_dep = v.get("resume") or {}
