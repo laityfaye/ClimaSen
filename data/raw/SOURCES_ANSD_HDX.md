@@ -42,6 +42,19 @@ L'Atlas ne donne **pas** de valeur par département. Ses cartes sont des images 
 
 Microdonnées EHCVM : catalogue ANADS, https://anads.ansd.sn (accès sur demande).
 
+### Coordonnées des localités (reçues de l'ANSD le 4 octobre 2026)
+
+| Fichier | Source | Contenu |
+|---|---|---|
+| `Coordonnees_Geographiques_Localites.xls` | ANSD, pièce jointe de la réponse de `challenge20ans` du 4 octobre 2026 à la demande de l'équipe | Fichier d'origine, non modifié |
+| `ansd_coordonnees_localites.csv` | Conversion du fichier ci-dessus (UTF-8), sans autre changement que le nom de quatre colonnes | 16 548 localités, 553 communes ; codes officiels `COD_REG`, `COD_DEPT`, `COD_CAV`, `COD_COM`, `COD_ENTITE` |
+
+**Attention aux colonnes du fichier d'origine :** `LONGITUDE` et `LATITUDE` sont en mètres (UTM zone 28 N), et ce sont `X_COORD` et `Y_COORD` qui donnent la longitude et la latitude en degrés. Le CSV les renomme `UTM28N_X_M`, `UTM28N_Y_M`, `LON` et `LAT`.
+
+**Découpage :** les communes sont celles d'aujourd'hui (553, comme le RGPH-5), mais les départements sont antérieurs à 2021 (45 : les communes de Keur Massar sont rangées dans Pikine), et certains chefs-lieux portent encore le statut « Chef lieu de CR » (communautés rurales d'avant 2013). « SAINT-LOUIS » et « SAINT LOUIS » désignent la même région.
+
+Utilisé par `scripts/33_population_touchee_evenements.py` (population touchée par événement) et `scripts/34_communes_reconstruites.py` (contours approximatifs des communes).
+
 ## hdx/
 
 | Fichier | Source | Contenu |
