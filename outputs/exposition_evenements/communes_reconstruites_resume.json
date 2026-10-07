@@ -3,6 +3,7 @@
   "localites": 16546,
   "departements_couverts": 46,
   "superficie_totale_km2": 196767.0,
+  "population_rattachee_2023": 18152795,
   "communes_a_cheval_sur_deux_departements_(<90 %)": 32,
   "iou_gadm": {
     "communes_comparees": 406,
@@ -10,6 +11,6 @@
     "part_iou_sup_0_5": 0.956
   },
   "fichier": "data/processed/communes_reconstruites_ansd.geojson",
-  "taille_mo": 1.04,
+  "taille_mo": 1.1,
   "licence": "derive des coordonnees ANSD et des contours OCHA (CC BY-IGO) ; pas de GADM"
 }

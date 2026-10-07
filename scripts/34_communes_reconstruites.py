@@ -82,6 +82,17 @@ def main():
     seul_nom = corr[corr["commune_ansd"].isin(uniques[uniques == 1].index)].groupby(
         "commune_ansd")["COMMUNE"].apply(lambda s: " ; ".join(sorted(set(s))))
 
+    # Indicateurs RGPH-5 par commune ANSD : population 2023 et frequence des jours
+    # extremes vecue par les habitants (moyenne ponderee par la population, script 33).
+    loc = pd.read_csv(PROCESSED / "localites_rgph5_placees.csv", encoding="utf-8")
+    loc["pj"] = loc["POPULATION"] * loc["jours_extremes_par_an"]
+    par_com = loc.groupby(["Departement", "COMMUNE"])[["POPULATION", "MENAGE", "pj"]].sum()
+    par_com = par_com.join(corr.set_index(["Departement", "COMMUNE"])[["kd", "commune_ansd"]],
+                           how="inner")
+    indic = par_com.groupby(["kd", "commune_ansd"])[["POPULATION", "MENAGE", "pj"]].sum()
+    indic_seul = par_com[par_com["commune_ansd"].isin(seul_nom.index)].groupby(
+        "commune_ansd")[["POPULATION", "MENAGE", "pj"]].sum()
+
     # Voronoi DANS chaque departement OCHA (2024) : les communes s'emboitent exactement
     # dans les 46 departements actuels. Une commune dont les localites tombent dans deux
     # departements donne deux morceaux, reunis ensuite en une seule entite.
@@ -121,6 +132,12 @@ def main():
             "part_dans_departement": round(parts[d].area / poly.area, 3),
             "superficie_km2": None,
         })
+        v = (indic.loc[(kd, kc)] if (kd, kc) in indic.index
+             else indic_seul.loc[kc] if kc in indic_seul.index else None)
+        lignes[-1]["population_2023"] = int(v["POPULATION"]) if v is not None else None
+        lignes[-1]["menages_2023"] = int(v["MENAGE"]) if v is not None else None
+        lignes[-1]["jours_extremes_par_an"] = (round(float(v["pj"] / v["POPULATION"]), 2)
+                                               if v is not None and v["POPULATION"] else None)
         geoms.append(poly)
         cles.append(kc)
 
@@ -130,6 +147,7 @@ def main():
     from shapely.ops import transform as tr
     vers_utm = Transformer.from_crs("EPSG:4326", "EPSG:32628", always_xy=True).transform
     t["superficie_km2"] = [round(tr(vers_utm, p).area / 1e6, 1) for p in geoms]
+    t["densite_hab_km2"] = (t["population_2023"] / t["superficie_km2"]).round(1)
 
     # Controle indicatif contre GADM 4.1 niveau 4 (GeoJSON non versionne : on lit le .shp
     # seulement s'il est lisible sans dependance supplementaire ; sinon controle saute).
@@ -159,6 +177,7 @@ def main():
         "communes": int(len(t)), "localites": int(len(pts)),
         "departements_couverts": int(t["adm2_pcode"].nunique()),
         "superficie_totale_km2": round(float(t["superficie_km2"].sum()), 0),
+        "population_rattachee_2023": int(t["population_2023"].sum()),
         "communes_a_cheval_sur_deux_departements_(<90 %)": int((t["part_dans_departement"] < 0.9).sum()),
         "iou_gadm": ({"communes_comparees": len(iou), "mediane": round(float(np.median(iou)), 3),
                       "part_iou_sup_0_5": round(float(np.mean(np.array(iou) > 0.5)), 3)}

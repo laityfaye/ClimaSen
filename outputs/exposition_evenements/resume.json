@@ -7,11 +7,12 @@
   "localites_rgph5_2023": 25317,
   "population_2023": 18152795,
   "precision_du_placement_part_population": {
-    "centre de la commune": 0.1823,
-    "centre de la commune ; pixel voisin (bord de grille)": 0.0001,
-    "localite (nom approche)": 0.0905,
-    "localite (nom identique)": 0.7262,
-    "localite (nom identique) ; pixel voisin (bord de grille)": 0.0009
+    "centre de la commune": 0.1429,
+    "centre de la commune ; pixel terrestre voisin": 0.0394,
+    "localite (nom approche)": 0.0609,
+    "localite (nom approche) ; pixel terrestre voisin": 0.0295,
+    "localite (nom identique)": 0.5833,
+    "localite (nom identique) ; pixel terrestre voisin": 0.1439
   },
   "population_hors_grille": 0,
   "communes": {
@@ -40,27 +41,27 @@
   "evenements_les_plus_peuples": [
     {
       "date": "2012-09-28",
-      "population_touchee_2023": 14205729,
+      "population_touchee_2023": 18069311,
       "departement_le_plus_touche": "M’BACKE"
     },
     {
       "date": "2022-10-24",
-      "population_touchee_2023": 13558762,
-      "departement_le_plus_touche": "M’BACKE"
+      "population_touchee_2023": 17422344,
+      "departement_le_plus_touche": "DAKAR"
     },
     {
       "date": "1999-10-09",
-      "population_touchee_2023": 13270846,
+      "population_touchee_2023": 17134428,
       "departement_le_plus_touche": "M’BACKE"
     },
     {
       "date": "2000-10-16",
-      "population_touchee_2023": 13211973,
+      "population_touchee_2023": 17056142,
       "departement_le_plus_touche": "M’BACKE"
     },
     {
       "date": "1985-06-27",
-      "population_touchee_2023": 12940588,
+      "population_touchee_2023": 16804170,
       "departement_le_plus_touche": "M’BACKE"
     }
   ]

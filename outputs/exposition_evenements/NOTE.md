@@ -9,9 +9,13 @@
 **Ce qu'il ne mesure pas :** le nombre de sinistrés. Dans un pixel de 27 km, tout le monde n'a pas été inondé. La bonne formulation est « habitants des zones où la pluie a été extrême », pas « personnes touchées par des inondations ».
 
 **Ordres de grandeur (1 317 événements, 1981-2023) :**
-- médiane : 2,2 millions d'habitants par événement ; quart des événements au-dessus de 5 millions ;
-- maximum : 14,2 millions (28 septembre 2012, 390 pixels sur 450).
+- médiane : 2,3 millions d'habitants par événement ; un quart des événements au-dessus de 5,8 millions ;
+- maximum : 18,1 millions, soit 99,5 % de la population (28 septembre 2012, 390 pixels sur 450).
 - Seules les localités du Sénégal comptent : les pixels situés en Gambie ou en Mauritanie n'ajoutent personne, ce qui règle pour cet indicateur la question des 42 % de pixels hors du pays.
+
+**Pixels terrestres :** CHIRPS ne couvre que les terres. Les pixels surtout marins, dont la colonne ouest de la grille qui couvre Dakar, Pikine, Guédiawaye, Keur Massar et Rufisque, n'ont aucune donnée et ne dépassent jamais +2σ. Chaque localité est donc rattachée au **pixel terrestre le plus proche** (même règle que l'indice de risque, script 26). C'est le cas de 21 % de la population, dont toute la région de Dakar ; la colonne `precision` l'indique (« pixel terrestre voisin »). Sans cette règle, 3,9 millions d'habitants auraient été comptés comme jamais touchés.
+
+**Jours de pluie extrême par an :** `localites_rgph5_placees.csv` donne aussi, pour chaque localité, le nombre moyen de jours par an (1981-2023) où son pixel a dépassé +2σ un jour d'événement. Médiane 7,3 jours par an, de 5,5 à 9,8 ; environ 6 jours par an dans la région de Dakar.
 
 **Contrôle :** pour les 1 317 événements, le nombre de pixels au-dessus de +2σ reconstruit à partir des anomalies quotidiennes est exactement celui du catalogue (`coverage_points`).
 
@@ -28,7 +32,9 @@ Les 553 communes du RGPH-5 ont toutes leur équivalent dans le fichier de l'ANSD
 **Fichiers :**
 - `population_touchee_evenements.csv` : un événement par ligne ;
 - `population_touchee_par_annee.csv` : par année, nombre d'événements et cumul « habitants × événements » (une même personne compte une fois par événement) ;
-- `data/processed/localites_rgph5_placees.csv` : les 25 317 localités du RGPH-5 avec coordonnées, précision et pixel.
+- `data/processed/localites_rgph5_placees.csv` : les 25 317 localités du RGPH-5 avec coordonnées, précision, pixel et jours de pluie extrême par an.
+
+**Sur la plateforme :** la fiche événement (page Événements) affiche « Habitants de la zone touchée », avec la part de la population, le nombre de départements et le rappel « pas un nombre de sinistrés ».
 
 ## 2. Communes reconstruites
 
@@ -50,5 +56,9 @@ Sources vérifiées avant de reconstruire (octobre 2026) :
 - de petites enclaves peuvent apparaître quand une localité isolée est entourée par une autre commune.
 
 **Licence :** dérivé des coordonnées de l'ANSD et des contours OCHA (CC BY-IGO), sans GADM.
+
+**Indicateurs par commune :** population et ménages 2023 (RGPH-5, les 18 152 795 habitants sont rattachés), densité, et jours de pluie extrême par an vécus par les habitants (moyenne pondérée par la population). Une commune découpée depuis le fichier de l'ANSD (Keur Massar Nord et Sud, par exemple) partage un même contour et additionne ses habitants.
+
+**Sur la plateforme :** la page Vulnérabilité affiche la carte des 552 communes (vue Sénégal ou région de Dakar), avec ces trois indicateurs au choix et la mention « contours approximatifs ».
 
 **Fichiers :** `data/processed/communes_reconstruites_ansd.geojson` (1 Mo, simplifié à environ 200 m), `communes_reconstruites_controle.csv`, `communes_reconstruites_resume.json`.

@@ -16,8 +16,8 @@ Etapes
      >= 0,85). Sinon la localite prend le centre de sa commune (moyenne des localites
      ANSD de la commune), ou a defaut celui de son departement. La colonne `precision`
      dit lequel.
-  3. Pixel : chaque localite placee est rattachee au pixel CHIRPS 0,25 deg dont le centre
-     est le plus proche (a moins d'un demi-pixel).
+  3. Pixel : chaque localite placee est rattachee au pixel CHIRPS 0,25 deg TERRESTRE le
+     plus proche (les pixels surtout marins n'ont pas de donnee CHIRPS).
   4. Evenement : les pixels du jour ou l'anomalie depasse +2 sigma (critere du script 01 ;
      on retrouve exactement `coverage_points` du catalogue pour les 1 317 evenements).
      Population touchee = somme de la population 2023 des localites de ces pixels.
@@ -138,19 +138,25 @@ def placer_localites(r, a, communes):
     return r
 
 
-def rattacher_pixels(r, lats, lons):
-    i = np.abs(r["LAT"].values[:, None] - lats[None, :]).argmin(axis=1)
-    j = np.abs(r["LON"].values[:, None] - lons[None, :]).argmin(axis=1)
-    dy = np.abs(r["LAT"].values - lats[i])
-    dx = np.abs(r["LON"].values - lons[j])
-    dans = (dy <= DEMI_PIXEL + 1e-9) & (dx <= DEMI_PIXEL + 1e-9)
-    # Bord de grille : la pointe des Almadies (Ngor, Ouakam) depasse le dernier pixel a
-    # l'ouest. On rattache au pixel voisin ce qui est a moins d'un pixel du bord.
-    bord = ~dans & (dy <= 2 * DEMI_PIXEL + 1e-9) & (dx <= 2 * DEMI_PIXEL + 1e-9)
+def rattacher_pixels(r, lats, lons, terre):
+    """Pixel TERRESTRE le plus proche de chaque localite.
+
+    CHIRPS ne couvre que les terres : les pixels surtout marins (la colonne ouest, qui
+    couvre Dakar, Pikine, Guediawaye, Keur Massar et Rufisque) n'ont aucune donnee et ne
+    depassent jamais +2 sigma. Rattacher Dakar a ces pixels revenait a compter 3,9 M
+    d'habitants comme jamais touches. Meme regle que le script 26 (pixel terrestre le
+    plus proche) ; `precision` signale les localites dont le pixel ne contient pas le point.
+    """
+    ii, jj = np.nonzero(terre)
+    d = ((r["LAT"].values[:, None] - lats[ii][None, :]) ** 2
+         + (r["LON"].values[:, None] - lons[jj][None, :]) ** 2)
+    k = d.argmin(axis=1)
+    i, j = ii[k], jj[k]
+    dedans = ((np.abs(r["LAT"].values - lats[i]) <= DEMI_PIXEL + 1e-9)
+              & (np.abs(r["LON"].values - lons[j]) <= DEMI_PIXEL + 1e-9))
     r = r.copy()
-    r["pix_i"] = np.where(dans | bord, i, -1)
-    r["pix_j"] = np.where(dans | bord, j, -1)
-    r.loc[bord, "precision"] = r.loc[bord, "precision"] + " ; pixel voisin (bord de grille)"
+    r["pix_i"], r["pix_j"] = i, j
+    r.loc[~dedans, "precision"] = r.loc[~dedans, "precision"] + " ; pixel terrestre voisin"
     return r
 
 
@@ -175,8 +181,10 @@ def main():
     dep_pix = dans.groupby(["Departement", "pix_i", "pix_j"])["POPULATION"].sum()
 
     lignes, ecarts = [], 0
+    jours_pix = np.zeros(pop_pix.shape)       # jours extremes par pixel, 1981-2023
     for _, e in ev.iterrows():
         masque = anom["anomalies"][rang[e["date"]]] > SEUIL_SIGMA
+        jours_pix += masque
         ecarts += int(masque.sum() != e["coverage_points"])
         pop = float(pop_pix[masque].sum())
         touches = dep_pix[[bool(masque[i, j]) for _, i, j in dep_pix.index]]
@@ -201,10 +209,17 @@ def main():
         evenement_max=("population_touchee_2023", "max")).reset_index()
     an.to_csv(SORTIE / "population_touchee_par_annee.csv", index=False, encoding="utf-8")
 
+    # Frequence des jours extremes vecue par chaque localite (jours par an, 1981-2023).
+    n_ans = ev["date"].dt.year.max() - ev["date"].dt.year.min() + 1
+    ok = loc["pix_i"] >= 0
+    loc["jours_extremes_par_an"] = np.nan
+    loc.loc[ok, "jours_extremes_par_an"] = jours_pix[loc.loc[ok, "pix_i"], loc.loc[ok, "pix_j"]] / n_ans
+
     communes.drop(columns=["kd", "kc"]).to_csv(
         SORTIE / "correspondance_communes_rgph5_ansd.csv", index=False, encoding="utf-8")
     loc[["Region", "Departement", "COMMUNE", "LOCALITE", "MENAGE", "POPULATION", "LON",
-         "LAT", "precision", "pix_i", "pix_j"]].to_csv(
+         "LAT", "precision", "pix_i", "pix_j", "jours_extremes_par_an"]].round(
+        {"jours_extremes_par_an": 3}).to_csv(
         PROCESSED / "localites_rgph5_placees.csv", index=False, encoding="utf-8")
 
     prec = loc.groupby("precision")["POPULATION"].sum() / pop_tot
@@ -231,8 +246,10 @@ def main():
 
 
 def grille():
+    """Latitudes, longitudes et masque des pixels terrestres (climatologie non nulle)."""
     clim = np.load(PROCESSED / "climatology_senegal.npz", allow_pickle=True)
-    return clim["lats"].astype(float), clim["lons"].astype(float)
+    terre = clim["climatology"].sum(axis=0) > 0
+    return clim["lats"].astype(float), clim["lons"].astype(float), terre
 
 
 if __name__ == "__main__":
