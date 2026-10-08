@@ -1252,6 +1252,12 @@ def create_app(settings: Optional[Settings] = None) -> FastAPI:
         """
         return HTMLResponse(render_widget(api_base="/jarvis", dark_mode=bool(dark)))
 
+    # API ouverte des statistiques (paquet donnees_ouvertes/, independant
+    # d'IRIS) : meme processus, meme lecture de l'adresse client.
+    from donnees_ouvertes import creer_api
+    app.mount("/api/v1", creer_api(
+        ip_client=lambda r: _client_ip(r, settings.trusted_proxy_hops, settings.proxies)))
+
     return app
 
 
