@@ -86,6 +86,11 @@ def observations(jeu, cle=None, debut=None, fin=None) -> pd.DataFrame:
     longue.insert(0, "FREQ", jeu.freq)
     longue = longue.rename(columns={"code": "REF_AREA", "periode": "TIME_PERIOD"})
     longue["UNIT_MEASURE"] = longue["INDICATOR"].map(lambda c: sources.INDICATEURS[c][1])
+    # Une population d'une autre annee que celle de la ligne (recensement 2013,
+    # projections 2026 et 2030) porte sa propre periode, pas 2023.
+    if jeu.freq == "A":
+        annee = longue["INDICATOR"].map(sources.ANNEE_INDICATEUR)
+        longue["TIME_PERIOD"] = annee.fillna(longue["TIME_PERIOD"])
 
     if cle:
         for dim, valeurs in zip(DIMENSIONS, cle):

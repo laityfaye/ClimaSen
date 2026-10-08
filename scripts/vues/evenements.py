@@ -884,6 +884,15 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
                 _hab_txt = (f"{_hab / 1e6:.1f}".replace(".", ",") + "&nbsp;M"
                             if _hab >= 1_000_000 else f"{_hab:,}".replace(",", "&#8239;"))
                 _dep_top = str(_p.get("departement_le_plus_touche", "") or "")
+                # Meme zone, population projetee par l'ANSD pour l'annee en cours.
+                _h26 = _p.get("population_touchee_2026")
+                _h26_txt = ""
+                if _h26 is not None and pd.notna(_h26):
+                    _h26 = int(_h26)
+                    _h26_txt = ("<br>En 2026 (projection ANSD) : <b>"
+                                + (f"{_h26 / 1e6:.1f}".replace(".", ",") + "&nbsp;M"
+                                   if _h26 >= 1_000_000 else f"{_h26:,}".replace(",", "&#8239;"))
+                                + "</b> habitants dans la m&#234;me zone.")
                 _pop_row = (
                     f'<div style="padding:7px 0 6px 0;border-bottom:1px solid {BORDER};">'
                     f'<div style="display:flex;justify-content:space-between;'
@@ -896,6 +905,7 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
                     f'margin-top:2px">{nb(_p["part_population_nationale_pct"], ".1f")}&nbsp;% '
                     f'de la population &#183; {int(_p["departements_touches"])} d&#233;partements'
                     + (f' &#183; le plus d\'habitants : {_dep_top.title()}' if _dep_top else '')
+                    + _h26_txt
                     + '<br>ANSD, RGPH-5 2023 : habitants des pixels o&#249; la pluie a '
                     'd&#233;pass&#233; +2&#963;, pas un nombre de sinistr&#233;s.</div></div>')
 

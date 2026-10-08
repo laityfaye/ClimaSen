@@ -260,7 +260,33 @@ def load_population_touchee():
     p = EXPOSITION / "population_touchee_evenements.csv"
     if not p.exists():
         return None
-    return pd.read_csv(p, encoding="utf-8").set_index("date")
+    t = pd.read_csv(p, encoding="utf-8").set_index("date")
+    # Memes pixels, population projetee par l'ANSD pour 2026 et 2030 (script 37).
+    proj = EXPOSITION / "population_touchee_projetee.csv"
+    if proj.exists():
+        q = pd.read_csv(proj, encoding="utf-8").set_index("date")
+        t = t.join(q[[c for c in q.columns if c.endswith(("_2026", "_2030"))]])
+    return t
+
+
+def code_commune(adm2_pcode, nom):
+    """Identifiant d'une commune, comme l'API ouverte : P-code du departement +
+    nom ANSD normalise (SN0101_NGOR)."""
+    import re
+    import unicodedata
+    s = unicodedata.normalize("NFKD", str(nom)).encode("ascii", "ignore").decode()
+    return "%s_%s" % (adm2_pcode, re.sub(r"[^A-Z0-9]", "", s.upper()))
+
+
+@st.cache_data(ttl=300)
+def load_population_projetee():
+    """Population projetee par l'ANSD (2023, 2026, 2030) des departements et
+    communes de ClimatSen (script 37, API SDMX de l'ANSD). DataFrame indexe par
+    code (SN0703, SN0101_NGOR), ou None si absent."""
+    p = EXPOSITION / "population_projetee_zones.csv"
+    if not p.exists():
+        return None
+    return pd.read_csv(p, encoding="utf-8").set_index("code")
 
 
 @st.cache_data(ttl=300)

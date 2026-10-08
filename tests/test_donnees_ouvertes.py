@@ -282,3 +282,22 @@ def test_liste_de_codes_porte_le_code_ansd(api):
     assert {"type": "CODE_ANSD_SDMX", "title": "SN-KD"} in kolda["annotations"]
     avec = [c for c in codes if any(a["type"] == "CODE_ANSD_SDMX" for a in c["annotations"])]
     assert len(avec) == 14 + 46 + 552
+
+
+@pytest.mark.skipif(not sources.PROJ_ZONES.exists(), reason="sorties du script 37 absentes")
+def test_population_projetee_porte_sa_propre_annee(api):
+    r = api.get("/sdmx/data/DF_RISQUE_DEPARTEMENTS/A.SN0703.POPULATION+POPULATION_2013+POPULATION_2026",
+                params={"format": "sdmx-csv"})
+    obs = pd.read_csv(io.StringIO(r.text))
+    assert dict(zip(obs["INDICATOR"], obs["TIME_PERIOD"])) == {
+        "POPULATION": 2023, "POPULATION_2013": 2013, "POPULATION_2026": 2026}
+    proj = pd.read_csv(sources.PROJ_ZONES).set_index("code")
+    pop26 = obs.loc[obs["INDICATOR"] == "POPULATION_2026", "OBS_VALUE"].iloc[0]
+    assert pop26 == proj.loc["SN0703", "population_2026"]
+
+
+@pytest.mark.skipif(not sources.PROJ_EVENEMENTS.exists(), reason="sorties du script 37 absentes")
+def test_habitants_touches_en_2026(api):
+    e = api.get("/evenements/2012-09-28").json()
+    assert e["population_touchee_2026"] > e["population_touchee"]
+    assert e["population_touchee_2030"] > e["population_touchee_2026"]

@@ -453,6 +453,7 @@ def _tableau_complet(t, niveau, zone):
 INDICATEURS_COMMUNES = {
     # cle -> (libelle, unite, echelle logarithmique)
     "population_2023": ("Population 2023", "hab.", True),
+    "population_2026": ("Population 2026 (projection ANSD)", "hab.", True),
     "densite_hab_km2": ("Densité 2023", "hab./km²", True),
     "jours_extremes_par_an": ("Jours de pluie extrême par an", "jours/an", False),
 }
@@ -473,10 +474,16 @@ def _communes(dark_mode, TEXT, MUTED, CARD, BORDER):
         f["properties"]["id_com"] = k        # identifiant stable pour Plotly
         lignes.append(f["properties"])
     c = pd.DataFrame(lignes)
+    # Population projetee par l'ANSD pour 2026 (API SDMX de l'ANSD, script 37).
+    proj = du.load_population_projetee()
+    codes = [du.code_commune(a, n) for a, n in zip(c["adm2_pcode"], c["commune_ansd"])]
+    c["population_2026"] = (pd.Series(codes, index=c.index).map(proj["population_2026"])
+                            if proj is not None else np.nan)
 
     _section("location_city", "Les %d communes" % len(c),
              "Contours approximatifs reconstruits à partir des coordonnées des localités "
-             "transmises par l'ANSD · population ANSD RGPH-5 2023 · pluie CHIRPS 1981-2023")
+             "transmises par l'ANSD · population ANSD RGPH-5 2023 et projection 2026 "
+             "(API SDMX de l'ANSD) · pluie CHIRPS 1981-2023")
     c1, c2 = st.columns([1.3, 1], gap="small", vertical_alignment="bottom")
     with c1:
         cle = st.selectbox("Indicateur", list(INDICATEURS_COMMUNES), key="vul_com_indic",
@@ -497,7 +504,8 @@ def _communes(dark_mode, TEXT, MUTED, CARD, BORDER):
                                                  c["commune_ansd"])
     custom = list(zip(noms.str.title(), c["departement"],
                       c["population_2023"].map(_entier), c["densite_hab_km2"].map(
-                          lambda x: _fr(x, 0)), c["jours_extremes_par_an"].map(_fr)))
+                          lambda x: _fr(x, 0)), c["jours_extremes_par_an"].map(_fr),
+                      c["population_2026"].map(lambda x: _entier(x) if pd.notna(x) else "n.d.")))
     echelle = ECHELLE_SOMBRE if dark_mode else ECHELLE_CLAIRE
     fig = go.Figure(go.Choroplethmap(
         geojson=geo, featureidkey="properties.id_com", locations=c["id_com"], z=z,
@@ -505,6 +513,7 @@ def _communes(dark_mode, TEXT, MUTED, CARD, BORDER):
         customdata=custom,
         hovertemplate=("<b>%{customdata[0]}</b> (%{customdata[1]})<br>"
                        "Population 2023 : %{customdata[2]}<br>"
+                       "Population 2026 (projection ANSD) : %{customdata[5]}<br>"
                        "Densité : %{customdata[3]} hab./km²<br>"
                        "Pluie extrême : %{customdata[4]} jours/an<extra></extra>"),
         colorbar=dict(title=dict(text=_e(unite), font=dict(size=10, color=MUTED)),

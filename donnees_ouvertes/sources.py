@@ -23,6 +23,9 @@ EXPOSITION = RACINE / "outputs" / "exposition_evenements"
 TRAITEES = RACINE / "data" / "processed"
 # Codes de zone de l'ANSD (SDMX) <-> codes ClimatSen : scripts 35 et 36.
 CORRESPONDANCE = TRAITEES / "correspondance_zones_ansd.csv"
+# Population projetee par l'ANSD (2026, 2030) : script 37.
+PROJ_ZONES = EXPOSITION / "population_projetee_zones.csv"
+PROJ_EVENEMENTS = EXPOSITION / "population_touchee_projetee.csv"
 
 LICENCE = {
     "nom": "CC BY 4.0",
@@ -42,7 +45,7 @@ SOURCES = {
               "url": "https://www.ansd.sn"},
     "ocha": {"nom": "OCHA, limites administratives du Sénégal (COD-AB, 2024), licence CC BY-IGO",
              "url": "https://data.humdata.org/dataset/cod-ab-sen"},
-    "odp": {"nom": "ANSD, Open Data Platform, API SDMX (agence SN1) : codes de zone CL_REF_AREA",
+    "odp": {"nom": "ANSD, Open Data Platform, API SDMX (agence SN1) : projections de population 2023-2030 (DF_PROJ_POP_2050_COM, _DEP) et codes de zone CL_REF_AREA",
             "url": "https://opendata.ansd.sn"},
     "chirps": {"nom": "UCSB Climate Hazards Center, CHIRPS v2.0, pluie journalière 0,25°, 1981-2023",
                "url": "https://www.chc.ucsb.edu/data/chirps"},
@@ -53,6 +56,8 @@ SOURCES = {
 INDICATEURS = {
     "POPULATION":              ("Population résidente (RGPH-5 2023)", "PERSONNES"),
     "POPULATION_2013":         ("Population résidente (RGPH-4 2013)", "PERSONNES"),
+    "POPULATION_2026":         ("Population projetée par l'ANSD pour 2026", "PERSONNES"),
+    "POPULATION_2030":         ("Population projetée par l'ANSD pour 2030", "PERSONNES"),
     "CROISSANCE_2013_2023":    ("Croissance de la population 2013-2023", "PCT"),
     "MENAGES":                 ("Ménages (RGPH-5 2023)", "MENAGES"),
     "SUPERFICIE":              ("Superficie", "KM2"),
@@ -70,6 +75,8 @@ INDICATEURS = {
     "NB_COMMUNES":             ("Nombre de communes (découpage 2023)", "NOMBRE"),
     "NB_LOCALITES":            ("Nombre de localités ANSD utilisées pour le contour", "NOMBRE"),
     "POPULATION_TOUCHEE":      ("Habitants de la zone de pluie extrême (RGPH-5 2023) ; pas un nombre de sinistrés", "PERSONNES"),
+    "POPULATION_TOUCHEE_2026": ("Habitants de la zone de pluie extrême, population projetée par l'ANSD pour 2026", "PERSONNES"),
+    "POPULATION_TOUCHEE_2030": ("Habitants de la zone de pluie extrême, population projetée par l'ANSD pour 2030", "PERSONNES"),
     "MENAGES_TOUCHES":         ("Ménages de la zone de pluie extrême (RGPH-5 2023)", "MENAGES"),
     "PART_POPULATION_NATIONALE": ("Part de la population nationale dans la zone de pluie extrême", "PCT"),
     "COUVERTURE":              ("Part de la grille couverte par la pluie extrême", "PCT"),
@@ -81,6 +88,10 @@ INDICATEURS = {
     "PERSONNES_EVENEMENTS":    ("Somme des habitants touchés sur les événements de l'année (une personne compte une fois par événement)", "PERSONNES"),
     "POPULATION_TOUCHEE_MAX":  ("Habitants touchés par l'événement le plus étendu de l'année", "PERSONNES"),
 }
+
+# Indicateurs dont la periode n'est pas celle de la ligne (2023 pour les zones).
+ANNEE_INDICATEUR = {"POPULATION_2013": "2013", "POPULATION_2026": "2026",
+                    "POPULATION_2030": "2030"}
 
 UNITES = {
     "PERSONNES": "Personnes", "MENAGES": "Ménages", "KM2": "Kilomètres carrés",
@@ -142,6 +153,7 @@ def _departements():
                 "RANG": "rang"}
     for code, col in colonnes.items():
         out[code] = d[col]
+    out = _avec_projection(out)
     return out.sort_values("RANG").reset_index(drop=True)
 
 
@@ -196,7 +208,19 @@ def _communes():
                 "JOURS_EXTREMES": "jours_extremes_par_an", "NB_LOCALITES": "localites"}
     for code, col in colonnes.items():
         out[code] = c[col]
+    out = _avec_projection(out)
     return out.sort_values(["code_departement", "nom"]).reset_index(drop=True)
+
+
+def _avec_projection(out):
+    """Ajoute la population projetee par l'ANSD (2026, 2030) a une table de
+    zones ; colonnes vides si le script 37 n'a pas tourne."""
+    proj = (pd.read_csv(PROJ_ZONES).set_index("code") if PROJ_ZONES.exists()
+            else pd.DataFrame())
+    for a in (2026, 2030):
+        col = f"population_{a}"
+        out[f"POPULATION_{a}"] = out["code"].map(proj[col]) if col in proj else float("nan")
+    return out
 
 
 def _evenements():
@@ -219,6 +243,12 @@ def _evenements():
                 "POPULATION_DEPARTEMENT_LE_PLUS_TOUCHE": "population_departement_le_plus_touche"}
     for code, col in colonnes.items():
         out[code] = e[col]
+    proj = (pd.read_csv(PROJ_EVENEMENTS).set_index("date") if PROJ_EVENEMENTS.exists()
+            else pd.DataFrame())
+    for a in (2026, 2030):
+        col = f"population_touchee_{a}"
+        out[f"POPULATION_TOUCHEE_{a}"] = (out["periode"].map(proj[col])
+                                          if col in proj else float("nan"))
     return out.sort_values("periode").reset_index(drop=True)
 
 
@@ -247,8 +277,9 @@ JEUX = {j.id: j for j in (
         "et vulnérabilité (pauvreté EHCVM 2021-22) des 46 départements.",
         "A", "departement",
         (VULNERABILITE / "indice_risque_departements.csv",),
-        ("rgph5", "rgph4", "ehcvm", "ocha", "chirps"), "scripts/26_indice_risque_departements.py",
-        ("POPULATION", "POPULATION_2013", "CROISSANCE_2013_2023", "MENAGES", "SUPERFICIE",
+        ("rgph5", "rgph4", "ehcvm", "odp", "ocha", "chirps"), "scripts/26_indice_risque_departements.py, 37",
+        ("POPULATION", "POPULATION_2026", "POPULATION_2030", "POPULATION_2013",
+         "CROISSANCE_2013_2023", "MENAGES", "SUPERFICIE",
          "DENSITE", "TAUX_PAUVRETE_REGION", "PAUVRES_ESTIMES", "JOURS_EXTREMES", "JOURS_50MM",
          "ALEA", "EXPOSITION", "VULNERABILITE", "INDICE_RISQUE", "RANG"),
         _departements, AVERTISSEMENT_INDICE),
@@ -271,8 +302,9 @@ JEUX = {j.id: j for j in (
         "transmises par l'ANSD, jours de pluie extrême par an.",
         "A", "commune",
         (TRAITEES / "communes_reconstruites_ansd.geojson",),
-        ("rgph5", "localites", "ocha", "chirps"), "scripts/34_communes_reconstruites.py",
-        ("POPULATION", "MENAGES", "SUPERFICIE", "DENSITE", "JOURS_EXTREMES", "NB_LOCALITES"),
+        ("rgph5", "localites", "odp", "ocha", "chirps"), "scripts/34_communes_reconstruites.py, 37",
+        ("POPULATION", "POPULATION_2026", "POPULATION_2030", "MENAGES", "SUPERFICIE", "DENSITE",
+         "JOURS_EXTREMES", "NB_LOCALITES"),
         _communes,
         "Contours approximatifs (polygones de Voronoï des localités, IoU médiane 0,78 avec "
         "GADM) : superficie et densité sont des estimations. Une commune à cheval sur deux "
@@ -283,8 +315,9 @@ JEUX = {j.id: j for j in (
         "habitants (RGPH-5 2023) des pixels en anomalie > +2 écarts-types.",
         "D", "pays",
         (EXPOSITION / "population_touchee_evenements.csv",),
-        ("chirps", "rgph5", "localites", "ocha"), "scripts/33_population_touchee_evenements.py",
-        ("POPULATION_TOUCHEE", "MENAGES_TOUCHES", "PART_POPULATION_NATIONALE", "COUVERTURE",
+        ("chirps", "rgph5", "localites", "odp", "ocha"), "scripts/33_population_touchee_evenements.py, 37",
+        ("POPULATION_TOUCHEE", "POPULATION_TOUCHEE_2026", "POPULATION_TOUCHEE_2030",
+         "MENAGES_TOUCHES", "PART_POPULATION_NATIONALE", "COUVERTURE",
          "PLUIE_MAX", "PIXELS_EXTREMES", "DEPARTEMENTS_TOUCHES",
          "POPULATION_DEPARTEMENT_LE_PLUS_TOUCHE"),
         _evenements, AVERTISSEMENT_TOUCHEE),
@@ -329,8 +362,10 @@ def disponible(jeu: Jeu) -> bool:
 def table(jeu_id: str) -> pd.DataFrame:
     jeu = JEUX[jeu_id]
     fichiers = jeu.fichiers
-    if jeu_id in ("departements", "communes") and CORRESPONDANCE.exists():
-        fichiers = fichiers + (CORRESPONDANCE,)
+    if jeu_id in ("departements", "communes"):
+        fichiers = fichiers + tuple(f for f in (CORRESPONDANCE, PROJ_ZONES) if f.exists())
+    if jeu_id == "evenements" and PROJ_EVENEMENTS.exists():
+        fichiers = fichiers + (PROJ_EVENEMENTS,)
     if jeu_id == "evenements":
         fichiers = fichiers + (VULNERABILITE / "indice_risque_departements.csv",)
     return _memo(("table", jeu_id), fichiers, jeu.lire)
