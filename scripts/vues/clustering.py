@@ -49,6 +49,133 @@ def _hierarchie(phase, events):
         return None
 
 
+# ─── Donnees des cartes, en cache (page a 17 s, audit 08/10/2026) ────────────
+# Plotly valide les listes Python point par point (~3,5 s pour les 61 748
+# points des contours) ; les tableaux NumPy passent d'un bloc. NaN = coupure
+# de ligne entre deux anneaux.
+@st.cache_data(show_spinner=False)
+def _contours_departements():
+    geo = load_dept_geojson()
+    if geo is None:
+        return None
+    from shapely.geometry import shape
+    lo, la = [], []
+    for feat in geo.get("features", []):
+        # ~0,002 deg (200 m) : invisible a l'echelle du pays, 5 a 10 fois
+        # moins de points envoyes au navigateur.
+        geom = shape(feat["geometry"]).simplify(0.002, preserve_topology=True)
+        polys = list(geom.geoms) if geom.geom_type == "MultiPolygon" else [geom]
+        for poly in polys:
+            for ring in [poly.exterior, *poly.interiors]:
+                x, y = ring.coords.xy
+                lo.extend(x); lo.append(np.nan)
+                la.extend(y); la.append(np.nan)
+    return np.array(lo, dtype=float), np.array(la, dtype=float)
+
+
+@st.cache_data(show_spinner=False)
+def _composite_cluster(phase, cluster):
+    """Composite des pixels d'un cluster dans les frontieres du Senegal.
+
+    Retourne (statut, donnees) : statut 'aucune_donnee', 'phase_vide',
+    'cluster_vide' ou 'ok'.
+    """
+    px_all = load_cluster_pixels()
+    if px_all is None or len(px_all) == 0:
+        return "aucune_donnee", None
+    px_ph = px_all[px_all["phase"] == phase]
+    if len(px_ph) == 0:
+        return "phase_vide", None
+    px_c = px_ph[px_ph["cluster"] == cluster]
+
+    bounds_path = BASE / "data/geographic/senegal_boundaries.geojson"
+    if bounds_path.exists() and len(px_c) > 0:
+        import json as _json_cl
+        from matplotlib.path import Path as _MplPathCl
+        with open(str(bounds_path), "r", encoding="utf-8") as fh:
+            bounds_geo = _json_cl.load(fh)
+        paths = []
+        for feat in bounds_geo.get("features", []):
+            geom = feat.get("geometry", {})
+            gtype, coords = geom.get("type", ""), geom.get("coordinates", [])
+            if gtype == "MultiPolygon":
+                paths += [_MplPathCl(np.array(p[0])) for p in coords if p and p[0]]
+            elif gtype == "Polygon" and coords and coords[0]:
+                paths.append(_MplPathCl(np.array(coords[0])))
+        if paths:
+            pts = np.column_stack([px_c["longitude"].values, px_c["latitude"].values])
+            ins = np.zeros(len(pts), dtype=bool)
+            for p in paths:
+                ins |= p.contains_points(pts)
+            px_c = px_c[ins]
+
+    px_c = px_c[px_c["precipitation_mm"] > 0].reset_index(drop=True)
+    if len(px_c) == 0:
+        return "cluster_vide", None
+
+    comp = (
+        px_c.groupby(["latitude", "longitude"], as_index=False)
+        .agg(
+            precipitation_mm=("precipitation_mm", "mean"),
+            anomaly_standardized=("anomaly_standardized", "mean"),
+            region=("region", "first"),
+        )
+    )
+    prec = comp["precipitation_mm"].to_numpy(dtype=float)
+    lats = comp["latitude"].to_numpy(dtype=float)
+    lons = comp["longitude"].to_numpy(dtype=float)
+    w_sum = float(prec.sum())
+    if w_sum > 0:
+        ctr_lat = float(np.average(lats, weights=prec))
+        ctr_lon = float(np.average(lons, weights=prec))
+    else:
+        ctr_lat, ctr_lon = float(lats.mean()), float(lons.mean())
+    # Infobulles pre-formatees, en chaines de largeur fixe (copie memoire
+    # directe, contrairement a une liste de listes).
+    custom = np.column_stack([
+        [nb(a, "+.1f") for a in comp["anomaly_standardized"]],
+        comp["region"].astype(str).to_numpy(),
+        [nb(p, ".1f") for p in prec],
+    ]).astype(str)
+    reg_stats = (
+        px_c.groupby("region")["precipitation_mm"]
+        .agg(max_p="max", mean_p="mean", n_px="count")
+        .sort_values("mean_p", ascending=False)
+        .head(6)
+    )
+    return "ok", {
+        "lats": lats, "lons": lons, "prec": prec, "custom": custom,
+        "p_min": max(0.0, float(np.percentile(prec, 1))),
+        "p_max": float(np.percentile(prec, 99)),
+        "ctr_lat": ctr_lat, "ctr_lon": ctr_lon, "reg_stats": reg_stats,
+    }
+
+
+# Largeur maximale d'une image Streamlit (MAXIMUM_CONTENT_WIDTH) : au-dela,
+# st.image redimensionne et re-encode le PNG a chaque affichage (~1 s et
+# ~2 Mo envoyes pour la figure de 2422 px du script 14).
+_LARGEUR_IMAGE = 1460
+
+
+@st.cache_data(show_spinner=False)
+def _image_publication(chemin, mtime):
+    """Figure du script 14 reduite a la largeur d'affichage, en JPEG."""
+    import io
+    from PIL import Image
+    im = Image.open(chemin)
+    if im.mode in ("RGBA", "LA", "P"):
+        im = im.convert("RGBA")
+        fond = Image.new("RGB", im.size, (255, 255, 255))
+        fond.paste(im, mask=im.split()[-1])
+        im = fond
+    if im.width > _LARGEUR_IMAGE:
+        im = im.resize((_LARGEUR_IMAGE, round(im.height * _LARGEUR_IMAGE / im.width)),
+                       Image.LANCZOS)
+    buf = io.BytesIO()
+    im.save(buf, format="JPEG", quality=88, optimize=True)
+    return buf.getvalue()
+
+
 PHASE_LABELS_CL = {
     "Phase_1_debut":  "Début saison  (Mai-Jun)",
     "Phase_2_pleine": "Pleine saison (Jul-Août)",
@@ -229,20 +356,33 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
     sil_str  = f"{nb(sil_best, '.3f')}" if sil_best is not None else "-"
     n_clust  = chars["cluster"].nunique()
 
+    # Icones Material Symbols (police chargee par dashboard.py), dans le carre
+    # teinte .kpi-icon des autres pages, a la place des emojis.
     kpi_items = [
-        ("&#128202;", "Événements",     str(n_ev),   "cette phase"),
-        ("&#127981;", "k retenu",       str(k_opt),  "coude + interprétabilité"),
-        ("&#128200;", "Silhouette max", sil_str,     f"k={k_sil}"),
-        ("&#127987;", "Clusters",       str(n_clust), "dans ce graphe"),
+        ("rainy",        BLUE,    "Événements",     str(n_ev),   "cette phase"),
+        ("tune",         INDIGO,  "k retenu",       str(k_opt),  "coude + interprétabilité"),
+        ("monitoring",   EMERALD, "Silhouette max", sil_str,     f"k={k_sil}"),
+        ("bubble_chart", AMBER,   "Clusters",       str(n_clust), "dans ce graphe"),
     ]
+    # Les regles globales de dashboard.py ("[data-testid=stApp] span", div...)
+    # forcent le texte en blanc avec !important, et Streamlit retire un color
+    # !important en ligne : une classe par icone, classes repetees pour
+    # l'emporter en specificite.
+    st.markdown('<style>' + ''.join(
+        f'[data-testid="stApp"] .kpi-clu .kpi-icon span.ic-clu-{i}.ic-clu-{i}.ic-clu-{i}'
+        f'{{color:{coul} !important;-webkit-text-fill-color:{coul} !important;}}'
+        for i, (_ico, coul, *_r) in enumerate(kpi_items)) + '</style>',
+        unsafe_allow_html=True)
     cols_kpi = st.columns(4)
-    for col, (ico, label, val, sub) in zip(cols_kpi, kpi_items):
+    for i_kpi, (col, (ico, coul, label, val, sub)) in enumerate(zip(cols_kpi, kpi_items)):
         with col:
             st.markdown(
                 # kpi-clu : reperee par le CSS telephone (grille 2x2)
                 f'<div class="kpi-clu" style="background:{CARD};border:1px solid {BORDER};border-radius:14px;'
                 f'padding:18px 20px;">'
-                f'<div style="font-size:1.5rem;">{ico}</div>'
+                f'<div class="kpi-icon" style="background:{coul}22;color:{coul};margin-bottom:0;">'
+                f'<span class="material-symbols-rounded ic-clu-{i_kpi}" translate="no" '
+                f'style="font-size:1.3rem;">{ico}</span></div>'
                 f'<p style="font-size:0.72rem;color:{MUTED};margin:6px 0 2px 0;text-transform:uppercase;'
                 f'letter-spacing:.05em;">{label}</p>'
                 f'<p style="font-size:1.6rem;font-weight:800;color:{TEXT};margin:0;">{val}</p>'
@@ -645,11 +785,16 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
                    abs(float(np.nanpercentile(z_full, 98))))
         vlim = min(vlim, 3.0)
 
-        z       = z_full[::2, ::2]
-        lats_ds = cent_lats[::2]
-        lons_ds = cent_lons[::2]
+        # Pas de 0,75 deg (480 x 160 cellules) : a 520 px de haut, une cellule
+        # fait encore ~2 px ; le pas de 0,5 deg envoyait 2,25 fois plus de
+        # donnees pour un rendu identique.
+        z       = z_full[::3, ::3]
+        lats_ds = cent_lats[::3]
+        lons_ds = cent_lons[::3]
 
-        _rg_cent = _get_region_grid(tuple(lats_ds), tuple(lons_ds))
+        # Chaines de largeur fixe : un tableau 'object' est recopie chaine par
+        # chaine par Plotly (~2 s), celui-ci d'un bloc.
+        _rg_cent = _get_region_grid(tuple(lats_ds), tuple(lons_ds)).astype(str)
         fig_sst = go.Figure(go.Heatmap(
             z=z, x=lons_ds, y=lats_ds,
             colorscale="RdBu_r", zmin=-vlim, zmax=vlim, zsmooth=False,
@@ -702,274 +847,186 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
       du cluster).</p>
     """, unsafe_allow_html=True)
 
-    _cl_px_all = load_cluster_pixels()
+    _cl_statut, _cl_d = _composite_cluster(sel_phase, sel_cl_shared)
+    _cl_carto_sel = sel_cl_shared
 
-    if _cl_px_all is None or len(_cl_px_all) == 0:
+    if _cl_statut == "aucune_donnee":
         st.info(
             "Données cartographiques non disponibles. "
             "Executer le script 03c_filter_events_by_cluster_for_qgis.py pour generer les fichiers de pixels."
         )
+    elif _cl_statut == "phase_vide":
+        st.info(
+            f"Aucun pixel disponible pour {PHASE_LABELS_CL.get(sel_phase, sel_phase)}. "
+            "Relancer le script 03c_filter_events_by_cluster_for_qgis.py."
+        )
+    elif _cl_statut == "cluster_vide":
+        st.info("Aucun pixel disponible pour ce cluster.")
     else:
-        _cl_px_ph = _cl_px_all[_cl_px_all["phase"] == sel_phase].copy()
+        _cl_reg_stats = _cl_d["reg_stats"]
+        _cl_reg_top = _cl_reg_stats.index[0] if len(_cl_reg_stats) else "-"
 
-        if len(_cl_px_ph) == 0:
-            st.info(
-                f"Aucun pixel disponible pour {PHASE_LABELS_CL.get(sel_phase, sel_phase)}. "
-                "Relancer le script 03c_filter_events_by_cluster_for_qgis.py."
+        _cl_cl_color   = cl_colors[
+            cl_ids_sorted.index(_cl_carto_sel) % len(cl_colors)
+            if _cl_carto_sel in cl_ids_sorted else 0
+        ]
+
+        # ── Layout 2/3 carte  +  1/3 stats ────────────────────
+        _cl_col_map, _cl_col_stat = st.columns([2, 1], gap="medium")
+
+        with _cl_col_map:
+            _CS_PREC_CL = [
+                [0.00, "#f0f9ff"], [0.06, "#bae6fd"], [0.18, "#38bdf8"],
+                [0.35, "#0ea5e9"], [0.55, "#f97316"], [0.75, "#ef4444"],
+                [0.90, "#7c3aed"], [1.00, "#1e1b4b"],
+            ]
+
+            _cl_bmap = du.basemap(*du.SENEGAL_CENTRE, du.SENEGAL_ZOOM,
+                                  dark=bool(kw.get("dark_mode", False)))
+
+            _cl_fig_comp = go.Figure()
+
+            # Contours departements (fond, dessines avant les pixels)
+            _cl_contours = _contours_departements()
+            if _cl_contours is not None:
+                _lo_b, _la_b = _cl_contours
+                _cl_fig_comp.add_trace(go.Scattermap(
+                    lat=_la_b, lon=_lo_b, mode="lines",
+                    line=dict(width=1.1, color=("rgba(226,232,240,0.35)"
+                                                if kw.get("dark_mode") else
+                                                "rgba(30,27,75,0.35)")),
+                    hoverinfo="none", showlegend=False,
+                ))
+
+            # Pixels precipitation (halo blanc pour lisibilite)
+            _cl_fig_comp.add_trace(go.Scattermap(
+                lat=_cl_d["lats"], lon=_cl_d["lons"],
+                mode="markers",
+                marker=dict(size=11, color="white", opacity=0.30),
+                hoverinfo="skip", showlegend=False,
+            ))
+            _cl_fig_comp.add_trace(go.Scattermap(
+                lat=_cl_d["lats"], lon=_cl_d["lons"],
+                mode="markers",
+                marker=dict(
+                    size=9,
+                    color=_cl_d["prec"],
+                    colorscale=_CS_PREC_CL,
+                    cmin=_cl_d["p_min"], cmax=_cl_d["p_max"],
+                    opacity=0.92,
+                    colorbar=dict(
+                        title=dict(
+                            text="mm moy.",
+                            font=dict(size=10, color=MUTED),
+                        ),
+                        thickness=11, len=0.70,
+                        x=1.01, xanchor="left",
+                        y=0.5, yanchor="middle",
+                        tickfont=dict(size=9, color=MUTED),
+                        outlinewidth=0,
+                        bgcolor="rgba(255,255,255,0.0)",
+                    ),
+                ),
+                customdata=_cl_d["custom"],
+                hovertemplate=(
+                    "<b>%{customdata[2]} mm</b> moy. &nbsp;|&nbsp; %{customdata[0]}&sigma;<br>"
+                    "<span style='color:#64748b'>Région : %{customdata[1]}</span>"
+                    "<extra></extra>"
+                ),
+                showlegend=False,
+            ))
+
+            # Centroide de precipitation
+            _cl_fig_comp.add_trace(go.Scattermap(
+                lat=[_cl_d["ctr_lat"]], lon=[_cl_d["ctr_lon"]], mode="markers",
+                marker=dict(size=20, color="white", opacity=0.85),
+                hoverinfo="skip", showlegend=False,
+            ))
+            _cl_fig_comp.add_trace(go.Scattermap(
+                lat=[_cl_d["ctr_lat"]], lon=[_cl_d["ctr_lon"]], mode="markers",
+                marker=dict(
+                    size=13, color=_cl_cl_color, opacity=1.0,
+                    symbol="circle",
+                ),
+                hovertemplate=(
+                    f"<b>Barycentre C{_cl_carto_sel}</b><br>"
+                    f"{nb(_cl_d['ctr_lat'], '.2f')}N  {nb(abs(_cl_d['ctr_lon']), '.2f')}W"
+                    "<extra></extra>"
+                ),
+                showlegend=False,
+            ))
+
+            _cl_fig_comp.update_layout(
+                map=_cl_bmap,
+                margin=dict(l=0, r=0, t=0, b=0),
+                height=500,
+                plot_bgcolor="rgba(0,0,0,0)",
+                paper_bgcolor=CARD,
             )
-        else:
-            _cl_carto_sel = sel_cl_shared
-            _cl_px_c = _cl_px_ph[_cl_px_ph["cluster"] == _cl_carto_sel].copy()
-
-            _cl_dept_geo    = load_dept_geojson()
-            _cl_bounds_path = BASE / "data/geographic/senegal_boundaries.geojson"
-
-            # ── Filtrage frontiere Senegal ─────────────────────────────
-            if _cl_bounds_path.exists() and len(_cl_px_c) > 0:
-                import json as _json_cl
-                from matplotlib.path import Path as _MplPathCl
-                with open(str(_cl_bounds_path), "r", encoding="utf-8") as _bfcl:
-                    _cl_bounds_geo = _json_cl.load(_bfcl)
-                _cl_bp_list = []
-                for _feat_cl in _cl_bounds_geo.get("features", []):
-                    _geom_cl   = _feat_cl.get("geometry", {})
-                    _gtype_cl  = _geom_cl.get("type", "")
-                    _coords_cl = _geom_cl.get("coordinates", [])
-                    if _gtype_cl == "MultiPolygon":
-                        for _poly_cl in _coords_cl:
-                            if _poly_cl and _poly_cl[0]:
-                                _cl_bp_list.append(_MplPathCl(np.array(_poly_cl[0])))
-                    elif _gtype_cl == "Polygon":
-                        if _coords_cl and _coords_cl[0]:
-                            _cl_bp_list.append(_MplPathCl(np.array(_coords_cl[0])))
-                if _cl_bp_list:
-                    _cl_pts = np.column_stack([
-                        _cl_px_c["longitude"].values, _cl_px_c["latitude"].values
-                    ])
-                    _cl_ins = np.zeros(len(_cl_pts), dtype=bool)
-                    for _cl_bp in _cl_bp_list:
-                        _cl_ins |= _cl_bp.contains_points(_cl_pts)
-                    _cl_px_c = _cl_px_c[_cl_ins].reset_index(drop=True)
-
-            _cl_px_c = _cl_px_c[_cl_px_c["precipitation_mm"] > 0].reset_index(drop=True)
-
-            if len(_cl_px_c) == 0:
-                st.info("Aucun pixel disponible pour ce cluster.")
-            else:
-                # ── Composite : moyenne par cellule lat/lon ────────────
-                _cl_comp = (
-                    _cl_px_c
-                    .groupby(["latitude", "longitude"], as_index=False)
-                    .agg(
-                        precipitation_mm=("precipitation_mm", "mean"),
-                        anomaly_standardized=("anomaly_standardized", "mean"),
-                        region=("region", "first"),
-                        intensity_category=("intensity_category", "first"),
-                    )
+            with st.spinner("Chargement de la carte..."):
+                st.plotly_chart(
+                    _cl_fig_comp, use_container_width=True, key="cl_carto_composite",
+                    config=dict(du.CARTE_CONFIG, toImageButtonOptions={
+                        "format": "png",
+                        "filename": f"cluster{_cl_carto_sel}_{sel_phase}_composite",
+                        "scale": 3,
+                    }),
                 )
 
-                _cl_lats = _cl_comp["latitude"].tolist()
-                _cl_lons = _cl_comp["longitude"].tolist()
-                _cl_prec = _cl_comp["precipitation_mm"].tolist()
-                _cl_anom = _cl_comp["anomaly_standardized"].tolist()
-                _cl_regs = _cl_comp["region"].tolist()
+        # ── Panneau statistiques (1/3) ─────────────────────────
+        with _cl_col_stat:
 
-                _cl_p_max = float(np.percentile(_cl_prec, 99))
-                _cl_p_min = max(0.0, float(np.percentile(_cl_prec, 1)))
-
-                _w_ctr = _cl_comp["precipitation_mm"].values
-                _w_sum = float(_w_ctr.sum())
-                if _w_sum > 0:
-                    _cl_ctr_lat = float(np.average(_cl_comp["latitude"].values,  weights=_w_ctr))
-                    _cl_ctr_lon = float(np.average(_cl_comp["longitude"].values, weights=_w_ctr))
-                else:
-                    _cl_ctr_lat = float(_cl_comp["latitude"].mean())
-                    _cl_ctr_lon = float(_cl_comp["longitude"].mean())
-
-                # ── Statistiques regionales (depuis pixels bruts, pas le composite) ──
-                _cl_reg_stats = (
-                    _cl_px_c.groupby("region")["precipitation_mm"]
-                    .agg(max_p="max", mean_p="mean", n_px="count")
-                    .sort_values("mean_p", ascending=False)
-                    .head(6)
+            def _sp_bar(pct, color):
+                w = min(max(float(pct), 0), 100)
+                return (
+                    f'<div style="height:6px;background:{BORDER};border-radius:99px;'
+                    f'margin-top:6px;overflow:hidden;">'
+                    f'<div style="width:{w:.1f}%;height:100%;background:{color};'
+                    f'border-radius:99px;"></div></div>'
                 )
-                _cl_reg_top = _cl_reg_stats.index[0] if len(_cl_reg_stats) else "-"
 
-                _cl_cl_color   = cl_colors[
-                    cl_ids_sorted.index(_cl_carto_sel) % len(cl_colors)
-                    if _cl_carto_sel in cl_ids_sorted else 0
-                ]
+            # En-tete cluster
+            st.markdown(
+                f'<div style="background:{_cl_cl_color}18;border-left:3px solid '
+                f'{_cl_cl_color};border-radius:0 10px 10px 0;padding:10px 14px;'
+                f'margin-bottom:18px;">'
+                f'<p style="margin:0;font-size:0.68rem;font-weight:700;color:{_cl_cl_color};'
+                f'text-transform:uppercase;letter-spacing:.07em;">Cluster {_cl_carto_sel}</p>'
+                f'<p style="margin:2px 0 0 0;font-size:0.78rem;color:{MUTED};">'
+                f'{PHASE_LABELS_CL.get(sel_phase, sel_phase)}</p>'
+                f'</div>',
+                unsafe_allow_html=True,
+            )
 
-                # ── Layout 2/3 carte  +  1/3 stats ────────────────────
-                _cl_col_map, _cl_col_stat = st.columns([2, 1], gap="medium")
-
-                with _cl_col_map:
-                    _CS_PREC_CL = [
-                        [0.00, "#f0f9ff"], [0.06, "#bae6fd"], [0.18, "#38bdf8"],
-                        [0.35, "#0ea5e9"], [0.55, "#f97316"], [0.75, "#ef4444"],
-                        [0.90, "#7c3aed"], [1.00, "#1e1b4b"],
-                    ]
-
-                    _cl_bmap = du.basemap(*du.SENEGAL_CENTRE, du.SENEGAL_ZOOM,
-                                          dark=bool(kw.get("dark_mode", False)))
-
-                    _cl_fig_comp = go.Figure()
-
-                    # Contours departements (fond, dessines avant les pixels)
-                    if _cl_dept_geo is not None:
-                        _lo_b, _la_b = [], []
-                        for _fbt in _cl_dept_geo.get("features", []):
-                            _gbm   = _fbt.get("geometry", {})
-                            _rings = []
-                            if _gbm.get("type") == "Polygon":
-                                _rings = _gbm.get("coordinates", [])
-                            elif _gbm.get("type") == "MultiPolygon":
-                                for _pb in _gbm.get("coordinates", []):
-                                    _rings.extend(_pb)
-                            for _rng in _rings:
-                                for _xb, _yb in _rng:
-                                    _lo_b.append(_xb)
-                                    _la_b.append(_yb)
-                                _lo_b.append(None)
-                                _la_b.append(None)
-                        _cl_fig_comp.add_trace(go.Scattermap(
-                            lat=_la_b, lon=_lo_b, mode="lines",
-                            line=dict(width=1.1, color=("rgba(226,232,240,0.35)"
-                                                        if kw.get("dark_mode") else
-                                                        "rgba(30,27,75,0.35)")),
-                            hoverinfo="none", showlegend=False,
-                        ))
-
-                    # Pixels precipitation (halo blanc pour lisibilite)
-                    _cl_fig_comp.add_trace(go.Scattermap(
-                        lat=_cl_lats, lon=_cl_lons,
-                        mode="markers",
-                        marker=dict(size=11, color="white", opacity=0.30),
-                        hoverinfo="skip", showlegend=False,
-                    ))
-                    _cl_fig_comp.add_trace(go.Scattermap(
-                        lat=_cl_lats, lon=_cl_lons,
-                        mode="markers",
-                        marker=dict(
-                            size=9,
-                            color=_cl_prec,
-                            colorscale=_CS_PREC_CL,
-                            cmin=_cl_p_min, cmax=_cl_p_max,
-                            opacity=0.92,
-                            colorbar=dict(
-                                title=dict(
-                                    text="mm moy.",
-                                    font=dict(size=10, color=MUTED),
-                                ),
-                                thickness=11, len=0.70,
-                                x=1.01, xanchor="left",
-                                y=0.5, yanchor="middle",
-                                tickfont=dict(size=9, color=MUTED),
-                                outlinewidth=0,
-                                bgcolor="rgba(255,255,255,0.0)",
-                            ),
-                        ),
-                        customdata=[[f"{nb(a, '+.1f')}", rg, f"{nb(p, '.1f')}"]
-                                    for a, rg, p in zip(_cl_anom, _cl_regs, _cl_prec)],
-                        hovertemplate=(
-                            "<b>%{customdata[2]} mm</b> moy. &nbsp;|&nbsp; %{customdata[0]}&sigma;<br>"
-                            "<span style='color:#64748b'>Région : %{customdata[1]}</span>"
-                            "<extra></extra>"
-                        ),
-                        showlegend=False,
-                    ))
-
-                    # Centroide de precipitation
-                    _cl_fig_comp.add_trace(go.Scattermap(
-                        lat=[_cl_ctr_lat], lon=[_cl_ctr_lon], mode="markers",
-                        marker=dict(size=20, color="white", opacity=0.85),
-                        hoverinfo="skip", showlegend=False,
-                    ))
-                    _cl_fig_comp.add_trace(go.Scattermap(
-                        lat=[_cl_ctr_lat], lon=[_cl_ctr_lon], mode="markers",
-                        marker=dict(
-                            size=13, color=_cl_cl_color, opacity=1.0,
-                            symbol="circle",
-                        ),
-                        hovertemplate=(
-                            f"<b>Barycentre C{_cl_carto_sel}</b><br>"
-                            f"{nb(_cl_ctr_lat, '.2f')}N  {nb(abs(_cl_ctr_lon), '.2f')}W"
-                            "<extra></extra>"
-                        ),
-                        showlegend=False,
-                    ))
-
-                    _cl_fig_comp.update_layout(
-                        map=_cl_bmap,
-                        margin=dict(l=0, r=0, t=0, b=0),
-                        height=500,
-                        plot_bgcolor="rgba(0,0,0,0)",
-                        paper_bgcolor=CARD,
-                    )
-                    with st.spinner("Chargement de la carte..."):
-                        st.plotly_chart(
-                            _cl_fig_comp, use_container_width=True, key="cl_carto_composite",
-                            config=dict(du.CARTE_CONFIG, toImageButtonOptions={
-                                "format": "png",
-                                "filename": f"cluster{_cl_carto_sel}_{sel_phase}_composite",
-                                "scale": 3,
-                            }),
-                        )
-
-                # ── Panneau statistiques (1/3) ─────────────────────────
-                with _cl_col_stat:
-
-                    def _sp_bar(pct, color):
-                        w = min(max(float(pct), 0), 100)
-                        return (
-                            f'<div style="height:6px;background:{BORDER};border-radius:99px;'
-                            f'margin-top:6px;overflow:hidden;">'
-                            f'<div style="width:{w:.1f}%;height:100%;background:{color};'
-                            f'border-radius:99px;"></div></div>'
-                        )
-
-                    # En-tete cluster
-                    st.markdown(
-                        f'<div style="background:{_cl_cl_color}18;border-left:3px solid '
-                        f'{_cl_cl_color};border-radius:0 10px 10px 0;padding:10px 14px;'
-                        f'margin-bottom:18px;">'
-                        f'<p style="margin:0;font-size:0.68rem;font-weight:700;color:{_cl_cl_color};'
-                        f'text-transform:uppercase;letter-spacing:.07em;">Cluster {_cl_carto_sel}</p>'
-                        f'<p style="margin:2px 0 0 0;font-size:0.78rem;color:{MUTED};">'
-                        f'{PHASE_LABELS_CL.get(sel_phase, sel_phase)}</p>'
-                        f'</div>',
-                        unsafe_allow_html=True,
-                    )
-
-                    # Top regions
-                    st.markdown(
-                        f'<p style="margin:0 0 10px 0;font-size:0.70rem;font-weight:700;'
-                        f'color:{MUTED};text-transform:uppercase;letter-spacing:.05em;">'
-                        f'Régions les plus arrosées &nbsp;'
-                        f'<span style="font-weight:400;text-transform:none;'
-                        f'letter-spacing:0;">(précip. moyenne)</span></p>',
-                        unsafe_allow_html=True,
-                    )
-                    _cl_reg_ref = float(_cl_reg_stats["mean_p"].max()) if len(_cl_reg_stats) else 1.0
-                    for _rname, _rrow in _cl_reg_stats.iterrows():
-                        _rpct = float(_rrow["mean_p"]) / _cl_reg_ref * 100
-                        _is_top = (_rname == _cl_reg_top)
-                        st.markdown(
-                            f'<div style="margin-bottom:12px;">'
-                            f'<div style="display:flex;justify-content:space-between;'
-                            f'align-items:baseline;">'
-                            f'<span style="font-size:0.76rem;'
-                            f'font-weight:{"700" if _is_top else "400"};'
-                            f'color:{TEXT if _is_top else MUTED};'
-                            f'white-space:nowrap;overflow:hidden;'
-                            f'text-overflow:ellipsis;max-width:65%;">{_rname}</span>'
-                            f'<span style="font-size:0.74rem;font-weight:700;'
-                            f'color:{BLUE};">{nb(_rrow["mean_p"], ".1f")} mm</span>'
-                            f'</div>'
-                            + _sp_bar(_rpct, INDIGO if _is_top else BLUE)
-                            + f'</div>',
-                            unsafe_allow_html=True,
-                        )
+            # Top regions
+            st.markdown(
+                f'<p style="margin:0 0 10px 0;font-size:0.70rem;font-weight:700;'
+                f'color:{MUTED};text-transform:uppercase;letter-spacing:.05em;">'
+                f'Régions les plus arrosées &nbsp;'
+                f'<span style="font-weight:400;text-transform:none;'
+                f'letter-spacing:0;">(précip. moyenne)</span></p>',
+                unsafe_allow_html=True,
+            )
+            _cl_reg_ref = float(_cl_reg_stats["mean_p"].max()) if len(_cl_reg_stats) else 1.0
+            for _rname, _rrow in _cl_reg_stats.iterrows():
+                _rpct = float(_rrow["mean_p"]) / _cl_reg_ref * 100
+                _is_top = (_rname == _cl_reg_top)
+                st.markdown(
+                    f'<div style="margin-bottom:12px;">'
+                    f'<div style="display:flex;justify-content:space-between;'
+                    f'align-items:baseline;">'
+                    f'<span style="font-size:0.76rem;'
+                    f'font-weight:{"700" if _is_top else "400"};'
+                    f'color:{TEXT if _is_top else MUTED};'
+                    f'white-space:nowrap;overflow:hidden;'
+                    f'text-overflow:ellipsis;max-width:65%;">{_rname}</span>'
+                    f'<span style="font-size:0.74rem;font-weight:700;'
+                    f'color:{BLUE};">{nb(_rrow["mean_p"], ".1f")} mm</span>'
+                    f'</div>'
+                    + _sp_bar(_rpct, INDIGO if _is_top else BLUE)
+                    + f'</div>',
+                    unsafe_allow_html=True,
+                )
 
     # ════════════════════════════════════════════════════════════════════
     # CARTES PUBLICATION QUALITE (cartopy)
@@ -1007,7 +1064,8 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
         if meta and meta.get("effectifs") == effectifs_page:
             st.caption(f"k = {meta['k']} · figure générée le {meta.get('genere_le', '?')} "
                        f"à partir du clustering affiché sur cette page.")
-            st.image(str(img_path), use_container_width=True)
+            st.image(_image_publication(str(img_path), img_path.stat().st_mtime),
+                     use_container_width=True)
         elif meta:
             st.warning(
                 f"Figure non affichée : elle provient d'un autre clustering "
