@@ -19,10 +19,25 @@ import matplotlib.ticker as mticker
 import importlib.util as _iutil
 HAS_CARTOPY = _iutil.find_spec("cartopy") is not None
 
+# ─── Logo (assets/branding, genere par generer_logo.py) ──────────────────────
+_MARQUE = Path(__file__).resolve().parent.parent / "assets" / "branding"
+
+
+def _logo_uri(nom):
+    """Fichier du logo en URI data: (ni serveur de fichiers statiques ni
+    police a charger : le texte des SVG est deja en traces)."""
+    import base64
+    try:
+        donnees = (_MARQUE / nom).read_bytes()
+    except OSError:
+        return ""
+    return "data:image/svg+xml;base64," + base64.b64encode(donnees).decode("ascii")
+
+
 # ─── Config ──────────────────────────────────────────────────────────────────
 st.set_page_config(
     page_title="ClimatSen · Précipitations extrêmes au Sénégal",
-    page_icon="🌧",
+    page_icon=str(_MARQUE / "favicon-180.png") if (_MARQUE / "favicon-180.png").exists() else "🌧",
     layout="wide",
     initial_sidebar_state="expanded",
 )
@@ -120,19 +135,11 @@ st.markdown("""
         'animation:spl-out 0.45s ease-in 1.5s forwards}',
         '.spl-inner{display:flex;flex-direction:column;align-items:center;gap:14px;',
         'animation:spl-in 0.42s cubic-bezier(.34,1.3,.64,1) .05s both}',
-        '.spl-logo{width:60px;height:60px;border-radius:18px;',
-        'background:linear-gradient(135deg,#6366F1,#0EA5E9);',
-        'display:flex;align-items:center;justify-content:center;',
-        'font-size:1.35rem;font-weight:800;color:#fff;',
-        'box-shadow:0 6px 28px rgba(99,102,241,.55)}',
-        '.spl-title{color:' + TEXT + ';font-size:1.2rem;font-weight:700;',
-        'letter-spacing:-.3px;margin:0;animation:spl-up .38s ease .18s both}',
-        '.spl-sub{color:' + MUTED + ';font-size:.76rem;margin:-6px 0 0;',
-        'animation:spl-up .38s ease .26s both}',
+        '.spl-logo{height:150px;width:auto;display:block}',
         '.spl-bwrap{width:160px;height:3px;background:' + BORDER + ';',
-        'border-radius:99px;overflow:hidden;margin-top:4px;animation:spl-up .38s ease .30s both}',
+        'border-radius:99px;overflow:hidden;margin-top:10px;animation:spl-up .38s ease .30s both}',
         '.spl-bar{height:3px;width:0;',
-        'background:linear-gradient(90deg,#6366F1,#0EA5E9,#10B981);',
+        'background:' + (dm ? '#38BDF8' : '#0284C7') + ';',
         'border-radius:99px;animation:spl-grow 1.1s cubic-bezier(.4,0,.2,1) .35s forwards}',
         '.spl-hint{color:' + MUTED + ';font-size:.68rem;opacity:.72;margin-top:-2px;',
         'animation:spl-up .38s ease .38s both}',
@@ -147,9 +154,8 @@ st.markdown("""
       el.id  = 'pg-fouc-splash';
       el.innerHTML =
         '<div class="spl-inner">' +
-        '<div class="spl-logo">CS</div>' +
-        '<div class="spl-title">ClimatSen</div>' +
-        '<div class="spl-sub">Précipitations Extrêmes &middot; Sénégal</div>' +
+        '<img class="spl-logo" alt="ClimatSen, pluies extrêmes au Sénégal" src="' +
+        (dm ? '__LOGO_NUIT__' : '__LOGO_CLAIR__') + '">' +
         '<div class="spl-bwrap"><div class="spl-bar"></div></div>' +
         '<div class="spl-hint">Chargement des données...</div>' +
         '</div>';
@@ -163,7 +169,8 @@ st.markdown("""
   } catch (e) {}
 })();
 </script>
-""", unsafe_allow_html=True)
+""".replace("__LOGO_NUIT__", _logo_uri("logo-vertical-nuit.svg"))
+   .replace("__LOGO_CLAIR__", _logo_uri("logo-vertical.svg")), unsafe_allow_html=True)
 
 # ─── Palette ─────────────────────────────────────────────────────────────────
 INDIGO  = "#4F46E5"
@@ -1949,20 +1956,13 @@ with st.sidebar:
     # interne, la session est conservee) - suivi de revue 28/09/2026, S3.
     with _hdr_c[0], st.container(key="cs_logo"):
         st.page_link(_ST_PAGES["Accueil"], label="Accueil ClimatSen", query_params=_DM_QP)
+        # Barre laterale indigo nuit : logo court (sans signature, illisible a
+        # cette taille), version "nuit".
         st.markdown(f"""
-        <div style="padding:20px 0 14px 0;display:flex;align-items:center;gap:11px;">
-          <div style="width:36px;height:36px;border-radius:10px;flex-shrink:0;
-                      background:linear-gradient(135deg,#6366F1,#0EA5E9);
-                      display:flex;align-items:center;justify-content:center;
-                      font-size:0.85rem;font-weight:800;color:white;
-                      box-shadow:0 2px 10px rgba(99,102,241,0.45);">CS</div>
-          <div>
-            <div style="color:#FFFFFF;font-size:1rem;font-weight:700;
-                        letter-spacing:-0.2px;line-height:1.15;">ClimatSen</div>
-            <div style="color:#F0F2F5;font-size:0.66rem;margin-top:2px;">
-              Précipitations · Sénégal
-            </div>
-          </div>
+        <div style="padding:22px 0 16px 0;">
+          <img src="{_logo_uri('logo-court-nuit.svg')}"
+               alt="ClimatSen, pluies extrêmes au Sénégal"
+               style="display:block;height:34px;width:auto;max-width:100%;">
         </div>
         """, unsafe_allow_html=True)
     with _hdr_c[1]:
