@@ -56,8 +56,8 @@ Les deux polices sont libres (licence SIL Open Font License, Google Fonts).
 * **Ne pas** : déformer, changer les couleurs, ajouter une ombre ou un dégradé,
   déplacer ou supprimer le pixel ambre. Dans les versions une couleur, il est évidé
   pour rester visible.
-* **Nom** : le logo écrit « ClimatSen », comme la plateforme. Le dossier du hackathon
-  écrit « CLIMAT-SEN » : une seule forme est à fixer par l'équipe.
+* **Nom** : toujours « ClimatSen », en un mot, C et S capitales (décision de l'équipe,
+  8 octobre 2026). Ni « CLIMAT-SEN », ni « Climat-Sen », ni « Climatsen ».
 
 ## Régénérer
 
