@@ -29,7 +29,7 @@ CONSEILS = {
 }
 
 
-def _conseil(b):
+def conseil(b):
     pres = presentation(b["niveau_risque"])
     return CONSEILS["indicatif"] if pres["mode"] == "probabilite" else CONSEILS[b["niveau_risque"]["code"]]
 
@@ -57,7 +57,7 @@ def sms(b):
                                                        n["confiance"])
     elif pres["mode"] == "probabilite":
         texte += " (réf. 33 %, compétence non démontrée)"
-    texte += ". " + _conseil(b) + " Alertes officielles : ANACIM."
+    texte += ". " + conseil(b) + " Alertes officielles : ANACIM."
     if len(texte) > MAX_SMS:
         texte = texte[:MAX_SMS - 1] + "…"
     return texte
@@ -93,7 +93,7 @@ def resume(b):
             lignes.append("- Compétence non démontrée : aucun niveau de risque n'est annoncé")
     else:
         lignes.append("- Niveau non déterminé : prévision officielle indisponible")
-    lignes += ["", "## Recommandation", "", _conseil(b), "", "## Synthèse", "",
+    lignes += ["", "## Recommandation", "", conseil(b), "", "## Synthèse", "",
                b["synthese"], ""]
     fiab = _fiabilite()
     if fiab:
@@ -132,10 +132,11 @@ def docx(b, chemin):
     doc.add_heading("Recommandation", 1)
     if pres["mode"] == "probabilite":
         doc.add_paragraph("Compétence non démontrée : aucun niveau de risque n'est annoncé.")
-    doc.add_paragraph(_conseil(b))
+    doc.add_paragraph(conseil(b))
 
     doc.add_heading("Synthèse", 1)
-    doc.add_paragraph(b["synthese"])
+    for paragraphe in b["synthese"].split("\n\n"):
+        doc.add_paragraph(paragraphe)
 
     p = b.get("projection") or {}
     if p.get("analogues"):

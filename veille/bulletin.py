@@ -204,37 +204,44 @@ def _resume_competence(comp):
     }
 
 
-def synthese(b):
-    """Texte du bulletin, compose a partir des seuls chiffres du bulletin."""
+def synthese_parties(b):
+    """Synthese decoupee par approche: liste de (cle, texte), dans l'ordre de
+    lecture. Cles: verdict, c3s, configuration, analogues, familles,
+    projection, contexte, verification (absentes quand rien a dire)."""
     phrases = []
+
+    def ajout(cle, texte):
+        phrases.append((cle, _fr(texte)))
+
     n = b["niveau_risque"]
     annee = b["annee"]
     pres = presentation(n)
     src = ("prévision saisonnière Copernicus C3S" if n["source"] == "c3s"
            else "projection de l'état océanique")
     if pres["mode"] == "indetermine":
-        phrases.append("Saison %d : niveau de risque non déterminé, faute de prévision "
+        ajout("verdict", "Saison %d : niveau de risque non déterminé, faute de prévision "
                        "saisonnière officielle (Copernicus C3S) disponible." % annee)
     elif pres["mode"] == "probabilite":
-        phrases.append("Saison %d : probabilité indicative d'année extrême %s, contre %s en "
+        ajout("verdict", "Saison %d : probabilité indicative d'année extrême %s, contre %s en "
                        "moyenne, d'après la %s. Sa compétence n'est pas démontrée : aucun "
                        "niveau de risque n'est annoncé." % (
                            annee, _pct(n["probabilite_annee_extreme"]),
                            _pct(b["contexte"]["base_climatologique"]), src))
     else:
-        phrases.append("Saison %d : risque d'année extrême %s (probabilité %s, contre %s en "
+        ajout("verdict", "Saison %d : risque d'année extrême %s (probabilité %s, contre %s en "
                        "moyenne), d'après la %s. Confiance %s." % (
                            annee, n["libelle"].lower(), _pct(n["probabilite_annee_extreme"]),
                            _pct(b["contexte"]["base_climatologique"]), src, n["confiance"]))
     c3s = b.get("c3s") or {}
     if c3s.get("disponible"):
-        phrases.append("Le modèle %s prévoit pour juillet-septembre une pluie %s la normale "
+        ajout("c3s", "Le modèle %s prévoit pour juillet-septembre une pluie %s la normale "
                        "(anomalie %+.1f écart-type) ; %s des membres sont dans le tiers le plus "
                        "humide." % (c3s.get("centre", "").upper(),
                                     "au-dessus de" if c3s["anomalie_standardisee"] > 0.2 else
                                     "en dessous de" if c3s["anomalie_standardisee"] < -0.2 else
                                     "proche de",
-                                    c3s["anomalie_standardisee"],
+                                    # + 0.0: pas de "-0,0" pour une anomalie arrondie a zero
+                                    round(c3s["anomalie_standardisee"], 1) + 0.0,
                                     _pct(c3s["part_membres_au_dessus_normale"])))
     p = b.get("projection")
     if p:
@@ -245,7 +252,7 @@ def synthese(b):
             # Bulletin retrospectif: les annees principales posterieures a la
             # saison sont retirees; la liste peut alors etre vide.
             principales = c.get("annees_principales") or []
-            phrases.append("De novembre à avril, l'océan ressemble surtout à la configuration C%d "
+            ajout("configuration", "De novembre à avril, l'océan ressemble surtout à la configuration C%d "
                            "du mémoire (corrélation %.2f)%s%s." % (
                                c["configuration"], c["correlation"],
                                (", une variante de l'état %s" % etat) if etat and etat != "mixte" else "",
@@ -255,7 +262,7 @@ def synthese(b):
         ana = p.get("analogues") or []
         if ana:
             ext = [a for a in ana if a["extreme"]]
-            phrases.append("Années les plus ressemblantes : %s ; %d sur %d ont été des années "
+            ajout("analogues", "Années les plus ressemblantes : %s ; %d sur %d ont été des années "
                            "extrêmes%s." % (
                                ", ".join(str(a["annee"]) for a in ana), len(ext), len(ana),
                                " (dont %s, inondations documentées)" % ", ".join(
@@ -263,11 +270,11 @@ def synthese(b):
                                if any(a["inondation_documentee"] for a in ana) else ""))
         ph = mod_familles.phrase(p.get("familles_extremes"))
         if ph:
-            phrases.append(ph)
+            ajout("familles", ph)
         if p.get("probabilite_experimentale") is not None:
             cp = b.get("competence_projection") or {}
             pr = cp.get("prevision_reelle") or {}
-            phrases.append("Indication expérimentale de la projection : %s. Cette méthode %s "
+            ajout("projection", "Indication expérimentale de la projection : %s. Cette méthode %s "
                            "(AUC %.2f en conditions réelles de prévision) ; elle ne fixe pas le "
                            "niveau de risque." % (
                                _pct(p["probabilite_experimentale"]),
@@ -276,16 +283,22 @@ def synthese(b):
                                pr.get("auc", float("nan"))))
     fr = b["contexte"]["frequence_recente"]
     if fr and fr.get("sur"):
-        phrases.append("Contexte : %d des %d dernières saisons observées (%d-%d) ont été extrêmes, "
+        ajout("contexte", "Contexte : %d des %d dernières saisons observées (%d-%d) ont été extrêmes, "
                        "pour une fréquence de référence d'une sur trois." % (
                            fr["extremes"], fr["sur"], fr["annees"][0], fr["annees"][1]))
     v = b.get("verification")
     if v:
-        phrases.append("Vérification : la saison %d a été %s (empreinte %.0f, rang %d)%s." % (
+        ajout("verification", "Vérification : la saison %d a été %s (empreinte %.0f, rang %d)%s." % (
             annee, "extrême" if v["extreme_observe"] else "non extrême",
             v["empreinte_observee"], v["rang"],
             ", inondations documentées" if v["inondation_documentee"] else ""))
-    return _fr(" ".join(phrases))
+    return phrases
+
+
+def synthese(b):
+    """Texte du bulletin, compose a partir des seuls chiffres du bulletin.
+    Un paragraphe par approche (separes par une ligne vide)."""
+    return "\n\n".join(texte for _, texte in synthese_parties(b))
 
 
 # =============================================================================
