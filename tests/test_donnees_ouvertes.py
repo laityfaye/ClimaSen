@@ -44,7 +44,9 @@ def test_documentation_publique_et_csp_assouplie_pour_elle_seule(client):
     r = client.get(API + "/docs")
     assert r.status_code == 200
     assert "cdn.jsdelivr.net" in r.headers["content-security-policy"]
+    assert "connect-src 'self' https://cdn.jsdelivr.net" in r.headers["content-security-policy"]
     assert "/api/v1/openapi.json" in r.text
+    assert "API ouverte ClimatSen" in client.get(API + "/openapi.json").text
     assert client.get(API + "/openapi.json").status_code == 200
     autre = client.get(API + "/catalogue")
     assert "cdn.jsdelivr.net" not in autre.headers["content-security-policy"]

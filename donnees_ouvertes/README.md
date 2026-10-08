@@ -1,4 +1,4 @@
-# API ouverte de CLIMAT-SEN
+# API ouverte de ClimatSen
 
 Les statistiques produites par la plateforme, en lecture seule, sans compte ni clé :
 **https://climatsen.innosft.com/api/v1/** (documentation interactive : `/api/v1/docs`).
@@ -91,7 +91,7 @@ Une seule structure de données (`CLIMATSEN:DSD_CLIMATSEN(1.0)`) sert les cinq f
   les inondations documentées. « Population touchée » désigne les habitants de la zone
   de pluie extrême, pas un nombre de sinistrés. Les contours des communes sont
   reconstruits.
-* **Licence** des données dérivées : CC BY 4.0, avec attribution de CLIMAT-SEN, de l'ANSD,
+* **Licence** des données dérivées : CC BY 4.0, avec attribution de ClimatSen, de l'ANSD,
   d'OCHA et de CHIRPS (constante `LICENCE` dans `sources.py`).
 * **Débit** : 120 requêtes en rafale par adresse, puis 2 par seconde (application),
   120 par minute (nginx, zone `api`). Une réponse 429 indique le délai dans

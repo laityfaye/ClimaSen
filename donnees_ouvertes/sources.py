@@ -25,7 +25,7 @@ TRAITEES = RACINE / "data" / "processed"
 LICENCE = {
     "nom": "CC BY 4.0",
     "url": "https://creativecommons.org/licenses/by/4.0/deed.fr",
-    "attribution": "CLIMAT-SEN, d'après ANSD (RGPH-5 2023, EHCVM 2021-22), "
+    "attribution": "ClimatSen, d'après ANSD (RGPH-5 2023, EHCVM 2021-22), "
                    "OCHA (COD-AB 2024) et CHIRPS v2.0",
 }
 

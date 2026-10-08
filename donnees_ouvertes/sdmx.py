@@ -18,7 +18,7 @@ Les identifiants de concepts (FREQ, REF_AREA, TIME_PERIOD, OBS_VALUE,
 UNIT_MEASURE) sont ceux des concepts transversaux de la norme : un outil SDMX
 les reconnait sans configuration. Les libelles sont en francais.
 
-Agence de maintenance : CLIMATSEN. Ces structures sont celles de CLIMAT-SEN,
+Agence de maintenance : CLIMATSEN. Ces structures sont celles de ClimatSen,
 pas des structures officielles de l'ANSD.
 """
 import csv
@@ -211,7 +211,7 @@ def _meta(nom, schema):
     return {"schema": schema, "id": "IREF" + uuid.uuid4().hex[:12].upper(), "test": False,
             "prepared": maintenant(), "contentLanguages": ["fr"],
             "name": nom, "names": {"fr": nom},
-            "sender": {"id": AGENCE, "name": "CLIMAT-SEN", "names": {"fr": "CLIMAT-SEN"}}}
+            "sender": {"id": AGENCE, "name": "ClimatSen", "names": {"fr": "ClimatSen"}}}
 
 
 # --- SDMX-JSON 2.0, structure -------------------------------------------------
@@ -254,7 +254,7 @@ def codelists(ids=None) -> list:
         cl["codes"] = codes
         listes.append(cl)
     if ids is None or "CL_INDICATEUR" in ids:
-        cl = _maintenable("CL_INDICATEUR", "Indicateurs de CLIMAT-SEN")
+        cl = _maintenable("CL_INDICATEUR", "Indicateurs de ClimatSen")
         cl["codes"] = [_code(k, l, annotations=[{"type": "UNITE", "title": u}])
                        for k, (l, u) in sources.INDICATEURS.items()]
         listes.append(cl)
@@ -266,14 +266,14 @@ def codelists(ids=None) -> list:
 
 
 def _schema_concepts():
-    cs = _maintenable("CS_CLIMATSEN", "Concepts de CLIMAT-SEN")
+    cs = _maintenable("CS_CLIMATSEN", "Concepts de ClimatSen")
     cs["concepts"] = [{"id": k, "name": v, "names": {"fr": v}} for k, v in CONCEPTS.items()]
     return cs
 
 
 def _dsd():
     enum = {"FREQ": "CL_FREQ", "REF_AREA": "CL_ZONE", "INDICATOR": "CL_INDICATEUR"}
-    d = _maintenable(DSD, "Statistiques de CLIMAT-SEN",
+    d = _maintenable(DSD, "Statistiques de ClimatSen",
                      "Une valeur par fréquence, zone, indicateur et période.")
     d["dataStructureComponents"] = {
         "dimensionList": {
@@ -328,4 +328,4 @@ def json_structure(quoi="tout", ident=None) -> dict:
     if quoi in ("tout", "conceptscheme"):
         data["conceptSchemes"] = [_schema_concepts()] if ident in (None, "all", "CS_CLIMATSEN") else []
     data = {k: v for k, v in data.items() if v}
-    return {"meta": _meta("Structures de CLIMAT-SEN", SCHEMA_STRUCTURE), "data": data}
+    return {"meta": _meta("Structures de ClimatSen", SCHEMA_STRUCTURE), "data": data}
