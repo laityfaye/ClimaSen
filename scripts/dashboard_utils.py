@@ -279,6 +279,32 @@ def code_commune(adm2_pcode, nom):
 
 
 @st.cache_data(ttl=300)
+def load_pauvrete_ansd():
+    """Pauvrete par region lue par l'API SDMX de l'ANSD (DF_TX_PAUV, script 35) :
+    {P-code de region (SN07): {"taux", "profondeur", "severite"}} pour 2022, plus
+    "taux_2011" et "taux_2019". None si les fichiers manquent."""
+    odp = BASE / "data" / "raw" / "ansd" / "odp" / "DF_TX_PAUV.csv"
+    corr = BASE / "data" / "processed" / "correspondance_zones_ansd.csv"
+    if not (odp.exists() and corr.exists()):
+        return None
+    p = pd.read_csv(odp, sep=None, engine="python", dtype=str)
+    c = pd.read_csv(corr, dtype=str)
+    region = dict(zip(c.loc[c["niveau"] == "region", "code_ansd"],
+                      c.loc[c["niveau"] == "region", "code_climatsen"]))
+    noms = {"T_PAUV": "taux", "P_PAUV": "profondeur", "S_PAUV": "severite"}
+    out = {}
+    for r in p.itertuples():
+        pc = region.get(r.REF_AREA)
+        if pc is None:
+            continue
+        cle = noms[r.TX_PAUV] if r.TIME_PERIOD == "2022" else (
+            "taux_" + r.TIME_PERIOD if r.TX_PAUV == "T_PAUV" else None)
+        if cle:
+            out.setdefault(pc, {})[cle] = float(r.OBS_VALUE)
+    return out
+
+
+@st.cache_data(ttl=300)
 def load_population_projetee():
     """Population projetee par l'ANSD (2023, 2026, 2030) des departements et
     communes de ClimatSen (script 37, API SDMX de l'ANSD). DataFrame indexe par

@@ -368,6 +368,29 @@ def _fiche(z, t, niveau):
         ("Pauvreté (région)", "%s %%" % _fr(z["taux_pauvrete_region_pct"], 1), SRC_PAUV),
         ("Pauvres estimés", _entier(z["pauvres_estimes_2023"]), "population × taux régional"),
     ]
+    # API SDMX de l'ANSD (Open Data Platform, scripts 35 a 37) : population projetee
+    # (departements) ; profondeur et severite de la pauvrete, qui disent a quel point
+    # les pauvres le sont. Elles n'entrent pas dans l'indice.
+    proj = du.load_population_projetee()
+    if niveau == "departements" and proj is not None and z["pcode"] in proj.index:
+        lignes.insert(1, ("Population 2026 (projection)",
+                          _entier(proj.loc[z["pcode"], "population_2026"]),
+                          "ANSD, projections 2023-2030, API SDMX"))
+    pauv = (du.load_pauvrete_ansd() or {}).get(str(z["pcode"])[:4])
+    if pauv and "profondeur" in pauv:
+        i = next(k for k, l in enumerate(lignes) if l[0] == "Pauvres estimés")
+        lignes[i:i] = [
+            ("Profondeur de la pauvreté (région)", "%s %%" % _fr(pauv["profondeur"], 1),
+             "ANSD, EHCVM 2021-22, API SDMX"),
+            ("Sévérité de la pauvreté (région)", "%s %%" % _fr(pauv["severite"], 1),
+             "ANSD, EHCVM 2021-22, API SDMX"),
+        ]
+        if "taux_2011" in pauv:
+            lignes.insert(i + 2, ("Taux de pauvreté 2011 → 2019 → 2022 (région)",
+                                  " → ".join("%s %%" % _fr(pauv[k], 1) for k in
+                                             ("taux_2011", "taux_2019", "taux"))
+                                  if "taux_2019" in pauv else "%s %%" % _fr(pauv["taux_2011"], 1),
+                                  "ANSD, ESPS 2011 et EHCVM, API SDMX"))
     if niveau == "arrondissements" and "indice_departement" in z:
         lignes.append(("Indice du département", "%s (rang %s / 46)" % (
             _fr(z["indice_departement"]), _entier(z["rang_departement"])), "script 26"))

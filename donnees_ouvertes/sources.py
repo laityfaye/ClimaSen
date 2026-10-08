@@ -45,7 +45,7 @@ SOURCES = {
               "url": "https://www.ansd.sn"},
     "ocha": {"nom": "OCHA, limites administratives du Sénégal (COD-AB, 2024), licence CC BY-IGO",
              "url": "https://data.humdata.org/dataset/cod-ab-sen"},
-    "odp": {"nom": "ANSD, Open Data Platform, API SDMX (agence SN1) : projections de population 2023-2030 (DF_PROJ_POP_2050_COM, _DEP) et codes de zone CL_REF_AREA",
+    "odp": {"nom": "ANSD, Open Data Platform, API SDMX (agence SN1) : projections de population 2023-2030 (DF_PROJ_POP_2050_COM, _DEP), pauvreté par région (DF_TX_PAUV) et codes de zone CL_REF_AREA",
             "url": "https://opendata.ansd.sn"},
     "chirps": {"nom": "UCSB Climate Hazards Center, CHIRPS v2.0, pluie journalière 0,25°, 1981-2023",
                "url": "https://www.chc.ucsb.edu/data/chirps"},
@@ -63,6 +63,8 @@ INDICATEURS = {
     "SUPERFICIE":              ("Superficie", "KM2"),
     "DENSITE":                 ("Densité de population 2023", "HAB_KM2"),
     "TAUX_PAUVRETE_REGION":    ("Taux de pauvreté de la région (EHCVM 2021-22)", "PCT"),
+    "PROFONDEUR_PAUVRETE_REGION": ("Profondeur de la pauvreté de la région (EHCVM 2021-22, API SDMX de l'ANSD)", "PCT"),
+    "SEVERITE_PAUVRETE_REGION": ("Sévérité de la pauvreté de la région (EHCVM 2021-22, API SDMX de l'ANSD)", "PCT"),
     "PAUVRES_ESTIMES":         ("Personnes pauvres estimées (population 2023 × taux régional)", "PERSONNES"),
     "JOURS_EXTREMES":          ("Jours de pluie extrême par an (anomalie > +2 écarts-types, 1981-2023)", "JOURS_AN"),
     "JOURS_50MM":              ("Jours de pluie d'au moins 50 mm par an (1981-2023)", "JOURS_AN"),
@@ -153,7 +155,7 @@ def _departements():
                 "RANG": "rang"}
     for code, col in colonnes.items():
         out[code] = d[col]
-    out = _avec_projection(out)
+    out = _avec_pauvrete(_avec_projection(out))
     return out.sort_values("RANG").reset_index(drop=True)
 
 
@@ -179,6 +181,7 @@ def _arrondissements():
         out[code] = a[col]
     for code in ("RANG", "RANG_DANS_DEPARTEMENT", "NB_COMMUNES"):
         out[code] = out[code].astype("Int64")
+    out = _avec_pauvrete(out)
     return out.sort_values("RANG").reset_index(drop=True)
 
 
@@ -210,6 +213,24 @@ def _communes():
         out[code] = c[col]
     out = _avec_projection(out)
     return out.sort_values(["code_departement", "nom"]).reset_index(drop=True)
+
+
+def _avec_pauvrete(out):
+    """Profondeur et severite de la pauvrete de la region (2022), lues par l'API
+    SDMX de l'ANSD (DF_TX_PAUV, script 35). Descriptives : hors de l'indice."""
+    odp = RACINE / "data" / "raw" / "ansd" / "odp" / "DF_TX_PAUV.csv"
+    vals = {}
+    if odp.exists() and CORRESPONDANCE.exists():
+        p = pd.read_csv(odp, sep=None, engine="python", dtype=str)
+        c = pd.read_csv(CORRESPONDANCE, dtype=str)
+        region = dict(zip(c["code_ansd"], c["code_climatsen"]))
+        p = p[p["TIME_PERIOD"] == "2022"]
+        for r in p.itertuples():
+            vals.setdefault(r.TX_PAUV, {})[region.get(r.REF_AREA)] = float(r.OBS_VALUE)
+    for ind, code in (("PROFONDEUR_PAUVRETE_REGION", "P_PAUV"),
+                      ("SEVERITE_PAUVRETE_REGION", "S_PAUV")):
+        out[ind] = out["code_region"].map(vals.get(code, {}))
+    return out
 
 
 def _avec_projection(out):
@@ -280,7 +301,8 @@ JEUX = {j.id: j for j in (
         ("rgph5", "rgph4", "ehcvm", "odp", "ocha", "chirps"), "scripts/26_indice_risque_departements.py, 37",
         ("POPULATION", "POPULATION_2026", "POPULATION_2030", "POPULATION_2013",
          "CROISSANCE_2013_2023", "MENAGES", "SUPERFICIE",
-         "DENSITE", "TAUX_PAUVRETE_REGION", "PAUVRES_ESTIMES", "JOURS_EXTREMES", "JOURS_50MM",
+         "DENSITE", "TAUX_PAUVRETE_REGION", "PROFONDEUR_PAUVRETE_REGION",
+         "SEVERITE_PAUVRETE_REGION", "PAUVRES_ESTIMES", "JOURS_EXTREMES", "JOURS_50MM",
          "ALEA", "EXPOSITION", "VULNERABILITE", "INDICE_RISQUE", "RANG"),
         _departements, AVERTISSEMENT_INDICE),
     Jeu("arrondissements", "DF_RISQUE_ARRONDISSEMENTS",
@@ -289,9 +311,10 @@ JEUX = {j.id: j for j in (
         "(communes du RGPH-5 rattachées aux arrondissements OCHA).",
         "A", "arrondissement",
         (VULNERABILITE / "indice_risque_arrondissements.csv",),
-        ("rgph5", "rgph4", "ehcvm", "ocha", "chirps"), "scripts/27 à 31",
+        ("rgph5", "rgph4", "ehcvm", "odp", "ocha", "chirps"), "scripts/27 à 31, 35",
         ("POPULATION", "POPULATION_2013", "CROISSANCE_2013_2023", "MENAGES", "NB_COMMUNES",
-         "SUPERFICIE", "DENSITE", "TAUX_PAUVRETE_REGION", "PAUVRES_ESTIMES", "JOURS_EXTREMES",
+         "SUPERFICIE", "DENSITE", "TAUX_PAUVRETE_REGION", "PROFONDEUR_PAUVRETE_REGION",
+         "SEVERITE_PAUVRETE_REGION", "PAUVRES_ESTIMES", "JOURS_EXTREMES",
          "JOURS_50MM", "ALEA", "EXPOSITION", "VULNERABILITE", "INDICE_RISQUE", "RANG",
          "RANG_DANS_DEPARTEMENT"),
         _arrondissements, AVERTISSEMENT_INDICE),
@@ -362,8 +385,10 @@ def disponible(jeu: Jeu) -> bool:
 def table(jeu_id: str) -> pd.DataFrame:
     jeu = JEUX[jeu_id]
     fichiers = jeu.fichiers
-    if jeu_id in ("departements", "communes"):
-        fichiers = fichiers + tuple(f for f in (CORRESPONDANCE, PROJ_ZONES) if f.exists())
+    if jeu_id in ("departements", "arrondissements", "communes"):
+        pauvrete = RACINE / "data" / "raw" / "ansd" / "odp" / "DF_TX_PAUV.csv"
+        fichiers = fichiers + tuple(f for f in (CORRESPONDANCE, PROJ_ZONES, pauvrete)
+                                    if f.exists())
     if jeu_id == "evenements" and PROJ_EVENEMENTS.exists():
         fichiers = fichiers + (PROJ_EVENEMENTS,)
     if jeu_id == "evenements":

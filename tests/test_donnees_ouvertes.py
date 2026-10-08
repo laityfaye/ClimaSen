@@ -301,3 +301,23 @@ def test_habitants_touches_en_2026(api):
     e = api.get("/evenements/2012-09-28").json()
     assert e["population_touchee_2026"] > e["population_touchee"]
     assert e["population_touchee_2030"] > e["population_touchee_2026"]
+
+
+@pytest.mark.skipif(not sources.CORRESPONDANCE.exists(), reason="table du script 36 absente")
+def test_pauvrete_de_l_api_ansd_identique_a_l_indice(api):
+    """Le taux de pauvrete de l'indice (EHCVM, saisi depuis le rapport) est celui que
+    l'ANSD publie par son API SDMX ; profondeur et severite viennent de la meme source."""
+    odp = pd.read_csv(sources.RACINE / "data" / "raw" / "ansd" / "odp" / "DF_TX_PAUV.csv",
+                      sep=None, engine="python", dtype=str)
+    t22 = odp[(odp["TIME_PERIOD"] == "2022") & (odp["TX_PAUV"] == "T_PAUV")]
+    corr = pd.read_csv(sources.CORRESPONDANCE, dtype=str)
+    region = dict(zip(corr["code_ansd"], corr["code_climatsen"]))
+    officiel = {region[c]: float(v) for c, v in zip(t22["REF_AREA"], t22["OBS_VALUE"])
+                if c in region}
+    deps = api.get("/donnees/departements").json()["donnees"]
+    for d in deps:
+        assert d["taux_pauvrete_region"] == officiel[d["code_region"]], d["nom"]
+        assert 0 < d["severite_pauvrete_region"] < d["profondeur_pauvrete_region"] \
+            < d["taux_pauvrete_region"]
+    arr = api.get("/donnees/arrondissements", params={"indicateurs": "PROFONDEUR_PAUVRETE_REGION"})
+    assert all(a["profondeur_pauvrete_region"] for a in arr.json()["donnees"])
