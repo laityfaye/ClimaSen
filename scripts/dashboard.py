@@ -720,9 +720,9 @@ st.markdown(f"""
     padding-bottom: 110px !important;
 }}
 @media (max-width: 768px) {{
-    /* Le bouton menu fixe (40 px, coin haut gauche) ne recouvre plus le titre. */
+    /* La barre du haut mobile (64 px : menu et logo) ne recouvre plus le titre. */
     .block-container, [data-testid="stMainBlockContainer"] {{
-        padding-top: 56px !important;
+        padding-top: 64px !important;
     }}
 }}
 /* Header : supprime completement */
@@ -1264,10 +1264,10 @@ html, body {{
 [data-testid="stAppViewContainer"] > .main {{
     padding: 0 clamp(8px, 2vw, 28px) 40px clamp(8px, 2vw, 28px) !important;
 }}
-/* Espace reserve en haut pour ne pas chevaucher le bouton hamburger */
+/* Espace reserve en haut pour ne pas chevaucher la barre mobile (64 px) */
 @media (max-width: 768px) {{
     [data-testid="stAppViewContainer"] > .main {{
-        padding-top: 56px !important;
+        padding-top: 64px !important;
     }}
 }}
 
@@ -1909,6 +1909,61 @@ if st.button(_menu_icon, key="mobile_menu_btn", help="Menu"):
     st.session_state.mobile_sidebar_open = not st.session_state.mobile_sidebar_open
     st.rerun()
 
+# Barre du haut sur mobile : bouton menu a gauche (ci-dessus), logo a droite.
+# Sur ordinateur, le logo est deja dans la barre laterale : rien ne s'affiche.
+st.markdown(f"""
+<style>
+.cs-barre-mobile, .st-key-cs_logo_mobile {{ display: none !important; }}
+/* Hors du flux : sinon chaque bloc vide ajoute l'espacement de 16 px de la
+   colonne principale, sur mobile comme sur ordinateur. */
+[data-testid="stElementContainer"]:has(.cs-barre-mobile),
+[data-testid="stLayoutWrapper"]:has(> .st-key-cs_logo_mobile) {{
+    position: absolute !important; width: 0 !important; height: 0 !important;
+}}
+@media (max-width: 768px) {{
+    .cs-barre-mobile {{
+        display: block !important;
+        position: fixed; top: 0; left: 0; right: 0; height: 64px;
+        background: {BG}; border-bottom: 1px solid {BORDER};
+        z-index: 99990;
+    }}
+    .st-key-cs_logo_mobile {{
+        display: block !important;
+        position: fixed !important; top: 12px !important; right: 16px !important;
+        width: auto !important; height: 40px !important; z-index: 99991 !important;
+    }}
+    .st-key-cs_logo_mobile img {{ display: block; height: 28px; width: auto; margin-top: 6px; }}
+    .st-key-cs_logo_mobile [data-testid="stElementContainer"]:has([data-testid="stPageLink"]) {{
+        position: absolute !important; inset: 0; z-index: 2; margin: 0 !important;
+        width: 100% !important; max-width: none !important; height: 100% !important;
+    }}
+    .st-key-cs_logo_mobile [data-testid="stPageLink"],
+    .st-key-cs_logo_mobile [data-testid="stPageLink"] * {{
+        width: 100% !important; max-width: none !important; height: 100% !important;
+        opacity: 0; cursor: pointer;
+    }}
+    /* Tiroir : degager le bouton de fermeture (40 px en haut a gauche) et
+       garder logo et bouton de theme sur une ligne. */
+    .st-key-sb_entete {{ padding-top: 44px; }}
+    .st-key-sb_entete [data-testid="stHorizontalBlock"] {{
+        flex-wrap: nowrap !important; align-items: center; gap: 8px;
+    }}
+    .st-key-sb_entete [data-testid="stColumn"] {{ min-width: 0 !important; }}
+    .st-key-sb_entete [data-testid="stColumn"]:first-child {{
+        flex: 1 1 0 !important; width: auto !important;
+    }}
+    .st-key-sb_entete [data-testid="stColumn"]:last-child {{
+        flex: 0 0 44px !important; width: 44px !important;
+    }}
+}}
+</style>
+<div class="cs-barre-mobile" aria-hidden="true"></div>
+""", unsafe_allow_html=True)
+with st.container(key="cs_logo_mobile"):
+    st.page_link(_ST_PAGES["Accueil"], label="Accueil ClimatSen", query_params=_DM_QP)
+    st.markdown(f'<img src="{_logo_uri("logo-court-nuit.svg" if st.session_state.dark_mode else "logo-court.svg")}" '
+                'alt="ClimatSen, pluies extrêmes au Sénégal">', unsafe_allow_html=True)
+
 if st.session_state.mobile_sidebar_open:
     st.markdown("""
     <style>
@@ -1930,6 +1985,8 @@ if st.session_state.mobile_sidebar_open:
             pointer-events: auto !important;
             opacity: 1 !important;
         }
+        /* Le tiroir montre deja le logo : pas de doublon dans la barre. */
+        .st-key-cs_logo_mobile { display: none !important; }
     }
     </style>
     """, unsafe_allow_html=True)
@@ -1951,26 +2008,29 @@ with st.sidebar:
     _moon     = "☀" if st.session_state.dark_mode else "🌙"
     _mode_lbl = "Mode clair" if st.session_state.dark_mode else "Mode sombre"
 
-    _hdr_c = st.columns([6, 1])
-    # Logo cliquable : un st.page_link transparent recouvre le bloc (lien
-    # interne, la session est conservee) - suivi de revue 28/09/2026, S3.
-    with _hdr_c[0], st.container(key="cs_logo"):
-        st.page_link(_ST_PAGES["Accueil"], label="Accueil ClimatSen", query_params=_DM_QP)
-        # Barre laterale indigo nuit : logo court (sans signature, illisible a
-        # cette taille), version "nuit".
-        st.markdown(f"""
-        <div style="padding:22px 0 16px 0;">
-          <img src="{_logo_uri('logo-court-nuit.svg')}"
-               alt="ClimatSen, pluies extrêmes au Sénégal"
-               style="display:block;height:34px;width:auto;max-width:100%;">
-        </div>
-        """, unsafe_allow_html=True)
-    with _hdr_c[1]:
-        st.markdown('<div style="padding-top:20px"></div>', unsafe_allow_html=True)
-        if st.button(_moon, key="toggle_dark", help=_mode_lbl, use_container_width=True):
-            st.session_state.dark_mode = not st.session_state.dark_mode
-            st.query_params["dm"] = "1" if st.session_state.dark_mode else "0"
-            st.rerun()
+    # Conteneur nomme : sur mobile, le CSS garde logo et bouton de theme sur
+    # une ligne et degage le bouton de fermeture du tiroir.
+    with st.container(key="sb_entete"):
+        _hdr_c = st.columns([6, 1])
+        # Logo cliquable : un st.page_link transparent recouvre le bloc (lien
+        # interne, la session est conservee) - suivi de revue 28/09/2026, S3.
+        with _hdr_c[0], st.container(key="cs_logo"):
+            st.page_link(_ST_PAGES["Accueil"], label="Accueil ClimatSen", query_params=_DM_QP)
+            # Barre laterale indigo nuit : logo court (sans signature, illisible a
+            # cette taille), version "nuit".
+            st.markdown(f"""
+            <div style="padding:22px 0 16px 0;">
+              <img src="{_logo_uri('logo-court-nuit.svg')}"
+                   alt="ClimatSen, pluies extrêmes au Sénégal"
+                   style="display:block;height:34px;width:auto;max-width:100%;">
+            </div>
+            """, unsafe_allow_html=True)
+        with _hdr_c[1]:
+            st.markdown('<div style="padding-top:20px"></div>', unsafe_allow_html=True)
+            if st.button(_moon, key="toggle_dark", help=_mode_lbl, use_container_width=True):
+                st.session_state.dark_mode = not st.session_state.dark_mode
+                st.query_params["dm"] = "1" if st.session_state.dark_mode else "0"
+                st.rerun()
 
     st.markdown("---")
 
