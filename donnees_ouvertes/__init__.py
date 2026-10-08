@@ -1,4 +1,4 @@
-"""API ouverte de CLIMAT-SEN : les statistiques produites par la plateforme,
+"""API ouverte de ClimatSen : les statistiques produites par la plateforme,
 en lecture seule, en JSON, CSV, GeoJSON et SDMX (CSV 2.0 et JSON 2.0).
 
 Paquet volontairement separe de jarvis/ : il ne depend ni de Claude, ni des

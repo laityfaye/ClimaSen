@@ -17,7 +17,7 @@ TYPE_GEOJSON = "application/geo+json"
 LIMITE_MAX = 5000
 
 DESCRIPTION = """
-Les statistiques produites par **CLIMAT-SEN**, en lecture seule, sans compte ni clé.
+Les statistiques produites par **ClimatSen**, en lecture seule, sans compte ni clé.
 
 * **`/donnees/{jeu}`** : un jeu de données en JSON (par défaut), CSV, SDMX-CSV ou
   SDMX-JSON, avec des filtres simples.
@@ -77,7 +77,7 @@ def creer_api(ip_client: Optional[Callable[[Request], str]] = None,
     seau = TokenBucket(capacity=capacite, refill_per_second=recharge_par_seconde)
 
     api = FastAPI(
-        title="API ouverte CLIMAT-SEN",
+        title="API ouverte ClimatSen",
         version="1.0",
         description=DESCRIPTION,
         docs_url="/docs", redoc_url=None, openapi_url="/openapi.json",
@@ -96,6 +96,9 @@ def creer_api(ip_client: Optional[Callable[[Request], str]] = None,
     CSP_DOCS = ("default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
                 "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
                 "img-src 'self' data: https://fastapi.tiangolo.com; "
+                # Cartes de sources (.map) de Swagger UI, demandees par les outils
+                # de developpement du navigateur : sans cela, une erreur rouge en console.
+                "connect-src 'self' https://cdn.jsdelivr.net; "
                 "object-src 'none'; base-uri 'none'; frame-ancestors 'none'")
 
     @api.middleware("http")
@@ -129,9 +132,9 @@ def creer_api(ip_client: Optional[Callable[[Request], str]] = None,
     def accueil(request: Request):
         b = base(request)
         return {
-            "nom": "API ouverte CLIMAT-SEN",
+            "nom": "API ouverte ClimatSen",
             "version": "1.0",
-            "description": "Statistiques de CLIMAT-SEN sur les pluies extrêmes et la "
+            "description": "Statistiques de ClimatSen sur les pluies extrêmes et la "
                            "population exposée au Sénégal, en lecture seule.",
             "documentation": b + "/docs",
             "catalogue": b + "/catalogue",
