@@ -441,18 +441,21 @@ CSS = """
 /* Meme taille pour toutes les cartes : chaque colonne s'etire sur la hauteur de sa
    rangee, et la carte remplit toute la chaine colonne > bloc > texte. La hauteur
    minimale (plus longue description a 4 colonnes) aligne aussi les deux rangees. */
+/* La chaine colonne > ... > carte s'etire par flex: 1 a chaque maillon, et non
+   par height: 100% : Streamlit 1.64 a insere un stLayoutWrapper qui cassait la
+   chaine des pourcentages (cartes de hauteurs differentes sur une meme rangee). */
 .st-key-acc_sections [data-testid="stHorizontalBlock"] { align-items: stretch !important; }
-.st-key-acc_sections [data-testid="stColumn"] { display: flex; flex-direction: column; }
+.st-key-acc_sections [data-testid="stColumn"],
 .st-key-acc_sections [data-testid="stColumn"] > [data-testid="stVerticalBlock"],
-.st-key-acc_sections [data-testid="stColumn"] > div > [data-testid="stVerticalBlock"] {
-  flex: 1 1 auto; height: 100%;
-}
-[class*="st-key-acc_sec_"] { flex: 1 1 auto; height: calc(100% - 16px); }
+.st-key-acc_sections [data-testid="stLayoutWrapper"]:has(> [class*="st-key-acc_sec_"]),
+[class*="st-key-acc_sec_"],
 [class*="st-key-acc_sec_"] [data-testid="stElementContainer"]:has(.acc-sec),
 [class*="st-key-acc_sec_"] [data-testid="stElementContainer"]:has(.acc-sec) [data-testid="stMarkdown"],
-[class*="st-key-acc_sec_"] [data-testid="stElementContainer"]:has(.acc-sec) [data-testid="stMarkdownContainer"] {
-  height: 100%;
+[class*="st-key-acc_sec_"] [data-testid="stMarkdown"]:has(.acc-sec) > div,
+[class*="st-key-acc_sec_"] [data-testid="stMarkdownContainer"]:has(.acc-sec) {
+  display: flex; flex-direction: column; flex: 1 1 auto; height: auto;
 }
+.st-key-acc_sections [data-testid="stColumn"] { flex: 1 1 0; }
 [class*="st-key-acc_sec_"] [data-testid="stElementContainer"]:has([data-testid="stPageLink"]) {
   position: absolute !important; inset: 0; z-index: 3; margin: 0 !important;
   width: 100% !important; max-width: none !important; height: 100% !important;
@@ -464,7 +467,7 @@ CSS = """
 }
 .acc-sec {
   background: __CARD__; border: 1px solid __BORDER__; border-radius: 18px; padding: 20px;
-  height: 100%; min-height: 268px; box-sizing: border-box; transition: transform .25s ease, box-shadow .25s ease,
+  flex: 1 1 auto; min-height: 268px; box-sizing: border-box; transition: transform .25s ease, box-shadow .25s ease,
   border-color .25s ease; position: relative; overflow: hidden;
 }
 [class*="st-key-acc_sec_"]:hover .acc-sec {
@@ -508,6 +511,15 @@ CSS = """
   #acc-ins .acc-grille3, #acc-met .acc-grille-met { grid-template-columns: 1fr; }
   #acc-met .acc-fleche { display: none; }
   .st-key-acc_hero { padding: 24px 20px 22px 20px !important; }
+}
+@media (max-width: 640px) {
+  /* Telephone : une carte par rangee, sur toute la largeur. A deux colonnes,
+     une carte faisait 163 px : descriptions sur six lignes, "Teleconnexions"
+     coupe en deux. Hauteur minimale commune : toutes les cartes ont la meme. */
+  .st-key-acc_sections [data-testid="stColumn"] { flex: 1 1 100% !important;
+                                                  min-width: 100% !important; }
+  /* 224 px : la plus longue description (Vulnerabilite) a 360 px de large. */
+  .acc-sec { min-height: 224px; padding: 18px 20px; }
 }
 @media (prefers-reduced-motion: reduce) {
   #acc-fond, #acc-fond *, .st-key-acc_globe iframe, #acc-hero *, #acc-courbe *, #acc-kpi *, #acc-ins *,
