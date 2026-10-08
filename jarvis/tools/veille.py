@@ -23,7 +23,9 @@ DESCRIPTION = (
     "Donne le niveau de risque (faible/normal/eleve/tres eleve/indetermine), sa source "
     "(prevision saisonniere Copernicus C3S calibree sur CHIRPS), la projection de l'etat "
     "oceanique novembre-avril sur les configurations K-Means du memoire (indication "
-    "EXPERIMENTALE), les annees analogues, la competence mesuree de chaque methode et, "
+    "EXPERIMENTALE), les annees analogues, la ressemblance aux deux familles d'oceans des "
+    "saisons extremes (A: 1999/2000/2012, La Nina + Atlantique frais; B: 2005/2010/2020, "
+    "oceans chauds; descriptif), la competence mesuree de chaque methode et, "
     "pour une saison passee, la verification. A utiliser pour 'l'annee prochaine sera-t-"
     "elle extreme', 'risque d'inondation cette saison', 'bulletin de veille'. Sans annee: "
     "le bulletin le plus recent. Rapporte toujours la competence et les avertissements; "
@@ -44,7 +46,10 @@ REGLE = ("Le niveau de risque n'est calcule que par la prevision C3S calibree. S
          "probabilite indicative face a 33 % et dire que la competence n'est pas demontree. "
          "Le niveau ne s'annonce que si presentation.mode vaut 'niveau'. La probabilite de la projection oceanique est experimentale: "
          "sa competence en prevision reelle n'est pas demontree (voir competence_projection); "
-         "la citer comme une indication, jamais comme une prevision. Frequence de reference "
+         "la citer comme une indication, jamais comme une prevision. La ressemblance aux familles "
+         "d'oceans extremes (projection.familles_extremes) est DESCRIPTIVE: sans competence en "
+         "prevision reelle (AUC 0,52-0,56); dire 'l'ocean ressemble a celui de 1999/2000/2012', "
+         "jamais 'la saison sera extreme'. Si plus_proche est null: aucune famille. Frequence de reference "
          "d'une annee extreme: 1 sur 3.")
 
 
@@ -72,7 +77,8 @@ def run(params, data):
         "synthese": b["synthese"],
         "c3s": b.get("c3s"),
         "projection": {k: proj.get(k) for k in ("probabilite_experimentale", "configurations",
-                                                "analogues", "annees_apprentissage")} if proj else None,
+                                                "analogues", "familles_extremes",
+                                                "annees_apprentissage")} if proj else None,
         "competence_projection": b.get("competence_projection"),
         "contexte": b.get("contexte"),
         "definition_annee_extreme": b.get("definition"),

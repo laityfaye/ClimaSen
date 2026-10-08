@@ -15,6 +15,7 @@ from . import annees as mod_annees
 from . import artefacts
 from . import bulletin as mod_bulletin
 from . import c3s as mod_c3s
+from . import familles as mod_familles
 from . import projection as mod_proj
 from .cube import Cube, CubeIndisponible
 
@@ -86,6 +87,8 @@ def _projection(ctx, annee, partiel, journal, kit=False):
         for c in conf:
             c["annees_principales"] = [a for a in c.get("annees_principales", []) if a < annee]
         ana = mod_proj.annees_analogues(ctx, champ, annee, modele, nombre=5, avant=annee)
+        prep_fam = mod_familles.preparer_contexte(ctx, annee)
+        fam = mod_familles.evaluer(prep_fam, champ, annee, ctx.w)
         memoire = mod_proj.centroides_memoire(ctx)
         traj = artefacts.trajectoire(ctx, modele, annee, memoire)
         # Artefacts compacts pour le serveur (carte de l'ocean, scenarios).
@@ -94,7 +97,8 @@ def _projection(ctx, annee, partiel, journal, kit=False):
         artefacts.sauver_etat(annee, champ_2d, ctx.cube.lats, ctx.cube.lons, mois_dispo)
         if kit:  # ~3,5 Mo: seulement pour les saisons ou l'on explore des scenarios
             candidats = [a for a in ctx.annees_observees() if a < annee]
-            artefacts.sauver_kit(annee, ctx, modele, champ, memoire, candidats)
+            artefacts.sauver_kit(annee, ctx, modele, champ, memoire, candidats,
+                                 familles_prep=prep_fam)
     journal("  projection %d: p=%.2f, configuration la plus proche C%d" % (
         annee, p, conf[0]["configuration"]))
     return {
@@ -104,6 +108,7 @@ def _projection(ctx, annee, partiel, journal, kit=False):
         "toutes_configurations": [{"configuration": c["configuration"], "correlation": c["correlation"]}
                                   for c in conf],
         "analogues": ana,
+        "familles_extremes": fam,
         "trajectoire": traj,
     }, disponibles, bool(manquants)
 
@@ -169,6 +174,41 @@ def produire(annee, avec_c3s=True, partiel=False, journal=print, ecrire=True, ki
         table, _ = mod_annees.classement(empreinte)
         table.to_csv(DOSSIER_SORTIE / "classement_annees.csv", encoding="utf-8")
     return b
+
+
+def completer_familles(annees=None, journal=print):
+    """Ajoute la ressemblance aux familles d'oceans extremes aux bulletins deja
+    ecrits, sans les recalculer: emis_le, C3S et projection restent ceux du
+    calcul d'origine. Renvoie les annees completees."""
+    annees = bulletins_disponibles() if annees is None else list(annees)
+    ctx = None
+    faites = []
+    for annee in sorted(annees):
+        chemin = DOSSIER_SORTIE / ("bulletin_%d.json" % annee)
+        b = _lire_json(chemin)
+        if not b or not b.get("projection"):
+            journal("  %d: pas de projection, ignore" % annee)
+            continue
+        ctx = ctx or mod_proj.Contexte(Cube.charger())
+        partiel = bool(ctx.cube.mois_etat_manquants(annee))
+        try:
+            champ = ctx.etat(annee, partiel=partiel)
+        except CubeIndisponible as exc:
+            journal("  %d: %s" % (annee, exc))
+            continue
+        prep = mod_familles.preparer_contexte(ctx, annee)
+        b["projection"]["familles_extremes"] = mod_familles.evaluer(prep, champ, annee, ctx.w)
+        if artefacts.completer_kit_familles(annee, prep):
+            journal("  %d: kit de scenario complete" % annee)
+        b["synthese"] = mod_bulletin.synthese(b)
+        _ecrire_json(chemin, b)
+        (DOSSIER_SORTIE / ("bulletin_%d.md" % annee)).write_text(
+            mod_bulletin.markdown(b), encoding="utf-8")
+        fam = b["projection"]["familles_extremes"]
+        journal("  %d: %s" % (annee, ", ".join(
+            "%s r=%s" % (f["code"], f["correlation"]) for f in fam["familles"])))
+        faites.append(annee)
+    return faites
 
 
 def bulletins_disponibles():

@@ -35,6 +35,7 @@ import numpy as np
 
 from . import INONDATIONS_CONNUES
 from . import annees as mod_annees
+from . import familles as mod_familles
 
 VERSION = 1
 
@@ -241,11 +242,16 @@ def synthese(b):
         if conf:
             c = conf[0]
             etat = c.get("etat_oceanique")
+            # Bulletin retrospectif: les annees principales posterieures a la
+            # saison sont retirees; la liste peut alors etre vide.
+            principales = c.get("annees_principales") or []
             phrases.append("De novembre à avril, l'océan ressemble surtout à la configuration C%d "
-                           "du mémoire (corrélation %.2f)%s, celle des années %s." % (
+                           "du mémoire (corrélation %.2f)%s%s." % (
                                c["configuration"], c["correlation"],
                                (", une variante de l'état %s" % etat) if etat and etat != "mixte" else "",
-                               ", ".join(str(a) for a in c.get("annees_principales", [])[:3])))
+                               (", celle des années %s" % ", ".join(str(a) for a in principales[:3]))
+                               if principales else
+                               ", dont les années principales sont toutes postérieures à la saison"))
         ana = p.get("analogues") or []
         if ana:
             ext = [a for a in ana if a["extreme"]]
@@ -255,6 +261,9 @@ def synthese(b):
                                " (dont %s, inondations documentées)" % ", ".join(
                                    str(a["annee"]) for a in ana if a["inondation_documentee"])
                                if any(a["inondation_documentee"] for a in ana) else ""))
+        ph = mod_familles.phrase(p.get("familles_extremes"))
+        if ph:
+            phrases.append(ph)
         if p.get("probabilite_experimentale") is not None:
             cp = b.get("competence_projection") or {}
             pr = cp.get("prevision_reelle") or {}
@@ -330,11 +339,24 @@ def markdown(b):
         for c in (p.get("configurations") or [])[:3]:
             lignes.append("| C%d | %s | %.2f | %s | %s |" % (
                 c["configuration"], c.get("etat_oceanique") or "—", c["correlation"],
-                ", ".join(str(a) for a in c.get("annees_principales", [])[:5]),
+                ", ".join(str(a) for a in c.get("annees_principales", [])[:5]) or "—",
                 _pct(c.get("part_evenements_en_annee_extreme", 0))))
         lignes += ["", "**Années analogues** : " + ", ".join(
             "%d (%s)" % (a["annee"], "extrême" if a["extreme"] else "normale")
             for a in p.get("analogues") or []), ""]
+        fam = p.get("familles_extremes") or {}
+        if fam.get("familles"):
+            lignes += ["**Familles d'océans des saisons extrêmes** (ressemblance au composite "
+                       "de chaque famille, membres antérieurs à la saison seulement) :", "",
+                       "| Famille | Saisons | Signature (novembre-avril) | Corrélation |",
+                       "|---|---|---|---|"]
+            for f in fam["familles"]:
+                lignes.append("| %s%s — %s | %s | %s | %s |" % (
+                    f["code"], " (la plus proche)" if f["code"] == fam.get("plus_proche") else "",
+                    f["nom"], ", ".join(str(a) for a in f["membres_utilises"]) or "pas encore observée",
+                    f["signature"],
+                    "%.2f" % f["correlation"] if f.get("correlation") is not None else "—"))
+            lignes += ["", "*%s*" % fam.get("avertissement", mod_familles.AVERTISSEMENT), ""]
         cp = b.get("competence_projection") or {}
         if cp:
             lo, pr = cp.get("loyo", {}), cp.get("prevision_reelle", {})

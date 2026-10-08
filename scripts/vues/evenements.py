@@ -407,6 +407,55 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
                 showlegend=False,
             )
 
+        def _traces_gouttes(lats, lons, valeurs, tailles, colorscale, cmin, cmax,
+                            customdata, hovertemplate, colorbar):
+            """Pixels dessines en gouttes d'eau, colorees par l'echelle.
+
+            Renvoie les traces a ajouter: les gouttes, puis leur survol.
+
+            Scattermap ne colore que les ronds (les icones maki gardent leur
+            couleur propre): chaque goutte est donc un petit polygone GeoJSON,
+            rendu par Choroplethmap, qui garde echelle, barre et survol. La
+            goutte grandit avec le zoom comme le pixel qu'elle represente;
+            sa hauteur suit tailles (6 a 18, meme regle que les anciens ronds).
+            """
+            if not lats:
+                return ()
+            _u = np.unique(np.round(np.asarray(lats, dtype=float), 4))
+            _d = np.diff(_u)
+            _pas = float(np.median(_d[_d > 1e-3])) if np.any(_d > 1e-3) else 0.25
+            # Contour de goutte: pointe en haut, ventre arrondi en bas.
+            _t = np.linspace(0.0, 2.0 * np.pi, 25)
+            _fx = np.sin(_t) * np.sin(_t / 2.0)
+            _fy = np.cos(_t) + 0.25
+            feats, ids = [], []
+            for i, (la, lo, sz) in enumerate(zip(lats, lons, tailles)):
+                h = _pas * (0.40 + 0.55 * (sz - 6.0) / 12.0)
+                kx = h / 2.0 / max(np.cos(np.radians(la)), 0.2)
+                anneau = [[float(lo + kx * x), float(la + h / 2.0 * y)]
+                          for x, y in zip(_fx, _fy)]
+                anneau[-1] = anneau[0]
+                feats.append({"type": "Feature", "id": str(i),
+                              "geometry": {"type": "Polygon", "coordinates": [anneau]}})
+                ids.append(str(i))
+            return (go.Choroplethmap(
+                geojson={"type": "FeatureCollection", "features": feats},
+                locations=ids, featureidkey="id", z=valeurs,
+                colorscale=colorscale, zmin=cmin, zmax=cmax,
+                marker=dict(opacity=0.92, line=dict(
+                    width=0.6, color="rgba(255,255,255,0.55)" if _sombre
+                    else "rgba(15,23,42,0.35)")),
+                colorbar=colorbar, hoverinfo="skip", showlegend=False,
+            ), go.Scattermap(
+                # Survol porte par des ronds invisibles: un polygone de
+                # quelques pixels etait une cible trop petite pour la souris.
+                lat=lats, lon=lons, mode="markers",
+                marker=dict(size=[max(12.0, t) for t in tailles], opacity=0,
+                            color="rgba(0,0,0,0)"),
+                customdata=customdata, hovertemplate=hovertemplate,
+                showlegend=False,
+            ))
+
         _lats_ev  = _ev_sel["latitude"].tolist()
         _lons_ev  = _ev_sel["longitude"].tolist()
         _prec_ev  = _ev_sel["precipitation_mm"].tolist()
@@ -604,27 +653,9 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
                         showscale=False,
                         hoverinfo="skip",
                     ))
-                    _fig1.add_trace(go.Scattermap(
-                        lat=_lats_ev, lon=_lons_ev,
-                        mode="markers",
-                        marker=dict(
-                            size=_szs,
-                            color=_prec_ev,
-                            colorscale=_CS_PREC,
-                            cmin=_p_min, cmax=_p_max,
-                            opacity=0.88,
-                            colorbar=dict(
-                                title=dict(text="mm",
-                                           font=dict(size=11, color=MUTED)),
-                                thickness=14, len=0.72, x=1.01, y=0.5,
-                                tickfont=dict(size=10, color=MUTED),
-                                outlinewidth=0,
-                                bgcolor=("rgba(30,41,59,0.85)" if _sombre else "rgba(255,255,255,0.80)"),
-                                borderwidth=0, nticks=6,
-                            ),
-                        ),
-                        customdata=_cd_prec,
-                        hovertemplate=(
+                    _gp = _traces_gouttes(
+                        _lats_ev, _lons_ev, _prec_ev, _szs, _CS_PREC, _p_min, _p_max, _cd_prec,
+                        (
                             "<b>%{customdata[6]} mm</b>"
                             " | %{customdata[0]} σ<br>"
                             "Département : <b>%{customdata[5]}</b><br>"
@@ -632,8 +663,17 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
                             "Catégorie : <b>%{customdata[2]}</b>"
                             "<extra></extra>"
                         ),
-                        showlegend=False,
-                    ))
+                        dict(
+                            title=dict(text="mm",
+                                       font=dict(size=11, color=MUTED)),
+                            thickness=14, len=0.72, x=1.01, y=0.5,
+                            tickfont=dict(size=10, color=MUTED),
+                            outlinewidth=0,
+                            bgcolor=("rgba(30,41,59,0.85)" if _sombre else "rgba(255,255,255,0.80)"),
+                            borderwidth=0, nticks=6,
+                        ))
+                    for _tr in _gp:
+                        _fig1.add_trace(_tr)
                     _add_overlays(_fig1)
                     _fig1.update_layout(
                         map=_bmap, margin=_mgn, height=440,
@@ -680,27 +720,9 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
 
                 with st.spinner("Chargement..."):
                     _fig2 = go.Figure()
-                    _fig2.add_trace(go.Scattermap(
-                        lat=_lats_ev, lon=_lons_ev,
-                        mode="markers",
-                        marker=dict(
-                            size=_szs_a,
-                            color=_anom_ev,
-                            colorscale=_CS_ANOM,
-                            cmin=-_anom_ext, cmax=_anom_ext,
-                            opacity=0.88,
-                            colorbar=dict(
-                                title=dict(text="σ",
-                                           font=dict(size=11, color=MUTED)),
-                                thickness=14, len=0.72, x=1.01, y=0.5,
-                                tickfont=dict(size=10, color=MUTED),
-                                outlinewidth=0,
-                                bgcolor=("rgba(30,41,59,0.85)" if _sombre else "rgba(255,255,255,0.80)"),
-                                borderwidth=0, nticks=6,
-                            ),
-                        ),
-                        customdata=_cd_anom,
-                        hovertemplate=(
+                    _ga = _traces_gouttes(
+                        _lats_ev, _lons_ev, _anom_ev, _szs_a, _CS_ANOM, -_anom_ext, _anom_ext, _cd_anom,
+                        (
                             "<b>%{customdata[6]} σ</b>"
                             " | %{customdata[0]} mm<br>"
                             "Département : <b>%{customdata[5]}</b><br>"
@@ -708,8 +730,17 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
                             "Catégorie : <b>%{customdata[2]}</b>"
                             "<extra></extra>"
                         ),
-                        showlegend=False,
-                    ))
+                        dict(
+                            title=dict(text="σ",
+                                       font=dict(size=11, color=MUTED)),
+                            thickness=14, len=0.72, x=1.01, y=0.5,
+                            tickfont=dict(size=10, color=MUTED),
+                            outlinewidth=0,
+                            bgcolor=("rgba(30,41,59,0.85)" if _sombre else "rgba(255,255,255,0.80)"),
+                            borderwidth=0, nticks=6,
+                        ))
+                    for _tr in _ga:
+                        _fig2.add_trace(_tr)
                     _add_overlays(_fig2)
                     _fig2.update_layout(
                         map=_bmap, margin=_mgn, height=440,

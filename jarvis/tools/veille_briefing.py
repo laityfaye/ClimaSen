@@ -16,7 +16,7 @@ DATASETS = ()
 DESCRIPTION = (
     "LANCE LE BRIEFING VOCAL du bulletin de veille pre-saison: presentation "
     "guidee en plein ecran, 8 etapes (verdict, carte de l'ocean novembre-avril, "
-    "configuration du memoire, evolution pendant la veille, annees analogues, "
+    "configuration du memoire, evolution pendant la veille, annees analogues et familles d'oceans extremes, "
     "prevision Copernicus, fiabilite, ce qu'il faut retenir), lue a voix haute "
     "et composee a partir des donnees. A utiliser quand on te demande de "
     "presenter, expliquer en detail ou faire un briefing du bulletin. year: "

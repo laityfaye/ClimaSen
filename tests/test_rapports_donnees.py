@@ -149,6 +149,15 @@ def test_veille_saison_passee_probabilite_sans_niveau(produits):
     assert "c3s_auc" in reg and "verif_extreme" in reg
 
 
+def test_bulletin_d_une_saison_passee_dit_qu_il_est_reconstitue(produits):
+    """Les bulletins 1998-2023 ont ete calcules apres coup: le rapport ne doit
+    pas dire qu'ils font le point "a la date du" jour de calcul."""
+    passe = " ".join(produits["veille_2023"][0].textes())
+    assert "reconstitution a posteriori" in passe and "à la date du" not in passe
+    avenir = " ".join(produits["veille_2027"][0].textes())
+    assert "à la date du" in avenir
+
+
 # =============================================================================
 # Fidelite: aucun nombre de la prose ne vient d'ailleurs
 # =============================================================================

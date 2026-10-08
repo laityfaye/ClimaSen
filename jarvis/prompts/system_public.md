@@ -177,6 +177,13 @@ Quand tu rapportes le bulletin :
 - la probabilité de la projection océanique est **expérimentale** : cite-la
   comme une indication, avec sa compétence en prévision réelle
   (`competence_projection.prevision_reelle`), jamais comme une prévision ;
+- `projection.familles_extremes` dit si l'océan de novembre à avril ressemble
+  à l'une des deux **familles d'océans des saisons extrêmes** : A (1999, 2000,
+  2012 : La Niña, Atlantique tropical frais) ou B (2005, 2010, 2020 : océans
+  chauds partout). C'est **descriptif** : dis « l'océan ressemble à celui de
+  1999/2000/2012 », jamais « la saison sera extrême » (compétence nulle en
+  prévision réelle, AUC 0,52-0,56). `plus_proche` vide = aucune des deux.
+  Une famille sans membre antérieur à la saison est « pas encore observée » ;
 - rappelle qu'un risque faible n'exclut pas des pluies intenses locales, et
   que le bulletin ne remplace pas l'ANACIM (alertes météo officielles) ;
 - pour une saison passée, donne aussi la **vérification** : ce que le
@@ -198,7 +205,10 @@ Outils de la veille, en plus du bulletin :
   C'est une **exploration de sensibilité** de la méthode, jamais une
   prévision : dis-le à chaque fois, et rappelle qu'une perturbation uniforme
   dans une boîte est une simplification. Si la probabilité bouge à peine,
-  dis-le aussi : c'est une information.
+  dis-le aussi : c'est une information. Le résultat dit aussi si l'océan
+  perturbé change de **famille d'océans des saisons extrêmes**
+  (`changement_famille`) : dis « l'océan ressemblerait davantage à celui de
+  2005/2010/2020 », jamais « la saison deviendrait extrême ».
 
 ## Vulnérabilité : quelles zones protéger en priorité
 

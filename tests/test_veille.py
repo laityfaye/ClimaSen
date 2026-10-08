@@ -307,3 +307,157 @@ def test_page_veille_connue_de_jarvis():
     assert jarvis_widget.CLES_CONTEXTE["Veille"] == {"saison": "veille_annee"}
     ctx = jarvis_widget.contexte_page({"nav_page": "Veille", "veille_annee": 2027})
     assert page_context.nettoyer(ctx)["filtres"] == {"saison": 2027}
+
+
+# =============================================================================
+# Familles d'oceans des saisons extremes (descriptif)
+# =============================================================================
+def _etats_familles(n=400, graine=1):
+    """Etats synthetiques: A et B ont chacune un motif propre, le reste du bruit."""
+    rng = np.random.default_rng(graine)
+    motif_a, motif_b = rng.normal(size=n), rng.normal(size=n)
+    etats = {}
+    for a in range(1984, 2024):
+        x = 0.3 * rng.normal(size=n)
+        if a in (1999, 2000, 2012):
+            x += motif_a
+        elif a in (2005, 2010, 2020):
+            x += motif_b
+        etats[a] = x
+    return etats, motif_a, motif_b, np.ones(n)
+
+
+def test_familles_sans_fuite():
+    from veille import familles
+    etats, motif_a, _, w = _etats_familles()
+    vus = []
+
+    def etat_de(a):
+        vus.append(a)
+        return etats[a]
+
+    r = familles.ressemblance(etat_de, list(etats), motif_a, 2005, w)
+    assert max(vus) < 2005
+    fa, fb = r["familles"]
+    assert fa["membres_utilises"] == [1999, 2000]
+    assert fb["membres_utilises"] == [] and fb["correlation"] is None
+    assert r["plus_proche"] == "A"
+
+
+def test_familles_reconnait_la_bonne_famille_ou_aucune():
+    from veille import familles
+    etats, motif_a, motif_b, w = _etats_familles()
+    r = familles.ressemblance(etats.get, list(etats), motif_b + 0.2 * motif_a, 2024, w)
+    assert r["plus_proche"] == "B"
+    assert r["familles"][1]["membres_utilises"] == [2005, 2010, 2020]
+    bruit = np.random.default_rng(9).normal(size=motif_a.size)
+    r = familles.ressemblance(etats.get, list(etats), bruit, 2024, w)
+    assert r["plus_proche"] is None
+    assert "aucune" in familles.phrase(r)
+
+
+def test_familles_trop_peu_d_annees():
+    from veille import familles
+    etats, motif_a, _, w = _etats_familles()
+    r = familles.ressemblance(etats.get, list(etats), motif_a, 1990, w)
+    assert all(f["correlation"] is None for f in r["familles"])
+    assert familles.phrase(r) is None
+
+
+FAM = {"seuil": 0.3, "plus_proche": "A", "avertissement": "Ressemblance descriptive : test.",
+       "familles": [{"code": "A", "nom": "La Niña et Atlantique tropical frais",
+                     "annees": [1999, 2000, 2012], "membres_utilises": [1999, 2000, 2012],
+                     "signature": "Niño3.4 −1,2", "correlation": 0.45},
+                    {"code": "B", "nom": "Océans chauds partout", "annees": [2005, 2010, 2020],
+                     "membres_utilises": [2005, 2010, 2020], "signature": "TNA +1,4",
+                     "correlation": -0.1}]}
+
+
+def test_bulletin_cite_les_familles_sans_prevoir():
+    proj = dict(PROJ, familles_extremes=FAM)
+    b = mod_bulletin.composer(2027, projection=proj, competence_projection=COMP_PROJ)
+    assert "famille A" in b["synthese"] and "1999/2000/2012" in b["synthese"]
+    assert "descriptive" in b["synthese"]
+    assert b["niveau_risque"]["code"] == "indetermine"
+    md = mod_bulletin.markdown(b)
+    assert "Familles d'océans des saisons extrêmes" in md and "(la plus proche)" in md
+    # Bulletin ancien sans le champ: rien ne casse
+    assert "famille" not in mod_bulletin.composer(2027, projection=PROJ)["synthese"]
+
+
+def test_outil_rend_les_familles(monkeypatch):
+    from jarvis.tools import veille as outil
+    b = mod_bulletin.composer(2027, projection=dict(PROJ, familles_extremes=FAM),
+                              competence_projection=COMP_PROJ)
+    monkeypatch.setattr(production, "bulletins_disponibles", lambda: [2027])
+    monkeypatch.setattr(production, "lire_bulletin", lambda a: b)
+    r = outil.run({}, None)
+    assert r["projection"]["familles_extremes"]["plus_proche"] == "A"
+    assert "DESCRIPTIVE" in r["regle_interpretation"]
+
+
+def test_completer_familles_garde_le_bulletin(tmp_path, monkeypatch):
+    from veille import familles
+    b = mod_bulletin.composer(2020, projection=PROJ, competence_projection=COMP_PROJ)
+    b["emis_le"] = "2026-09-27"
+    (tmp_path / "bulletin_2020.json").write_text(json.dumps(b), encoding="utf-8")
+    monkeypatch.setattr(production, "DOSSIER_SORTIE", tmp_path)
+
+    class CtxFactice:
+        class cube:
+            @staticmethod
+            def mois_etat_manquants(annee):
+                return []
+
+        w = np.ones(3)
+
+        def etat(self, annee, partiel=False):
+            return np.zeros(3)
+
+    monkeypatch.setattr(production.mod_proj, "Contexte", lambda cube: CtxFactice())
+    monkeypatch.setattr(production.Cube, "charger", staticmethod(lambda *a: None))
+    monkeypatch.setattr(familles, "preparer_contexte", lambda ctx, annee: None)
+    monkeypatch.setattr(familles, "evaluer", lambda prep, champ, annee, w: FAM)
+    kits = []
+    monkeypatch.setattr(production.artefacts, "completer_kit_familles",
+                        lambda annee, prep: kits.append(annee) or False)
+    assert production.completer_familles(journal=lambda *_: None) == [2020]
+    assert kits == [2020]   # le kit de scenario est aussi complete
+    nouveau = json.loads((tmp_path / "bulletin_2020.json").read_text(encoding="utf-8"))
+    assert nouveau["emis_le"] == "2026-09-27"
+    assert nouveau["projection"]["familles_extremes"]["plus_proche"] == "A"
+    assert "famille A" in (tmp_path / "bulletin_2020.md").read_text(encoding="utf-8")
+
+
+def test_briefing_dit_la_famille_sans_prevoir():
+    from jarvis import briefing
+    phrase = briefing._familles(FAM)
+    assert "type A" in phrase and "1999, 2000 et 2012" in phrase
+    assert "pas une prévision" in phrase
+    assert "aucun" in briefing._familles(dict(FAM, plus_proche=None))
+    assert briefing._familles(None) == ""
+    etape = briefing._analogues({"annee": 2027, "projection": dict(PROJ, familles_extremes=FAM)},
+                                None, None)
+    assert "type A" in etape["narration"]
+
+
+def test_familles_kit_aller_retour():
+    from veille import familles
+    etats, motif_a, _, w = _etats_familles()
+    prep = familles.preparer(etats.get, list(etats), 2008)
+    direct = familles.evaluer(prep, motif_a, 2008, w)
+    relu = familles.evaluer(familles.depuis_kit(familles.vers_kit(prep)), motif_a, 2008, w)
+    assert [f["membres_utilises"] for f in relu["familles"]] == [[1999, 2000], [2005]]
+    for a, b in zip(direct["familles"], relu["familles"]):
+        assert abs(a["correlation"] - b["correlation"]) < 0.005
+    assert familles.vers_kit(None) == {} and familles.depuis_kit({}) is None
+
+
+def test_synthese_sans_annee_principale_anterieure():
+    """Bulletin 2012: les annees principales de C3 sont toutes posterieures."""
+    conf = [dict(PROJ["configurations"][0], annees_principales=[])]
+    b = mod_bulletin.composer(2012, projection=dict(PROJ, configurations=conf),
+                              competence_projection=COMP_PROJ)
+    assert "celle des années ." not in b["synthese"]
+    assert "postérieures à la saison" in b["synthese"]
+    assert "| C4 | — | 0,50 | — |" in mod_bulletin.markdown(b)

@@ -207,6 +207,25 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dark_mode=False, **kw):
                   "oui" if a["inondation_documentee"] else ""]
                  for a in proj.get("analogues") or []],
                 TEXT, MUTED, BORDER, CARD, alignes=(1,)), unsafe_allow_html=True)
+            fam = proj.get("familles_extremes") or {}
+            if fam.get("familles"):
+                st.markdown('<p class="pnl-ttl" style="margin-top:14px">Familles d\'océans '
+                            'des saisons extrêmes</p><p class="pnl-sub">Ressemblance au '
+                            'composite de chaque famille (membres antérieurs à la saison) · '
+                            'au-dessus de %s : ressemblance nette</p>'
+                            % _fr(fam.get("seuil", 0.3)), unsafe_allow_html=True)
+                st.markdown(_tableau(
+                    ["Famille", "Saisons", "Signature", "Corrélation"],
+                    [["%s · %s%s" % (f["code"], f["nom"],
+                                      " (la plus proche)" if f["code"] == fam.get("plus_proche")
+                                      else ""),
+                      ", ".join(str(a) for a in f["membres_utilises"]) or "pas encore observée",
+                      f["signature"],
+                      _fr(f["correlation"]) if f.get("correlation") is not None else "—"]
+                     for f in fam["familles"]],
+                    TEXT, MUTED, BORDER, CARD, alignes=(3,)), unsafe_allow_html=True)
+                st.markdown(f"<p class='pnl-sub' style='color:{MUTED}'>"
+                            f"{_e(fam.get('avertissement', ''))}</p>", unsafe_allow_html=True)
             cp = b.get("competence_projection") or {}
             lo, pr = cp.get("loyo") or {}, cp.get("prevision_reelle") or {}
             if cp:

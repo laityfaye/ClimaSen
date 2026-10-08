@@ -8,7 +8,7 @@
 
 ## Synthèse
 
-Saison 2019 : probabilité indicative d'année extrême 21 %, contre 33 % en moyenne, d'après la prévision saisonnière Copernicus C3S. Sa compétence n'est pas démontrée : aucun niveau de risque n'est annoncé. Le modèle ECMWF prévoit pour juillet-septembre une pluie en dessous de la normale (anomalie -1,1 écart-type) ; 10 % des membres sont dans le tiers le plus humide. De novembre à avril, l'océan ressemble surtout à la configuration C1 du mémoire (corrélation 0,20), une variante de l'état El Niño, celle des années 2015, 1992, 1997. Années les plus ressemblantes : 2015, 2016, 2003, 2017, 1987 ; 1 sur 5 ont été des années extrêmes (dont 2003, inondations documentées). Indication expérimentale de la projection : 31 %. Cette méthode n'a pas de compétence démontrée en prévision réelle (AUC 0,53 en conditions réelles de prévision) ; elle ne fixe pas le niveau de risque. Contexte : 3 des 10 dernières saisons observées (2009-2018) ont été extrêmes, pour une fréquence de référence d'une sur trois. Vérification : la saison 2019 a été non extrême (empreinte 525, rang 36).
+Saison 2019 : probabilité indicative d'année extrême 21 %, contre 33 % en moyenne, d'après la prévision saisonnière Copernicus C3S. Sa compétence n'est pas démontrée : aucun niveau de risque n'est annoncé. Le modèle ECMWF prévoit pour juillet-septembre une pluie en dessous de la normale (anomalie -1,1 écart-type) ; 10 % des membres sont dans le tiers le plus humide. De novembre à avril, l'océan ressemble surtout à la configuration C1 du mémoire (corrélation 0,20), une variante de l'état El Niño, celle des années 2015, 1992, 1997. Années les plus ressemblantes : 2015, 2016, 2003, 2017, 1987 ; 1 sur 5 ont été des années extrêmes (dont 2003, inondations documentées). Familles d'océans des saisons extrêmes : l'océan ressemble surtout à la famille B, celle des saisons 2005/2010 (Océans chauds partout) [A (1999/2000/2012) r = -0,08 ; B (2005/2010) r = 0,34]. Ressemblance descriptive : elle n'a pas de valeur de prévision démontrée (AUC 0,52-0,56 en prévision réelle, 0,5 = hasard). Indication expérimentale de la projection : 31 %. Cette méthode n'a pas de compétence démontrée en prévision réelle (AUC 0,53 en conditions réelles de prévision) ; elle ne fixe pas le niveau de risque. Contexte : 3 des 10 dernières saisons observées (2009-2018) ont été extrêmes, pour une fréquence de référence d'une sur trois. Vérification : la saison 2019 a été non extrême (empreinte 525, rang 36).
 
 ## Prévision saisonnière officielle (Copernicus C3S)
 
@@ -30,6 +30,15 @@ Saison 2019 : probabilité indicative d'année extrême 21 %, contre 33 % en moy
 | C7 | Neutre | 0,13 | 2003, 2005, 2009, 2002, 1994 | 32 % |
 
 **Années analogues** : 2015 (normale), 2016 (normale), 2003 (extrême), 2017 (normale), 1987 (normale)
+
+**Familles d'océans des saisons extrêmes** (ressemblance au composite de chaque famille, membres antérieurs à la saison seulement) :
+
+| Famille | Saisons | Signature (novembre-avril) | Corrélation |
+|---|---|---|---|
+| A — La Niña et Atlantique tropical frais | 1999, 2000, 2012 | Niño34 −1,2 ; Atlantique tropical sud −1,0 ; nord −0,6 (écarts-types) | -0,08 |
+| B (la plus proche) — Océans chauds partout | 2005, 2010 | Niño34 +0,9 ; océan Indien +1,3 ; Atlantique tropical nord +1,4, sud +1,5 ; AMO +1,0 (écarts-types) | 0,34 |
+
+*Ressemblance descriptive : elle n'a pas de valeur de prévision démontrée (AUC 0,52-0,56 en prévision réelle, 0,5 = hasard).*
 
 *Indication expérimentale : 31 %. Compétence mesurée : AUC 0,72 (p = 0,016) quand seule l'année testée est exclue ; AUC 0,53 (p = 0,395) en conditions réelles de prévision. Signal suggestif en validation année exclue (p = 0,016, mais 0,06 une fois corrigé pour les 4 variantes comparées) et pas de compétence démontrée en prévision réelle : indication expérimentale seulement.*
 

@@ -177,6 +177,10 @@ fait » après un `propose_…`, dis « c'est proposé, à toi d'approuver ».
 - Un bulletin reste « confiance faible » tant que les compétences mesurées
   ne sont pas significatives : ne le présente jamais autrement, même pour
   rassurer ou pour convaincre.
+- La ressemblance aux **familles d'océans des saisons extrêmes**
+  (`projection.familles_extremes`, A : 1999/2000/2012, B : 2005/2010/2020) est
+  descriptive, sans compétence en prévision réelle. Pour l'ajouter aux
+  bulletins déjà écrits sans les recalculer : `20_veille_presaison.py --familles`.
 
 ## Quand tu parles à voix haute
 

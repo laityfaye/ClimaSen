@@ -27,9 +27,18 @@ Saison 1998 : probabilité indicative d'année extrême 31 %, contre 33 % en moy
 |---|---|---|---|---|
 | C4 | El Niño | 0,50 | 1987, 1997, 1983 | 33 % |
 | C1 | El Niño | 0,29 | 1992, 1997 | 0 % |
-| C6 | Transition après El Niño | 0,17 |  | 0 % |
+| C6 | Transition après El Niño | 0,17 | — | 0 % |
 
 **Années analogues** : 1988 (normale), 1987 (normale), 1992 (normale), 1995 (normale), 1993 (normale)
+
+**Familles d'océans des saisons extrêmes** (ressemblance au composite de chaque famille, membres antérieurs à la saison seulement) :
+
+| Famille | Saisons | Signature (novembre-avril) | Corrélation |
+|---|---|---|---|
+| A — La Niña et Atlantique tropical frais | pas encore observée | Niño34 −1,2 ; Atlantique tropical sud −1,0 ; nord −0,6 (écarts-types) | — |
+| B — Océans chauds partout | pas encore observée | Niño34 +0,9 ; océan Indien +1,3 ; Atlantique tropical nord +1,4, sud +1,5 ; AMO +1,0 (écarts-types) | — |
+
+*Ressemblance descriptive : elle n'a pas de valeur de prévision démontrée (AUC 0,52-0,56 en prévision réelle, 0,5 = hasard).*
 
 *Indication expérimentale : 36 %. Compétence mesurée : AUC 0,72 (p = 0,016) quand seule l'année testée est exclue ; AUC 0,53 (p = 0,395) en conditions réelles de prévision. Signal suggestif en validation année exclue (p = 0,016, mais 0,06 une fois corrigé pour les 4 variantes comparées) et pas de compétence démontrée en prévision réelle : indication expérimentale seulement.*
 

@@ -8,7 +8,7 @@
 
 ## Synthèse
 
-Saison 2021 : probabilité indicative d'année extrême 32 %, contre 33 % en moyenne, d'après la prévision saisonnière Copernicus C3S. Sa compétence n'est pas démontrée : aucun niveau de risque n'est annoncé. Le modèle ECMWF prévoit pour juillet-septembre une pluie proche de la normale (anomalie -0,0 écart-type) ; 26 % des membres sont dans le tiers le plus humide. De novembre à avril, l'océan ressemble surtout à la configuration C5 du mémoire (corrélation 0,37), une variante de l'état La Niña, celle des années 1989. Années les plus ressemblantes : 2008, 1989, 2018, 2011, 2000 ; 3 sur 5 ont été des années extrêmes. Indication expérimentale de la projection : 42 %. Cette méthode n'a pas de compétence démontrée en prévision réelle (AUC 0,53 en conditions réelles de prévision) ; elle ne fixe pas le niveau de risque. Contexte : 2 des 10 dernières saisons observées (2011-2020) ont été extrêmes, pour une fréquence de référence d'une sur trois. Vérification : la saison 2021 a été extrême (empreinte 791, rang 12).
+Saison 2021 : probabilité indicative d'année extrême 32 %, contre 33 % en moyenne, d'après la prévision saisonnière Copernicus C3S. Sa compétence n'est pas démontrée : aucun niveau de risque n'est annoncé. Le modèle ECMWF prévoit pour juillet-septembre une pluie proche de la normale (anomalie -0,0 écart-type) ; 26 % des membres sont dans le tiers le plus humide. De novembre à avril, l'océan ressemble surtout à la configuration C5 du mémoire (corrélation 0,37), une variante de l'état La Niña, celle des années 1989. Années les plus ressemblantes : 2008, 1989, 2018, 2011, 2000 ; 3 sur 5 ont été des années extrêmes. Familles d'océans des saisons extrêmes : l'océan ressemble surtout à la famille A, celle des saisons 1999/2000/2012 (La Niña et Atlantique tropical frais) [A (1999/2000/2012) r = 0,53 ; B (2005/2010/2020) r = 0,15]. Ressemblance descriptive : elle n'a pas de valeur de prévision démontrée (AUC 0,52-0,56 en prévision réelle, 0,5 = hasard). Indication expérimentale de la projection : 42 %. Cette méthode n'a pas de compétence démontrée en prévision réelle (AUC 0,53 en conditions réelles de prévision) ; elle ne fixe pas le niveau de risque. Contexte : 2 des 10 dernières saisons observées (2011-2020) ont été extrêmes, pour une fréquence de référence d'une sur trois. Vérification : la saison 2021 a été extrême (empreinte 791, rang 12).
 
 ## Prévision saisonnière officielle (Copernicus C3S)
 
@@ -30,6 +30,15 @@ Saison 2021 : probabilité indicative d'année extrême 32 %, contre 33 % en moy
 | C0 | La Niña | 0,30 | 1999, 2000, 1998 | 88 % |
 
 **Années analogues** : 2008 (extrême), 1989 (extrême), 2018 (normale), 2011 (normale), 2000 (extrême)
+
+**Familles d'océans des saisons extrêmes** (ressemblance au composite de chaque famille, membres antérieurs à la saison seulement) :
+
+| Famille | Saisons | Signature (novembre-avril) | Corrélation |
+|---|---|---|---|
+| A (la plus proche) — La Niña et Atlantique tropical frais | 1999, 2000, 2012 | Niño34 −1,2 ; Atlantique tropical sud −1,0 ; nord −0,6 (écarts-types) | 0,53 |
+| B — Océans chauds partout | 2005, 2010, 2020 | Niño34 +0,9 ; océan Indien +1,3 ; Atlantique tropical nord +1,4, sud +1,5 ; AMO +1,0 (écarts-types) | 0,15 |
+
+*Ressemblance descriptive : elle n'a pas de valeur de prévision démontrée (AUC 0,52-0,56 en prévision réelle, 0,5 = hasard).*
 
 *Indication expérimentale : 42 %. Compétence mesurée : AUC 0,72 (p = 0,016) quand seule l'année testée est exclue ; AUC 0,53 (p = 0,395) en conditions réelles de prévision. Signal suggestif en validation année exclue (p = 0,016, mais 0,06 une fois corrigé pour les 4 variantes comparées) et pas de compétence démontrée en prévision réelle : indication expérimentale seulement.*
 

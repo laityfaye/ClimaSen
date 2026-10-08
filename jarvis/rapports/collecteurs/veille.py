@@ -125,8 +125,13 @@ def collecter(spec, data, gazetteer=None):
 
     reg.ajouter("saison", saison, "saison visée", "methode", SRC, "saison %d" % saison,
                 format="annee")
-    reg.ajouter("emis_le", b["emis_le"], "date d'émission du bulletin", "methode", SRC,
-                "saison %d" % saison, format="date")
+    # Un bulletin calcule APRES sa saison (1998-2023, tous calcules d'un coup
+    # le 27/09/2026) est une reconstitution: "a la date du 27 septembre 2026"
+    # faisait croire a un bulletin emis ce jour-la pour une saison passee.
+    retrospectif = saison < int(str(b["emis_le"])[:4])
+    reg.ajouter("emis_le", b["emis_le"],
+                "date de calcul du bulletin" if retrospectif else "date d'émission du bulletin",
+                "methode", SRC, "saison %d" % saison, format="date")
     reg.ajouter("statut_bulletin", b["statut"], "statut du bulletin", "methode", SRC,
                 "saison %d" % saison, format="texte")
     ctx = b.get("contexte") or {}
@@ -150,10 +155,18 @@ def collecter(spec, data, gazetteer=None):
                    decimales=2)
 
     public = tf.PUBLICS[spec.public]
-    c.paragraphe("contexte", "Ce bulletin fait le point, à la date du {{fait:emis_le}}, sur le "
-                 "risque que la saison des pluies {{fait:saison}} soit une année de pluies "
-                 "extrêmes au Sénégal, et sur les zones à préparer en priorité dans %s. Il "
-                 "s'adresse aux %s." % (spec.lieu.avec_article(), public))
+    if retrospectif:
+        c.paragraphe("contexte", "Ce bulletin est une reconstitution a posteriori : il "
+                     "recalcule, avec la méthode actuelle de la veille, le risque que la saison "
+                     "des pluies {{fait:saison}} soit une année de pluies extrêmes au Sénégal, "
+                     "et les zones à préparer en priorité dans %s. Il ne reproduit pas un "
+                     "bulletin réellement diffusé avant cette saison. Il s'adresse aux %s."
+                     % (spec.lieu.avec_article(), public))
+    else:
+        c.paragraphe("contexte", "Ce bulletin fait le point, à la date du {{fait:emis_le}}, sur "
+                     "le risque que la saison des pluies {{fait:saison}} soit une année de "
+                     "pluies extrêmes au Sénégal, et sur les zones à préparer en priorité dans "
+                     "%s. Il s'adresse aux %s." % (spec.lieu.avec_article(), public))
 
     # --- niveau, probabilite ou indetermine -------------------------------------
     if mode == "niveau" and n.get("probabilite_annee_extreme") is not None:
@@ -227,6 +240,31 @@ def collecter(spec, data, gazetteer=None):
                      "{{fait:analogues}}. La projection expérimentale qui en découle donne "
                      "{{fait:proj_proba}}, mais sa compétence en prévision réelle n'est pas "
                      "démontrée (score {{fait:proj_auc}}).", "projete")
+        fam = proj.get("familles_extremes") or {}
+        calc = [f for f in fam.get("familles") or [] if f.get("correlation") is not None]
+        if calc:
+            c.visuels.append(("analyse", tableau(
+                ["Famille", "Saisons", "Signature", "Ressemblance"],
+                [["%s · %s" % (f["code"], f["nom"]),
+                  ", ".join(str(a) for a in f["membres_utilises"]),
+                  f["signature"], cellule(f["correlation"], 2)] for f in calc],
+                "Familles d'océans des saisons extrêmes",
+                "Les saisons les plus extrêmes ne partagent pas un même océan : deux familles "
+                "(La Niña et Atlantique frais ; océans chauds partout). Ressemblance "
+                "descriptive, sans valeur de prévision démontrée.",
+                "corrélation de motif (sans unité)", "1984-2023", tf.SOURCE_OISST,
+                statut="observe")))
+            plus = fam.get("plus_proche")
+            reg.ajouter("famille_extreme",
+                        ("famille %s (saisons %s)" % (plus, "/".join(
+                            str(a) for a in next(f for f in calc if f["code"] == plus)
+                            ["membres_utilises"]))) if plus else "aucune des deux familles",
+                        "famille d'océans de saisons extrêmes la plus ressemblante", "observe",
+                        SRC, "novembre-avril", format="texte")
+            c.paragraphe("analyse", "Familles d'océans des saisons extrêmes. L'océan de "
+                         "novembre à avril ressemble à : {{fait:famille_extreme}}. Cette "
+                         "ressemblance décrit le passé ; testée, elle ne prévoit pas mieux que "
+                         "le hasard la saison à venir.", "observe")
         try:
             spec_o, _ = outil_cartes.construire({"type": "etat_oceanique", "year": saison}, {})
             c.visuels.append(("analyse", figure(

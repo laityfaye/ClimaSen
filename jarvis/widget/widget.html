@@ -155,51 +155,123 @@
   /* ---- Apercu du rapport: a gauche, la transcription a droite --------------
      Meme gabarit que l'ecran des cartes (#hud-ecran): l'utilisateur lit le
      rapport et demande ses changements a Iris dans la conversation voisine.
-     Le rapport s'affiche dans une iframe srcdoc SANS scripts (sandbox). */
-  #apercu-rapport{display:none}
-  body.hud.rap-ouvert #apercu-rapport{display:flex;flex-direction:column;position:fixed;
+     Le rapport s'affiche dans une iframe srcdoc SANS scripts (sandbox).
+     Trois tailles: normale, agrandie (.ap-plein, toute la fenetre) et
+     reduite (.ap-reduit, un onglet en haut a gauche rappelle le rapport).
+     Le texte de lecture est en police d'interface, pas en monospace: le
+     public (protection civile, elus) lit des phrases, pas des journaux. */
+  #apercu-rapport,#ap-onglet{display:none}
+  body.hud.rap-ouvert:not(.ap-reduit) #apercu-rapport{display:flex;flex-direction:column;position:fixed;
     top:var(--hud-haut);bottom:var(--hud-bas);left:var(--hud-marge);z-index:4;
     width:calc(100vw - 2 * var(--hud-marge) - var(--hud-lat) - var(--hud-gap));
-    padding:10px 14px 10px;
-    background:linear-gradient(180deg,rgba(9,24,34,.97),rgba(4,12,18,.97));
-    border:1px solid rgba(0,229,255,.38);
-    box-shadow:0 24px 60px rgba(0,0,0,.55),0 0 44px rgba(0,229,255,.12);
+    padding:12px 14px;background:var(--hud-panneau);border:1px solid var(--hud-ligne);
+    border-radius:var(--hud-rayon);
+    box-shadow:0 24px 60px rgba(0,0,0,.55),0 0 44px rgba(0,229,255,.10);
     animation:ecran-ouvre .5s cubic-bezier(.2,.8,.2,1);
     transition:top .28s ease,bottom .28s ease,width .28s ease}
-  body.hud.rap-ouvert:not(.hud-transcription) #apercu-rapport{
-    width:min(980px,calc(100vw - 2 * var(--hud-marge)))}
-  body.hud.rap-ouvert #hud-ecran,body.hud.rap-ouvert #hud-accueil{display:none}
-  body.hud.rap-ouvert #hud-orbe,body.hud.rap-ouvert #hud-orbe2d{opacity:.2}
-  .ap-tete{display:flex;align-items:flex-start;gap:12px;padding-bottom:8px;margin-bottom:8px;
-    border-bottom:1px solid rgba(0,229,255,.2)}
-  .ap-textes{flex:1;min-width:0}
-  #ap-titre{font-family:"Segoe UI",system-ui,sans-serif;font-weight:700;font-size:1rem;color:#E0F7FF;
+  /* Transcription fermee: le rapport se centre, a largeur de lecture. */
+  body.hud.rap-ouvert:not(.hud-transcription) #apercu-rapport{left:50%;transform:translateX(-50%);
+    width:min(1100px,calc(100vw - 2 * var(--hud-marge)))}
+  body.hud.rap-ouvert.ap-plein #apercu-rapport{top:10px;bottom:10px;left:10px;transform:none;
+    width:calc(100vw - 20px);z-index:6}
+  body.hud.ap-plein #log,body.hud.ap-plein #tr-tete,body.hud.ap-plein .compose,
+  body.hud.ap-plein #log-suite,body.hud.ap-plein #hud-separateur{visibility:hidden}
+  body.hud.rap-ouvert:not(.ap-reduit) #hud-ecran,body.hud.rap-ouvert #hud-accueil{display:none}
+  /* Lecture: l'horloge rend sa hauteur au rapport. */
+  body.hud.rap-ouvert:not(.ap-reduit) #hud-horloge,body.hud.rap-ouvert #hud-astuce{display:none}
+  body.hud.rap-ouvert:not(.ap-reduit) #hud-orbe,body.hud.rap-ouvert:not(.ap-reduit) #hud-orbe2d{opacity:.2}
+  .ap-tete{display:flex;align-items:flex-start;gap:12px;padding-bottom:10px;margin-bottom:10px;
+    border-bottom:1px solid var(--hud-ligne-douce)}
+  .ap-icone{flex:none;width:36px;height:36px;border-radius:8px;display:flex;align-items:center;
+    justify-content:center;background:rgba(0,229,255,.08);border:1px solid var(--hud-ligne)}
+  .ap-icone svg,#ap-onglet svg{width:18px;height:18px;fill:var(--cyan)}
+  .ap-textes{flex:1;min-width:0;font-family:var(--ui)}
+  .ap-kicker{font-family:var(--mono);font-size:.58rem;font-weight:700;letter-spacing:.2em;
+    color:rgba(0,229,255,.7);margin-bottom:3px}
+  #ap-titre{font-weight:700;font-size:1.05rem;line-height:1.3;color:var(--hud-texte);
     overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  #ap-sous{font-family:"Segoe UI",system-ui,sans-serif;font-size:.74rem;color:#7FB8C8;margin-top:2px}
-  #ap-note{font-family:"Segoe UI",system-ui,sans-serif;font-size:.74rem;color:#FDE68A;margin-top:4px;
-    line-height:1.35}
+  #ap-sous{font-size:.78rem;color:var(--hud-texte-2);margin-top:2px;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  #ap-note{display:inline-block;max-width:100%;font-size:.76rem;line-height:1.35;color:#FDE68A;
+    margin-top:6px;padding:3px 10px;border-radius:999px;
+    background:rgba(253,230,138,.07);border:1px solid rgba(253,230,138,.28)}
   #ap-note:empty{display:none}
-  #ap-corps{flex:1;min-height:0;position:relative;border-radius:2px;overflow:hidden;background:#fff}
+  .ap-outils{flex:none;display:flex;gap:6px}
+  .ap-ico{height:34px;min-width:34px;padding:0 9px;display:inline-flex;align-items:center;
+    justify-content:center;gap:6px;cursor:pointer;border-radius:8px;
+    background:rgba(0,229,255,.04);border:1px solid var(--hud-ligne);color:var(--hud-texte);
+    font:600 .74rem/1 var(--ui)}
+  .ap-ico svg{width:15px;height:15px;fill:currentColor}
+  .ap-ico span{display:none}
+  .ap-ico:hover{background:rgba(0,229,255,.14);border-color:var(--cyan);color:#fff}
+  .ap-ico[aria-pressed="true"]{background:rgba(0,229,255,.18);border-color:var(--cyan)}
+  #ap-fermer:hover{background:rgba(255,77,109,.14);border-color:#FF4D6D;color:#FFD1DA}
+  #ap-corps{flex:1;min-height:0;position:relative;border-radius:6px;overflow:hidden;background:#fff;
+    box-shadow:inset 0 0 0 1px rgba(15,23,42,.08)}
   #ap-cadre{width:100%;height:100%;border:0;display:block;background:#fff}
   #ap-corps.charge::after{content:"MISE \00C0 JOUR\2026";position:absolute;inset:0;display:flex;
     align-items:center;justify-content:center;background:rgba(4,12,18,.55);color:var(--cyan);
     font-size:.66rem;letter-spacing:.24em;animation:ec-pulse 1.1s ease-in-out infinite}
-  .ap-pied{display:flex;align-items:center;gap:8px;padding-top:8px;margin-top:8px;
-    border-top:1px solid rgba(0,229,255,.15);flex-wrap:wrap}
-  #ap-astuce{flex:1;min-width:180px;font-family:"Segoe UI",system-ui,sans-serif;font-size:.7rem;
-    color:rgba(207,247,255,.6)}
-  .ap-pied button,.ap-tete button{padding:6px 11px;background:rgba(0,229,255,.04);
-    border:1px solid rgba(0,229,255,.3);color:#CFF7FF;font-family:var(--mono);font-weight:700;
-    font-size:.6rem;letter-spacing:.12em;cursor:pointer;border-radius:3px}
-  .ap-pied button:hover,.ap-tete button:hover{background:rgba(0,229,255,.14);border-color:var(--cyan);color:#fff}
-  .ap-pied button:focus-visible,.ap-tete button:focus-visible{outline:1px solid var(--cyan);outline-offset:2px}
+  .ap-pied{display:flex;align-items:center;gap:10px;padding-top:10px;margin-top:10px;
+    border-top:1px solid var(--hud-ligne-douce);flex-wrap:wrap;font-family:var(--ui)}
+  #ap-astuce{flex:1;min-width:220px;font-size:.76rem;line-height:1.45;color:var(--hud-texte-2)}
+  #ap-astuce b{color:var(--hud-texte);font-weight:600}
+  .ap-court{display:none}
+  .ap-pied button{height:32px;padding:0 12px;cursor:pointer;border-radius:7px;
+    font:600 .74rem/1 var(--ui);letter-spacing:.02em;color:var(--hud-texte);
+    background:rgba(0,229,255,.04);border:1px solid var(--hud-ligne)}
+  .ap-pied button:hover{background:rgba(0,229,255,.14);border-color:var(--cyan);color:#fff}
   .ap-pied button[hidden]{display:none}
-  #ap-fermer:hover{background:rgba(255,77,109,.14);border-color:#FF4D6D;color:#FFD1DA}
-  /* Ecran etroit: l'apercu prend toute la largeur, la saisie reste dessous. */
+  /* Telechargements: un seul groupe, PDF en premier et mis en avant. */
+  .ap-export{display:inline-flex;align-items:center;gap:0}
+  .ap-export > span{font-size:.72rem;color:var(--hud-texte-2);margin-right:8px}
+  .ap-export button{border-radius:0;margin-left:-1px}
+  .ap-export button:first-of-type{border-radius:7px 0 0 7px;margin-left:0}
+  .ap-export button:last-of-type{border-radius:0 7px 7px 0}
+  .ap-export button[data-format="pdf"]{background:var(--cyan);border-color:var(--cyan);color:#022029}
+  .ap-export button[data-format="pdf"]:hover{background:#7DF3FF;color:#022029}
+  .ap-tete button:focus-visible,.ap-pied button:focus-visible,#ap-onglet:focus-visible{
+    outline:2px solid var(--cyan);outline-offset:2px}
+  /* Apercu reduit: un onglet rappelle le rapport et le rouvre d'un clic. */
+  body.hud.rap-ouvert.ap-reduit #ap-onglet{display:flex;align-items:center;gap:10px;position:fixed;
+    top:var(--hud-haut);left:var(--hud-marge);z-index:4;max-width:min(420px,calc(100vw - 2 * var(--hud-marge)));
+    padding:8px 8px 8px 12px;cursor:pointer;text-align:left;font-family:var(--ui);color:var(--hud-texte);
+    background:var(--hud-panneau);border:1px solid var(--hud-ligne);border-radius:var(--hud-rayon);
+    box-shadow:0 10px 28px rgba(0,0,0,.45);animation:rise .2s ease}
+  #ap-onglet:hover{border-color:var(--cyan)}
+  .ap-onglet-txt{flex:1;min-width:0;font-size:.8rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .ap-onglet-txt b{color:var(--cyan);margin-right:4px}
+  .ap-onglet-cta{flex:none;font-size:.72rem;font-weight:600;padding:5px 10px;border-radius:6px;
+    background:rgba(0,229,255,.12);border:1px solid var(--hud-ligne)}
+  /* Ecran etroit: l'apercu prend toute la largeur; "Conversation" le reduit
+     en onglet et rend la place a l'echange (plus de fil cache sans issue). */
   @media (max-width:900px){
-    body.hud.rap-ouvert #apercu-rapport,
-    body.hud.rap-ouvert:not(.hud-transcription) #apercu-rapport{width:calc(100vw - 2 * var(--hud-marge))}
-    body.hud.rap-ouvert #log,body.hud.rap-ouvert #tr-tete{visibility:hidden}
+    body.hud.rap-ouvert:not(.ap-reduit) #apercu-rapport,
+    body.hud.rap-ouvert:not(.hud-transcription) #apercu-rapport{left:var(--hud-marge);transform:none;
+      width:calc(100vw - 2 * var(--hud-marge))}
+    body.hud.rap-ouvert:not(.ap-reduit) #log,body.hud.rap-ouvert:not(.ap-reduit) #tr-tete{visibility:hidden}
+    .ap-ico span{display:inline}
+    #ap-plein{display:none}
+    /* La lecture d'abord: les grosses commandes vocales cedent leur place
+       (elles reviennent avec "Conversation"); agencer() suit. */
+    body.hud.rap-ouvert:not(.ap-reduit) #hud-boutons,body.hud.rap-ouvert:not(.ap-reduit) #hud-statut,
+    body.hud.rap-ouvert:not(.ap-reduit) #hud-pied{display:none}
+    body.hud.rap-ouvert:not(.ap-reduit) .compose{bottom:10px}
+  }
+  @media (max-width:600px){
+    body.hud.rap-ouvert #apercu-rapport{padding:10px}
+    .ap-icone,.ap-kicker{display:none}
+    .ap-tete{flex-wrap:wrap;gap:8px}
+    .ap-textes{flex-basis:100%;order:2}
+    .ap-outils{order:1;width:100%;justify-content:flex-end}
+    #ap-titre{white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+    #ap-sous{white-space:normal}
+    #ap-astuce{min-width:0;flex-basis:100%;font-size:.74rem}
+    .ap-long{display:none} .ap-court{display:inline}
+    .ap-pied{gap:8px}
+    .ap-export{flex:1;justify-content:flex-end}
+    .ap-export > span{display:none}
+    .ap-pied button{height:38px;padding:0 10px}
   }
   .msg li{margin:2px 0}
 
@@ -336,6 +408,12 @@
     --bg:#07121A; --surface:#03080C; --text:#D8F6FF; --muted:#6FA3B3;
     --border:#0F3440; --cyan:#00E5FF;
     --mono:"Courier New",ui-monospace,Consolas,monospace;
+    /* Jetons des fenetres HUD (apercu, separateur...): une seule definition
+       du fond, des filets et du texte, pour que les panneaux se ressemblent. */
+    --ui:"Segoe UI",Inter,system-ui,-apple-system,sans-serif;
+    --hud-panneau:linear-gradient(180deg,rgba(9,24,34,.97),rgba(4,12,18,.97));
+    --hud-ligne:rgba(0,229,255,.32);--hud-ligne-douce:rgba(0,229,255,.16);
+    --hud-texte:#E0F7FF;--hud-texte-2:#9CCAD6;--hud-rayon:8px;
     --shadow:0 0 0 1px rgba(0,229,255,.16),0 18px 48px rgba(0,0,0,.72),0 0 36px rgba(0,229,255,.10);
   }
   #panel{border-radius:4px;border:1px solid rgba(0,229,255,.35);background:rgba(3,8,12,.97)}
@@ -402,6 +480,45 @@
   body.hud{--hud-haut:124px;--hud-bas:176px;--hud-pile:156px;--hud-marge:22px;
     --hud-lat:min(440px,36vw);--hud-gap:14px;--hud-tete:40px;--hud-feuille:36vh}
   body.mobile.hud{--hud-marge:8px}
+  /* Largeur de la transcription choisie au separateur (bornee a l'ecran). */
+  body.hud.lat-choisie{--hud-lat:clamp(300px,var(--hud-lat-choisie,440px),62vw)}
+  /* Separateur entre la fenetre de gauche (rapport, carte) et la
+     transcription: on le tire pour partager l'espace, double-clic = defaut. */
+  #hud-separateur{display:none}
+  body.hud.hud-transcription:not(.analyse):not(.mobile) #hud-separateur{display:block;position:fixed;
+    top:var(--hud-haut);bottom:var(--hud-bas);right:calc(var(--hud-marge) + var(--hud-lat));
+    width:var(--hud-gap);cursor:col-resize;touch-action:none;z-index:3;
+    transition:top .28s ease,bottom .28s ease}
+  #hud-separateur::before{content:"";position:absolute;top:0;bottom:0;left:50%;width:2px;margin-left:-1px;
+    border-radius:2px;background:rgba(0,229,255,.10);transition:background .15s}
+  #hud-separateur::after{content:"";position:absolute;top:50%;left:50%;width:6px;height:40px;
+    margin:-20px 0 0 -3px;border-radius:4px;background:rgba(0,229,255,.35);transition:background .15s}
+  #hud-separateur:hover::before,#hud-separateur:focus-visible::before,
+  body.redim-lat #hud-separateur::before{background:rgba(0,229,255,.55)}
+  #hud-separateur:hover::after,#hud-separateur:focus-visible::after,
+  body.redim-lat #hud-separateur::after{background:var(--cyan);box-shadow:0 0 10px rgba(0,229,255,.6)}
+  #hud-separateur:focus-visible{outline:none}
+  /* Pendant le glissement: pas d'animation de largeur (le geste suivrait en
+     retard), et l'iframe du rapport ne doit pas capter la souris. */
+  body.redim-lat{cursor:col-resize;user-select:none}
+  body.redim-lat #apercu-rapport,body.redim-lat #hud-ecran,body.redim-lat #log,
+  body.redim-lat #tr-tete{transition:none}
+  body.redim-lat #ap-cadre{pointer-events:none}
+  @media (max-width:900px){ #hud-separateur{display:none !important} }
+  /* Lisibilite pour un public non specialiste: les textes a lire (tuiles,
+     saisie, reponses) en police d'interface; le monospace reste aux libelles. */
+  body.hud #hud-accueil .ha-txt,body.hud #hud-accueil .ha-ex{font-family:var(--ui)}
+  body.hud #hud-accueil .ha-txt{font-size:.86rem}
+  body.hud textarea{font-family:var(--ui);font-size:.88rem}
+  body.hud textarea::placeholder{letter-spacing:0}
+  body.hud .msg{font-size:.86rem;line-height:1.55}
+  .rapport .fig-liens{justify-content:flex-start;margin-top:6px}
+  .rapport .fig-liens button{text-decoration:none;padding:5px 11px;border-radius:7px;
+    border:1px solid var(--hud-ligne,var(--border));font-weight:600;font-size:.72rem;
+    background:rgba(0,229,255,.04)}
+  .rapport .fig-liens button:first-child{background:var(--cyan,var(--indigo));
+    border-color:var(--cyan,var(--indigo));color:#022029}
+  .rapport .fig-liens button:hover{border-color:var(--cyan,var(--indigo))}
 
   /* ---- Ecran J.A.R.V.I.S: cartes et figures en grand format ------------- */
   #hud-ecran{display:none}
@@ -506,7 +623,8 @@
     transition:top .28s ease}
   #tr-tete::before{content:"";width:7px;height:7px;flex:none;background:var(--cyan);
     box-shadow:0 0 8px var(--cyan);transform:rotate(45deg)}
-  .tr-titre{flex:1;min-width:0;font-size:.62rem;font-weight:700;letter-spacing:.22em;color:var(--cyan)}
+  .tr-titre{flex:1;min-width:0;font-size:.62rem;font-weight:700;letter-spacing:.22em;color:var(--cyan);
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   #tr-nb{font-size:.56rem;letter-spacing:.14em;color:rgba(0,229,255,.5);white-space:nowrap}
   #tr-fermer{width:26px;height:26px;flex:none;display:flex;align-items:center;justify-content:center;
     background:transparent;border:1px solid rgba(0,229,255,.28);border-radius:2px;
@@ -1037,22 +1155,37 @@
     </div>
   </section>
   <aside id="apercu-rapport" aria-label="Aper&ccedil;u du rapport">
-    <span class="hh-coin hh-hg"></span><span class="hh-coin hh-hd"></span>
-    <span class="hh-coin hh-bg"></span><span class="hh-coin hh-bd"></span>
     <div class="ap-tete">
-      <div class="ec-label">&#9670; APER&Ccedil;U // RAPPORT</div>
-      <div class="ap-textes"><div id="ap-titre"></div><div id="ap-sous"></div><div id="ap-note"></div></div>
-      <button type="button" id="ap-fermer" title="Fermer l'aper&ccedil;u (Echap)">&#10005; FERMER</button>
+      <div class="ap-icone"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 2h8l6 6v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2zm7 1.5V9h5.5L13 3.5zM8 13v2h8v-2H8zm0 4v2h5v-2H8z"/></svg></div>
+      <div class="ap-textes">
+        <div class="ap-kicker">APER&Ccedil;U DU RAPPORT <span id="ap-version"></span></div>
+        <div id="ap-titre"></div><div id="ap-sous"></div><div id="ap-note"></div>
+      </div>
+      <div class="ap-outils">
+        <button type="button" class="ap-ico" id="ap-reduire" title="R&eacute;duire l'aper&ccedil;u et revenir &agrave; la conversation" aria-label="R&eacute;duire l'aper&ccedil;u">
+          <svg viewBox="0 0 24 24"><path d="M4 4h16a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H9l-5 4V6a2 2 0 0 1 2-2z"/></svg><span>Conversation</span>
+        </button>
+        <button type="button" class="ap-ico" id="ap-plein" title="Agrandir la lecture" aria-label="Agrandir la lecture" aria-pressed="false">
+          <svg viewBox="0 0 24 24"><path d="M4 4h6v2H6v4H4V4zm10 0h6v6h-2V6h-4V4zM4 14h2v4h4v2H4v-6zm14 0h2v6h-6v-2h4v-4z"/></svg>
+        </button>
+        <button type="button" class="ap-ico" id="ap-fermer" title="Fermer l'aper&ccedil;u (Echap)" aria-label="Fermer l'aper&ccedil;u">
+          <svg viewBox="0 0 24 24"><path d="M6.4 5 5 6.4 10.6 12 5 17.6 6.4 19l5.6-5.6 5.6 5.6 1.4-1.4-5.6-5.6L19 6.4 17.6 5 12 10.6z"/></svg>
+        </button>
+      </div>
     </div>
     <div id="ap-corps"><iframe id="ap-cadre" title="Aper&ccedil;u du rapport" sandbox="allow-same-origin" referrerpolicy="no-referrer"></iframe></div>
     <div class="ap-pied">
-      <div id="ap-astuce">Un point &agrave; modifier ? Demandez-le &agrave; Iris : &laquo; retire la figure 2 &raquo;, &laquo; simplifie le r&eacute;sum&eacute; &raquo;, &laquo; fais-le pour Rufisque &raquo;.</div>
-      <button type="button" id="ap-annuler" title="Revenir &agrave; la version pr&eacute;c&eacute;dente" hidden>&#8634; VERSION PR&Eacute;C&Eacute;DENTE</button>
-      <button type="button" data-format="pdf">PDF</button>
-      <button type="button" data-format="docx">WORD</button>
-      <button type="button" data-format="html">HTML</button>
+      <div id="ap-astuce"><b>Une modification&nbsp;?</b> <span class="ap-long">Demandez-la &agrave; Iris dans la conversation&nbsp;: &laquo;&nbsp;simplifie le r&eacute;sum&eacute;&nbsp;&raquo;, &laquo;&nbsp;retire la figure 2&nbsp;&raquo;, &laquo;&nbsp;fais-le pour Rufisque&nbsp;&raquo;.</span><span class="ap-court">Demandez-la &agrave; Iris.</span></div>
+      <button type="button" id="ap-annuler" title="Revenir &agrave; la version pr&eacute;c&eacute;dente" hidden>&#8634; Version pr&eacute;c&eacute;dente</button>
+      <div class="ap-export" role="group" aria-label="T&eacute;l&eacute;charger le rapport">
+        <span>T&eacute;l&eacute;charger</span>
+        <button type="button" data-format="pdf">PDF</button>
+        <button type="button" data-format="docx">Word</button>
+        <button type="button" data-format="html">HTML</button>
+      </div>
     </div>
   </aside>
+  <button type="button" id="ap-onglet" title="Afficher l'aper&ccedil;u du rapport"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 2h8l6 6v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2zm7 1.5V9h5.5L13 3.5zM8 13v2h8v-2H8zm0 4v2h5v-2H8z"/></svg><span class="ap-onglet-txt"><b>Rapport</b><span id="ap-onglet-titre"></span></span><span class="ap-onglet-cta">Afficher</span></button>
   <div id="hud-soustitre" aria-live="polite"></div>
   <div id="hud-boutons">
     <button class="hud-rond" id="hud-micro" type="button" title="Parler a Iris (la reconnaissance vocale du navigateur peut transmettre l'audio a son fournisseur)" aria-label="Parler a Iris" hidden>
@@ -1098,6 +1231,9 @@
     <button class="hclose" id="close" title="Fermer" aria-label="Fermer">&#10005;</button>
   </header>
 
+  <div id="hud-separateur" role="separator" tabindex="0" aria-orientation="vertical"
+       aria-label="Largeur de la conversation (fleches gauche et droite, double-clic pour revenir au defaut)"
+       title="Tirer pour partager l'espace &middot; double-clic : largeur par d&eacute;faut"></div>
   <div id="tr-tete">
     <span class="tr-titre">TRANSCRIPTION // SESSION</span>
     <span id="tr-nb"></span>
@@ -1757,6 +1893,7 @@
       if(Ecran.ouvert()){ Ecran.fermer(); }
       Hud.transcription(true, true);
       document.body.classList.add("rap-ouvert");
+      reduire(false);
       courant = id;
       charger(id, miseAJour);
     }
@@ -1773,9 +1910,13 @@
         version = d.version || 1;
         el("ap-titre").textContent = d.titre || "Rapport";
         var v = (d.versions || [])[(d.versions || []).length - 1] || {};
-        var sous = (d.sous_titre || "") + " \u00b7 version " + version;
+        var sous = d.sous_titre || "";
         if(version > 1 && (v.notes || []).length){ sous += " \u00b7 " + v.notes.join(" \u00b7 "); }
         el("ap-sous").textContent = sous;
+        el("ap-sous").title = sous;
+        el("ap-titre").title = d.titre || "";
+        el("ap-version").textContent = "\u00b7 VERSION " + version;
+        el("ap-onglet-titre").textContent = d.titre || "";
         el("ap-note").textContent = v.note_iris ? "Iris : " + v.note_iris : "";
         el("ap-annuler").hidden = version < 2;
         Array.prototype.forEach.call(document.querySelectorAll("#apercu-rapport [data-format]"), function(b){
@@ -1798,8 +1939,26 @@
         el("ap-sous").textContent = "Le rapport a expir\u00e9 ou appartient \u00e0 une session pr\u00e9c\u00e9dente.";
       });
     }
-    function fermer(){ document.body.classList.remove("rap-ouvert"); }
-    function ouvert(){ return document.body.classList.contains("rap-ouvert"); }
+    function fermer(){
+      document.body.classList.remove("rap-ouvert");
+      reduire(false); plein(false);
+    }
+    // Reduit = rapport garde sous la main (onglet), la place va a l'echange.
+    function reduire(oui){
+      document.body.classList.toggle("ap-reduit", !!oui);
+      if(oui){ plein(false); Hud.transcription(true, true); }
+    }
+    function plein(oui){
+      document.body.classList.toggle("ap-plein", !!oui);
+      el("ap-plein").setAttribute("aria-pressed", oui ? "true" : "false");
+      el("ap-plein").title = oui ? "R\u00e9tablir la taille (Echap)" : "Agrandir la lecture";
+    }
+    function enPlein(){ return document.body.classList.contains("ap-plein"); }
+    // Ouvert ET visible: un apercu reduit en onglet ne capte plus Echap.
+    function ouvert(){
+      var c = document.body.classList;
+      return c.contains("rap-ouvert") && !c.contains("ap-reduit");
+    }
     function annuler(){
       if(!courant){ return; }
       var id = courant;
@@ -1813,11 +1972,14 @@
         .catch(function(e){ warn("Retour impossible.", e.message || ""); });
     }
     el("ap-fermer").addEventListener("click", fermer);
+    el("ap-reduire").addEventListener("click", function(){ reduire(true); });
+    el("ap-plein").addEventListener("click", function(){ plein(!enPlein()); });
+    el("ap-onglet").addEventListener("click", function(){ reduire(false); });
     el("ap-annuler").addEventListener("click", annuler);
     Array.prototype.forEach.call(document.querySelectorAll("#apercu-rapport [data-format]"), function(b){
       b.addEventListener("click", function(){ if(courant){ telechargerRapport(courant, b.getAttribute("data-format")); } });
     });
-    return {ouvrir: ouvrir, fermer: fermer, ouvert: ouvert,
+    return {ouvrir: ouvrir, fermer: fermer, ouvert: ouvert, plein: plein, enPlein: enPlein,
             courant: function(){ return courant; }, version: function(){ return version; }};
   })();
 
@@ -2619,6 +2781,64 @@
     }
     window.addEventListener("resize", demander);
     return {demander: demander};
+  })();
+
+  /* ---------- Separateur rapport / transcription --------------------------
+     Partage l'espace entre la fenetre de gauche (apercu du rapport, carte)
+     et la transcription. La largeur choisie est gardee pour la session
+     (remontages Streamlit compris); le CSS la borne a l'ecran courant. */
+  (function(){
+    var sep = $("hud-separateur");
+    if(!sep){ return; }
+    var MIN = 300, DEFAUT = 440;
+    function borne(px){
+      var maxi = Math.max(MIN, Math.round((window.innerWidth || 1200) * 0.62));
+      return Math.min(maxi, Math.max(MIN, Math.round(px)));
+    }
+    function poser(px, garder){
+      px = borne(px);
+      document.body.style.setProperty("--hud-lat-choisie", px + "px");
+      document.body.classList.add("lat-choisie");
+      sep.setAttribute("aria-valuenow", String(px));
+      if(garder){ garderTaille("lat", px); }
+    }
+    function actuelle(){
+      var r = $("log").getBoundingClientRect();
+      return r.width || DEFAUT;
+    }
+    function defaut(){
+      document.body.classList.remove("lat-choisie");
+      document.body.style.removeProperty("--hud-lat-choisie");
+      try{ sessionStorage.removeItem("jarvis_lat"); }catch(e){}
+    }
+    var memo = tailleGardee("lat", 0);
+    if(memo){ poser(memo, false); }
+    sep.setAttribute("aria-valuemin", String(MIN));
+    sep.addEventListener("pointerdown", function(e){
+      if(e.button){ return; }
+      e.preventDefault();
+      try{ sep.setPointerCapture(e.pointerId); }catch(err){}
+      document.body.classList.add("redim-lat");
+      var marge = parseFloat(getComputedStyle(document.body).getPropertyValue("--hud-marge")) || 22;
+      function bouge(ev){ poser(window.innerWidth - ev.clientX - marge - 7, false); }
+      function fin(){
+        document.body.classList.remove("redim-lat");
+        sep.removeEventListener("pointermove", bouge);
+        sep.removeEventListener("pointerup", fin);
+        sep.removeEventListener("pointercancel", fin);
+        garderTaille("lat", borne(actuelle()));
+      }
+      sep.addEventListener("pointermove", bouge);
+      sep.addEventListener("pointerup", fin);
+      sep.addEventListener("pointercancel", fin);
+    });
+    sep.addEventListener("dblclick", defaut);
+    sep.addEventListener("keydown", function(e){
+      var pas = e.shiftKey ? 80 : 24;
+      if(e.key === "ArrowLeft"){ e.preventDefault(); poser(actuelle() + pas, true); }
+      else if(e.key === "ArrowRight"){ e.preventDefault(); poser(actuelle() - pas, true); }
+      else if(e.key === "Home"){ e.preventDefault(); defaut(); }
+    });
   })();
 
   /* ---------- Orbe (Phase 11) --------------------------------------------
@@ -4938,6 +5158,7 @@
     if(e.key !== "Escape"){ return; }
     if(Hud.actif()){
       if(Tableau.enApercu()){ Tableau.apercu(false); }
+      else if(Apercu.ouvert() && Apercu.enPlein()){ Apercu.plein(false); }
       else if(Apercu.ouvert()){ Apercu.fermer(); }
       else if(Ecran.zoome()){ Ecran.zoom(false); }
       else if(Ecran.ouvert()){ Ecran.fermer(); }

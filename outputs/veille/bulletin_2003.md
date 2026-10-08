@@ -8,7 +8,7 @@
 
 ## Synthèse
 
-Saison 2003 : probabilité indicative d'année extrême 42 %, contre 33 % en moyenne, d'après la prévision saisonnière Copernicus C3S. Sa compétence n'est pas démontrée : aucun niveau de risque n'est annoncé. Le modèle ECMWF prévoit pour juillet-septembre une pluie au-dessus de la normale (anomalie +0,8 écart-type) ; 48 % des membres sont dans le tiers le plus humide. De novembre à avril, l'océan ressemble surtout à la configuration C1 du mémoire (corrélation 0,29), une variante de l'état El Niño, celle des années 1992, 1997. Années les plus ressemblantes : 1987, 1998, 1988, 1994, 1992 ; 0 sur 5 ont été des années extrêmes. Indication expérimentale de la projection : 27 %. Cette méthode n'a pas de compétence démontrée en prévision réelle (AUC 0,53 en conditions réelles de prévision) ; elle ne fixe pas le niveau de risque. Contexte : 3 des 10 dernières saisons observées (1993-2002) ont été extrêmes, pour une fréquence de référence d'une sur trois. Vérification : la saison 2003 a été extrême (empreinte 864, rang 8), inondations documentées.
+Saison 2003 : probabilité indicative d'année extrême 42 %, contre 33 % en moyenne, d'après la prévision saisonnière Copernicus C3S. Sa compétence n'est pas démontrée : aucun niveau de risque n'est annoncé. Le modèle ECMWF prévoit pour juillet-septembre une pluie au-dessus de la normale (anomalie +0,8 écart-type) ; 48 % des membres sont dans le tiers le plus humide. De novembre à avril, l'océan ressemble surtout à la configuration C1 du mémoire (corrélation 0,29), une variante de l'état El Niño, celle des années 1992, 1997. Années les plus ressemblantes : 1987, 1998, 1988, 1994, 1992 ; 0 sur 5 ont été des années extrêmes. Familles d'océans des saisons extrêmes : l'océan ne ressemble nettement à aucune des deux (seuil r = 0,30) [A (1999/2000) r = -0,17]. Ressemblance descriptive : elle n'a pas de valeur de prévision démontrée (AUC 0,52-0,56 en prévision réelle, 0,5 = hasard). Indication expérimentale de la projection : 27 %. Cette méthode n'a pas de compétence démontrée en prévision réelle (AUC 0,53 en conditions réelles de prévision) ; elle ne fixe pas le niveau de risque. Contexte : 3 des 10 dernières saisons observées (1993-2002) ont été extrêmes, pour une fréquence de référence d'une sur trois. Vérification : la saison 2003 a été extrême (empreinte 864, rang 8), inondations documentées.
 
 ## Prévision saisonnière officielle (Copernicus C3S)
 
@@ -30,6 +30,15 @@ Saison 2003 : probabilité indicative d'année extrême 42 %, contre 33 % en moy
 | C7 | Neutre | 0,17 | 2002, 1994 | 32 % |
 
 **Années analogues** : 1987 (normale), 1998 (normale), 1988 (normale), 1994 (normale), 1992 (normale)
+
+**Familles d'océans des saisons extrêmes** (ressemblance au composite de chaque famille, membres antérieurs à la saison seulement) :
+
+| Famille | Saisons | Signature (novembre-avril) | Corrélation |
+|---|---|---|---|
+| A — La Niña et Atlantique tropical frais | 1999, 2000 | Niño34 −1,2 ; Atlantique tropical sud −1,0 ; nord −0,6 (écarts-types) | -0,17 |
+| B — Océans chauds partout | pas encore observée | Niño34 +0,9 ; océan Indien +1,3 ; Atlantique tropical nord +1,4, sud +1,5 ; AMO +1,0 (écarts-types) | — |
+
+*Ressemblance descriptive : elle n'a pas de valeur de prévision démontrée (AUC 0,52-0,56 en prévision réelle, 0,5 = hasard).*
 
 *Indication expérimentale : 27 %. Compétence mesurée : AUC 0,72 (p = 0,016) quand seule l'année testée est exclue ; AUC 0,53 (p = 0,395) en conditions réelles de prévision. Signal suggestif en validation année exclue (p = 0,016, mais 0,06 une fois corrigé pour les 4 variantes comparées) et pas de compétence démontrée en prévision réelle : indication expérimentale seulement.*
 

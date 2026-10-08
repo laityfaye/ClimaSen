@@ -221,7 +221,43 @@
         "configuration": 5,
         "correlation": 0.152
       }
-    ]
+    ],
+    "familles_extremes": {
+      "seuil": 0.3,
+      "plus_proche": "A",
+      "avertissement": "Ressemblance descriptive : elle n'a pas de valeur de prévision démontrée (AUC 0,52-0,56 en prévision réelle, 0,5 = hasard).",
+      "familles": [
+        {
+          "code": "A",
+          "nom": "La Niña et Atlantique tropical frais",
+          "annees": [
+            1999,
+            2000,
+            2012
+          ],
+          "signature": "Niño34 −1,2 ; Atlantique tropical sud −1,0 ; nord −0,6 (écarts-types)",
+          "membres_utilises": [
+            1999,
+            2000
+          ],
+          "correlation": 0.362
+        },
+        {
+          "code": "B",
+          "nom": "Océans chauds partout",
+          "annees": [
+            2005,
+            2010,
+            2020
+          ],
+          "signature": "Niño34 +0,9 ; océan Indien +1,3 ; Atlantique tropical nord +1,4, sud +1,5 ; AMO +1,0 (écarts-types)",
+          "membres_utilises": [
+            2005
+          ],
+          "correlation": 0.267
+        }
+      ]
+    }
   },
   "competence_projection": {
     "loyo": {
@@ -261,5 +297,5 @@
     "inondation_documentee": false,
     "seuil": 745.8
   },
-  "synthese": "Saison 2006 : probabilité indicative d'année extrême 48 %, contre 33 % en moyenne, d'après la prévision saisonnière Copernicus C3S. Sa compétence n'est pas démontrée : aucun niveau de risque n'est annoncé. Le modèle ECMWF prévoit pour juillet-septembre une pluie au-dessus de la normale (anomalie +1,1 écart-type) ; 48 % des membres sont dans le tiers le plus humide. De novembre à avril, l'océan ressemble surtout à la configuration C5 du mémoire (corrélation 0,15), une variante de l'état La Niña, celle des années 1989. Années les plus ressemblantes : 2001, 1996, 1989, 2004, 1999 ; 2 sur 5 ont été des années extrêmes (dont 1999, inondations documentées). Indication expérimentale de la projection : 39 %. Cette méthode n'a pas de compétence démontrée en prévision réelle (AUC 0,53 en conditions réelles de prévision) ; elle ne fixe pas le niveau de risque. Contexte : 5 des 10 dernières saisons observées (1996-2005) ont été extrêmes, pour une fréquence de référence d'une sur trois. Vérification : la saison 2006 a été non extrême (empreinte 552, rang 32)."
+  "synthese": "Saison 2006 : probabilité indicative d'année extrême 48 %, contre 33 % en moyenne, d'après la prévision saisonnière Copernicus C3S. Sa compétence n'est pas démontrée : aucun niveau de risque n'est annoncé. Le modèle ECMWF prévoit pour juillet-septembre une pluie au-dessus de la normale (anomalie +1,1 écart-type) ; 48 % des membres sont dans le tiers le plus humide. De novembre à avril, l'océan ressemble surtout à la configuration C5 du mémoire (corrélation 0,15), une variante de l'état La Niña, celle des années 1989. Années les plus ressemblantes : 2001, 1996, 1989, 2004, 1999 ; 2 sur 5 ont été des années extrêmes (dont 1999, inondations documentées). Familles d'océans des saisons extrêmes : l'océan ressemble surtout à la famille A, celle des saisons 1999/2000 (La Niña et Atlantique tropical frais) [A (1999/2000) r = 0,36 ; B (2005) r = 0,27]. Ressemblance descriptive : elle n'a pas de valeur de prévision démontrée (AUC 0,52-0,56 en prévision réelle, 0,5 = hasard). Indication expérimentale de la projection : 39 %. Cette méthode n'a pas de compétence démontrée en prévision réelle (AUC 0,53 en conditions réelles de prévision) ; elle ne fixe pas le niveau de risque. Contexte : 5 des 10 dernières saisons observées (1996-2005) ont été extrêmes, pour une fréquence de référence d'une sur trois. Vérification : la saison 2006 a été non extrême (empreinte 552, rang 32)."
 }

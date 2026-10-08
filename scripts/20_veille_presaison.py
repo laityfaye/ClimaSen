@@ -18,6 +18,7 @@ Usage:
     py -3 scripts/20_veille_presaison.py --retro 2015 2023   # bulletins retrospectifs
     py -3 scripts/20_veille_presaison.py --competence        # recalcule la competence
     py -3 scripts/20_veille_presaison.py --annee 2027 --sans-c3s
+    py -3 scripts/20_veille_presaison.py --familles          # complete les bulletins ecrits
 """
 import argparse
 import datetime as dt
@@ -58,7 +59,15 @@ def main():
                    help="deposer le kit de scenario (defaut: saison non observee seulement)")
     p.add_argument("--competence", action="store_true",
                    help="recalculer la competence de la projection (plusieurs minutes)")
+    p.add_argument("--familles", action="store_true",
+                   help="ajouter les familles d'oceans extremes aux bulletins deja ecrits "
+                        "(sans les recalculer), puis s'arreter")
     args = p.parse_args()
+    if args.familles:
+        journal("== Familles d'oceans des saisons extremes")
+        faites = production.completer_familles(journal=journal)
+        journal("   %d bulletins completes" % len(faites))
+        return
 
     if args.competence:
         production.competence_projection(recalculer=True, journal=journal)

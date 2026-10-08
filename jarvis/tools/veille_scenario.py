@@ -3,7 +3,7 @@
 Perturbe l'etat oceanique novembre-avril d'un bulletin (+/- x degC,
 uniforme dans une ou plusieurs boites d'indices) et recalcule ce que la
 projection en dirait: probabilite experimentale, configuration du memoire la
-plus proche, annees analogues. Calcul en numpy pur sur le kit du bulletin
+plus proche, annees analogues, famille d'oceans des saisons extremes. Calcul en numpy pur sur le kit du bulletin
 (veille.artefacts), quelques millisecondes, aucun code du modele.
 
 Garde-fou: c'est une EXPLORATION DE SENSIBILITE de la methode, pas une
@@ -24,7 +24,8 @@ DESCRIPTION = (
     "novembre-avril d'un bulletin (changes: {boite: delta en degC, entre -2 et "
     "+2}) et montre ce qui change dans la projection: probabilite "
     "experimentale, configuration du memoire la plus proche, annees "
-    "analogues. Boites: TNA, TSA, ATL3, AMO, Nino34, Nino12, Nino4, "
+    "analogues, ressemblance aux familles d'oceans des saisons extremes (A: "
+    "1999/2000/2012, B: 2005/2010/2020; descriptif). Boites: TNA, TSA, ATL3, AMO, Nino34, Nino12, Nino4, "
     "IOD_ouest, IOD_est, IOBM. Exemple: 'et si l'Atlantique tropical nord "
     "etait 0,5 degC plus chaud ?' -> changes {TNA: 0.5}. year: saison du "
     "bulletin (defaut: la plus recente qui a un kit). Presente TOUJOURS le "
@@ -101,6 +102,15 @@ def run(params, data):
     def ana(r):
         return [{"annee": a, "correlation": round(c, 3)} for a, c in r["analogues"]]
 
+    def fam(r):
+        f = r.get("familles_extremes")
+        if not f:
+            return None
+        return {"plus_proche": f["plus_proche"], "seuil": f["seuil"],
+                "familles": [{"code": x["code"], "nom": x["nom"],
+                              "membres_utilises": x["membres_utilises"],
+                              "correlation": x["correlation"]} for x in f["familles"]]}
+
     pa, pb = avant["probabilite_experimentale"], apres["probabilite_experimentale"]
     sortie = {
         "saison": annee,
@@ -120,6 +130,17 @@ def run(params, data):
                       "boite est une simplification: l'ocean reel ne change pas ainsi."),
         "source": "Kit de scenario du bulletin %d (veille pre-saison ClimatSen)" % annee,
     }
+    fa, fb = fam(avant), fam(apres)
+    if fa is not None:
+        sortie["avant"]["familles_extremes"] = fa
+        sortie["apres"]["familles_extremes"] = fb
+        sortie["changement_famille"] = fa["plus_proche"] != fb["plus_proche"]
+        sortie["garde_fou"] += (" La ressemblance aux familles d'oceans extremes est "
+                                "descriptive: changer de famille ne rend pas la saison "
+                                "plus ou moins extreme.")
+    else:
+        sortie["familles_extremes"] = ("non disponible pour ce kit (produit avant l'ajout des "
+                                       "familles; relancer 20_veille_presaison.py --familles)")
     if par_defaut:
         # Sans annee demandee, on part du kit le plus recent: ce n'est pas
         # forcement la saison a venir (son ocean n'est peut-etre pas observe).

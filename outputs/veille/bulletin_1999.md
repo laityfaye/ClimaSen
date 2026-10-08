@@ -26,10 +26,19 @@ Saison 1999 : probabilité indicative d'année extrême 44 %, contre 33 % en moy
 | Configuration | État océanique | Corrélation | Années principales | Part d'événements en année extrême |
 |---|---|---|---|---|
 | C0 | La Niña | 0,54 | 1998 | 88 % |
-| C8 | La Niña | 0,45 |  | 66 % |
+| C8 | La Niña | 0,45 | — | 66 % |
 | C5 | La Niña | 0,39 | 1989 | 100 % |
 
 **Années analogues** : 1989 (extrême), 1996 (normale), 1985 (normale), 1997 (normale), 1994 (normale)
+
+**Familles d'océans des saisons extrêmes** (ressemblance au composite de chaque famille, membres antérieurs à la saison seulement) :
+
+| Famille | Saisons | Signature (novembre-avril) | Corrélation |
+|---|---|---|---|
+| A — La Niña et Atlantique tropical frais | pas encore observée | Niño34 −1,2 ; Atlantique tropical sud −1,0 ; nord −0,6 (écarts-types) | — |
+| B — Océans chauds partout | pas encore observée | Niño34 +0,9 ; océan Indien +1,3 ; Atlantique tropical nord +1,4, sud +1,5 ; AMO +1,0 (écarts-types) | — |
+
+*Ressemblance descriptive : elle n'a pas de valeur de prévision démontrée (AUC 0,52-0,56 en prévision réelle, 0,5 = hasard).*
 
 *Indication expérimentale : 40 %. Compétence mesurée : AUC 0,72 (p = 0,016) quand seule l'année testée est exclue ; AUC 0,53 (p = 0,395) en conditions réelles de prévision. Signal suggestif en validation année exclue (p = 0,016, mais 0,06 une fois corrigé pour les 4 variantes comparées) et pas de compétence démontrée en prévision réelle : indication expérimentale seulement.*
 

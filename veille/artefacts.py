@@ -9,7 +9,8 @@ montre l'ocean et explore des scenarios, la production du bulletin
   - scenarios/kit_<annee>.npz: tout ce qu'il faut pour recalculer la
     projection d'un etat perturbe ("et si l'Atlantique etait plus chaud de
     0,5 degC ?"): etat, pente de detrend, centroides reconstruits et du
-    memoire, coefficients de la logistique, etats des annees analogues.
+    memoire, coefficients de la logistique, etats des annees analogues,
+    composites des familles d'oceans des saisons extremes (veille.familles).
     Recalcul en numpy pur, quelques millisecondes.
 
 La trajectoire mensuelle (novembre, novembre-decembre, ...) est calculee a
@@ -18,6 +19,7 @@ la production et rangee dans le JSON du bulletin (projection.trajectoire).
 import numpy as np
 
 from . import DOSSIER_SORTIE
+from . import familles
 
 DOSSIER_ETATS = DOSSIER_SORTIE / "etats"
 DOSSIER_KITS = DOSSIER_SORTIE / "scenarios"
@@ -108,7 +110,8 @@ def moyenne_boites(grille2d, lats, lons, boites):
 # =============================================================================
 # Kit de scenario
 # =============================================================================
-def sauver_kit(annee, ctx, modele, champ, centroides_memoire, analogues_annees):
+def sauver_kit(annee, ctx, modele, champ, centroides_memoire, analogues_annees,
+               familles_prep=None):
     """Tout ce qu'il faut pour reprojeter un etat perturbe, sans le cube."""
     from .projection import DEBUT_ETAT  # noqa: F401  (meme periode que le modele)
     DOSSIER_KITS.mkdir(parents=True, exist_ok=True)
@@ -123,7 +126,22 @@ def sauver_kit(annee, ctx, modele, champ, centroides_memoire, analogues_annees):
         centroides=cfg.centroides.astype("float16"),
         centroides_memoire=np.asarray(centroides_memoire, dtype="float16"),
         coef=modele.lr.coef_[0].astype("float64"), intercept=np.float64(modele.lr.intercept_[0]),
-        annees_candidates=np.array(analogues_annees, dtype="int32"), etats_candidats=etats)
+        annees_candidates=np.array(analogues_annees, dtype="int32"), etats_candidats=etats,
+        **familles.vers_kit(familles_prep))
+
+
+def completer_kit_familles(annee, familles_prep):
+    """Ajoute les familles a un kit deja ecrit (sans refaire le modele).
+    Renvoie False s'il n'y a pas de kit pour cette annee."""
+    chemin = DOSSIER_KITS / ("kit_%d.npz" % int(annee))
+    if not chemin.is_file():
+        return False
+    kit = {k: v for k, v in charger_kit(annee).items() if not k.startswith("fam_")}
+    kit.update(familles.vers_kit(familles_prep))
+    tmp = chemin.with_name(chemin.stem + "_tmp.npz")
+    np.savez_compressed(tmp, **kit)
+    tmp.replace(chemin)
+    return True
 
 
 def charger_kit(annee):
@@ -165,11 +183,15 @@ def projeter(kit, etat):
     r_mem = _correlation(kit["centroides_memoire"].astype("float64"), d, w)
     r_ana = _correlation(kit["etats_candidats"].astype("float64"), d, w)
     ordre = np.argsort(-r_ana)
-    return {
+    sortie = {
         "probabilite_experimentale": 1 / (1 + np.exp(-logit)),
         "ressemblance_memoire": {int(k): float(r_mem[k]) for k in range(r_mem.size)},
         "analogues": [(int(kit["annees_candidates"][i]), float(r_ana[i])) for i in ordre[:5]],
     }
+    prep = familles.depuis_kit(kit)
+    if prep is not None:  # kit produit avant le 08/10/2026: pas de familles
+        sortie["familles_extremes"] = familles.evaluer(prep, etat, annee, w)
+    return sortie
 
 
 # =============================================================================

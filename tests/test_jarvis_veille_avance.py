@@ -188,6 +188,48 @@ def test_outil_scenario(tmp_path, monkeypatch):
         assert r["is_error"] and message in r["content"], (params, r["content"])
 
 
+def test_outil_scenario_avec_familles(tmp_path, monkeypatch):
+    from veille import familles
+    kit = _kit_synthetique(tmp_path, monkeypatch)
+    cent = kit["centroides"].astype("float64")
+    prep = {"ybar": 2000.0, "pente": np.zeros(24), "membres": {"A": [1999, 2000], "B": []},
+            "composites": {"A": cent[0], "B": None}}
+    assert artefacts.completer_kit_familles(2031, prep)
+    assert not artefacts.completer_kit_familles(1990, prep)
+    kit = artefacts.charger_kit(2031)
+    r = artefacts.projeter(kit, kit["etat"].astype("float64"))
+    fam = r["familles_extremes"]
+    assert fam["plus_proche"] == "A" and fam["familles"][0]["correlation"] > 0.99
+    assert fam["familles"][1]["correlation"] is None   # famille pas encore observee
+    # Le reste de la projection ne bouge pas quand on ajoute les familles
+    assert r["analogues"][0][0] == 1999
+    c = _charge(_executer("explore_ocean_scenario", {"changes": {"TNA": 1.5}, "year": 2031})[0])
+    assert c["avant"]["familles_extremes"]["plus_proche"] == "A"
+    assert "changement_famille" in c and "descriptive" in c["garde_fou"]
+
+
+def test_outil_scenario_kit_ancien_sans_familles(tmp_path, monkeypatch):
+    _kit_synthetique(tmp_path, monkeypatch)
+    c = _charge(_executer("explore_ocean_scenario", {"changes": {"TNA": 1}, "year": 2031})[0])
+    assert "--familles" in c["familles_extremes"]
+
+
+def test_kit_reel_reproduit_les_familles_du_bulletin():
+    try:
+        kit = artefacts.charger_kit(2022)
+    except artefacts.ArtefactIndisponible:
+        pytest.skip("kit 2022 non produit")
+    fam = (production.lire_bulletin(2022)["projection"] or {}).get("familles_extremes")
+    r = artefacts.projeter(kit, kit["etat"].astype("float64"))
+    if not fam or "familles_extremes" not in r:
+        pytest.skip("familles pas encore ajoutees (20_veille_presaison.py --familles)")
+    assert r["familles_extremes"]["plus_proche"] == fam["plus_proche"]
+    for a, b in zip(r["familles_extremes"]["familles"], fam["familles"]):
+        assert a["membres_utilises"] == b["membres_utilises"]
+        if b["correlation"] is not None:
+            assert abs(a["correlation"] - b["correlation"]) < 0.005
+
+
 def test_kit_reel_reproduit_le_bulletin():
     try:
         kit = artefacts.charger_kit(2022)

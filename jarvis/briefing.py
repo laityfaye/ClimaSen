@@ -162,7 +162,25 @@ def _analogues(b, figures, sid):
                  ", ".join(str(a["annee"]) for a in ana), len(ext), len(ana),
                  (", dont %s, années d'inondations" % " et ".join(str(a) for a in inond))
                  if inond else ""))
-    return dict(_page(b), figure=None, narration=texte)
+    texte += " " + _familles(p.get("familles_extremes"))
+    return dict(_page(b), figure=None, narration=texte.strip())
+
+
+def _familles(fam):
+    """Phrase parlee sur les familles d'oceans des saisons extremes ('' si rien)."""
+    calc = [f for f in (fam or {}).get("familles") or [] if f.get("correlation") is not None]
+    if not calc:
+        return ""
+    code = fam.get("plus_proche")
+    if not code:
+        return ("Les saisons extrêmes passées ont connu deux grands types d'océan ; celui de "
+                "cette année ne ressemble nettement à aucun des deux.")
+    f = next(f for f in calc if f["code"] == code)
+    ans = [str(a) for a in f["membres_utilises"]]
+    ans = ans[0] if len(ans) == 1 else ", ".join(ans[:-1]) + " et " + ans[-1]
+    return ("Parmi les deux grands types d'océan des saisons extrêmes passées, celui-ci "
+            "ressemble au type %s, celui de %s : %s. Là encore, c'est une ressemblance, "
+            "pas une prévision." % (code, ans, f["nom"][0].lower() + f["nom"][1:]))
 
 
 def _copernicus(b, figures, sid):
