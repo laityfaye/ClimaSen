@@ -21,6 +21,8 @@ RACINE = Path(__file__).resolve().parent.parent
 VULNERABILITE = RACINE / "outputs" / "vulnerabilite"
 EXPOSITION = RACINE / "outputs" / "exposition_evenements"
 TRAITEES = RACINE / "data" / "processed"
+# Codes de zone de l'ANSD (SDMX) <-> codes ClimatSen : scripts 35 et 36.
+CORRESPONDANCE = TRAITEES / "correspondance_zones_ansd.csv"
 
 LICENCE = {
     "nom": "CC BY 4.0",
@@ -40,6 +42,8 @@ SOURCES = {
               "url": "https://www.ansd.sn"},
     "ocha": {"nom": "OCHA, limites administratives du Sénégal (COD-AB, 2024), licence CC BY-IGO",
              "url": "https://data.humdata.org/dataset/cod-ab-sen"},
+    "odp": {"nom": "ANSD, Open Data Platform, API SDMX (agence SN1) : codes de zone CL_REF_AREA",
+            "url": "https://opendata.ansd.sn"},
     "chirps": {"nom": "UCSB Climate Hazards Center, CHIRPS v2.0, pluie journalière 0,25°, 1981-2023",
                "url": "https://www.chc.ucsb.edu/data/chirps"},
 }
@@ -123,6 +127,7 @@ def _departements():
     d = _lire_csv(VULNERABILITE / "indice_risque_departements.csv")
     out = pd.DataFrame({
         "code": d["pcode"], "periode": "2023", "nom": d["departement"],
+        "code_ansd_sdmx": d["pcode"].map(codes_ansd_sdmx()),
         "region": d["region"], "code_region": d["pcode"].str[:4],
         "methode_alea": d["methode_alea"],
     })
@@ -181,6 +186,7 @@ def _communes():
     out = pd.DataFrame({
         "code": c["code"], "periode": "2023", "nom": c["commune_ansd"],
         "code_ansd": c["cod_entite"].astype("Int64"),
+        "code_ansd_sdmx": c["code"].map(codes_ansd_sdmx()),
         "departement": c["departement"], "code_departement": c["adm2_pcode"],
         "region": c["region"], "code_region": c["adm2_pcode"].str[:4],
         "part_dans_departement": c["part_dans_departement"],
@@ -323,9 +329,24 @@ def disponible(jeu: Jeu) -> bool:
 def table(jeu_id: str) -> pd.DataFrame:
     jeu = JEUX[jeu_id]
     fichiers = jeu.fichiers
+    if jeu_id in ("departements", "communes") and CORRESPONDANCE.exists():
+        fichiers = fichiers + (CORRESPONDANCE,)
     if jeu_id == "evenements":
         fichiers = fichiers + (VULNERABILITE / "indice_risque_departements.csv",)
     return _memo(("table", jeu_id), fichiers, jeu.lire)
+
+
+def codes_ansd_sdmx() -> dict:
+    """Code ClimatSen -> code(s) de zone de l'ANSD (SDMX, liste CL_REF_AREA).
+    Une commune decoupee en 2023 (Keur Massar) en a deux, joints par « + »,
+    comme une requete SDMX. Vide si la table du script 36 manque."""
+    if not CORRESPONDANCE.exists():
+        return {}
+
+    def lire():
+        t = pd.read_csv(CORRESPONDANCE, dtype=str).dropna(subset=["code_climatsen"])
+        return {k: "+".join(sorted(g)) for k, g in t.groupby("code_climatsen")["code_ansd"]}
+    return _memo(("codes_ansd",), (CORRESPONDANCE,), lire)
 
 
 def _noms_departements():
@@ -400,6 +421,7 @@ def valeur_json(v):
 def zones() -> list:
     """Liste de codes de la dimension REF_AREA, du pays aux communes, avec
     leur parent : c'est la liste de codes hierarchique CL_ZONE."""
+    ansd = codes_ansd_sdmx()
     out = [{"id": "SN", "nom": "Sénégal", "niveau": "pays", "parent": None}]
     d = table("departements")
     for code, nom in sorted(set(zip(d["code_region"], d["region"]))):
@@ -415,4 +437,7 @@ def zones() -> list:
             if niveau == "commune" and not pd.isna(r["code_ansd"]):
                 z["code_ansd"] = int(r["code_ansd"])
             out.append(z)
+    for z in out:
+        if z["id"] in ansd:
+            z["code_ansd_sdmx"] = ansd[z["id"]]
     return out

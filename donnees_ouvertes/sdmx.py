@@ -244,12 +244,17 @@ def codelists(ids=None) -> list:
         cl = _maintenable("CL_ZONE", "Zones géographiques du Sénégal",
                           "Pays, régions, départements et arrondissements identifiés par leur "
                           "P-code OCHA (COD-AB 2024) ; communes identifiées par le P-code du "
-                          "département suivi du nom ANSD, le code ANSD étant donné en annotation.")
+                          "département suivi du nom ANSD. Annotation CODE_ANSD_SDMX : le code de "
+                          "la même zone dans la liste CL_REF_AREA de l'ANSD (agence SN1), pour "
+                          "joindre ces données à celles de l'Open Data Platform de l'ANSD.")
         codes = []
         for z in sources.zones():
             ann = [{"type": "NIVEAU", "title": z["niveau"]}]
             if "code_ansd" in z:
                 ann.append({"type": "CODE_ANSD", "title": str(z["code_ansd"])})
+            if "code_ansd_sdmx" in z:
+                # Code de la meme zone dans la liste CL_REF_AREA de l'ANSD (agence SN1).
+                ann.append({"type": "CODE_ANSD_SDMX", "title": z["code_ansd_sdmx"]})
             codes.append(_code(z["id"], z["nom"], z["parent"], ann))
         cl["codes"] = codes
         listes.append(cl)

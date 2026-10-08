@@ -259,3 +259,26 @@ def test_debit_borne_par_adresse():
     assert r.status_code == 429
     assert int(r.headers["retry-after"]) > 0
     assert r.headers["access-control-allow-origin"] == "*"
+
+
+# --- codes de zone de l'ANSD (Open Data Platform, scripts 35 et 36) -----------
+
+@pytest.mark.skipif(not sources.CORRESPONDANCE.exists(), reason="table du script 36 absente")
+def test_codes_ansd_sdmx_sur_toutes_les_zones(api):
+    deps = api.get("/donnees/departements").json()["donnees"]
+    assert all(d["code_ansd_sdmx"] for d in deps)
+    velingara = next(d for d in deps if d["code"] == "SN0703")
+    assert velingara["code_ansd_sdmx"] == "SN-KD-VE"
+    communes = api.get("/donnees/communes").json()["donnees"]
+    assert all(c["code_ansd_sdmx"] for c in communes)
+    km = next(c for c in communes if c["code"] == "SN0105_KEURMASSAR")
+    assert km["code_ansd_sdmx"] == "SN-DK-KM2-2+SN-DK-KM3-2"      # decoupee en 2023
+
+
+@pytest.mark.skipif(not sources.CORRESPONDANCE.exists(), reason="table du script 36 absente")
+def test_liste_de_codes_porte_le_code_ansd(api):
+    codes = api.get("/sdmx/codelist/CLIMATSEN/CL_ZONE/1.0").json()["data"]["codelists"][0]["codes"]
+    kolda = next(c for c in codes if c["id"] == "SN07")
+    assert {"type": "CODE_ANSD_SDMX", "title": "SN-KD"} in kolda["annotations"]
+    avec = [c for c in codes if any(a["type"] == "CODE_ANSD_SDMX" for a in c["annotations"])]
+    assert len(avec) == 14 + 46 + 552
