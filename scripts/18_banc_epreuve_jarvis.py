@@ -146,6 +146,15 @@ def construire_banc():
     date_max_hab = str(pop["population_touchee_2023"].idxmax())
     pauv_dakar = dataset.get("pauvrete_ansd")["SN01"]
     pop_pikine_2030 = int(dataset.get("population_projetee").loc["SN0103", "population_2030"])
+    # Donnees sources (get_rainfall, get_ocean_state, get_locality) : attendus lus
+    # par les outils eux-memes.
+    from jarvis.tools import localite as outil_localite
+    from jarvis.tools import pluie as outil_pluie
+    pluie_kaolack = outil_pluie.run({"date": "1999-08-14", "place": "region de Kaolack"},
+                                    {"events": events})["pluie_moyenne_zone_mm"]
+    touba = outil_localite.run({"name": "Touba Mosquee"}, {})["localites"][0]
+    touba_1988 = touba["population_par_recensement"].get("1988")
+    touba_2023 = touba["population_par_recensement"]["2023"]
 
     def q(id_, categorie, question, controles):
         return {"id": id_, "categorie": categorie, "question": question,
@@ -361,6 +370,28 @@ def construire_banc():
           "Les donnees de l'ANSD utilisees par la plateforme sont-elles a jour ? De quand "
           "date la copie ?",
           [("outil get_pipeline_status", lambda t, x: "get_pipeline_status" in x["outils"])]),
+        # --- Donnees sources : tout jour, tout ocean, toute localite (09/10/2026) ------
+        q(39, "sources", "Combien a-t-il plu dans la region de Kaolack le 14 aout 1999 ?",
+          [("outil get_rainfall", lambda t, x: "get_rainfall" in x["outils"]),
+           ("cite %.1f mm" % pluie_kaolack, lambda t, x: cite(t, pluie_kaolack))]),
+        q(40, "sources",
+          "Quelle etait l'anomalie de temperature de surface dans le golfe de Guinee en "
+          "juillet 2012 ?",
+          [("outil get_ocean_state", lambda t, x: "get_ocean_state" in x["outils"]),
+           ("parle d'anomalie (pas de temperature)", lambda t, x: contient(t, r"anomal"))]),
+        q(41, "sources", "Quelle etait la population de Touba Mosquee en 1988 et en 2023 ?",
+          [("outil get_locality", lambda t, x: "get_locality" in x["outils"]),
+           ("cite %s en 1988" % touba_1988,
+            lambda t, x: touba_1988 is None or str(touba_1988) in re.sub(r"[\s\u202f\xa0.]", "", t)),
+           ("cite %d en 2023" % touba_2023,
+            lambda t, x: str(touba_2023) in re.sub(r"[\s\u202f\xa0.]", "", t))]),
+        q(42, "sources",
+          "Quelles inondations sont documentees dans le departement de Pikine, et d'apres "
+          "quelles sources ?",
+          [("outil get_locality", lambda t, x: "get_locality" in x["outils"]),
+           ("cite 2009", lambda t, x: "2009" in t),
+           ("cite une source (PDNA, UNOSAT, FICR, OCHA)",
+            lambda t, x: contient(t, r"PDNA", r"UNOSAT", r"FICR", r"IFRC", r"OCHA", r"Banque mondiale"))]),
     ]
 
 

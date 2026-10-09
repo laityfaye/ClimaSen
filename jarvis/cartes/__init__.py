@@ -510,9 +510,35 @@ def animations():
     }
 
 
+# Animations calculees a la volee depuis les fichiers OISST journaliers
+# (jarvis/sources.animation_evenement), pour les evenements absents de
+# l'archive. Memes grille et decalages que l'archive ; cache borne.
+_CALCULEES = {}
+_ORDRE_CALCULEES = []
+MAX_CALCULEES = 8
+
+
+def enregistrer_animation(date, images, boites):
+    if date not in _CALCULEES:
+        _ORDRE_CALCULEES.append(date)
+    _CALCULEES[date] = {"images": images, "boites": boites}
+    while len(_ORDRE_CALCULEES) > MAX_CALCULEES:
+        _CALCULEES.pop(_ORDRE_CALCULEES.pop(0), None)
+
+
+def boites_evenement(date):
+    """(n_images, n_boites) degC : archive, ou animation calculee."""
+    if date in _CALCULEES:
+        return _CALCULEES[date]["boites"]
+    a = animations()
+    return a["boites"][a["index"][date]]
+
+
 def images_evenement(date):
     """(images degC, NaN sur les terres) de l'evenement: (n_images, lat, lon)."""
     import numpy as np
+    if date in _CALCULEES:
+        return _CALCULEES[date]["images"]
     a = animations()
     i = a["index"].get(date)
     if i is None:
@@ -605,11 +631,11 @@ def _date_decalee(date, jours):
 def en_lignes_animation(spec):
     """Vue tableau: la moyenne de chaque boite d'indice, image par image."""
     a = animations()
-    i = a["index"][spec["donnees"]["date"]]
+    boites = boites_evenement(spec["donnees"]["date"])
     lignes = [["jours_avant_evenement", "date"] + ["%s (degC)" % n for n in a["noms_boites"]]]
     for k, dec in enumerate(a["decalages"]):
         lignes.append([dec, _date_decalee(spec["donnees"]["date"], dec)]
-                      + [round(float(v), 3) for v in a["boites"][i][k]])
+                      + [round(float(v), 3) for v in boites[k]])
     return lignes
 
 

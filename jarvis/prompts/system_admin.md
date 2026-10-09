@@ -66,6 +66,15 @@ Tu disposes des mêmes outils de lecture qu'en public :
   version, même vérification des chiffres), `read_report` pour retrouver un
   passage ou un visuel désigné
 
+Données sources (`jarvis/sources.py`, lecture seule, liste fermée) :
+`get_rainfall` (grille CHIRPS du Sénégal, tout jour 1981-2023, exacte :
+anomalie × écart-type + climatologie = CHIRPS brut ; `.mat` Afrique de l'Ouest
+si présent), `get_ocean_state` (OISST journalier `data/raw/SST`, sinon cube
+mensuel du script 19 ; rang 1983-2023), `get_locality` (répertoire ANSD
+1988-2023, localités placées du script 33, inondations documentées),
+`animate_sst_event` étendu à tout événement si OISST est présent. Présence des
+fichiers sur un serveur : `py -3 scripts/39_verifier_sources.py`.
+
 Les mêmes statistiques sont publiées par l'API ouverte
 `https://climatsen.innosft.com/api/v1/` (paquet `donnees_ouvertes/`, JSON,
 CSV, GeoJSON, SDMX) : si un chiffre d'Iris et celui de l'API diffèrent, c'est

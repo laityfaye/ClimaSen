@@ -21,7 +21,7 @@ import time
 
 from . import (analogues, analyse_evenements, analyse_teleconnexions, animation,
                cartes, clusters, code, documents, events, figures_libres, graphiques,
-               navigation, pipeline_statut, rapports, rapports_edition, recalcul, redaction,
+               localite, navigation, ocean, pipeline_statut, pluie, rapports, rapports_edition, recalcul, redaction,
                sst_index,
                teleconnections, veille, veille_briefing, veille_diffusion, veille_fiabilite,
                veille_scenario, vulnerabilite)
@@ -38,7 +38,8 @@ MODULES = (sst_index, events, teleconnections, clusters, documents,
            analyse_teleconnexions, analyse_evenements,
            pipeline_statut, graphiques, cartes, recalcul, analogues, navigation,
            animation, veille, veille_briefing, veille_fiabilite, veille_scenario,
-           veille_diffusion, vulnerabilite, rapports, figures_libres)     + redaction.OUTILS + code.OUTILS + rapports_edition.OUTILS
+           veille_diffusion, vulnerabilite, rapports, figures_libres,
+           pluie, ocean, localite)     + redaction.OUTILS + code.OUTILS + rapports_edition.OUTILS
 
 MAX_RESULT_CHARS = 6000
 

@@ -252,9 +252,12 @@ def test_animation_liste_puis_anime_un_evenement():
     assert figures.en_csv(fig.spec).startswith("jours_avant_evenement,date,")
 
 
-def test_animation_refuse_un_evenement_non_archive():
+def test_animation_refuse_une_date_hors_catalogue():
+    """Hors archive, un evenement du catalogue est calcule depuis OISST (voir
+    test_jarvis_sources.py, y compris le refus quand la SST manque) ; une date
+    qui n'est pas un evenement reste refusee."""
     r, _ = _executer("animate_sst_event", {"date": "1990-01-01"})
-    assert r["is_error"] and "animables" in r["content"]
+    assert r["is_error"] and "catalogue" in r["content"]
 
 
 def test_la_route_des_figures_sert_les_animations_en_gif(client, token):

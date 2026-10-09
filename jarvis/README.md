@@ -114,6 +114,9 @@ session.py   ratelimit.py   conversations.py   claude_client.py
 | `get_pipeline_status` | `PIPELINE_STEPS` + `ETAPES_COMPLEMENTAIRES` (scripts 26-37) + dates des fichiers | résultats à jour, étapes à relancer, dernière synchronisation ANSD (script 38) |
 | `get_priority_zones` | `load_vulnerabilite` (+ `load_population_projetee`, `load_pauvrete_ansd`, `load_communes_reconstruites`, facultatifs) | indice de risque, fiabilité ; fiche d'une zone avec projection ANSD, P0/P1/P2 régionaux et communes (hors indice) |
 | `make_figure` | les quatre loaders | figure affichée sous la réponse (7 types), données en CSV |
+| `get_rainfall` | `jarvis/sources.py` : grille CHIRPS du Sénégal (versionnée), `.mat` Afrique de l'Ouest si présent | pluie de n'importe quel jour ou période 1981-2023, par zone, commune ou point ; normale, anomalie, catalogue |
+| `get_ocean_state` | `jarvis/sources.py` : OISST journalier `data/raw/SST` si présent, sinon cube mensuel (script 19) | anomalie de SST à toute date, boîte d'indice / zone nommée / boîte libre, rang 1983-2023, carte |
+| `get_locality` | `jarvis/sources.py` : répertoire ANSD 1988-2023, localités placées (script 33), inondations documentées | localité ou commune : population par recensement, jours de pluie extrême, inondations avec source citée |
 
 ```
 jarvis/tools/
@@ -123,6 +126,12 @@ jarvis/tools/
   registry.py   déclarations, permissions, exécution, plafond de taille
   common.py     vocabulaire de la plateforme, validation, formatage
   <outil>.py    une fonction pure run(params, data) par outil
+
+jarvis/sources.py
+  lecture des donnees SOURCES de data/ (liste fermee, lecture d'un jour a la
+  fois, jamais un fichier entier) ; une source absente leve SourceAbsente,
+  qu'Iris rapporte comme "donnee brute absente de ce serveur". Presence et
+  conformite des fichiers sur un serveur : scripts/39_verifier_sources.py
 
 jarvis/knowledge/
   texte.py         normalisation, racines, découpage (appliqué des deux côtés)
