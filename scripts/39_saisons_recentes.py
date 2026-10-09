@@ -147,7 +147,36 @@ def script37():
     return m
 
 
+ETAT = SORTIE / ".mise_a_jour.json"     # suivi pour la page Pipeline (ignore par git)
+
+
+def ecrire_etat(**champs):
+    etat = {}
+    if ETAT.exists():
+        try:
+            etat = json.loads(ETAT.read_text(encoding="utf-8"))
+        except ValueError:
+            etat = {}
+    etat.update(champs, mis_a_jour_le=maintenant())
+    SORTIE.mkdir(parents=True, exist_ok=True)
+    ETAT.write_text(json.dumps(etat, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+
 def main():
+    """Mise a jour avec suivi de l'etat : lancee par le bouton « Mettre a jour les
+    saisons recentes » de la page Pipeline (onglet Donnees CHIRPS)."""
+    ecrire_etat(etat="en_cours", debut=maintenant(), fin=None, erreur=None)
+    try:
+        resume = executer()
+    except Exception as e:                          # noqa: BLE001
+        ecrire_etat(etat="erreur", fin=maintenant(), erreur=str(e)[:300])
+        raise
+    ecrire_etat(etat="termine", fin=maintenant(), annees=[
+        {k: a[k] for k in ("annee", "jusqu_au", "evenements", "saison_complete")}
+        for a in resume["annees"]])
+
+
+def executer():
     ap = argparse.ArgumentParser()
     ap.add_argument("--annee-debut", type=int, default=2024)
     args = ap.parse_args()
@@ -277,6 +306,7 @@ def main():
     (SORTIE / "resume.json").write_text(json.dumps(resume, ensure_ascii=False, indent=2) + "\n",
                                        encoding="utf-8")
     print(t.to_string(index=False))
+    return resume
 
 
 if __name__ == "__main__":

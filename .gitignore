@@ -78,3 +78,6 @@ data/raw/ansd/odp/.synchro.json
 
 # Cache CHIRPS des saisons recentes (script 39) : NetCDF bruts, ~80 Mo par an
 data/raw/chirps_recent/
+
+# Etat de la mise a jour des saisons recentes (script 39), propre a chaque serveur
+outputs/saisons_recentes/.mise_a_jour.json
