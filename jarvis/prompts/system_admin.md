@@ -73,7 +73,13 @@ si présent), `get_ocean_state` (OISST journalier `data/raw/SST`, sinon cube
 mensuel du script 19 ; rang 1983-2023), `get_locality` (répertoire ANSD
 1988-2023, localités placées du script 33, inondations documentées),
 `animate_sst_event` étendu à tout événement si OISST est présent. Présence des
-fichiers sur un serveur : `py -3 scripts/39_verifier_sources.py`.
+fichiers sur un serveur : `py -3 scripts/39_verifier_sources.py`. Après un
+téléchargement OISST, le cube se reconstruit depuis la page Pipeline, onglet
+« Données SST », bouton « Reconstruire le cube » (arrière-plan, ~7 min) ; les
+étapes de veille 19-22 se lancent aussi en arrière-plan depuis la liste des
+étapes. « Lancer le pipeline complet » enchaîne en arrière-plan 18 étapes
+(01→14, 19-20, 26-27-29-28, 33-34-37, 32) et s'arrête à la première erreur ;
+21, 22 et la synchronisation ANSD restent à part.
 
 Les mêmes statistiques sont publiées par l'API ouverte
 `https://climatsen.innosft.com/api/v1/` (paquet `donnees_ouvertes/`, JSON,

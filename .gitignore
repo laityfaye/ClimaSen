@@ -55,6 +55,8 @@ timescaledb_data/
 
 # Logs Jarvis (trafic public et audit admin)
 outputs/jarvis_logs/
+# Taches longues de la page Pipeline (etat et journal, propres a chaque serveur)
+outputs/taches/
 
 # Rapports generes par Iris (fichiers de session, purges au bout de 24 h)
 outputs/rapports_iris/
