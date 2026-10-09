@@ -259,3 +259,65 @@ def test_debit_borne_par_adresse():
     assert r.status_code == 429
     assert int(r.headers["retry-after"]) > 0
     assert r.headers["access-control-allow-origin"] == "*"
+
+
+# --- codes de zone de l'ANSD (Open Data Platform, scripts 35 et 36) -----------
+
+@pytest.mark.skipif(not sources.CORRESPONDANCE.exists(), reason="table du script 36 absente")
+def test_codes_ansd_sdmx_sur_toutes_les_zones(api):
+    deps = api.get("/donnees/departements").json()["donnees"]
+    assert all(d["code_ansd_sdmx"] for d in deps)
+    velingara = next(d for d in deps if d["code"] == "SN0703")
+    assert velingara["code_ansd_sdmx"] == "SN-KD-VE"
+    communes = api.get("/donnees/communes").json()["donnees"]
+    assert all(c["code_ansd_sdmx"] for c in communes)
+    km = next(c for c in communes if c["code"] == "SN0105_KEURMASSAR")
+    assert km["code_ansd_sdmx"] == "SN-DK-KM2-2+SN-DK-KM3-2"      # decoupee en 2023
+
+
+@pytest.mark.skipif(not sources.CORRESPONDANCE.exists(), reason="table du script 36 absente")
+def test_liste_de_codes_porte_le_code_ansd(api):
+    codes = api.get("/sdmx/codelist/CLIMATSEN/CL_ZONE/1.0").json()["data"]["codelists"][0]["codes"]
+    kolda = next(c for c in codes if c["id"] == "SN07")
+    assert {"type": "CODE_ANSD_SDMX", "title": "SN-KD"} in kolda["annotations"]
+    avec = [c for c in codes if any(a["type"] == "CODE_ANSD_SDMX" for a in c["annotations"])]
+    assert len(avec) == 14 + 46 + 552
+
+
+@pytest.mark.skipif(not sources.PROJ_ZONES.exists(), reason="sorties du script 37 absentes")
+def test_population_projetee_porte_sa_propre_annee(api):
+    r = api.get("/sdmx/data/DF_RISQUE_DEPARTEMENTS/A.SN0703.POPULATION+POPULATION_2013+POPULATION_2026",
+                params={"format": "sdmx-csv"})
+    obs = pd.read_csv(io.StringIO(r.text))
+    assert dict(zip(obs["INDICATOR"], obs["TIME_PERIOD"])) == {
+        "POPULATION": 2023, "POPULATION_2013": 2013, "POPULATION_2026": 2026}
+    proj = pd.read_csv(sources.PROJ_ZONES).set_index("code")
+    pop26 = obs.loc[obs["INDICATOR"] == "POPULATION_2026", "OBS_VALUE"].iloc[0]
+    assert pop26 == proj.loc["SN0703", "population_2026"]
+
+
+@pytest.mark.skipif(not sources.PROJ_EVENEMENTS.exists(), reason="sorties du script 37 absentes")
+def test_habitants_touches_en_2026(api):
+    e = api.get("/evenements/2012-09-28").json()
+    assert e["population_touchee_2026"] > e["population_touchee"]
+    assert e["population_touchee_2030"] > e["population_touchee_2026"]
+
+
+@pytest.mark.skipif(not sources.CORRESPONDANCE.exists(), reason="table du script 36 absente")
+def test_pauvrete_de_l_api_ansd_identique_a_l_indice(api):
+    """Le taux de pauvrete de l'indice (EHCVM, saisi depuis le rapport) est celui que
+    l'ANSD publie par son API SDMX ; profondeur et severite viennent de la meme source."""
+    odp = pd.read_csv(sources.RACINE / "data" / "raw" / "ansd" / "odp" / "DF_TX_PAUV.csv",
+                      sep=None, engine="python", dtype=str)
+    t22 = odp[(odp["TIME_PERIOD"] == "2022") & (odp["TX_PAUV"] == "T_PAUV")]
+    corr = pd.read_csv(sources.CORRESPONDANCE, dtype=str)
+    region = dict(zip(corr["code_ansd"], corr["code_climatsen"]))
+    officiel = {region[c]: float(v) for c, v in zip(t22["REF_AREA"], t22["OBS_VALUE"])
+                if c in region}
+    deps = api.get("/donnees/departements").json()["donnees"]
+    for d in deps:
+        assert d["taux_pauvrete_region"] == officiel[d["code_region"]], d["nom"]
+        assert 0 < d["severite_pauvrete_region"] < d["profondeur_pauvrete_region"] \
+            < d["taux_pauvrete_region"]
+    arr = api.get("/donnees/arrondissements", params={"indicateurs": "PROFONDEUR_PAUVRETE_REGION"})
+    assert all(a["profondeur_pauvrete_region"] for a in arr.json()["donnees"])

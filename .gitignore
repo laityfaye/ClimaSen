@@ -70,3 +70,8 @@ LINUX/
 # et previsions Copernicus telechargees (le cache se reconstitue seul).
 data/processed/sst_cube_1deg.npz
 data/raw/c3s/
+
+# Synchronisation ANSD (script 38) : dossiers de travail et etat, propres a chaque serveur
+data/raw/ansd/.odp_nouveau/
+data/raw/ansd/.odp_ancien/
+data/raw/ansd/odp/.synchro.json

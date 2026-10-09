@@ -86,6 +86,11 @@ def observations(jeu, cle=None, debut=None, fin=None) -> pd.DataFrame:
     longue.insert(0, "FREQ", jeu.freq)
     longue = longue.rename(columns={"code": "REF_AREA", "periode": "TIME_PERIOD"})
     longue["UNIT_MEASURE"] = longue["INDICATOR"].map(lambda c: sources.INDICATEURS[c][1])
+    # Une population d'une autre annee que celle de la ligne (recensement 2013,
+    # projections 2026 et 2030) porte sa propre periode, pas 2023.
+    if jeu.freq == "A":
+        annee = longue["INDICATOR"].map(sources.ANNEE_INDICATEUR)
+        longue["TIME_PERIOD"] = annee.fillna(longue["TIME_PERIOD"])
 
     if cle:
         for dim, valeurs in zip(DIMENSIONS, cle):
@@ -244,12 +249,17 @@ def codelists(ids=None) -> list:
         cl = _maintenable("CL_ZONE", "Zones géographiques du Sénégal",
                           "Pays, régions, départements et arrondissements identifiés par leur "
                           "P-code OCHA (COD-AB 2024) ; communes identifiées par le P-code du "
-                          "département suivi du nom ANSD, le code ANSD étant donné en annotation.")
+                          "département suivi du nom ANSD. Annotation CODE_ANSD_SDMX : le code de "
+                          "la même zone dans la liste CL_REF_AREA de l'ANSD (agence SN1), pour "
+                          "joindre ces données à celles de l'Open Data Platform de l'ANSD.")
         codes = []
         for z in sources.zones():
             ann = [{"type": "NIVEAU", "title": z["niveau"]}]
             if "code_ansd" in z:
                 ann.append({"type": "CODE_ANSD", "title": str(z["code_ansd"])})
+            if "code_ansd_sdmx" in z:
+                # Code de la meme zone dans la liste CL_REF_AREA de l'ANSD (agence SN1).
+                ann.append({"type": "CODE_ANSD_SDMX", "title": z["code_ansd_sdmx"]})
             codes.append(_code(z["id"], z["nom"], z["parent"], ann))
         cl["codes"] = codes
         listes.append(cl)

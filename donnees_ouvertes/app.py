@@ -170,7 +170,7 @@ def creer_api(ip_client: Optional[Callable[[Request], str]] = None,
             z = [x for x in z if x["parent"] == parent]
         if format == Format.csv:
             import pandas as pd
-            return _csv(pd.DataFrame(z, columns=["id", "nom", "niveau", "parent", "code_ansd"])
+            return _csv(pd.DataFrame(z, columns=["id", "nom", "niveau", "parent", "code_ansd_sdmx", "code_ansd"])
                         .astype({"code_ansd": "Int64"}), "zones")
         return z
 

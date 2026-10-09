@@ -1722,6 +1722,30 @@ if st.session_state.dark_mode:
     background: {CARD} !important;
     color: {TEXT} !important;
 }}
+/* Streamlit 1.64 : l'enveloppe d'un champ de texte n'a plus data-baseweb ;
+   elle restait blanche autour du champ (mot de passe administrateur). */
+[data-testid="stMainBlockContainer"] [data-testid="stTextInputRootElement"] {{
+    background: {CARD} !important;
+    border-color: {BORDER} !important;
+}}
+[data-testid="stMainBlockContainer"] [data-testid="stTextInputRootElement"] button {{
+    color: {MUTED} !important;
+    background: transparent !important;
+}}
+[data-testid="stMainBlockContainer"] [data-testid="stTextInputRootElement"] button svg {{
+    fill: {MUTED} !important;
+}}
+/* Bouton de formulaire (Deverrouiller) : non couvert par les regles stButton,
+   il gardait un fond blanc sous un texte clair. */
+[data-testid="stMainBlockContainer"] [data-testid="stFormSubmitButton"] button {{
+    background: {CARD} !important;
+    border: 1px solid {BORDER} !important;
+    color: {TEXT} !important;
+}}
+[data-testid="stMainBlockContainer"] [data-testid="stFormSubmitButton"] button:hover {{
+    border-color: {INDIGO} !important;
+    color: #FFFFFF !important;
+}}
 /* Champ de saisie d'un select : fond transparent. Selon la version de
    Streamlit, il est pose en absolu par-dessus la 1re etiquette d'un
    multiselect ; un fond opaque la coupait ("ino34", recette 29/09/2026). */

@@ -1,0 +1,41 @@
+{
+  "sources": {
+    "projections": "ANSD, DF_PROJ_POP_2050_COM et _DEP, API SDMX (script 35)",
+    "localites": "ANSD, RGPH-5 2023, Repertoire des localites (script 33)"
+  },
+  "hypothese": "croissance uniforme a l'interieur de chaque commune",
+  "population_nationale": {
+    "2023_repertoire": 18152795,
+    "2026": 19603878,
+    "2030": 21765438
+  },
+  "rapprochement_communes": {
+    "nom approche": {
+      "communes": 2,
+      "population": 61548
+    },
+    "nom identique": {
+      "communes": 551,
+      "population": 18091247
+    }
+  },
+  "ecart_median_projection_2023_vs_repertoire_pct": 0.0,
+  "population_touchee": {
+    "2023": {
+      "mediane": 2291644,
+      "maximum": 18069311
+    },
+    "2026": {
+      "mediane": 2485279,
+      "maximum": 19513054
+    },
+    "2030": {
+      "mediane": 2787170,
+      "maximum": 21663664
+    }
+  },
+  "zones": {
+    "communes": 552,
+    "departements": 46
+  }
+}
