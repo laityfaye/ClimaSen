@@ -1297,3 +1297,141 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
               <span class="rg-pct">{nb(pct, '.1f')}%</span>
             </div>
             """, unsafe_allow_html=True)
+
+
+    # ── Suivi des saisons recentes (script 40) ────────────────────────────────
+    _saisons_recentes(df, CARD, TEXT, MUTED, BORDER, plotly_base)
+
+
+def _saisons_recentes(df, CARD, TEXT, MUTED, BORDER, plotly_base):
+    """Saisons depuis 2024, detectees avec la climatologie de reference 1981-2023
+    (script 40). Section a part : le catalogue de l'etude, ses filtres et ses
+    graphiques ne sont pas modifies."""
+    donnees = du.load_saisons_recentes()
+    if donnees is None:
+        return
+    ev, an, resume = donnees
+    if an.empty:
+        return
+    ref = resume.get("reference_1981_2023", {})
+    moy = float(ref.get("evenements_par_an_moyenne", 0))
+
+    st.markdown(f"""
+    <div style="display:flex;align-items:center;gap:12px;margin:34px 0 8px 0;">
+      <div style="height:2px;width:28px;background:linear-gradient(90deg,{INDIGO},{BLUE});
+                  border-radius:99px;flex-shrink:0;"></div>
+      <span style="font-size:0.70rem;font-weight:700;color:{MUTED};text-transform:uppercase;
+                   letter-spacing:0.08em;white-space:nowrap">Suivi des saisons r&eacute;centes</span>
+      <div style="height:1px;flex:1;background:{BORDER};"></div>
+      <span class="sec-hdr-sub" style="font-size:0.67rem;color:{MUTED};text-align:right;min-width:0;">
+        {int(an['annee'].min())}&ndash;{int(an['annee'].max())} &middot; r&eacute;f&eacute;rence 1981&ndash;2023
+      </span>
+    </div>
+    <p style="font-size:0.78rem;color:{MUTED};margin:0 0 14px 0;line-height:1.55;">
+      M&ecirc;me d&eacute;tection que le catalogue, mesur&eacute;e par rapport &agrave; la
+      climatologie de r&eacute;f&eacute;rence 1981&ndash;2023 : les saisons r&eacute;centes s'y
+      comparent sans modifier les r&eacute;sultats de l'&eacute;tude. Habitants de la zone
+      touch&eacute;e : population de l'ann&eacute;e projet&eacute;e par l'ANSD.</p>
+    """, unsafe_allow_html=True)
+
+    # Evenements par saison : reference 1981-2023, puis saisons recentes.
+    par_an = df.groupby("year").size().reindex(range(1981, 2024), fill_value=0)
+    fig = go.Figure()
+    fig.add_bar(x=list(par_an.index), y=list(par_an.values), name="1981–2023 (référence)",
+                marker_color=INDIGO, opacity=0.45,
+                hovertemplate="%{x} : %{y} événements<extra></extra>")
+    complete = an["saison_complete"].astype(bool)
+    fig.add_bar(x=an.loc[complete, "annee"], y=an.loc[complete, "evenements"],
+                name="Saisons récentes", marker_color=BLUE,
+                hovertemplate="%{x} : %{y} événements<extra></extra>")
+    if (~complete).any():
+        enc = an.loc[~complete]
+        fig.add_bar(x=enc["annee"], y=enc["evenements"], name="Saison en cours",
+                    marker=dict(color=BLUE, opacity=0.55, pattern_shape="/"),
+                    customdata=enc["jusqu_au"],
+                    hovertemplate="%{x} : %{y} événements au %{customdata}<extra></extra>")
+    fig.add_hline(y=moy, line_dash="dash", line_color=MUTED, line_width=1)
+    # Libelle DANS la zone de trace : ancre au bord, automargin lui reservait
+    # toute sa largeur a gauche du graphique.
+    fig.add_annotation(x=1980.6, y=moy, xref="x", yref="y", showarrow=False,
+                       xanchor="left", yanchor="bottom",
+                       text=f"moyenne 1981–2023 : {nb(moy, '.1f')}",
+                       font=dict(size=11, color=MUTED))
+    plotly_base(fig, 300)
+    fig.update_layout(barmode="overlay", bargap=0.15,
+                      margin=dict(l=56, r=12, t=16, b=10),
+                      # xanchor left : plotly_base centre la legende ; centree sur x=0,
+                      # elle debordait a gauche et la marge passait de 56 a 222 px.
+                      legend=dict(orientation="h", y=-0.18, x=0, xanchor="left",
+                                  font=dict(size=11)),
+                      yaxis_title="Événements par saison")
+    st.plotly_chart(fig, use_container_width=True, key="evt_recentes_barres",
+                    config={"displaylogo": False})
+
+    # Une carte par saison recente.
+    cols = st.columns(len(an))
+    for col, r in zip(cols, an.itertuples()):
+        complet = bool(r.saison_complete)
+        extreme = bool(r.annee_extreme_veille)
+        badge_c = AMBER if extreme else MUTED
+        badge = ("Saison extrême" if extreme else "Saison non extrême") if complet else (
+            "En cours · " + ("déjà extrême" if extreme else "non extrême à ce jour"))
+        jusqu = "" if complet else f" au {pd.Timestamp(r.jusqu_au):%d/%m}"
+        prelim = (f"<br>dont {r.jours_preliminaires} jours de données préliminaires"
+                  if r.jours_preliminaires else "")
+        hab = r.population_touchee_mediane
+        hab_txt = (f"{hab / 1e6:.2f}".replace(".", ",") + " M") if hab >= 1e6 else f"{hab:,}".replace(",", " ")
+        with col:
+            st.markdown(f"""
+            <div style="background:{CARD};border:1px solid {BORDER};border-radius:14px;
+                        padding:16px 18px;height:100%;">
+              <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
+                <span style="font-size:1.05rem;font-weight:800;color:{TEXT};">{r.annee}</span>
+                <span style="font-size:0.66rem;font-weight:700;color:{badge_c};
+                             border:1px solid {badge_c};border-radius:99px;padding:2px 9px;">{badge}</span>
+              </div>
+              <div style="font-size:1.6rem;font-weight:800;color:{TEXT};margin-top:8px;line-height:1.1;">
+                {r.evenements}<span style="font-size:0.78rem;font-weight:600;color:{MUTED};">
+                &nbsp;événements{jusqu}</span></div>
+              <div style="font-size:0.74rem;color:{MUTED};margin-top:6px;line-height:1.55;">
+                Rang {r.rang_sur_44_meme_periode} sur 44 saisons (même période de l'année)<br>
+                Moyenne 1981–2023 à cette date : {nb(r.reference_meme_periode_moyenne, '.1f')}<br>
+                Habitants touchés, événement médian : <b style="color:{TEXT};">{hab_txt}</b>{prelim}
+              </div>
+            </div>
+            """, unsafe_allow_html=True)
+
+    st.caption("« Saison extrême » : définition de la veille pré-saison (étendue cumulée des "
+               "extrêmes au-dessus du tiers supérieur de 1981–2023). Les données préliminaires "
+               "de CHIRPS sont remplacées par la version définitive environ un mois plus tard ; "
+               "les chiffres de la saison en cours peuvent encore changer.")
+
+    with st.expander(f"Les {len(ev)} événements des saisons récentes"):
+        # Tableau HTML aux couleurs du theme (st.dataframe, dessine dans un
+        # canevas, restait blanc en theme sombre).
+        def _cellule(v, droite=False):
+            return (f"<td style='padding:6px 10px;border-bottom:1px solid {BORDER};"
+                    f"text-align:{'right' if droite else 'left'};white-space:nowrap;'>{v}</td>")
+        entetes = [("Date", False), ("Phase", False), ("Couverture", True),
+                   ("Pluie max", True), ("Habitants de la zone", True), ("Données", False)]
+        tete = "".join(f"<th style='padding:7px 10px;text-align:{'right' if d else 'left'};"
+                       f"font-weight:700;color:{MUTED};border-bottom:1px solid {BORDER};"
+                       f"position:sticky;top:0;background:{CARD};'>{h}</th>" for h, d in entetes)
+        corps = "".join(
+            "<tr>" + _cellule(r.date.strftime("%d/%m/%Y"))
+            + _cellule(PHASE_L.get(r.phase, r.phase))
+            + _cellule(nb(r.coverage_percent, ".1f") + " %", True)
+            + _cellule(nb(r.max_precip, ".1f") + " mm", True)
+            + _cellule(f"{int(r.population_touchee):,}".replace(",", " ")
+                       + f" <span style='color:{MUTED};'>({r.annee_population})</span>", True)
+            + _cellule("préliminaires" if r.source == "preliminaire" else "définitives")
+            + "</tr>"
+            for r in ev.sort_values("date", ascending=False).itertuples())
+        st.markdown(
+            f"<div style='max-height:420px;overflow:auto;border:1px solid {BORDER};"
+            f"border-radius:10px;'><table style='width:100%;border-collapse:collapse;"
+            f"font-size:0.78rem;color:{TEXT};background:{CARD};'><thead><tr>{tete}</tr>"
+            f"</thead><tbody>{corps}</tbody></table></div>", unsafe_allow_html=True)
+        st.download_button("Exporter CSV", data=ev.to_csv(index=False).encode("utf-8"),
+                           file_name="evenements_saisons_recentes.csv", mime="text/csv",
+                           key="evt_recentes_csv")

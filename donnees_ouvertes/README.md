@@ -10,6 +10,7 @@ Les statistiques produites par la plateforme, en lecture seule, sans compte ni c
 | `communes` | 552 | Population, ménages, densité, jours de pluie extrême | `DF_EXPOSITION_COMMUNES` |
 | `evenements` | 1 317 | Journées de pluie extrême 1981-2023 et habitants de la zone touchée | `DF_EVENEMENTS` |
 | `annees` | 43 | Agrégation annuelle des événements | `DF_EVENEMENTS_ANNUELS` |
+| `evenements_recents` | 99 au 5 oct. 2026 | Saisons depuis 2024 (référence 1981-2023), habitants avec la population de l'année ; colonne `source` : CHIRPS définitif ou préliminaire | `DF_EVENEMENTS_RECENTS` |
 
 Zones : **P-codes OCHA** (COD-AB 2024) pour le pays (`SN`), les régions (`SN07`), les
 départements (`SN0703`) et les arrondissements (`SN070301`). Les communes n'ont pas de

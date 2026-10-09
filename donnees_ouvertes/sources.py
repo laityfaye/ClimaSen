@@ -79,6 +79,7 @@ INDICATEURS = {
     "POPULATION_TOUCHEE":      ("Habitants de la zone de pluie extrême (RGPH-5 2023) ; pas un nombre de sinistrés", "PERSONNES"),
     "POPULATION_TOUCHEE_2026": ("Habitants de la zone de pluie extrême, population projetée par l'ANSD pour 2026", "PERSONNES"),
     "POPULATION_TOUCHEE_2030": ("Habitants de la zone de pluie extrême, population projetée par l'ANSD pour 2030", "PERSONNES"),
+    "POPULATION_TOUCHEE_ANNEE": ("Habitants de la zone de pluie extrême, population de l'année de l'événement projetée par l'ANSD", "PERSONNES"),
     "MENAGES_TOUCHES":         ("Ménages de la zone de pluie extrême (RGPH-5 2023)", "MENAGES"),
     "PART_POPULATION_NATIONALE": ("Part de la population nationale dans la zone de pluie extrême", "PCT"),
     "COUVERTURE":              ("Part de la grille couverte par la pluie extrême", "PCT"),
@@ -273,6 +274,19 @@ def _evenements():
     return out.sort_values("periode").reset_index(drop=True)
 
 
+def _evenements_recents():
+    e = _lire_csv(RACINE / "outputs" / "saisons_recentes" / "evenements_recents.csv")
+    out = pd.DataFrame({"code": "SN", "periode": e["date"], "phase": e["phase"],
+                        "source": e["source"], "annee_population": e["annee_population"]})
+    colonnes = {"POPULATION_TOUCHEE_ANNEE": "population_touchee",
+                "PART_POPULATION_NATIONALE": "part_population_nationale_pct",
+                "COUVERTURE": "coverage_percent", "PLUIE_MAX": "max_precip",
+                "PIXELS_EXTREMES": "coverage_points"}
+    for code, col in colonnes.items():
+        out[code] = e[col].round(3) if col in ("coverage_percent", "max_precip") else e[col]
+    return out.sort_values("periode").reset_index(drop=True)
+
+
 def _annees():
     a = _lire_csv(EXPOSITION / "population_touchee_par_annee.csv")
     return pd.DataFrame({
@@ -352,6 +366,19 @@ JEUX = {j.id: j for j in (
         ("chirps", "rgph5", "localites", "ocha"), "scripts/33_population_touchee_evenements.py",
         ("NB_EVENEMENTS", "PERSONNES_EVENEMENTS", "POPULATION_TOUCHEE_MAX"),
         _annees, AVERTISSEMENT_TOUCHEE),
+    Jeu("evenements_recents", "DF_EVENEMENTS_RECENTS",
+        "Saisons récentes : événements de pluie extrême depuis 2024",
+        "Événements de mai à octobre depuis 2024, détectés comme le catalogue mais par "
+        "rapport à la climatologie de référence 1981-2023, avec les habitants de la zone "
+        "touchée (population de l'année projetée par l'ANSD).",
+        "D", "pays",
+        (RACINE / "outputs" / "saisons_recentes" / "evenements_recents.csv",),
+        ("chirps", "rgph5", "localites", "odp", "ocha"), "scripts/40_saisons_recentes.py",
+        ("POPULATION_TOUCHEE_ANNEE", "PART_POPULATION_NATIONALE", "COUVERTURE", "PLUIE_MAX",
+         "PIXELS_EXTREMES"),
+        _evenements_recents,
+        "Saison en cours : données CHIRPS préliminaires (colonne source), remplacées par la "
+        "version définitive environ un mois plus tard. " + AVERTISSEMENT_TOUCHEE),
 )}
 
 

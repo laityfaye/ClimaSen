@@ -366,7 +366,8 @@ CHAINE_COMPLETE = ([_PAR_ID[i] for i in ("01", "02", "03", "03b", "sst", "04", "
                                         "19", "20")] + _HORS_PAGE)
 HORS_CHAINE = ("Laissées à part, avec leur propre bouton : 21 (évaluation C3S, protocole figé, "
                "clé Copernicus), 22 (mise à jour mensuelle, novembre-avril), 35, 36 et 38 "
-               "(onglet « Données ANSD »), les analyses de contrôle 24, 30, 31 et les "
+               "(onglet « Données ANSD »), 40 (saisons récentes, onglet « Données CHIRPS »), "
+               "les analyses de contrôle 24, 30, 31 et les "
                "constructions d'Iris 15, 16, 17, 23, 25.")
 
 
@@ -591,10 +592,18 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
 
         if "chirps_preset" not in st.session_state:
             st.session_state.chirps_preset = "Afrique Ouest"
-            _p0 = PRESETS["Afrique Ouest"]
-            for _k, _v in [("bb_lat_min", _p0["lat_min"]), ("bb_lat_max", _p0["lat_max"]),
-                            ("bb_lon_min", _p0["lon_min"]), ("bb_lon_max", _p0["lon_max"])]:
+        # A CHAQUE affichage, et pas seulement au premier : Streamlit efface l'etat
+        # d'un champ des qu'une execution ne l'affiche pas (autre onglet). Au retour,
+        # les champs repartaient de leur minimum (-35, -18) : zone vide transmise au
+        # telechargement, grille 0 x 0 (09/10/2026). On restaure la zone choisie.
+        _p0 = PRESETS[st.session_state.chirps_preset]
+        for _k, _v in [("bb_lat_min", _p0["lat_min"]), ("bb_lat_max", _p0["lat_max"]),
+                        ("bb_lon_min", _p0["lon_min"]), ("bb_lon_max", _p0["lon_max"])]:
+            if _k not in st.session_state:
                 st.session_state[_k] = float(_v)
+
+        # Action recommandee : saisons recentes, sans toucher aux resultats 1981-2023.
+        _saisons_recentes_chirps(CARD, TEXT, MUTED, BORDER, _admin)
 
         st.markdown("<p class='pip-section-title'>Zone géographique</p>", unsafe_allow_html=True)
 
@@ -796,6 +805,12 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
             time.sleep(3)
             st.rerun()
         else:
+            st.warning(
+                "Ce téléchargement prépare une **nouvelle étude complète**. Relancer ensuite la "
+                "détection sur une autre période recalcule la climatologie : **tous les résultats "
+                "changent** (1 317 événements, téléconnexions, clustering, indice de risque, "
+                "chiffres d'IRIS). Pour ajouter les saisons récentes sans rien modifier, utiliser "
+                "« Mettre à jour les saisons récentes » en haut de cet onglet.")
             btn_c1, btn_c2 = st.columns([2, 5])
             with btn_c1:
                 launch_download = st.button(
@@ -1580,3 +1595,96 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
             )
         else:
             st.info("Aucune copie locale. Un administrateur peut lancer la synchronisation.")
+
+
+def _saisons_recentes_chirps(CARD, TEXT, MUTED, BORDER, admin):
+    """Onglet Donnees CHIRPS : etat des saisons recentes (script 40) et bouton de
+    mise a jour, reserve a l'administrateur. La climatologie de reference
+    1981-2023 est conservee : le catalogue et tous les resultats restent
+    inchanges, seules les saisons depuis 2024 sont (re)calculees."""
+    dossier = BASE / "outputs" / "saisons_recentes"
+    etat_f = dossier / ".mise_a_jour.json"
+    script = SCRIPTS_DIR / "40_saisons_recentes.py"
+
+    def _lire(p):
+        try:
+            return _json.loads(p.read_text(encoding="utf-8"))
+        except Exception:
+            return None
+
+    def _date_fr(iso):
+        if not iso:
+            return "—"
+        return "%s/%s/%s %s UTC" % (iso[8:10], iso[5:7], iso[0:4], iso[11:16])
+
+    def _en_cours():
+        pid = st.session_state.get("recentes_pid")
+        if not pid:
+            return False
+        try:
+            os.kill(pid, 0)
+        except OSError:
+            return False
+        return (_lire(etat_f) or {}).get("etat") == "en_cours"
+
+    resume = _lire(dossier / "resume.json") or {}
+    etat = _lire(etat_f) or {}
+    en_cours = _en_cours()
+    annees = resume.get("annees", [])
+    lignes = "".join(
+        f"<div><div style='font-size:0.7rem;color:{MUTED};'>{a['annee']}"
+        f"{'' if a.get('saison_complete') else ' · en cours'}</div>"
+        f"<div style='font-size:0.88rem;font-weight:700;color:{TEXT};'>{a['evenements']} "
+        f"événements</div><div style='font-size:0.7rem;color:{MUTED};'>jusqu'au "
+        f"{a['jusqu_au'][8:10]}/{a['jusqu_au'][5:7]}</div></div>"
+        for a in annees)
+
+    st.markdown("<p class='pip-section-title'>Saisons récentes</p>", unsafe_allow_html=True)
+    st.markdown(f"""
+    <div style="background:{CARD};border:1px solid {BORDER};border-radius:14px;
+                padding:18px 22px;margin-bottom:12px;">
+      <div style="font-size:0.78rem;color:{MUTED};margin-bottom:12px;line-height:1.55;">
+        Ajoute les saisons depuis 2024 en les comparant à la <b>climatologie de référence
+        1981&ndash;2023</b> : le catalogue de l'étude et tous ses résultats restent
+        inchangés. Fichiers CHIRPS définitifs, complétés par les données préliminaires
+        de la saison en cours. Affichées en fin de page Événements et dans l'API ouverte.
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:12px;">
+        {lignes or f"<div style='color:{MUTED};font-size:0.8rem;'>Pas encore calculées.</div>"}
+        <div><div style="font-size:0.7rem;color:{MUTED};">Dernier calcul</div>
+             <div style="font-size:0.88rem;font-weight:700;color:{TEXT};">
+               {_date_fr(resume.get("calcule_le"))}</div></div>
+      </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    if en_cours:
+        st.info("Mise à jour en cours : téléchargement CHIRPS, puis détection et habitants "
+                "touchés (une à quelques minutes).")
+    elif etat.get("etat") == "erreur":
+        st.error("Dernière mise à jour (%s) en échec : %s. Les données précédentes sont "
+                 "conservées." % (_date_fr(etat.get("fin")), etat.get("erreur", "")))
+    elif etat.get("etat") == "termine":
+        st.success("Dernière mise à jour : %s." % _date_fr(etat.get("fin")))
+
+    if not admin:
+        st.caption("La mise à jour des saisons récentes est réservée à l'administrateur.")
+    elif en_cours:
+        if st.button("Actualiser la progression", key="btn_recentes_refresh"):
+            st.rerun()
+    elif st.button("Mettre à jour les saisons récentes", type="primary",
+                   key="btn_recentes_maj") and admin_gate.exiger_admin():
+        env = os.environ.copy()
+        env["PYTHONIOENCODING"] = "utf-8"
+        env["PYTHONUTF8"] = "1"
+        proc = subprocess.Popen([sys.executable, str(script)], cwd=str(BASE), env=env,
+                                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        st.session_state["recentes_pid"] = proc.pid
+        st.info(f"Mise à jour lancée (PID {proc.pid}).")
+        time.sleep(1)
+        st.rerun()
+
+    if en_cours:
+        time.sleep(3)
+        st.rerun()
+    st.markdown("<div style='height:18px'></div>", unsafe_allow_html=True)

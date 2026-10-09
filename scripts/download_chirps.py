@@ -60,7 +60,12 @@ def write_status(status: dict):
 def download_year(year: int, tmp_dir: Path) -> tuple:
     """
     Telecharge le fichier CHIRPS d'une annee dans tmp_dir avec reprise.
-    Retourne (ok: bool, path: Path|None, msg: str).
+
+    Generateur : publie (octets_recus, octets_total) pendant le telechargement,
+    puis, en DERNIER, le resultat (ok: bool, path: Path|None, msg: str).
+    Le resultat est publie (yield) et non renvoye (return) : dans un generateur,
+    la valeur d'un return n'atteint pas la boucle for qui le parcourt. C'est ce
+    qui faisait echouer chaque annee, telechargement reussi ou non (09/10/2026).
     """
     url  = chirps_url(year)
     dest = tmp_dir / f"chirps_{year}.nc"
@@ -74,9 +79,11 @@ def download_year(year: int, tmp_dir: Path) -> tuple:
         resp = requests.get(url, headers=headers, stream=True, timeout=TIMEOUT)
 
         if resp.status_code == 416:
-            return True, dest, "deja complet"
+            yield True, dest, "deja complet"
+            return
         if resp.status_code not in (200, 206):
-            return False, None, f"HTTP {resp.status_code}"
+            yield False, None, f"HTTP {resp.status_code}"
+            return
 
         total = int(resp.headers.get("Content-Length", 0)) + downloaded
         mode  = "ab" if downloaded > 0 else "wb"
@@ -84,20 +91,25 @@ def download_year(year: int, tmp_dir: Path) -> tuple:
         with open(dest, mode) as fh:
             for chunk in resp.iter_content(chunk_size=CHUNK_SIZE):
                 if CANCEL_FILE.exists():
-                    return False, None, "annule"
+                    yield False, None, "annule"
+                    return
                 if chunk:
                     fh.write(chunk)
                     downloaded += len(chunk)
                     yield downloaded, total
 
-        return True, dest, "OK"
+        yield True, dest, "OK"
+        return
 
     except requests.exceptions.Timeout:
-        return False, None, "timeout"
+        yield False, None, "timeout"
+        return
     except requests.exceptions.ConnectionError as e:
-        return False, None, f"connexion: {str(e)[:80]}"
+        yield False, None, f"connexion: {str(e)[:80]}"
+        return
     except Exception as e:
-        return False, None, str(e)[:120]
+        yield False, None, str(e)[:120]
+        return
 
 
 def clip_and_save(nc_path: Path, year: int,
