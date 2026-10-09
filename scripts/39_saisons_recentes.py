@@ -250,7 +250,17 @@ def main():
             "population_touchee_max": int(e["population_touchee"].max()) if n else 0,
         })
     t = pd.DataFrame(lignes)
+    # Annee extreme au sens de la veille pre-saison (veille/annees.py) : empreinte
+    # (somme des couvertures) au-dessus du tiers superieur de 1981-2023.
+    from veille import annees as veille_annees
+    emp_ref = veille_annees.empreinte(debut=1981, fin=2023)
+    seuil_ext = veille_annees.seuil(emp_ref)
+    emp = ev.groupby(ev["date"].dt.year)["coverage_percent"].sum()
+    t["empreinte"] = t["annee"].map(emp).fillna(0.0).round(1)
+    t["rang_empreinte_sur_44"] = [int((emp_ref > v).sum()) + 1 for v in t["empreinte"]]
+    t["annee_extreme_veille"] = t["empreinte"] > seuil_ext
     t.to_csv(SORTIE / "annees_recentes.csv", index=False, encoding="utf-8")
+    lignes = t.to_dict("records")
 
     resume = {
         "calcule_le": maintenant(),
@@ -260,7 +270,8 @@ def main():
                   "complete par les mensuels preliminaires",
         "population": "ANSD, projections 2023-2030 par commune (API SDMX), localites RGPH-5",
         "reference_1981_2023": {"evenements_par_an_moyenne": round(float(ref.mean()), 1),
-                                "minimum": int(ref.min()), "maximum": int(ref.max())},
+                                "minimum": int(ref.min()), "maximum": int(ref.max()),
+                                "seuil_empreinte_annee_extreme": round(seuil_ext, 1)},
         "annees": lignes,
     }
     (SORTIE / "resume.json").write_text(json.dumps(resume, ensure_ascii=False, indent=2) + "\n",

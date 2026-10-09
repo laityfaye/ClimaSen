@@ -279,6 +279,23 @@ def code_commune(adm2_pcode, nom):
 
 
 @st.cache_data(ttl=300)
+def load_saisons_recentes():
+    """Saisons recentes (script 39) : (evenements, annees, resume), ou None.
+
+    Evenements depuis 2024 detectes avec la climatologie de reference 1981-2023 ;
+    le catalogue de l'etude n'est pas modifie. Colonne `source` : definitif ou
+    preliminaire (CHIRPS publie d'abord une version provisoire)."""
+    import json
+    d = BASE / "outputs" / "saisons_recentes"
+    fichiers = [d / "evenements_recents.csv", d / "annees_recentes.csv", d / "resume.json"]
+    if not all(f.exists() for f in fichiers):
+        return None
+    ev = pd.read_csv(fichiers[0], encoding="utf-8", parse_dates=["date"])
+    an = pd.read_csv(fichiers[1], encoding="utf-8")
+    return ev, an, json.loads(fichiers[2].read_text(encoding="utf-8"))
+
+
+@st.cache_data(ttl=300)
 def load_pauvrete_ansd():
     """Pauvrete par region lue par l'API SDMX de l'ANSD (DF_TX_PAUV, script 35) :
     {P-code de region (SN07): {"taux", "profondeur", "severite"}} pour 2022, plus

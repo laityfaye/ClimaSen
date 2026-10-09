@@ -1,4 +1,4 @@
-annee,jusqu_au,saison_complete,jours_preliminaires,evenements,reference_meme_periode_moyenne,rang_sur_44_meme_periode,phase_1,phase_2,phase_3,population_touchee_mediane,population_touchee_max
-2024,2024-12-31,True,0,39,30.6,7,4,16,19,2752674,17783079
-2025,2025-12-31,True,0,33,30.6,18,10,12,11,2772432,14977800
-2026,2026-10-05,False,35,27,26.0,19,6,14,7,3458701,14121681
+annee,jusqu_au,saison_complete,jours_preliminaires,evenements,reference_meme_periode_moyenne,rang_sur_44_meme_periode,phase_1,phase_2,phase_3,population_touchee_mediane,population_touchee_max,empreinte,rang_empreinte_sur_44,annee_extreme_veille
+2024,2024-12-31,True,0,39,30.6,7,4,16,19,2752674,17783079,956.9,7,True
+2025,2025-12-31,True,0,33,30.6,18,10,12,11,2772432,14977800,659.8,23,False
+2026,2026-10-05,False,35,27,26.0,19,6,14,7,3458701,14121681,633.1,25,False

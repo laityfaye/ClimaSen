@@ -1,12 +1,13 @@
 {
-  "calcule_le": "2026-10-09T14:52:04+00:00",
+  "calcule_le": "2026-10-09T15:11:33+00:00",
   "methode": "climatologie de reference 1981-2023 (fixe), detecteur du catalogue, mois de mai a octobre",
   "source": "CHIRPS v2.0 0,25 deg (UCSB Climate Hazards Center) : annuel definitif, complete par les mensuels preliminaires",
   "population": "ANSD, projections 2023-2030 par commune (API SDMX), localites RGPH-5",
   "reference_1981_2023": {
     "evenements_par_an_moyenne": 30.6,
     "minimum": 15,
-    "maximum": 50
+    "maximum": 50,
+    "seuil_empreinte_annee_extreme": 745.8
   },
   "annees": [
     {
@@ -21,7 +22,10 @@
       "phase_2": 16,
       "phase_3": 19,
       "population_touchee_mediane": 2752674,
-      "population_touchee_max": 17783079
+      "population_touchee_max": 17783079,
+      "empreinte": 956.9,
+      "rang_empreinte_sur_44": 7,
+      "annee_extreme_veille": true
     },
     {
       "annee": 2025,
@@ -35,7 +39,10 @@
       "phase_2": 12,
       "phase_3": 11,
       "population_touchee_mediane": 2772432,
-      "population_touchee_max": 14977800
+      "population_touchee_max": 14977800,
+      "empreinte": 659.8,
+      "rang_empreinte_sur_44": 23,
+      "annee_extreme_veille": false
     },
     {
       "annee": 2026,
@@ -49,7 +56,10 @@
       "phase_2": 14,
       "phase_3": 7,
       "population_touchee_mediane": 3458701,
-      "population_touchee_max": 14121681
+      "population_touchee_max": 14121681,
+      "empreinte": 633.1,
+      "rang_empreinte_sur_44": 25,
+      "annee_extreme_veille": false
     }
   ]
 }

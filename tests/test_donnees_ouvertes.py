@@ -58,10 +58,11 @@ def test_les_routes_d_iris_ne_bougent_pas(client):
 
 # --- catalogue ------------------------------------------------------------------
 
-def test_catalogue_annonce_les_cinq_jeux_avec_sources_et_licence(api):
+def test_catalogue_annonce_les_jeux_avec_sources_et_licence(api):
     c = api.get("/catalogue").json()
     assert [j["jeu"] for j in c["jeux"]] == [
-        "departements", "arrondissements", "communes", "evenements", "annees"]
+        "departements", "arrondissements", "communes", "evenements", "annees",
+        "evenements_recents"]
     for j in c["jeux"]:
         assert j["sources"] and j["licence"]["nom"]
         assert set(j["liens"]) >= {"json", "csv", "sdmx_csv", "sdmx_json"}
@@ -321,3 +322,24 @@ def test_pauvrete_de_l_api_ansd_identique_a_l_indice(api):
             < d["taux_pauvrete_region"]
     arr = api.get("/donnees/arrondissements", params={"indicateurs": "PROFONDEUR_PAUVRETE_REGION"})
     assert all(a["profondeur_pauvrete_region"] for a in arr.json()["donnees"])
+
+
+# --- saisons recentes (script 39) -------------------------------------------------
+
+def test_saisons_recentes_publiees_a_part(api):
+    """Les evenements depuis 2024 forment un jeu a part : le catalogue 1981-2023
+    (jeu evenements) n'est pas modifie."""
+    r = api.get("/donnees/evenements_recents").json()
+    assert r["total"] > 0
+    assert all(d["periode"] >= "2024-01-01" for d in r["donnees"])
+    assert {d["source"] for d in r["donnees"]} <= {"definitif", "preliminaire"}
+    assert all(5 <= int(d["periode"][5:7]) <= 10 for d in r["donnees"])     # mai a octobre
+    assert api.get("/donnees/evenements").json()["total"] == 1317
+    a = api.get("/donnees/evenements_recents", params={"annee": 2024,
+                                                       "population_min": 1000000}).json()
+    assert all(d["population_touchee_annee"] >= 1000000 for d in a["donnees"])
+    s = api.get("/sdmx/data/DF_EVENEMENTS_RECENTS/D.SN.POPULATION_TOUCHEE_ANNEE",
+                params={"format": "sdmx-csv", "startPeriod": "2024", "endPeriod": "2024"})
+    obs = pd.read_csv(io.StringIO(s.text))
+    assert len(obs) == len(api.get("/donnees/evenements_recents",
+                                   params={"annee": 2024}).json()["donnees"])

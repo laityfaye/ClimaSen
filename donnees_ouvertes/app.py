@@ -39,6 +39,7 @@ class NomJeu(str, Enum):
     communes = "communes"
     evenements = "evenements"
     annees = "annees"
+    evenements_recents = "evenements_recents"
 
 
 class Format(str, Enum):
@@ -396,9 +397,10 @@ def _filtrer(t, j, code, region, departement, annee, debut, fin, phase, populati
             raise ErreurRequete("Le filtre departement ne s'applique pas au jeu %s." % j.id)
         t = t[(t[colc] == departement) | (t[coln].map(lambda n: cle(n) if isinstance(n, str) else "")
                                           == cle(departement))]
-    temporel = j.id in ("evenements", "annees")
+    temporel = j.id in ("evenements", "annees", "evenements_recents")
     if (annee or debut or fin) and not temporel:
-        raise ErreurRequete("Les filtres annee, debut et fin s'appliquent aux jeux evenements et annees.")
+        raise ErreurRequete("Les filtres annee, debut et fin s'appliquent aux jeux evenements, "
+                            "annees et evenements_recents.")
     for p in (debut, fin):
         _verifier_periode(p)
     if annee:
@@ -408,12 +410,14 @@ def _filtrer(t, j, code, region, departement, annee, debut, fin, phase, populati
     if fin:
         t = t[t["periode"] <= (fin if len(fin) >= 10 else fin + "~")]
     if phase or population_min is not None:
-        if j.id != "evenements":
-            raise ErreurRequete("Les filtres phase et population_min s'appliquent au jeu evenements.")
+        if j.id not in ("evenements", "evenements_recents"):
+            raise ErreurRequete("Les filtres phase et population_min s'appliquent aux jeux "
+                                "evenements et evenements_recents.")
         if phase:
             t = t[t["phase"] == phase]
         if population_min is not None:
-            t = t[t["POPULATION_TOUCHEE"] >= population_min]
+            col = "POPULATION_TOUCHEE" if j.id == "evenements" else "POPULATION_TOUCHEE_ANNEE"
+            t = t[t[col] >= population_min]
     return t
 
 
