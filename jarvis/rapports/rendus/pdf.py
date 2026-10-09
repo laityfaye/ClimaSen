@@ -20,7 +20,7 @@ class ExportIndisponible(RuntimeError):
 PIED = ('<div style="width:100%;font-size:7px;color:#4a5863;padding:0 14mm;'
         'font-family:Segoe UI,DejaVu Sans,Arial,sans-serif;display:flex;'
         'justify-content:space-between;">'
-        '<span>CLIMAT-SEN · {ref} · généré le {date} · données {version}</span>'
+        '<span>ClimatSen · {ref} · généré le {date} · données {version}</span>'
         '<span>page <span class="pageNumber"></span> / <span class="totalPages"></span></span>'
         '</div>')
 

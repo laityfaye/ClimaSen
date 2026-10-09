@@ -40,9 +40,14 @@ def _arr():
         indice_departement=0.78, rang_departement=1, **COLONNES)])
 
 
-def _data(arr=True):
-    return {"vulnerabilite": {"departements": _dep(), "arrondissements": _arr() if arr else None,
-                              "resume": {}, "resume_arrondissements": None}}
+def _data(arr=True, **facultatifs):
+    # Jeux facultatifs (API SDMX de l'ANSD, communes) absents par defaut :
+    # aucun acces disque.
+    d = {"vulnerabilite": {"departements": _dep(), "arrondissements": _arr() if arr else None,
+                           "resume": {}, "resume_arrondissements": None},
+         "population_projetee": None, "pauvrete_ansd": None, "communes": None}
+    d.update(facultatifs)
+    return d
 
 
 def test_classement_par_defaut_par_indice():
@@ -251,3 +256,58 @@ def test_carte_vulnerabilite_zone_mise_en_evidence():
     assert fig.spec["donnees"]["surligne"] == ["SN0103"]
     r, _, _ = _carte({"zone": "Paris"})
     assert r["is_error"]
+
+
+# --- complements de l'API SDMX de l'ANSD et communes (scripts 34-37) ----------
+def _projection():
+    return pd.DataFrame({"code": ["SN0103", "SN0103_MBAO"],
+                         "population_2023": [763377, 149456],
+                         "population_2026": [808816, 158099],
+                         "population_2030": [869693, 170000]}).set_index("code")
+
+
+def _communes():
+    def f(nom, pop, jours, pcode="SN0103"):
+        return {"properties": {"commune_ansd": nom, "adm2_pcode": pcode,
+                               "population_2023": pop, "densite_hab_km2": 8639.0,
+                               "jours_extremes_par_an": jours}}
+    return {"features": [f("THIAROYE SUR MER", 61079, 6.05), f("MBAO", 149456, 6.04),
+                         f("NGOR", 17706, 6.04, pcode="SN0101")]}
+
+
+def test_fiche_sans_complements_reste_celle_de_l_indice():
+    assert "complements_ansd" not in vulnerabilite.run({"zone": "Pikine"}, _data())
+
+
+def test_fiche_porte_projection_pauvrete_et_communes():
+    pauv = {"SN01": {"taux": 9.3, "profondeur": 1.1, "severite": 0.3,
+                     "taux_2011": 26.1, "taux_2019": 9.0}}
+    r = vulnerabilite.run({"zone": "Pikine"}, _data(
+        population_projetee=_projection(), pauvrete_ansd=pauv, communes=_communes()))
+    c = r["complements_ansd"]
+    assert c["population_projetee"] == {"2023": 763377, "2026": 808816, "2030": 869693}
+    assert c["pauvrete_region"]["profondeur_P1_2022_pct"] == 1.1
+    assert c["pauvrete_region"]["taux_P0_2011_pct"] == 26.1
+    noms = [x["commune"] for x in c["communes"]["par_population_decroissante"]]
+    assert noms == ["Mbao", "Thiaroye Sur Mer"]                # Ngor : autre departement
+    assert c["communes"]["par_population_decroissante"][0]["population_2026"] == 158099
+    assert "APPROXIMATIFS" in c["communes"]["lecture"]
+    assert "PAS dans l'indice" in c["statut"]
+
+
+def test_arrondissement_renvoie_vers_les_communes_du_departement():
+    pauv = {"SN07": {"taux": 62.5, "profondeur": 20.0, "severite": 9.0}}
+    r = vulnerabilite.run({"zone": "Bonconto", "level": "arrondissements"},
+                          _data(pauvrete_ansd=pauv))
+    c = r["complements_ansd"]
+    assert "population_projetee" not in c                       # departements seulement
+    assert "Velingara" in c["communes"]
+
+
+def test_vraies_communes_de_pikine():
+    d = _vraies_donnees()
+    c = vulnerabilite.run({"zone": "Pikine"}, d).get("complements_ansd")
+    if not c or "communes" not in c:
+        pytest.skip("scripts 34-37 non lances")
+    assert c["communes"]["nombre"] >= 10
+    assert c["pauvrete_region"]["taux_P0_2022_pct"] == 9.3

@@ -44,7 +44,8 @@ def projet(tmp_path):
     _ecrire(tmp_path, "out/clusters.csv", T0 + 10 * JOUR)
     _ecrire(tmp_path, "out/rapport.txt", T0 + JOUR)
     _ecrire(tmp_path, "out/cartes.png", T0 + 5 * JOUR)   # avant les clusters
-    return {"pipeline": {"steps": etapes, "base": str(tmp_path)}}
+    # Pas d'etapes complementaires (26-37) ici : elles ont leurs propres tests.
+    return {"pipeline": {"steps": etapes, "base": str(tmp_path), "complementaires": []}}
 
 
 def _par_id(res):
@@ -55,7 +56,8 @@ def test_etapes_a_jour(projet):
     etapes = _par_id(outil.run({}, projet))
     assert etapes["01"]["statut"] == "a jour"
     assert etapes["04"]["statut"] == "a jour"
-    assert etapes["01"]["fichiers_presents"] == "2/2"
+    detail = outil.run({"step": "01"}, projet)["etapes"][0]
+    assert detail["fichiers_presents"] == "2/2"
 
 
 def test_etape_plus_ancienne_que_son_amont_est_a_relancer(projet):
@@ -82,7 +84,8 @@ def test_sorties_d_ages_differents_signalees(projet):
     etapes = _par_id(outil.run({}, projet))
     assert etapes["11"]["sorties_de_lancements_differents"] is True
     assert etapes["11"]["ecart_entre_sorties_jours"] == pytest.approx(9.0)
-    assert etapes["01"]["sorties_de_lancements_differents"] is False
+    detail = outil.run({"step": "01"}, projet)["etapes"][0]
+    assert detail["sorties_de_lancements_differents"] is False
 
 
 def test_fichier_manquant(projet, tmp_path):
@@ -121,3 +124,52 @@ def test_aucun_chemin_absolu_dans_le_resultat(projet, tmp_path):
 def test_resume(projet):
     res = outil.run({}, projet)
     assert res["resume"] == {"a jour": 4, "a relancer": 1}
+
+
+def test_vue_d_ensemble_compacte_les_etapes_a_jour(projet):
+    """Une etape a jour tient en une ligne ; une etape a signaler garde son
+    detail (sinon la liste depasse le plafond et sa fin est coupee)."""
+    etapes = _par_id(outil.run({}, projet))
+    assert set(etapes["01"]) == {"etape", "libelle", "statut", "derniere_execution"}
+    assert "amont_plus_recent_que_cette_etape" in etapes["14"]      # a relancer
+    assert "ecart_entre_sorties_jours" in etapes["11"]              # heterogene
+
+
+def test_etapes_complementaires_et_synchronisation_ansd(projet, tmp_path):
+    projet["pipeline"]["complementaires"] = [
+        _etape("35", ["odp/MANIFEST.json"]), _etape("36", ["out/zones.csv"])]
+    outil.DEPENDANCES.setdefault("36", ["35"])
+    _ecrire(tmp_path, "out/zones.csv", T0)
+    _ecrire(tmp_path, "odp/MANIFEST.json", T0 + JOUR)       # ANSD plus recent
+    res = outil.run({}, projet)
+    etapes = _par_id(res)
+    assert etapes["36"]["statut"] == "a relancer"
+    assert res["synchronisation_ansd"]["derniere_synchronisation"] is None
+    assert "Synchroniser" in res["synchronisation_ansd"]["note"]
+
+
+def test_synchronisation_ansd_lue(tmp_path):
+    import json
+    odp = tmp_path / "data" / "raw" / "ansd" / "odp"
+    odp.mkdir(parents=True)
+    (odp / ".synchro.json").write_text(json.dumps({
+        "etat": "termine", "resultat": "inchange", "fin": "2026-10-09T10:00:00+00:00",
+        "derniere_verification": "2026-10-09T10:00:00+00:00", "journal": ["long"]}),
+        encoding="utf-8")
+    (odp / "MANIFEST.json").write_text(json.dumps({"fichiers": [
+        {"fichier": "DF_TX_PAUV.csv", "telecharge_le": "2026-10-08T19:41:19+00:00"}]}),
+        encoding="utf-8")
+    s = outil._synchro_ansd(tmp_path)
+    assert s["copie_telechargee_le"] == "2026-10-08T19:41:19+00:00"
+    assert s["derniere_synchronisation"]["resultat"] == "inchange"
+    assert "journal" not in s["derniere_synchronisation"]
+
+
+def test_la_vraie_vue_d_ensemble_tient_sous_le_plafond():
+    """Toutes les etapes reelles, page + complementaires, sans troncature."""
+    import json
+    from jarvis.tools import dataset, registry
+    res = outil.run({}, {"pipeline": dataset.get("pipeline")})
+    ids = {e["etape"] for e in res["etapes"]}
+    assert {"01", "04", "26", "33", "35", "37"} <= ids
+    assert len(json.dumps(res, ensure_ascii=False, default=str)) <= registry.MAX_RESULT_CHARS

@@ -330,6 +330,15 @@ def _evenement(params, data):
                                  if maxi else None),
         "regions_les_plus_touchees": _moyennes_regionales(grille2d),
     }
+    # Habitants de la zone touchee : memes champs que search_extreme_events et
+    # que la fiche evenement du dashboard (script 33).
+    from . import dataset, events
+    pop = dataset.facultatif(data, "population_touchee")
+    habitants = {k: v for k, v in events._avec_population({"date": brut}, pop).items()
+                 if k != "date"}
+    if habitants:
+        resume["habitants"] = dict(habitants, lecture=events.LECTURE_POPULATION,
+                                   source=events.POPULATION)
     return spec, resume
 
 

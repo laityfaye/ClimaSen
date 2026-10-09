@@ -11,7 +11,14 @@ sinistres. La vulnerabilite est PROVISOIRE (pauvrete regionale EHCVM +
 croissance 2013-2023) en attendant les donnees d'habitat du RGPH-5, et elle
 place les zones de la region de Dakar au plus bas: le modele doit le dire
 quand la question porte sur Dakar et sa banlieue.
+
+La fiche d'une zone porte aussi, comme la page, ce qui vient de l'API SDMX de
+l'ANSD (scripts 35-37) : population projetee 2026/2030, profondeur et severite
+de la pauvrete, son evolution 2011-2022, et les communes du departement
+(contours reconstruits, script 34). Ces chiffres N'ENTRENT PAS dans l'indice.
+Jeux facultatifs : sans eux, la fiche reste celle de l'indice.
 """
+from . import dataset
 from .common import ToolInputError, arrondir, champ_enum, champ_entier, champ_texte, normalise
 
 NAME = "get_priority_zones"
@@ -42,7 +49,9 @@ DESCRIPTION = (
     "zones proteger en priorite', 'ou le risque d'inondation est-il le plus fort', 'classement "
     "des departements', 'pourquoi tel departement ressort', 'risque a Pikine'. Renvoie le "
     "classement (5 zones par defaut, filtrable par region), ou la fiche d'une zone avec "
-    "zone=<nom> (chiffres bruts et indicateurs EHCVM de sa region). Chaque reponse porte le "
+    "zone=<nom> (chiffres bruts, indicateurs EHCVM de sa region, population projetee ANSD "
+    "2026/2030, profondeur et severite de la pauvrete, et pour un departement ses communes : "
+    "population 2023/2026, densite, jours de pluie extreme par an). Chaque reponse porte le "
     "bloc fiabilite (sensibilite aux poids, validation contre les inondations documentees "
     "2005-2020) et les donnees absentes : a utiliser pour 'l'indice est-il valide / fiable / "
     "robuste'."
@@ -80,9 +89,22 @@ REGLE = (
 SOURCES = (
     "alea : CHIRPS v2 0,25 deg, 1981-2023, mai-octobre | population : ANSD RGPH-5 2023 et "
     "RGPH 2013 | pauvrete et indicateurs regionaux : ANSD EHCVM 2021-2022 (Tab. III-2, VII-11, "
-    "Carte VII-1, Fig. VIII-3, VIII-6) | contours : OCHA COD-AB v02 (2024) | validation : "
+    "Carte VII-1, Fig. VIII-3, VIII-6) ; profondeur, severite et evolution de la pauvrete, "
+    "population projetee 2026-2030 : ANSD, API SDMX (Open Data Platform), taux 2011 : ESPS "
+    "| communes : contours "
+    "approximatifs reconstruits des coordonnees des localites ANSD (script 34) | contours : "
+    "OCHA COD-AB v02 (2024) | validation : "
     "inondations 2005-2020 (PDNA 2009, UNOSAT, FICR, OCHA), script 29"
 )
+
+HORS_INDICE = ("donnees de l'API SDMX de l'ANSD : elles n'entrent PAS dans l'indice (qui "
+               "garde la pauvrete EHCVM 2021-2022 et la population 2023) ; elles le "
+               "completent")
+LECTURE_COMMUNES = ("contours APPROXIMATIFS (limite a mi-distance des localites voisines), "
+                    "pas les limites officielles ; l'indice n'est pas calcule a la commune ; "
+                    "jours_extremes_par_an = jours par an ou le pixel CHIRPS des habitants "
+                    "depasse +2 sigma, moyenne ponderee par la population")
+MAX_COMMUNES = 8
 
 # Donnees que la plateforme N'A PAS (pour repondre franchement aux experts).
 DONNEES_ABSENTES = (
@@ -155,6 +177,70 @@ def _indicateurs_region(v, region):
     if sortie:
         sortie["echelle"] = "region (EHCVM 2021-2022), meme valeur pour toutes ses zones"
     return sortie or None
+
+
+def _complements_ansd(data, r, niveau):
+    """Ce que la fiche de la page Vulnerabilite montre en plus de l'indice :
+    projection de population, pauvrete detaillee, communes. None si rien."""
+    pcode = str(r["pcode"])
+    sortie = {}
+    proj = dataset.facultatif(data, "population_projetee")
+    if proj is not None and niveau == "departements" and pcode in proj.index:
+        ligne = proj.loc[pcode]
+        sortie["population_projetee"] = {
+            "2023": int(ligne["population_2023"]), "2026": int(ligne["population_2026"]),
+            "2030": int(ligne["population_2030"])}
+    pauv = (dataset.facultatif(data, "pauvrete_ansd") or {}).get(pcode[:4])
+    if pauv:
+        bloc = {"echelle": "region"}
+        for cle, nom in (("taux", "taux_P0_2022_pct"), ("profondeur", "profondeur_P1_2022_pct"),
+                         ("severite", "severite_P2_2022_pct"), ("taux_2011", "taux_P0_2011_pct"),
+                         ("taux_2019", "taux_P0_2019_pct")):
+            if cle in pauv:
+                bloc[nom] = arrondir(pauv[cle], 1)
+        sortie["pauvrete_region"] = bloc
+    if niveau == "departements":
+        communes = _communes_du_departement(data, pcode, proj)
+        if communes:
+            sortie["communes"] = communes
+    elif niveau == "arrondissements":
+        sortie["communes"] = ("liste des communes : fiche du departement (level=departements, "
+                              "zone=%s)" % r.get("departement"))
+    if sortie:
+        sortie["statut"] = HORS_INDICE
+    return sortie or None
+
+
+def _communes_du_departement(data, pcode, proj):
+    geo = dataset.facultatif(data, "communes")
+    if not geo:
+        return None
+    lignes = [f["properties"] for f in geo.get("features", [])
+              if f["properties"].get("adm2_pcode") == pcode]
+    if not lignes:
+        return None
+    from .dataset import _utils
+    code = _utils().code_commune
+    lignes.sort(key=lambda c: -(c.get("population_2023") or 0))
+    detail = []
+    for c in lignes[:MAX_COMMUNES]:
+        d = {"commune": str(c.get("commune_ansd", "")).title(),
+             "population_2023": c.get("population_2023"),
+             "densite_hab_km2": arrondir(c.get("densite_hab_km2"), 0),
+             "jours_extremes_par_an": arrondir(c.get("jours_extremes_par_an"), 2)}
+        if proj is not None:
+            k = code(pcode, c.get("commune_ansd", ""))
+            if k in proj.index:
+                d["population_2026"] = int(proj.loc[k, "population_2026"])
+        detail.append(d)
+    jours = [c["jours_extremes_par_an"] for c in lignes if c.get("jours_extremes_par_an") is not None]
+    return {
+        "nombre": len(lignes),
+        "par_population_decroissante": detail,
+        "jours_extremes_par_an_min_max": ([arrondir(min(jours), 2), arrondir(max(jours), 2)]
+                                          if jours else None),
+        "lecture": LECTURE_COMMUNES,
+    }
 
 
 def _niveau(params):
@@ -265,6 +351,9 @@ def run(params, data):
         indic = _indicateurs_region(v, trouves.iloc[0]["region"])
         if indic:
             resultat["indicateurs_region_ehcvm"] = indic
+        ansd = _complements_ansd(data, trouves.iloc[0], niveau)
+        if ansd:
+            resultat["complements_ansd"] = ansd
         resultat["fiabilite"] = _fiabilite(v, niveau)
         resultat["donnees_absentes"] = DONNEES_ABSENTES
         return resultat

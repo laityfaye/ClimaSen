@@ -165,6 +165,44 @@ def _faits_ehcvm(c, v, region):
             "% des ménages", "2021-2022", tf.SOURCES["EHCVM"], statut="observe")))
 
 
+def _faits_ansd(c, data, r, niveau):
+    """Projection de population et pauvrete detaillee (API SDMX de l'ANSD) :
+    memes chiffres que get_priority_zones et la fiche de la page. Hors indice."""
+    ansd = outil_vul._complements_ansd(data, r, niveau) or {}
+    reg, src = c.registre, tf.SOURCE_ANSD_SDMX
+    proj = ansd.get("population_projetee") or {}
+    pauv = ansd.get("pauvrete_region") or {}
+    if not (proj or pauv):
+        return
+    if "ANSD_SDMX" not in c.sources:
+        c.sources.append("ANSD_SDMX")
+    reg.ajouter_si("zone_pop2026", proj.get("2026"), "population projetée 2026", "projete", src,
+                   "2026", format="entier", suffixe=" habitants")
+    reg.ajouter_si("zone_pop2030", proj.get("2030"), "population projetée 2030", "projete", src,
+                   "2030", format="entier", suffixe=" habitants")
+    if "zone_pop2026" in reg and "zone_pop2030" in reg:
+        c.paragraphe("analyse", "Selon les projections de l'ANSD, la population atteindrait "
+                     "{{fait:zone_pop2026}} en 2026 et {{fait:zone_pop2030}} en 2030 ; l'indice "
+                     "reste calculé sur la population de 2023.", "projete")
+    reg.ajouter_si("pauv_profondeur", pauv.get("profondeur_P1_2022_pct"),
+                   "profondeur de la pauvreté de la région (P1)", "observe", src, "2021-2022",
+                   format="pct", decimales=1)
+    reg.ajouter_si("pauv_severite", pauv.get("severite_P2_2022_pct"),
+                   "sévérité de la pauvreté de la région (P2)", "observe", src, "2021-2022",
+                   format="pct", decimales=1)
+    reg.ajouter_si("pauv_2011", pauv.get("taux_P0_2011_pct"),
+                   "taux de pauvreté de la région en 2011", "observe", "ANSD ESPS 2011, API SDMX",
+                   "2011", format="pct", decimales=1)
+    if "pauv_profondeur" in reg and "pauv_severite" in reg:
+        texte = ("Au-delà du taux, la profondeur de la pauvreté de la région est de "
+                 "{{fait:pauv_profondeur}} et sa sévérité de {{fait:pauv_severite}} (EHCVM "
+                 "2021-2022) : elles disent à quel point les ménages pauvres le sont, et "
+                 "n'entrent pas dans l'indice.")
+        if "pauv_2011" in reg:
+            texte += " Le taux de pauvreté de la région était de {{fait:pauv_2011}} en 2011."
+        c.paragraphe("analyse", texte, "observe")
+
+
 def _carte(niveau, zone=None, surligne=None, composante="indice"):
     params = {"type": "vulnerabilite", "level": niveau, "component": composante}
     if zone:
@@ -271,7 +309,7 @@ def collecter(spec, data, gazetteer=None):
     c.titre = "Risque de pluies extrêmes et vulnérabilité"
     c.paragraphe("contexte",
                  "Ce rapport présente l'indice de risque de pluies extrêmes pour %s, établi "
-                 "par la plateforme CLIMAT-SEN à l'intention des %s. Il situe la zone par "
+                 "par la plateforme ClimatSen à l'intention des %s. Il situe la zone par "
                  "rapport au reste du pays et décompose son risque en aléa (fréquence des "
                  "pluies extrêmes), exposition (population) et vulnérabilité des ménages."
                  % (lieu.avec_article(), public))
@@ -468,6 +506,7 @@ def collecter(spec, data, gazetteer=None):
             "La zone est plus petite qu'un pixel CHIRPS : son aléa est celui du pixel terrestre "
             "le plus proche, partagé avec les zones voisines.")
     _faits_ehcvm(c, v, region)
+    _faits_ansd(c, data, r, niveau)
     if normalise(region) == "dakar":
         c.limite("biais_dakar")
         c.consignes.append("Zone de la region de Dakar: expliquer que le rang bas vient de la "

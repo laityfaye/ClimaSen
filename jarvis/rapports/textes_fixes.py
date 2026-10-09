@@ -15,6 +15,8 @@ SOURCES = {
     "OCHA": "OCHA COD-AB Sénégal v02 (2024), limites administratives",
     "C3S": "Copernicus C3S, prévision saisonnière ECMWF SEAS5, calibrée sur CHIRPS",
     "INONDATIONS": "Inondations documentées 2005-2020 (PDNA 2009, UNOSAT, FICR, OCHA)",
+    "ANSD_SDMX": "ANSD, Open Data Platform (API SDMX) : projections de population 2023-2030, "
+                 "profondeur et sévérité de la pauvreté (EHCVM 2021-2022, ESPS 2011)",
 }
 
 # Libelles courts, pour les pieds de figure.
@@ -22,6 +24,7 @@ SOURCE_CHIRPS = "CHIRPS v2"
 SOURCE_OISST = "NOAA OISST v2"
 SOURCE_RGPH5 = "ANSD RGPH-5"
 SOURCE_EHCVM = "ANSD EHCVM 2021-2022"
+SOURCE_ANSD_SDMX = "ANSD, API SDMX"
 SOURCE_INDICE = "CHIRPS v2 ; ANSD RGPH-5 ; ANSD EHCVM 2021-2022 ; OCHA COD-AB"
 
 MENTION_ANACIM = (

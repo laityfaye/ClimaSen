@@ -180,6 +180,50 @@ jeux:
       groupe: {nature: categorie, libelle: classe}
       seuil: {nature: categorie, libelle: seuil de la classe}
       unite: {nature: categorie, libelle: unité}
+  habitants_evenements:
+    description: Habitants (RGPH-5 2023) des zones touchees par chaque evenement extreme (script 33), et projection 2026 (script 37)
+    chargeur: dataset:population_touchee
+    transformation: par_date
+    source: ANSD RGPH-5 ; CHIRPS v2 ; projection 2026 ANSD API SDMX
+    periode: 1981-2023 ; population 2023
+    annee: annee
+    colonnes:
+      annee: {nature: annee, libelle: année}
+      mois: {nature: mois, libelle: mois}
+      phase: {nature: categorie, libelle: phase de saison}
+      population_touchee_2023: {nature: mesure, unite: habitants, libelle: habitants de la zone touchée (2023)}
+      population_touchee_2026: {nature: mesure, unite: habitants, libelle: habitants de la zone touchée (projection 2026)}
+      part_population_nationale_pct: {nature: taux, unite: "% de la population", libelle: part de la population nationale}
+      departements_touches: {nature: mesure, unite: départements, libelle: départements touchés}
+      departement_le_plus_touche: {nature: categorie, libelle: département le plus peuplé de la zone touchée}
+      couverture_pct: {nature: taux, unite: "% de la grille", libelle: couverture}
+      pluie_max_mm: {nature: mesure, unite: mm/jour, libelle: pluie maximale}
+  communes_exposition:
+    description: Les 552 communes (contours approximatifs, script 34) - population, densite et jours de pluie extreme par an
+    chargeur: fichier:outputs/exposition_evenements/communes_reconstruites_controle.csv
+    source: ANSD RGPH-5 et coordonnees des localites ; CHIRPS v2
+    periode: population 2023 ; pluie 1981-2023
+    colonnes:
+      commune_ansd: {nature: categorie, libelle: commune}
+      departement: {nature: categorie, libelle: département}
+      region: {nature: categorie, libelle: région}
+      adm2_pcode: {nature: code}
+      population_2023: {nature: stock, unite: habitants, libelle: population 2023}
+      menages_2023: {nature: stock, unite: ménages, libelle: ménages 2023}
+      superficie_km2: {nature: stock, unite: km², libelle: superficie (approximative)}
+      densite_hab_km2: {nature: taux, unite: hab/km², libelle: densité 2023}
+      jours_extremes_par_an: {nature: mesure, unite: jours/an, libelle: jours de pluie extrême par an}
+  population_projetee:
+    description: Population projetee par l'ANSD (2023, 2026, 2030) des departements et des communes (script 37)
+    chargeur: fichier:outputs/exposition_evenements/population_projetee_zones.csv
+    source: ANSD, projections de population, API SDMX
+    periode: 2023-2030
+    colonnes:
+      code: {nature: code}
+      niveau: {nature: categorie, libelle: niveau}
+      population_2023: {nature: stock, unite: habitants, libelle: population 2023}
+      population_2026: {nature: stock, unite: habitants, libelle: population projetée 2026}
+      population_2030: {nature: stock, unite: habitants, libelle: population projetée 2030}
 # Jointures autorisees: on rapporte des colonnes du jeu de droite dans le jeu
 # de gauche; la cle de droite doit etre unique. Noms compares sans accents ni casse.
 jointures:
@@ -190,4 +234,6 @@ jointures:
   - {gauche: arrondissements, droite: ehcvm_services, cle_gauche: region, cle_droite: region}
   - {gauche: arrondissements, droite: ehcvm_assainissement, cle_gauche: region, cle_droite: region}
   - {gauche: communes, droite: arrondissements, cle_gauche: adm3_pcode, cle_droite: pcode}
+  - {gauche: departements, droite: population_projetee, cle_gauche: pcode, cle_droite: code}
+  - {gauche: communes_exposition, droite: departements, cle_gauche: adm2_pcode, cle_droite: pcode}
   - {gauche: evenements, droite: departements, cle_gauche: max_intensity_department, cle_droite: departement}

@@ -20,6 +20,7 @@ Le contexte n'entre jamais dans l'historique de conversation: il decrit
 l'ecran au moment de CETTE question, et le filtre aura change a la suivante.
 """
 import re
+import unicodedata
 
 from .tools.common import INDICES, METRIQUES, PHASES, PHASES_TOUTES
 
@@ -38,6 +39,26 @@ def _enum(valeurs):
     def valider(v):
         return v if isinstance(v, str) and v in valeurs else None
     return valider
+
+
+def _sans_accents(v):
+    return "".join(c for c in unicodedata.normalize("NFD", v)
+                   if unicodedata.category(c) != "Mn").casefold()
+
+
+def _choix(valeurs):
+    """Enumeration tolerante aux accents et a la casse, ramenee au libelle
+    EXACT de la page: la navigation ecrit la valeur telle quelle dans la
+    session Streamlit, une graphie approchee n'y correspondrait a rien."""
+    canon = {_sans_accents(v): v for v in valeurs}
+
+    def valider(v):
+        return canon.get(_sans_accents(v)) if isinstance(v, str) else None
+    return valider
+
+
+ONGLETS_PIPELINE = ("Données CHIRPS", "Pipeline d'analyse", "Données SST",
+                    "Données ANSD")
 
 
 def _entier(mini, maxi):
@@ -118,8 +139,7 @@ CHAMPS = {
                             "metrique du diagramme en barres"),
     },
     "Pipeline": {
-        "onglet": (_enum(("Donnees CHIRPS", "Pipeline d'analyse", "Donnees SST")),
-                   "onglet ouvert"),
+        "onglet": (_choix(ONGLETS_PIPELINE), "onglet ouvert"),
     },
     "Veille": {
         "saison": (_entier(1981, 2100), "saison du bulletin de veille pre-saison affiche"),

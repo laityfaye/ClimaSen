@@ -1,4 +1,4 @@
-"""Rapports professionnels generes par Iris a partir des donnees de CLIMAT-SEN.
+"""Rapports professionnels generes par Iris a partir des donnees de ClimatSen.
 
 Principe directeur: le CODE calcule et dessine, le modele ne fait que rediger.
 

@@ -109,6 +109,11 @@ def charger_jeu(nom) -> pd.DataFrame:
             brut = brut[cle]
         if racine == "correlations":
             df = pd.concat([t.assign(phase=p) for p, t in brut.items()], ignore_index=True)
+        elif j.get("transformation") == "par_date":
+            # Jeu indexe par la date "AAAA-MM-JJ" (habitants par evenement).
+            df = brut.reset_index()
+            jours = pd.to_datetime(df["date"])
+            df = df.assign(annee=jours.dt.year, mois=jours.dt.month)
         elif j.get("transformation") == "annuelle":
             df = brut.assign(annee=brut["date"].dt.year).drop(columns=["date"]) \
                 .groupby("annee", as_index=False).mean()
@@ -571,7 +576,8 @@ def executer(brute) -> dict:
             t = df.sort_values(plan.y, ascending=(plan.tri == "asc"))[plan.colonnes_tableau]
         t = t.head(plan.top or MAX_CATEGORIES)
         sortie = {"genre": "tableau", "colonnes": [plan.libelle(c) for c in plan.colonnes_tableau],
-                  "lignes": [[_cellule(v) for v in ligne] for ligne in t.itertuples(index=False)]}
+                  "lignes": [[_cellule(v, plan.nature(c)) for v, c in zip(ligne, plan.colonnes_tableau)]
+                             for ligne in t.itertuples(index=False)]}
         unite = " ; ".join(sorted({plan.unite(c) for c in plan.colonnes_tableau
                                    if plan.nature(c) in NUMERIQUES})) or "sans objet"
         desc = "Extrait de %s" % plan.meta_jeu["description"].lower()
@@ -604,7 +610,10 @@ def executer(brute) -> dict:
     return sortie
 
 
-def _cellule(v):
+def _cellule(v, nature=None):
+    # Une annee ou un mois ne prend pas de separateur de milliers ("2 012").
+    if nature in ("annee", "mois") and isinstance(v, (int, float, np.integer, np.floating))             and np.isfinite(v):
+        return str(int(v))
     if isinstance(v, float):
         if not np.isfinite(v):
             return "—"

@@ -105,18 +105,21 @@ session.py   ratelimit.py   conversations.py   claude_client.py
 | Outil | Lit | Répond à |
 |---|---|---|
 | `get_sst_index` | `load_sst` | valeur d'un indice SST, série mensuelle ou annuelle, extrêmes datés |
-| `search_extreme_events` | `load_events` | combien d'événements, quand, où, lesquels ont été les plus intenses |
+| `search_extreme_events` | `load_events` (+ `load_population_touchee`, facultatif) | combien d'événements, quand, où, lesquels ont été les plus intenses ; habitants de la zone touchée (script 33, projection 2026 du script 37) |
 | `get_teleconnection` | `load_telecon` | corrélation indice / pluies extrêmes, par phase et par lag |
 | `get_risk_cluster` | `load_clustering` | régimes océaniques du K-Means et leur profil |
 | `search_documents` | index embarqué | méthodes, justifications, interprétations (mémoire et article) |
 | `analyze_teleconnections` | `load_telecon` | significativité comparée au hasard, bassin dominant, comparaison de phases, robustesse |
 | `analyze_extreme_events` | `load_events` | tendance (Mann-Kendall, pente de Sen), deux périodes, saisonnalité, régions |
-| `get_pipeline_status` | `PIPELINE_STEPS` + dates des fichiers | résultats à jour, étapes à relancer |
+| `get_pipeline_status` | `PIPELINE_STEPS` + `ETAPES_COMPLEMENTAIRES` (scripts 26-37) + dates des fichiers | résultats à jour, étapes à relancer, dernière synchronisation ANSD (script 38) |
+| `get_priority_zones` | `load_vulnerabilite` (+ `load_population_projetee`, `load_pauvrete_ansd`, `load_communes_reconstruites`, facultatifs) | indice de risque, fiabilité ; fiche d'une zone avec projection ANSD, P0/P1/P2 régionaux et communes (hors indice) |
 | `make_figure` | les quatre loaders | figure affichée sous la réponse (7 types), données en CSV |
 
 ```
 jarvis/tools/
-  dataset.py    seul point de contact avec scripts/dashboard_utils.py
+  dataset.py    seul point de contact avec scripts/dashboard_utils.py ;
+                facultatif(data, nom) pour un jeu d'enrichissement (habitants,
+                ANSD, communes) : absent, l'outil repond sans lui
   registry.py   déclarations, permissions, exécution, plafond de taille
   common.py     vocabulaire de la plateforme, validation, formatage
   <outil>.py    une fonction pure run(params, data) par outil

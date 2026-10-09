@@ -56,6 +56,19 @@ FICHIERS = {
                     "ANSD Atlas RGPH-5", "2023"),
     "veille_competence": ("outputs/veille/competence_projection.json",
                           "Veille pre-saison", "1983-2023"),
+    # Exposition et API SDMX de l'ANSD (scripts 33-37, 07-09/10/2026).
+    "habitants_evenements": ("outputs/exposition_evenements/population_touchee_evenements.csv",
+                             "ANSD RGPH-5 ; CHIRPS v2", "1981-2023 ; population 2023"),
+    "habitants_projetes": ("outputs/exposition_evenements/population_touchee_projetee.csv",
+                           "ANSD projections (API SDMX)", "2026-2030"),
+    "communes_exposition": ("outputs/exposition_evenements/communes_reconstruites_controle.csv",
+                            "ANSD RGPH-5 et coordonnees des localites", "2023"),
+    "population_projetee": ("outputs/exposition_evenements/population_projetee_zones.csv",
+                            "ANSD projections (API SDMX)", "2023-2030"),
+    "pauvrete_ansd_sdmx": ("data/raw/ansd/odp/DF_TX_PAUV.csv",
+                           "ANSD EHCVM et ESPS (API SDMX)", "2011-2022"),
+    "zones_ansd": ("data/processed/correspondance_zones_ansd.csv",
+                   "ANSD codes SDMX / OCHA P-codes", "2024"),
 }
 
 _verrou = threading.Lock()
