@@ -174,23 +174,32 @@ class ProposeTask:
     PERMISSION = PERMISSION
     DATASETS = ()
     DESCRIPTION = (
-        "PROPOSE d'executer une tache sur le serveur: un script du pipeline "
-        "(ex: 04_teleconnections_analysis.py, 11_kmeans_sst_analysis.py, "
-        "14_sst_patterns_cartopy.py) ou les tests (script=pytest, avec "
-        "test_file optionnel: tests/test_xxx.py). N'EXECUTE RIEN: la tache "
-        "attend l'approbation de Laity, puis tourne en arriere-plan, une a la "
-        "fois, avec un delai maximal. Suivre son avancement avec "
-        "get_task_status. Utile apres une modification de code, ou quand "
-        "get_pipeline_status signale une etape a relancer."
+        "PROPOSE d'executer une tache sur le serveur: un script de scripts/ "
+        "(ceux de la page Pipeline: 01 a 04, 11, 14, 19 a 22, "
+        "extract_daily_indices_from_sst.py; et aussi 15, 16, 17, 23 a 40 sauf "
+        "18) ou les tests (script=pytest, avec test_file optionnel: "
+        "tests/test_xxx.py). Un nom hors liste est refuse et le refus donne la "
+        "liste. N'EXECUTE RIEN: la tache attend l'approbation de Laity, puis "
+        "tourne en arriere-plan, une a la fois, avec un delai maximal. Suivre "
+        "son avancement avec get_task_status. Utile apres une modification de "
+        "code, ou quand get_pipeline_status signale une etape a relancer.\n"
+        "options (liste fermee, nombres ou drapeaux true seulement): "
+        + "; ".join("%s: %s" % (s, code_ops.options_texte(s))
+                    for s in code_ops.OPTIONS_SCRIPTS)
+        + ". Les autres scripts se lancent sans option."
     )
     SCHEMA = {
         "type": "object",
         "properties": {
             "script": {"type": "string",
-                       "description": "Nom du script du pipeline, ou 'pytest'."},
+                       "description": "Nom du fichier dans scripts/, ou 'pytest'."},
             "test_file": {"type": "string",
                           "description": "pytest: fichier tests/test_xxx.py. "
                                          "Omettre pour toute la suite (~3 min)."},
+            "options": {"type": "object",
+                        "description": "Options du script, ex: "
+                                       "{\"--annees\": [2023], \"--telecharger\": true}. "
+                                       "Omettre pour lancer le script tel quel."},
             "reason": {"type": "string", "description": "Pourquoi lancer cette tache."},
         },
         "required": ["script", "reason"],
@@ -204,21 +213,26 @@ class ProposeTask:
         if not script or not raison:
             raise ToolInputError("Les parametres script et reason sont requis.")
         try:
-            tache = code_ops.preparer_tache(script, champ_texte(params, "test_file", maxi=120))
+            tache = code_ops.preparer_tache(script, champ_texte(params, "test_file", maxi=120),
+                                            params.get("options"))
         except RefusCode as exc:
             raise _refus(exc)
         if registre is None or session_id is None:  # pragma: no cover
             raise ToolInputError("Contexte de session absent.")
         delai = getattr(settings, "task_timeout_seconds", 1800) if settings else 1800
+        arguments = tache.get("arguments", "")
         action = registre.deposer(
             session_id, "tache_executer",
-            "Executer %s" % tache["cible"],
+            "Executer %s%s" % (tache["cible"], " " + arguments if arguments else ""),
             {"script": tache["script"], "cible": tache["cible"],
+             "arguments": arguments,
              "libelle": tache["libelle"], "raison": raison, "delai_max_s": delai},
-            {"script": tache["script"], "cible": tache["cible"]},
+            {"script": tache["script"], "cible": tache["cible"],
+             "options": tache.get("options", {})},
         )
         return {"statut": "proposition_deposee", "action_id": action.id,
                 "tache": tache["libelle"], "cible": tache["cible"],
+                "arguments": arguments,
                 "message": ("Proposition deposee. RIEN n'a ete lance: la tache "
                             "attend l'approbation de Laity. Une fois lancee, "
                             "get_task_status donne son resultat.")}

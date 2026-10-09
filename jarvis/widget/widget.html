@@ -4446,7 +4446,8 @@
     }
     if(a.type === "tache_executer"){
       return {
-        tete: "Execution &mdash; " + escapeHtml(d.cible || ""),
+        tete: "Execution &mdash; " + escapeHtml(d.cible || "") +
+          (d.arguments ? " " + escapeHtml(d.arguments) : ""),
         corps: raison + '<div class="action-raison">' + escapeHtml(d.libelle || "") +
           ' &middot; duree max ' + Math.round((d.delai_max_s || 0) / 60) +
           ' min &middot; une tache a la fois.</div>'

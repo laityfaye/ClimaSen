@@ -220,6 +220,55 @@ def test_script_du_pipeline_autorise(projet, monkeypatch):
     assert t["commande"][1:] == ["scripts/04_analyse.py"]
 
 
+def test_scripts_supplementaires_autorises():
+    autorises = code_ops.scripts_autorises()
+    for script in ("26_indice_risque_departements.py", "39_verifier_sources.py",
+                   "40_saisons_recentes.py", "04_teleconnections_analysis.py"):
+        assert script in autorises
+    for script in ("18_banc_epreuve_jarvis.py", "dashboard.py", "lancer_tache.py",
+                   "download_sst_noaa.py"):
+        assert script not in autorises
+    # Chaque script ouvert existe, chaque script a options est autorise.
+    for script in code_ops.SCRIPTS_SUPPLEMENTAIRES:
+        assert (code_ops.PROJECT_DIR / "scripts" / script).is_file(), script
+    assert set(code_ops.OPTIONS_SCRIPTS) <= set(autorises)
+
+
+def test_options_acceptees():
+    t = code_ops.preparer_tache("19_build_sst_cube.py", None,
+                                {"--annees": [2022, 2023], "telecharger": True})
+    assert t["commande"][1:] == ["scripts/19_build_sst_cube.py", "--annees",
+                                 "2022", "2023", "--telecharger"]
+    assert t["options"] == {"--annees": [2022, 2023], "--telecharger": True}
+    t = code_ops.preparer_tache("40_saisons_recentes.py", None, {"--annee-debut": 2025})
+    assert t["arguments"] == "--annee-debut 2025"
+    t = code_ops.preparer_tache("39_verifier_sources.py", None, {"--rapide": False})
+    assert t["commande"][1:] == ["scripts/39_verifier_sources.py"]
+    # Les options normalisees se re-valident a l'identique (route d'approbation).
+    t2 = code_ops.preparer_tache("19_build_sst_cube.py", None,
+                                 {"--annees": [2022, 2023], "--telecharger": True})
+    assert t2["commande"] == code_ops.preparer_tache(
+        "19_build_sst_cube.py", None, t2["options"])["commande"]
+
+
+@pytest.mark.parametrize("script, options", [
+    ("19_build_sst_cube.py", {"--output": "/etc/passwd"}),       # option inconnue
+    ("19_build_sst_cube.py", {"--annees": ["2023; rm -rf ."]}),  # texte
+    ("19_build_sst_cube.py", {"--annees": [1900]}),              # hors bornes
+    ("19_build_sst_cube.py", {"--annees": []}),                  # trop peu
+    ("19_build_sst_cube.py", {"--telecharger": "oui"}),          # drapeau non booleen
+    ("40_saisons_recentes.py", {"--annee-debut": True}),         # booleen pour entier
+    ("40_saisons_recentes.py", {"--annee-debut": 2025.5}),       # reel pour entier
+    ("20_veille_presaison.py", {"--retro": [2000]}),             # 2 valeurs attendues
+    ("26_indice_risque_departements.py", {"--osm": True}),       # script sans option
+    ("pytest", {"--lf": True}),
+    ("19_build_sst_cube.py", ["--annees", "2023"]),              # pas un objet
+])
+def test_options_refusees(script, options):
+    with pytest.raises(RefusCode):
+        code_ops.preparer_tache(script, None, options)
+
+
 def test_environnement_sans_secrets(monkeypatch):
     monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-ant-secret")
     monkeypatch.setenv("JARVIS_SECRET_KEY", "k" * 48)
@@ -374,6 +423,34 @@ def test_tache_lancee_en_arriere_plan(client, projet, monkeypatch):
         time.sleep(0.1)
     assert vue["statut"] == "terminee", vue
     assert vue["resultat"]["reussi"] is True and "1 passed" in vue["resultat"]["sortie_fin"]
+
+
+def test_tache_avec_options_recalculee_a_l_approbation(client, monkeypatch):
+    entetes, sid = _admin(client)
+    ctx = client.app.state.ctx
+    rep = outils_code.ProposeTask.run(
+        {"script": "19_build_sst_cube.py", "options": {"--annees": [2023]},
+         "reason": "cube 2023"}, {}, settings=client.settings,
+        session_id=sid, registre=ctx.actions)
+    assert rep["arguments"] == "--annees 2023"
+    vue = ctx.actions.lister(sid)[0]
+    assert vue["details"]["arguments"] == "--annees 2023"
+    lancees = []
+    monkeypatch.setattr(ctx.taches, "lancer",
+                        lambda commande, delai, fini: lancees.append(commande))
+    # Une option glissee dans la proposition apres coup est refusee a l'approbation.
+    action = ctx.actions.recuperer(sid, vue["id"])
+    action.payload["options"] = {"--annees": [2023], "--output": "/tmp/x"}
+    r = client.post("/jarvis/api/admin/actions/%s/approve" % vue["id"], headers=entetes)
+    assert r.status_code == 400 and not lancees
+    outils_code.ProposeTask.run(
+        {"script": "19_build_sst_cube.py", "options": {"--annees": [2023]},
+         "reason": "cube 2023"}, {}, settings=client.settings,
+        session_id=sid, registre=ctx.actions)
+    aid = [v for v in ctx.actions.lister(sid) if v["statut"] == "en_attente"][0]["id"]
+    r = client.post("/jarvis/api/admin/actions/%s/approve" % aid, headers=entetes)
+    assert r.status_code == 200
+    assert lancees[0][1:] == ["scripts/19_build_sst_cube.py", "--annees", "2023"]
 
 
 def test_interrupteur_vaut_aussi_a_l_approbation(client, projet):

@@ -171,7 +171,12 @@ même que les outils correspondants existent.
   tranches), chercher un motif dans le projet
 - `propose_code_edit` — **propose** une modification dans `scripts/`, `src/`
   ou `tests/` ; Laity voit le diff et approuve d'un clic
-- `propose_task` — **propose** de lancer un script du pipeline ou les tests
+- `propose_task` — **propose** de lancer un script de `scripts/` (pipeline,
+  vulnérabilité, ANSD, exposition, veille, saisons récentes, vérification des
+  sources, fichiers d'Iris) ou les tests, avec au besoin des `options` prises
+  dans une liste fermée (ex. `{"--annees": [2023]}` pour le 19,
+  `{"--rapide": true}` pour le 39). Annonce ce que le script réécrit :
+  relancer 01, 04 ou 11 change les résultats du mémoire.
 - `get_task_status` — où en sont les propositions et ce qu'a donné une tâche
 
 Méthode :

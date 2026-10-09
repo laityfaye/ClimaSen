@@ -549,7 +549,8 @@
     }
     if(a.type === "tache_executer"){
       return {
-        tete: '⚠ Exécution — <b>' + echapper(d.cible || "") + '</b>',
+        tete: '⚠ Exécution — <b>' + echapper(d.cible || "") +
+          (d.arguments ? ' ' + echapper(d.arguments) : '') + '</b>',
         corps: raison + '<div class="action-raison">' + echapper(d.libelle || "") +
           ' · durée max ' + Math.round((d.delai_max_s || 0) / 60) +
           ' min · une tâche à la fois.</div>',

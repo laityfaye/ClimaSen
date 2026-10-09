@@ -677,14 +677,16 @@ def create_app(settings: Optional[Settings] = None) -> FastAPI:
         """Lance une tache approuvee en arriere-plan et rend la main.
 
         La commande est RECALCULEE a partir de la liste fermee au moment de
-        l'approbation: rien de ce que le modele a ecrit n'y entre.
+        l'approbation: rien de ce que le modele a ecrit n'y entre (ses options
+        sont re-validees par code_ops.valider_options).
         """
         script = action.payload["script"]
         cible = action.payload.get("cible")
         # pytest sans fichier precis = toute la suite ("tests/").
         cible_tests = cible if script == "pytest" and cible != "tests/" else None
         try:
-            tache = code_ops.preparer_tache(script, cible_tests)
+            tache = code_ops.preparer_tache(script, cible_tests,
+                                            action.payload.get("options"))
         except code_ops.RefusCode as exc:
             c.actions.marquer(action, actions.REFUSEE, {"erreur": str(exc)})
             raise JarvisError(str(exc), code="tache_refusee", status=400)

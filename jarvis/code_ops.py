@@ -365,19 +365,140 @@ def annuler_modification(resultat: dict) -> dict:
 # =============================================================================
 TESTS_AUTORISES = re.compile(r"^tests/test_[A-Za-z0-9_]+\.py$")
 
+# Scripts hors page Pipeline que Laity a ouverts a Iris (09/10/2026). Toujours
+# soumis a approbation. Exclus : dashboard et utilitaires, 18 (banc d'epreuve :
+# appels API payants), telechargements bruts CHIRPS/OISST (dizaines de Go),
+# scripts d'archive (04 legacy, 11b, exports).
+SCRIPTS_SUPPLEMENTAIRES = {
+    "15_build_jarvis_index.py": "Index documentaire d'Iris (memoire + article)",
+    "16_build_jarvis_fond_carte.py": "Fond de carte embarque d'Iris",
+    "17_build_jarvis_sst_evenements.py": "Archive SST des evenements (animations)",
+    "23_build_jarvis_fond_hud.py": "Fond d'ecran de l'interface I.R.I.S",
+    "24_clustering_saisonnier.py": "Clustering saisonnier (analyse de controle)",
+    "25_masque_senegal.py": "Effet du masque Senegal sur la detection",
+    "26_indice_risque_departements.py": "Indice de risque par departement",
+    "27_indice_risque_arrondissements.py": "Indice de risque par arrondissement",
+    "28_contours_simplifies.py": "Contours simplifies (page Vulnerabilite)",
+    "29_robustesse_indice.py": "Robustesse et validation de l'indice",
+    "30_controle_transcriptions_ansd.py": "Controle des tableaux ANSD transcrits",
+    "31_modulation_saisonniere_alea.py": "Modulation saisonniere de l'alea (etude)",
+    "32_manifest_donnees.py": "Manifeste des donnees et figures de reference",
+    "33_population_touchee_evenements.py": "Habitants des zones touchees par evenement",
+    "34_communes_reconstruites.py": "Communes reconstruites (contours approximatifs)",
+    "35_telecharger_odp_ansd.py": "Telechargement des donnees de l'ANSD (API SDMX)",
+    "36_correspondance_zones_ansd.py": "Correspondance des codes de zone ANSD / ClimatSen",
+    "37_exposition_projetee.py": "Exposition projetee 2026 et 2030",
+    "38_synchroniser_ansd.py": "Synchronisation avec l'API de l'ANSD",
+    "39_verifier_sources.py": "Verification des donnees sources contre la reference",
+    "40_saisons_recentes.py": "Saisons recentes (2024 et apres)",
+}
+
+# Options acceptees, script par script : LISTE FERMEE, valeurs numeriques ou
+# drapeaux seulement (aucun chemin, aucun texte libre). Forme d'une regle :
+#   ("drapeau",)                              option sans valeur
+#   (type, n_min, n_max, v_min, v_max)        type "entier" ou "reel"
+_ANNEE = (1981, 2035)
+OPTIONS_SCRIPTS = {
+    "04_teleconnections_analysis.py": {
+        "--no-by-phase": ("drapeau",),
+        "--lags": ("entier", 1, 13, 0, 12)},
+    "11_kmeans_sst_analysis.py": {
+        "--by-phase": ("drapeau",), "--global": ("drapeau",),
+        "--k-phase1": ("entier", 1, 1, 2, 15), "--k-phase2": ("entier", 1, 1, 2, 15),
+        "--k-phase3": ("entier", 1, 1, 2, 15), "--k-all": ("entier", 1, 1, 2, 15)},
+    "extract_daily_indices_from_sst.py": {"--years": ("entier", 2, 2) + _ANNEE},
+    "15_build_jarvis_index.py": {"--inspecter": ("drapeau",)},
+    "17_build_jarvis_sst_evenements.py": {"--par-phase": ("entier", 1, 1, 1, 100)},
+    "19_build_sst_cube.py": {"--annees": ("entier", 1, 60) + _ANNEE,
+                             "--telecharger": ("drapeau",)},
+    "20_veille_presaison.py": {
+        "--annee": ("entier", 1, 1) + _ANNEE, "--retro": ("entier", 2, 2) + _ANNEE,
+        "--partiel": ("drapeau",), "--sans-c3s": ("drapeau",), "--kit": ("drapeau",),
+        "--competence": ("drapeau",), "--familles": ("drapeau",)},
+    "22_veille_mensuelle.py": {"--sans-telechargement": ("drapeau",)},
+    "27_indice_risque_arrondissements.py": {"--osm": ("drapeau",)},
+    "28_contours_simplifies.py": {"--tolerance": ("reel", 1, 1, 0.0001, 0.05)},
+    "39_verifier_sources.py": {"--ecrire-reference": ("drapeau",),
+                               "--rapide": ("drapeau",)},
+    "40_saisons_recentes.py": {"--annee-debut": ("entier", 1, 1, 2024, 2035)},
+}
+
 
 def scripts_autorises() -> dict:
-    """Scripts du module Pipeline du dashboard: {nom: libelle}."""
+    """Scripts executables: {nom: libelle}. Ceux du module Pipeline du
+    dashboard, plus SCRIPTS_SUPPLEMENTAIRES (le libelle du Pipeline l'emporte)."""
     try:
         from .tools.dataset import get
         etapes = get("pipeline")["steps"]
     except Exception:          # pragma: no cover - depend de l'installation
         etapes = []
-    return {e["script"]: e["label"] for e in etapes}
+    autorises = dict(SCRIPTS_SUPPLEMENTAIRES)
+    autorises.update({e["script"]: e["label"] for e in etapes})
+    return autorises
 
 
-def preparer_tache(script: str, cible_tests: str = None) -> dict:
+def options_texte(script: str) -> str:
+    """Options acceptees par un script, lisibles (description d'outil, refus)."""
+    regles = OPTIONS_SCRIPTS.get(script) or {}
+    morceaux = []
+    for nom, regle in regles.items():
+        if regle[0] == "drapeau":
+            morceaux.append(nom)
+        else:
+            n = str(regle[1]) if regle[1] == regle[2] else "%d-%d" % regle[1:3]
+            morceaux.append("%s (%s %s, %s..%s)" % (nom, n, regle[0], regle[3], regle[4]))
+    return ", ".join(morceaux) or "aucune"
+
+
+def valider_options(script: str, options) -> tuple:
+    """Controle les options demandees contre OPTIONS_SCRIPTS.
+
+    Retourne (arguments de la ligne de commande, options normalisees). Les
+    options normalisees sont ce qu'on stocke dans la proposition ; elles sont
+    RE-validees a l'approbation, rien du modele n'arrive tel quel a la commande.
+    """
+    if not options:
+        return [], {}
+    if not isinstance(options, dict):
+        raise RefusCode("options doit etre un objet {option: valeur}.")
+    regles = OPTIONS_SCRIPTS.get(script) or {}
+    argv, propres = [], {}
+    for nom_brut, valeur in options.items():
+        nom = "--" + str(nom_brut).lstrip("-")
+        regle = regles.get(nom)
+        if regle is None:
+            raise RefusCode("Option non autorisee pour %s: %r. Options acceptees: %s."
+                            % (script, nom_brut, options_texte(script)))
+        if regle[0] == "drapeau":
+            if valeur is True:
+                argv.append(nom)
+                propres[nom] = True
+            elif valeur is not False and valeur is not None:
+                raise RefusCode("%s est un drapeau: valeur true ou false." % nom)
+            continue
+        type_, n_min, n_max, v_min, v_max = regle
+        valeurs = valeur if isinstance(valeur, list) else [valeur]
+        if not n_min <= len(valeurs) <= n_max:
+            raise RefusCode("%s attend %s valeur(s)." % (
+                nom, n_min if n_min == n_max else "%d a %d" % (n_min, n_max)))
+        nettes = []
+        for v in valeurs:
+            correct = (isinstance(v, int) if type_ == "entier"
+                       else isinstance(v, (int, float))) and not isinstance(v, bool)
+            if not correct or not v_min <= v <= v_max:
+                raise RefusCode("%s: valeur %r refusee (%s entre %s et %s)."
+                                % (nom, v, type_, v_min, v_max))
+            nettes.append(v)
+        argv.append(nom)
+        argv.extend(str(v) for v in nettes)
+        propres[nom] = nettes if n_max > 1 else nettes[0]
+    return argv, propres
+
+
+def preparer_tache(script: str, cible_tests: str = None, options=None) -> dict:
     if script == "pytest":
+        if options:
+            raise RefusCode("pytest n'accepte pas d'options (seulement test_file).")
         if cible_tests:
             rel = _relatif(cible_tests)
             if not TESTS_AUTORISES.match(rel) or not (PROJECT_DIR / rel).is_file():
@@ -393,9 +514,11 @@ def preparer_tache(script: str, cible_tests: str = None) -> dict:
     if script not in autorises:
         raise RefusCode("Script non autorise: %r. Valeurs acceptees: pytest, %s."
                         % (script, ", ".join(sorted(autorises))))
+    argv, propres = valider_options(script, options)
     return {"script": script, "cible": "scripts/" + script,
             "libelle": autorises[script],
-            "commande": [sys.executable, "scripts/" + script]}
+            "options": propres, "arguments": " ".join(argv),
+            "commande": [sys.executable, "scripts/" + script] + argv}
 
 
 def _environnement() -> dict:
