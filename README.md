@@ -115,6 +115,8 @@ référence `outputs/sources_reference.json`).
 
 ```bash
 python -m pytest tests/ -q      # ~1 430 tests, 7 à 13 min, sans appel payant (modèle simulé)
+                                # 11 sont ignorés (skipped) si les données brutes optionnelles
+                                # (OISST, CHIRPS Afrique de l'Ouest) sont absentes : c'est normal
 python -m pytest tests/test_jarvis_page_context.py tests/test_rapports_figures.py -q   # < 1 min
 ```
 

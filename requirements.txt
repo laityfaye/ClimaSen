@@ -18,6 +18,8 @@ requests>=2.28.0
 # Contours des departements de la page Clustering (scripts/vues/clustering.py) :
 # indispensable au demarrage de cette page (constate sur une installation neuve).
 shapely>=2.0
+# Export Excel des rapports de teleconnexions (src/reports, pandas.ExcelWriter).
+openpyxl>=3.1
 python-docx>=1.1      # bulletin de veille diffusable (veille/diffusion.py)
 jinja2>=3.1           # rapports d'Iris (jarvis/rapports)
 pyyaml>=6.0           # rapports d'Iris: catalogue de donnees
