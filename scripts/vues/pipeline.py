@@ -458,7 +458,9 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
         "Données CHIRPS":    "&#9729;",
         "Pipeline d'analyse":"&#9654;",
         "Données SST":       "&#127754;",
-        "Données ANSD":      "&#128202;",
+        # Icone Material (monochrome, famille du menu lateral) : l'ANSD comme
+        # institution, plutot qu'un emoji generique.
+        "Données ANSD":      ":material/account_balance:",
     }
     TAB_NAMES = ["Données CHIRPS", "Pipeline d'analyse", "Données SST", "Données ANSD"]
     _cur_tab  = st.session_state.pip_tab
@@ -488,8 +490,11 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
     for col, name in zip(st.columns(len(TAB_NAMES)), TAB_NAMES):
         is_active = _cur_tab == name
         with col:
+            _ic = TAB_ICONS[name]
+            _material = _ic.startswith(":material/")
             if st.button(
-                f"{TAB_ICONS[name]}  {name}",
+                name if _material else f"{_ic}  {name}",
+                icon=_ic if _material else None,
                 key=f"pip_nav_{name}",
                 use_container_width=True,
                 type="primary" if is_active else "secondary",
@@ -1425,7 +1430,14 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
                      "conservée." % (_date_fr(etat.get("fin")), etat.get("erreur", "")))
         if etat.get("journal") and not en_cours:
             with st.expander("Journal de la dernière synchronisation"):
-                st.code("\n".join(etat["journal"]), language=None)
+                # Bloc aux couleurs du theme : st.code restait blanc en theme sombre.
+                import html as _html
+                st.markdown(
+                    f"<pre style='background:{BG};color:{TEXT};border:1px solid {BORDER};"
+                    f"border-radius:8px;padding:10px 14px;font-size:0.75rem;line-height:1.5;"
+                    f"white-space:pre-wrap;margin:0;'>"
+                    + _html.escape("\n".join(etat["journal"])) + "</pre>",
+                    unsafe_allow_html=True)
 
         if not _admin:
             st.caption("La synchronisation est réservée à l'administrateur.")

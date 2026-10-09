@@ -90,7 +90,7 @@ def main():
     except Exception as e:                          # noqa: BLE001
         shutil.rmtree(NOUVEAU, ignore_errors=True)
         ecrire_etat(etat="erreur", fin=maintenant(),
-                    erreur=f"API de l'ANSD injoignable ou reponse invalide : {e}",
+                    erreur=f"API de l'ANSD injoignable ou réponse invalide : {e}",
                     journal=traceback.format_exc().splitlines()[-6:])
         print("Erreur de telechargement, rien n'a ete modifie :", e)
         return 1
@@ -101,11 +101,11 @@ def main():
         shutil.rmtree(NOUVEAU, ignore_errors=True)
         ecrire_etat(etat="termine", fin=verifie, resultat="inchange",
                     derniere_verification=verifie, fichiers_modifies=[],
-                    journal=["Donnees identiques a la copie actuelle : rien n'a ete modifie."])
+                    journal=["Données identiques à la copie actuelle : rien n'a été modifié."])
         print("Donnees de l'ANSD inchangees : rien n'a ete modifie.")
         return 0
 
-    journal.append("Fichiers modifies par l'ANSD : " + ", ".join(modifies))
+    journal.append("Fichiers modifiés par l'ANSD : " + ", ".join(modifies))
     shutil.rmtree(ANCIEN, ignore_errors=True)
     if ODP.exists():
         remplacer(ODP, ANCIEN)
@@ -114,13 +114,13 @@ def main():
         lancer("36_correspondance_zones_ansd.py", journal)
         lancer("37_exposition_projetee.py", journal)
     except Exception as e:                          # noqa: BLE001
-        journal.append(f"Echec : {e}. Retour a la copie precedente.")
+        journal.append(f"Échec : {e}. Retour à la copie précédente.")
         if ANCIEN.exists():
             remplacer(ANCIEN, ODP)
             try:
                 lancer("36_correspondance_zones_ansd.py", journal)
             except Exception as e2:                 # noqa: BLE001
-                journal.append(f"La correspondance n'a pas pu etre recalculee : {e2}")
+                journal.append(f"La correspondance n'a pas pu être recalculée : {e2}")
         ecrire_etat(etat="erreur", fin=maintenant(), derniere_verification=verifie,
                     fichiers_modifies=modifies, erreur=str(e), journal=journal[-30:])
         print("\n".join(journal))
