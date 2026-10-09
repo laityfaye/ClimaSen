@@ -28,7 +28,6 @@ import hashlib
 import io
 import json
 import re
-import sys
 import time
 import urllib.request
 import xml.etree.ElementTree as ET
@@ -44,17 +43,17 @@ ACCEPT_CSV = "application/vnd.sdmx.data+csv;version=1.0.0"
 # nom du fichier -> (flux, cle SDMX, description)
 JEUX = {
     "DF_PROJ_POP_2050_COM": ("DF_PROJ_POP_2050_COM", "all",
-                             "Population projetee 2023-2030 par commune"),
+                             "Population projetée 2023-2030 par commune"),
     "DF_PROJ_POP_2050_DEP": ("DF_PROJ_POP_2050_DEP", "all",
-                             "Population projetee 2023-2030 par departement"),
+                             "Population projetée 2023-2030 par département"),
     "DF_POP": ("DF_POP", "A10...._T..",
-               "RGPH-5 2023 : population par sexe, de la region a la commune"),
+               "RGPH-5 2023 : population par sexe, de la région à la commune"),
     "DF_HOU": ("DF_HOU", "A10...._T..",
-               "RGPH-5 2023 : menages, de la region a la commune"),
+               "RGPH-5 2023 : ménages, de la région à la commune"),
     "DF_CON": ("DF_CON", "A10...._T..",
-               "RGPH-5 2023 : concessions, de la region a la commune"),
+               "RGPH-5 2023 : concessions, de la région à la commune"),
     "DF_TX_PAUV": ("DF_TX_PAUV", "all",
-                   "Pauvrete par region : taux, profondeur, severite (2011, 2019, 2022)"),
+                   "Pauvreté par région : taux, profondeur, sévérité (2011, 2019, 2022)"),
 }
 LISTE_ZONES = "CL_REF_AREA"
 NS = {"s": "http://www.sdmx.org/resources/sdmxml/schemas/v2_1/structure",
@@ -120,25 +119,31 @@ def zones_csv(xml_octets):
     return tampon.getvalue().encode("utf-8"), n
 
 
-def main():
-    SORTIE.mkdir(parents=True, exist_ok=True)
-    chemin_manifeste = SORTIE / "MANIFEST.json"
-    ancien = {}
-    if chemin_manifeste.exists():
-        ancien = {f["fichier"]: f for f in json.loads(
-            chemin_manifeste.read_text(encoding="utf-8"))["fichiers"]}
+def lire_manifeste(dossier=SORTIE):
+    """{fichier: entree} du MANIFEST.json d'un dossier, vide s'il n'existe pas."""
+    chemin = Path(dossier) / "MANIFEST.json"
+    if not chemin.exists():
+        return {}
+    return {f["fichier"]: f for f in json.loads(chemin.read_text(encoding="utf-8"))["fichiers"]}
 
+
+def telecharger(sortie=SORTIE):
+    """Telecharge tous les jeux dans `sortie` et y ecrit MANIFEST.json.
+    Renvoie la liste des entrees du manifeste. Leve une exception si l'API ne
+    repond pas ou renvoie un jeu vide : rien n'est alors a considerer comme valide."""
+    sortie = Path(sortie)
+    sortie.mkdir(parents=True, exist_ok=True)
     maintenant = datetime.now(timezone.utc).replace(microsecond=0).isoformat()
-    fichiers, changes = [], []
+    fichiers = []
     for nom, (flux, cle, description) in JEUX.items():
         url = f"{NSI}/data/{AGENCE},{flux},1.0/{cle}/ALL/?dimensionAtObservation=AllDimensions"
         print(f"{nom} ...")
         octets = lire(url, ACCEPT_CSV)
         lignes = max(0, octets.count(b"\n") - 1)
         if lignes == 0 or octets.startswith(b"NoRecordsFound"):
-            sys.exit(f"{nom} : aucune donnee renvoyee par {url}")
+            raise RuntimeError(f"{nom} : aucune donnee renvoyee par {url}")
         fichier = f"{nom}.csv"
-        (SORTIE / fichier).write_bytes(octets)
+        (sortie / fichier).write_bytes(octets)
         fichiers.append({"fichier": fichier, "flux": f"{AGENCE}:{flux}(1.0)",
                          "description": description, "requete": url, "format": "SDMX-CSV 1.0",
                          "lignes": lignes, "octets": len(octets), "sha256": sha256(octets),
@@ -148,20 +153,17 @@ def main():
     url = f"{NSI}/codelist/{AGENCE}/{LISTE_ZONES}/1.0"
     print(f"{LISTE_ZONES} ...")
     octets, n = zones_csv(lire(url))
+    if n == 0:
+        raise RuntimeError(f"{LISTE_ZONES} : aucune zone dans {url}")
     fichier = "CL_REF_AREA_communes.csv"
-    (SORTIE / fichier).write_bytes(octets)
+    (sortie / fichier).write_bytes(octets)
     fichiers.append({"fichier": fichier, "flux": f"{AGENCE}:{LISTE_ZONES}(1.0)",
-                     "description": "Zones de l'ANSD (region, departement, commune) : code, "
+                     "description": "Zones de l'ANSD (région, département, commune) : code, "
                                     "nom, niveau, parent ; extrait de la liste de codes",
                      "requete": url, "format": "CSV extrait de SDMX-ML 2.1", "lignes": n,
                      "octets": len(octets), "sha256": sha256(octets),
                      "telecharge_le": maintenant})
     print(f"   {n} zones")
-
-    for f in fichiers:
-        avant = ancien.get(f["fichier"])
-        if avant and avant["sha256"] != f["sha256"]:
-            changes.append(f["fichier"])
 
     manifeste = {
         "source": "ANSD, Open Data Platform (https://opendata.ansd.sn), API SDMX",
@@ -169,9 +171,23 @@ def main():
         "licence": "Donnees publiques de l'ANSD : citer la source",
         "fichiers": fichiers,
     }
-    chemin_manifeste.write_text(json.dumps(manifeste, ensure_ascii=False, indent=2) + "\n",
-                                encoding="utf-8")
-    if changes:
+    (sortie / "MANIFEST.json").write_text(
+        json.dumps(manifeste, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    return fichiers
+
+
+def fichiers_modifies(ancien, nouveau):
+    """Noms des fichiers ajoutes, retires ou dont l'empreinte a change."""
+    a = {f: e["sha256"] for f, e in ancien.items()}
+    n = {e["fichier"]: e["sha256"] for e in nouveau}
+    return sorted(f for f in set(a) | set(n) if a.get(f) != n.get(f))
+
+
+def main():
+    ancien = lire_manifeste()
+    fichiers = telecharger(SORTIE)
+    changes = fichiers_modifies(ancien, fichiers)
+    if ancien and changes:
         print("Fichiers modifies depuis le dernier telechargement :", ", ".join(changes))
     print(f"OK : {len(fichiers)} fichiers dans {SORTIE.relative_to(RACINE)}")
 

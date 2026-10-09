@@ -6,7 +6,7 @@
     {
       "fichier": "DF_PROJ_POP_2050_COM.csv",
       "flux": "SN1:DF_PROJ_POP_2050_COM(1.0)",
-      "description": "Population projetee 2023-2030 par commune",
+      "description": "Population projetée 2023-2030 par commune",
       "requete": "https://opendata.ansd.sn/admin/ws/nsi_ws/rest/data/SN1,DF_PROJ_POP_2050_COM,1.0/all/ALL/?dimensionAtObservation=AllDimensions",
       "format": "SDMX-CSV 1.0",
       "lignes": 4424,
@@ -17,7 +17,7 @@
     {
       "fichier": "DF_PROJ_POP_2050_DEP.csv",
       "flux": "SN1:DF_PROJ_POP_2050_DEP(1.0)",
-      "description": "Population projetee 2023-2030 par departement",
+      "description": "Population projetée 2023-2030 par département",
       "requete": "https://opendata.ansd.sn/admin/ws/nsi_ws/rest/data/SN1,DF_PROJ_POP_2050_DEP,1.0/all/ALL/?dimensionAtObservation=AllDimensions",
       "format": "SDMX-CSV 1.0",
       "lignes": 368,
@@ -28,7 +28,7 @@
     {
       "fichier": "DF_POP.csv",
       "flux": "SN1:DF_POP(1.0)",
-      "description": "RGPH-5 2023 : population par sexe, de la region a la commune",
+      "description": "RGPH-5 2023 : population par sexe, de la région à la commune",
       "requete": "https://opendata.ansd.sn/admin/ws/nsi_ws/rest/data/SN1,DF_POP,1.0/A10...._T../ALL/?dimensionAtObservation=AllDimensions",
       "format": "SDMX-CSV 1.0",
       "lignes": 1839,
@@ -39,7 +39,7 @@
     {
       "fichier": "DF_HOU.csv",
       "flux": "SN1:DF_HOU(1.0)",
-      "description": "RGPH-5 2023 : menages, de la region a la commune",
+      "description": "RGPH-5 2023 : ménages, de la région à la commune",
       "requete": "https://opendata.ansd.sn/admin/ws/nsi_ws/rest/data/SN1,DF_HOU,1.0/A10...._T../ALL/?dimensionAtObservation=AllDimensions",
       "format": "SDMX-CSV 1.0",
       "lignes": 613,
@@ -50,7 +50,7 @@
     {
       "fichier": "DF_CON.csv",
       "flux": "SN1:DF_CON(1.0)",
-      "description": "RGPH-5 2023 : concessions, de la region a la commune",
+      "description": "RGPH-5 2023 : concessions, de la région à la commune",
       "requete": "https://opendata.ansd.sn/admin/ws/nsi_ws/rest/data/SN1,DF_CON,1.0/A10...._T../ALL/?dimensionAtObservation=AllDimensions",
       "format": "SDMX-CSV 1.0",
       "lignes": 613,
@@ -61,7 +61,7 @@
     {
       "fichier": "DF_TX_PAUV.csv",
       "flux": "SN1:DF_TX_PAUV(1.0)",
-      "description": "Pauvrete par region : taux, profondeur, severite (2011, 2019, 2022)",
+      "description": "Pauvreté par région : taux, profondeur, sévérité (2011, 2019, 2022)",
       "requete": "https://opendata.ansd.sn/admin/ws/nsi_ws/rest/data/SN1,DF_TX_PAUV,1.0/all/ALL/?dimensionAtObservation=AllDimensions",
       "format": "SDMX-CSV 1.0",
       "lignes": 135,
@@ -72,7 +72,7 @@
     {
       "fichier": "CL_REF_AREA_communes.csv",
       "flux": "SN1:CL_REF_AREA(1.0)",
-      "description": "Zones de l'ANSD (region, departement, commune) : code, nom, niveau, parent ; extrait de la liste de codes",
+      "description": "Zones de l'ANSD (région, département, commune) : code, nom, niveau, parent ; extrait de la liste de codes",
       "requete": "https://opendata.ansd.sn/admin/ws/nsi_ws/rest/codelist/SN1/CL_REF_AREA/1.0",
       "format": "CSV extrait de SDMX-ML 2.1",
       "lignes": 613,

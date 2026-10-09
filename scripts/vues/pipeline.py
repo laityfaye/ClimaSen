@@ -458,8 +458,9 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
         "Données CHIRPS":    "&#9729;",
         "Pipeline d'analyse":"&#9654;",
         "Données SST":       "&#127754;",
+        "Données ANSD":      "&#128202;",
     }
-    TAB_NAMES = ["Données CHIRPS", "Pipeline d'analyse", "Données SST"]
+    TAB_NAMES = ["Données CHIRPS", "Pipeline d'analyse", "Données SST", "Données ANSD"]
     _cur_tab  = st.session_state.pip_tab
 
     st.markdown(f"""
@@ -484,8 +485,7 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
     </style>
     """, unsafe_allow_html=True)
 
-    nav_c1, nav_c2, nav_c3 = st.columns(3)
-    for col, name in zip([nav_c1, nav_c2, nav_c3], TAB_NAMES):
+    for col, name in zip(st.columns(len(TAB_NAMES)), TAB_NAMES):
         is_active = _cur_tab == name
         with col:
             if st.button(
@@ -522,6 +522,7 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
     _show_chirps   = (_cur_tab == "Données CHIRPS")
     _show_pipeline = (_cur_tab == "Pipeline d'analyse")
     _show_sst      = (_cur_tab == "Données SST")
+    _show_ansd     = (_cur_tab == "Données ANSD")
 
     # =========================================================================
     # ONGLET 1 — CHIRPS
@@ -1331,3 +1332,142 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
                     if st.button("Annuler", key="btn_del_sst_cancel"):
                         st.session_state["confirm_delete_sst"] = False
                         st.rerun()
+
+    # =========================================================================
+    # ONGLET 4 — DONNEES ANSD (API SDMX de l'Open Data Platform)
+    # =========================================================================
+    if _show_ansd:
+        ODP_DIR = BASE / "data" / "raw" / "ansd" / "odp"
+        ETAT_SYNC = ODP_DIR / ".synchro.json"
+        SYNC_SCRIPT = SCRIPTS_DIR / "38_synchroniser_ansd.py"
+
+        def _lire_json(p):
+            try:
+                return _json.loads(p.read_text(encoding="utf-8"))
+            except Exception:
+                return None
+
+        def _date_fr(iso):
+            """2026-10-08T19:41:02+00:00 -> 08/10/2026 19:41 UTC."""
+            if not iso:
+                return "—"
+            return "%s/%s/%s %s UTC" % (iso[8:10], iso[5:7], iso[0:4], iso[11:16])
+
+        def _sync_en_cours():
+            pid = st.session_state.get("ansd_sync_pid")
+            if not pid:
+                return False
+            try:
+                os.kill(pid, 0)
+            except OSError:
+                return False
+            return (_lire_json(ETAT_SYNC) or {}).get("etat") == "en_cours"
+
+        manifeste = _lire_json(ODP_DIR / "MANIFEST.json") or {}
+        jeux = manifeste.get("fichiers", [])
+        etat = _lire_json(ETAT_SYNC) or {}
+        en_cours = _sync_en_cours()
+        dernier_dl = max((f.get("telecharge_le", "") for f in jeux), default="")
+        n_lignes = sum(int(f.get("lignes", 0)) for f in jeux)
+        n_octets = sum(int(f.get("octets", 0)) for f in jeux)
+        lignes_txt = f"{n_lignes:,}".replace(",", " ")
+
+        st.markdown(f"""
+        <div style="background:{CARD};border:1px solid {BORDER};border-radius:14px;
+                    padding:20px 24px;margin-bottom:20px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;
+                      flex-wrap:wrap;gap:8px;margin-bottom:12px;">
+            <span style="font-size:0.85rem;font-weight:700;color:{TEXT};">
+              Copie locale des données de l'ANSD
+            </span>
+            <span style="font-size:0.78rem;color:{MUTED};">
+              API SDMX &middot; <a href="https://opendata.ansd.sn" target="_blank"
+              rel="noopener" style="color:{MUTED};">opendata.ansd.sn</a> &middot; agence SN1
+            </span>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;">
+            <div><div style="font-size:0.7rem;color:{MUTED};">Dernier téléchargement</div>
+                 <div style="font-size:0.88rem;font-weight:700;color:{TEXT};">{_date_fr(dernier_dl)}</div></div>
+            <div><div style="font-size:0.7rem;color:{MUTED};">Dernière vérification</div>
+                 <div style="font-size:0.88rem;font-weight:700;color:{TEXT};">{_date_fr(etat.get("derniere_verification"))}</div></div>
+            <div><div style="font-size:0.7rem;color:{MUTED};">Jeux de données</div>
+                 <div style="font-size:0.88rem;font-weight:700;color:{TEXT};">{len(jeux)}</div></div>
+            <div><div style="font-size:0.7rem;color:{MUTED};">Lignes &middot; taille</div>
+                 <div style="font-size:0.88rem;font-weight:700;color:{TEXT};">{lignes_txt} &middot; {_taille(n_octets)}</div></div>
+          </div>
+        </div>
+        """, unsafe_allow_html=True)
+
+        st.markdown("<p class='pip-section-title'>Synchroniser avec l'ANSD</p>",
+                    unsafe_allow_html=True)
+        st.markdown(
+            f'<p style="font-size:0.78rem;color:{MUTED};margin:0 0 14px 0;">'
+            "Le serveur interroge l'<b>API SDMX de l'ANSD</b> et compare les données reçues "
+            "à la copie locale. Si rien n'a changé, rien n'est modifié. Sinon, la copie est "
+            "remplacée, puis la correspondance des codes de zone et l'exposition 2026-2030 "
+            "sont recalculées ; en cas d'échec, la copie précédente est remise en place.</p>",
+            unsafe_allow_html=True,
+        )
+
+        # Resultat de la derniere synchronisation
+        if en_cours:
+            st.info("Synchronisation en cours : téléchargement depuis l'API de l'ANSD, "
+                    "puis recalcul si les données ont changé.")
+        elif etat.get("etat") == "termine" and etat.get("resultat") == "inchange":
+            st.success("Dernière synchronisation (%s) : données de l'ANSD inchangées, rien "
+                       "n'a été modifié." % _date_fr(etat.get("fin")))
+        elif etat.get("etat") == "termine" and etat.get("resultat") == "mis_a_jour":
+            st.success("Dernière synchronisation (%s) : données mises à jour (%s). "
+                       "Correspondance des codes et exposition recalculées."
+                       % (_date_fr(etat.get("fin")), ", ".join(etat.get("fichiers_modifies", []))))
+        elif etat.get("etat") == "erreur":
+            st.error("Dernière synchronisation (%s) en échec : %s. La copie précédente est "
+                     "conservée." % (_date_fr(etat.get("fin")), etat.get("erreur", "")))
+        if etat.get("journal") and not en_cours:
+            with st.expander("Journal de la dernière synchronisation"):
+                st.code("\n".join(etat["journal"]), language=None)
+
+        if not _admin:
+            st.caption("La synchronisation est réservée à l'administrateur.")
+        elif en_cours:
+            if st.button("Actualiser la progression", key="btn_ansd_refresh"):
+                st.rerun()
+        else:
+            if st.button("Synchroniser", type="primary", key="btn_ansd_sync") \
+                    and admin_gate.exiger_admin():
+                env = os.environ.copy()
+                env["PYTHONIOENCODING"] = "utf-8"
+                env["PYTHONUTF8"] = "1"
+                proc = subprocess.Popen(
+                    [sys.executable, str(SYNC_SCRIPT)], cwd=str(BASE), env=env,
+                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                )
+                st.session_state["ansd_sync_pid"] = proc.pid
+                st.info(f"Synchronisation lancée (PID {proc.pid}).")
+                time.sleep(1)
+                st.rerun()
+
+        if en_cours:
+            time.sleep(3)
+            st.rerun()
+
+        st.markdown("<p class='pip-section-title' style='margin-top:24px;'>Jeux de données</p>",
+                    unsafe_allow_html=True)
+        if jeux:
+            def _ligne_jeu(f):
+                lignes = f"{int(f.get('lignes', 0)):,}".replace(",", " ")
+                return (
+                    f"<div style='display:flex;justify-content:space-between;gap:12px;"
+                    f"padding:7px 12px;border-bottom:1px solid {BORDER};font-size:0.78rem;'>"
+                    f"<span style='color:{TEXT};min-width:0;'><b>{f.get('flux', '')}</b><br>"
+                    f"<span style='color:{MUTED};'>{f.get('description', '')}</span></span>"
+                    f"<span style='color:{MUTED};white-space:nowrap;text-align:right;'>"
+                    f"{lignes} lignes<br>{_taille(int(f.get('octets', 0)))}</span></div>")
+            rows_html = "".join(_ligne_jeu(f) for f in jeux)
+            st.markdown(
+                f"<div style='border:1px solid {BORDER};border-radius:10px;overflow:hidden;'>"
+                f"{rows_html}</div>",
+                unsafe_allow_html=True,
+            )
+        else:
+            st.info("Aucune copie locale. Un administrateur peut lancer la synchronisation.")
