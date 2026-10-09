@@ -5,12 +5,14 @@ import html
 import streamlit as st
 
 EQUIPE = (
-    ("LF", "Laity FAYE", "laity.faye@univ-thies.sn", "Université Iba Der Thiam de Thiès",
-     "#6366F1,#0EA5E9"),
-    ("FK", "François KALY", "francois.kaly@univ-thies.sn", "Université Iba Der Thiam de Thiès",
-     "#10B981,#0EA5E9"),
-    ("MD", "Moussa DIAKHATE", "moussa.diakhate@uam.edu.sn", "Université Amadou Mahtar Mbow",
-     "#F59E0B,#F43F5E"),
+    ("LF", "Laity FAYE", "Ingénieur en Génie Logiciel", "laity.faye@univ-thies.sn",
+     "Université Iba Der Thiam de Thiès", "#6366F1,#0EA5E9"),
+    ("TD", "Thierno DIEDHIOU", "Ingénieur en Génie Logiciel", "thierno.diedhiou@univ-thies.sn",
+     "Université Iba Der Thiam de Thiès", "#8B5CF6,#EC4899"),
+    ("FK", "François KALY", "Professeur encadreur", "francois.kaly@univ-thies.sn",
+     "Université Iba Der Thiam de Thiès", "#10B981,#0EA5E9"),
+    ("MD", "Moussa DIAKHATE", "Professeur encadreur", "moussa.diakhate@uam.edu.sn",
+     "Université Amadou Mahtar Mbow", "#F59E0B,#F43F5E"),
 )
 
 
@@ -38,16 +40,17 @@ def run(BG, CARD, TEXT, MUTED, BORDER, **kw):
 
     st.markdown('<p class="pnl-ttl" style="margin:22px 0 10px 0;">Équipe</p>',
                 unsafe_allow_html=True)
-    cols = st.columns(len(EQUIPE), gap="small")
-    for col, (ini, nom, mail, univ, grad) in zip(cols, EQUIPE):
-        col.markdown(
+    cols = st.columns(2, gap="small")
+    for i, (ini, nom, role, mail, univ, grad) in enumerate(EQUIPE):
+        cols[i % 2].markdown(
             f'<div style="background:{CARD};border:1px solid {BORDER};border-radius:14px;'
-            f'padding:16px 18px;display:flex;gap:12px;align-items:center;">'
+            f'padding:16px 18px;display:flex;gap:12px;align-items:center;margin-bottom:10px;">'
             f'<div style="width:42px;height:42px;border-radius:50%;flex-shrink:0;'
             f'background:linear-gradient(135deg,{grad});display:flex;align-items:center;'
             f'justify-content:center;font-size:0.85rem;font-weight:800;color:#FFFFFF;">{ini}</div>'
             f'<div style="min-width:0;">'
             f'<p style="margin:0;font-size:0.88rem;font-weight:700;color:{TEXT};">{html.escape(nom)}</p>'
+            f'<p style="margin:2px 0 0 0;font-size:0.76rem;font-weight:600;color:{TEXT};">{html.escape(role)}</p>'
             f'<p style="margin:2px 0 0 0;font-size:0.74rem;color:{MUTED};">{html.escape(univ)}</p>'
             f'<p style="margin:2px 0 0 0;font-size:0.74rem;">'
             f'<a href="mailto:{mail}" style="color:{MUTED};">{html.escape(mail)}</a></p>'
