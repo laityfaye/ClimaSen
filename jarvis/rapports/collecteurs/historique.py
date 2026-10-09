@@ -14,6 +14,7 @@ import pandas as pd
 from scipy import stats
 
 from ...tools import cartes as outil_cartes
+from ...tools import dataset
 from ...tools.common import normalise
 from .. import textes_fixes as tf
 from ..faits import RegistreFaits, date_fr, nombre_fr
@@ -24,7 +25,7 @@ MOIS = ["janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août
 PHASES = {"Phase_1_debut": "début de saison (mai-juin)",
           "Phase_2_pleine": "cœur de saison (juillet-août)",
           "Phase_3_fin": "fin de saison (septembre-octobre)"}
-SRC = "CHIRPS v2 (catalogue CLIMAT-SEN)"
+SRC = "CHIRPS v2 (catalogue ClimatSen)"
 
 
 def _filtre_zone(df, lieu, data):
@@ -110,7 +111,7 @@ def collecter(spec, data, gazetteer=None):
     c.paragraphe("contexte",
                  "Ce rapport retrace les événements de pluie extrême observés de "
                  "{{fait:periode_debut}} à {{fait:periode_fin}} pour %s, à l'intention des %s. "
-                 "Il s'appuie sur le catalogue d'événements de la plateforme CLIMAT-SEN, établi "
+                 "Il s'appuie sur le catalogue d'événements de la plateforme ClimatSen, établi "
                  "à partir des pluies journalières CHIRPS." % (spec.lieu.avec_article(), public))
 
     if len(sel) == 0:
@@ -226,6 +227,19 @@ def collecter(spec, data, gazetteer=None):
                                         if reg["annees_sans"].valeur == 1 else
                                         " Chaque année de la période en a connu au moins un."),
                      "observe")
+    pop = dataset.facultatif(data, "population_touchee")
+    hab_record = _habitants(pop, rec["date"])
+    if hab_record is not None:
+        reg.ajouter("record_habitants", hab_record,
+                    "habitants (2023) des pixels en anomalie > 2 écarts-types le jour du maximum",
+                    "observe", "ANSD RGPH-5 ; CHIRPS v2", periode, format="entier",
+                    suffixe=" habitants")
+        c.paragraphe("analyse", "Population. Le jour du maximum, les pixels où la pluie a "
+                     "dépassé 2 écarts-types, sur tout le Sénégal, comptent "
+                     "{{fait:record_habitants}} selon le RGPH-5 2023 : population actuelle des "
+                     "zones touchées, et non nombre de sinistrés.", "observe")
+        if "RGPH5" not in c.sources:
+            c.sources.append("RGPH5")
     if "local_jours_2sigma" in reg:
         c.paragraphe("analyse", "Fréquence locale. Sur la grille de pluie, la zone compte en "
                      "moyenne {{fait:local_jours_2sigma}} d'anomalie supérieure à 2 écarts-types "
@@ -252,18 +266,27 @@ def collecter(spec, data, gazetteer=None):
         "Nombre d'événements par mois sur la période, %s." % rattachement,
         "nombre d'événements", periode, tf.SOURCE_CHIRPS, statut="observe")))
     top = sel.sort_values("max_precip", ascending=False).head(10)
+    entetes = ["Date", "Phase", "Intensité max.", "Anomalie max.", "Couverture", "Zone du maximum"]
+    lignes = [[date_fr(str(r["date"])[:10]), PHASES.get(r["phase"], r["phase"]).split(" (")[0],
+               cellule(r["max_precip"], 1, " mm"), cellule(r["max_anomaly"], 1, " σ"),
+               cellule(r["coverage_percent"], 0, " %"),
+               "%s (%s)" % (r["max_intensity_department"], r["max_intensity_region"])]
+              for _, r in top.iterrows()]
+    legende = ("Événements classés par intensité maximale journalière ; la couverture est la "
+               "part du territoire en anomalie supérieure à 2 écarts-types.")
+    unites, source = "mm/jour ; σ (écarts-types) ; % du territoire", tf.SOURCE_CHIRPS
+    if pop is not None:
+        # Script 33 : memes chiffres que la fiche evenement et search_extreme_events.
+        entetes.append("Habitants zone touchée")
+        for ligne, (_, r) in zip(lignes, top.iterrows()):
+            ligne.append(cellule(_habitants(pop, r["date"]), 0))
+        legende += (" Habitants : population 2023 (RGPH-5) des pixels touchés ce jour-là sur "
+                    "tout le Sénégal, pas un nombre de sinistrés.")
+        unites += " ; habitants"
+        source += " ; ANSD RGPH-5"
     c.visuels.append(("analyse", tableau(
-        ["Date", "Phase", "Intensité max.", "Anomalie max.", "Couverture", "Zone du maximum"],
-        [[date_fr(str(r["date"])[:10]), PHASES.get(r["phase"], r["phase"]).split(" (")[0],
-          cellule(r["max_precip"], 1, " mm"), cellule(r["max_anomaly"], 1, " σ"),
-          cellule(r["coverage_percent"], 0, " %"),
-          "%s (%s)" % (r["max_intensity_department"], r["max_intensity_region"])]
-         for _, r in top.iterrows()],
-        "Les dix événements les plus intenses",
-        "Événements classés par intensité maximale journalière ; la couverture est la part du "
-        "territoire en anomalie supérieure à 2 écarts-types.",
-        "mm/jour ; σ (écarts-types) ; % du territoire", periode, tf.SOURCE_CHIRPS,
-        statut="observe")))
+        entetes, lignes, "Les dix événements les plus intenses", legende, unites, periode,
+        source, statut="observe")))
     _contexte_national(c, base, periode)
 
     # --- conclusions --------------------------------------------------------------
@@ -283,6 +306,17 @@ def collecter(spec, data, gazetteer=None):
                  "inondations tenu par les services techniques et l'ANACIM.")
     c.recommandations = recos
     return c
+
+
+def _habitants(pop, date):
+    """Habitants (2023) des pixels touches ce jour-la (script 33), ou None."""
+    if pop is None:
+        return None
+    cle = str(date)[:10]
+    if cle not in pop.index:
+        return None
+    v = pop.loc[cle, "population_touchee_2023"]
+    return None if v != v else int(v)
 
 
 def _contexte_national(c, base, periode):

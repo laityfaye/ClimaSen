@@ -1,0 +1,456 @@
+{
+ "ecrite_le": "2026-10-09T13:02:17+00:00",
+ "note": "fichiers sources qui ont produit les resultats publies",
+ "fichiers": {
+  "data/raw/chirps_WA_1981_2023_dayly.mat": {
+   "groupe": "chirps_afrique_ouest",
+   "taille": 289633098,
+   "sha256": "2ff1095743993eb85fc6872810757130169466fd70aad5e4fe48e92ffdaef9b5"
+  },
+  "data/raw/SST/sst_day_anom_1983.nc": {
+   "groupe": "oisst_journalier",
+   "taille": 1513786978,
+   "sha256": "a58196415cec802393bebdf2075255ed61a72f1167b60f5d2f65d18fbf53a51c"
+  },
+  "data/raw/SST/sst_day_anom_1984.nc": {
+   "groupe": "oisst_journalier",
+   "taille": 1517934178,
+   "sha256": "74aea2826542fec1dbc50b66a42783633051d9943096d9e1165fc07e3b4ef7d3"
+  },
+  "data/raw/SST/sst_day_anom_1985.nc": {
+   "groupe": "oisst_journalier",
+   "taille": 1513786978,
+   "sha256": "ad8f9b1a5eafd227aa107234655535b4074e8ab326c999100a1e0ee5f7511dc0"
+  },
+  "data/raw/SST/sst_day_anom_1986.nc": {
+   "groupe": "oisst_journalier",
+   "taille": 1513786978,
+   "sha256": "c5821957a44f7647571fdbbecd0968b65f706930a06121db33797da1c94c638a"
+  },
+  "data/raw/SST/sst_day_anom_1987.nc": {
+   "groupe": "oisst_journalier",
+   "taille": 1513786978,
+   "sha256": "f718b317891e9dca2955c7fd45c6c303394ac0632ddd8f9a4240bc80b5b63465"
+  },
+  "data/raw/SST/sst_day_anom_1988.nc": {
+   "groupe": "oisst_journalier",
+   "taille": 1517934178,
+   "sha256": "3198c49300ae72a294f9a9b21b56210e6c05e0656fec4228b7279f6d0bca1b12"
+  },
+  "data/raw/SST/sst_day_anom_1989.nc": {
+   "groupe": "oisst_journalier",
+   "taille": 1513786978,
+   "sha256": "ded83c71e0ea5861eea9103047203a037a8eacfe2d702ea9dd7cd4f219fca3d5"
+  },
+  "data/raw/SST/sst_day_anom_1990.nc": {
+   "groupe": "oisst_journalier",
+   "taille": 1009210029,
+   "sha256": "5600a78d6febb622d7e823275b2f60104d24c28d4c16e8fc2310c3e5b196d1cd"
+  },
+  "data/raw/SST/sst_day_anom_1991.nc": {
+   "groupe": "oisst_journalier",
+   "taille": 1009210029,
+   "sha256": "5f98fec1af7d99a7c35e610537cf84533845377bcf3b78d4fc43ed01f3c507e2"
+  },
+  "data/raw/SST/sst_day_anom_1992.nc": {
+   "groupe": "oisst_journalier",
+   "taille": 1011974829,
+   "sha256": "798ea72c9fb53e3d0f8bcacb1f10cb9176fc1eb7c890f1f649f6a48fd2827da4"
+  },
+  "data/raw/SST/sst_day_anom_1993.nc": {
+   "groupe": "oisst_journalier",
+   "taille": 1009210029,
+   "sha256": "b6df574d0229c485d289674e6b8e557472a39251468d12258a70652ec4b157b4"
+  },
+  "data/raw/SST/sst_day_anom_1994.nc": {
+   "groupe": "oisst_journalier",
+   "taille": 1009210029,
+   "sha256": "4472730637cb8289c96ddd64b8eb303d786b72de0e034eccefeb3b56d4dd92d7"
+  },
+  "data/raw/SST/sst_day_anom_1995.nc": {
+   "groupe": "oisst_journalier",
+   "taille": 1009210029,
+   "sha256": "77ebff7562c40bacad67a205b47f8ed2d3f71e270193e2cfaedf4122adf7f664"
+  },
+  "data/raw/SST/sst_day_anom_1996.nc": {
+   "groupe": "oisst_journalier",
+   "taille": 1011974829,
+   "sha256": "81a74b8604e6cdb0bee53dfa61e80de7451e88c9724925a889f7c59f5fef8d64"
+  },
+  "data/raw/SST/sst_day_anom_1997.nc": {
+   "groupe": "oisst_journalier",
+   "taille": 1009210029,
+   "sha256": "94333da7a43197e0332579634f80406bd0dd1368ae9e5069c2ad4807a13e878d"
+  },
+  "data/raw/SST/sst_day_anom_1998.nc": {
+   "groupe": "oisst_journalier",
+   "taille": 1009210029,
+   "sha256": "546ace0aecd7b65f885dc931dd7436e5731a861c4a0d47f558d463302c421af6"
+  },
+  "data/raw/SST/sst_day_anom_1999.nc": {
+   "groupe": "oisst_journalier",
+   "taille": 1009210029,
+   "sha256": "220da409b52490e7ef075120db8326a34e19c9c0c73e7c822e25c6f9f83b9791"
+  },
+  "data/raw/SST/sst_day_anom_2000.nc": {
+   "groupe": "oisst_journalier",
+   "taille": 1011974829,
+   "sha256": "b05ac567ef8c8bab2d423abc054b3ebc1a57312efbc14cb16186775200c294ee"
+  },
+  "data/raw/SST/sst_day_anom_2001.nc": {
+   "groupe": "oisst_journalier",
+   "taille": 1009210029,
+   "sha256": "c5962dd9ea0db7defed0d44e592d13acefd86a9d661a7bce812b3ae98dadd2c7"
+  },
+  "data/raw/SST/sst_day_anom_2002.nc": {
+   "groupe": "oisst_journalier",
+   "taille": 1009210029,
+   "sha256": "ff97f8e751f6bd4e5d79314447955bc201674ef81917f5276e431672fb658200"
+  },
+  "data/raw/SST/sst_day_anom_2003.nc": {
+   "groupe": "oisst_journalier",
+   "taille": 1009210029,
+   "sha256": "e36ee8d180ae99f6aa2c0dddb64806eab448d902556351d0f134c9b6434d7cb1"
+  },
+  "data/raw/SST/sst_day_anom_2004.nc": {
+   "groupe": "oisst_journalier",
+   "taille": 1011974829,
+   "sha256": "066b8b2a6294f39482ece50496db854b4f9746d46d84da4f1ff69167f93e8650"
+  },
+  "data/raw/SST/sst_day_anom_2005.nc": {
+   "groupe": "oisst_journalier",
+   "taille": 1009210029,
+   "sha256": "fd98808af1339ef37ee415223d8a24e8a41cb2b46c119bad95c53bcbce60e04a"
+  },
+  "data/raw/SST/sst_day_anom_2006.nc": {
+   "groupe": "oisst_journalier",
+   "taille": 1009210029,
+   "sha256": "899130fe13df338dba408121b8f9eb3d07a05b574af1566dfd84a9005ec75f72"
+  },
+  "data/raw/SST/sst_day_anom_2007.nc": {
+   "groupe": "oisst_journalier",
+   "taille": 1009210029,
+   "sha256": "9ffc10c2ef03358bc843db2b25e45f1d674c623eccd022871d49918bb8bd1a55"
+  },
+  "data/raw/SST/sst_day_anom_2008.nc": {
+   "groupe": "oisst_journalier",
+   "taille": 1011974829,
+   "sha256": "51401dc41a332f82dc62d5d9083d76760c1bdd3818d2bafe0f40dac81e0e0c69"
+  },
+  "data/raw/SST/sst_day_anom_2009.nc": {
+   "groupe": "oisst_journalier",
+   "taille": 1009210029,
+   "sha256": "b6397cc8590bbbf19e73b258fe8cc47079ff1ffd2a2e4807a6bbbffc5d30578e"
+  },
+  "data/raw/SST/sst_day_anom_2010.nc": {
+   "groupe": "oisst_journalier",
+   "taille": 1009210029,
+   "sha256": "1fee2aaab0a2d3692813541414b83cd7bfdb514146669302bb02cadb2772d382"
+  },
+  "data/raw/SST/sst_day_anom_2011.nc": {
+   "groupe": "oisst_journalier",
+   "taille": 1009210029,
+   "sha256": "ea8be2a69d8963a5448b7e283dab5b099a88a48bc50d2cbe39cd27eab084706d"
+  },
+  "data/raw/SST/sst_day_anom_2012.nc": {
+   "groupe": "oisst_journalier",
+   "taille": 1011974803,
+   "sha256": "6fcc56c2d3d1b7ddcb0d0f5b8aae3ddfc1505c76d66f11e6b06c4a4926fb2465"
+  },
+  "data/raw/SST/sst_day_anom_2013.nc": {
+   "groupe": "oisst_journalier",
+   "taille": 1009210029,
+   "sha256": "e8b110482fc3d960fe29f788e89119bff016ca8227d776cedea002c4f8d1aaec"
+  },
+  "data/raw/SST/sst_day_anom_2014.nc": {
+   "groupe": "oisst_journalier",
+   "taille": 1009210029,
+   "sha256": "69f98704e3a8a45d5191acf4652beb4d5b33f9e8bd3b8b6e776ff7c8f14b1a5f"
+  },
+  "data/raw/SST/sst_day_anom_2015.nc": {
+   "groupe": "oisst_journalier",
+   "taille": 1009210029,
+   "sha256": "96c49660378a601783d62be1e142e4a8e449767bd9d7603d91b553f55e95180b"
+  },
+  "data/raw/SST/sst_day_anom_2016.nc": {
+   "groupe": "oisst_journalier",
+   "taille": 1011974806,
+   "sha256": "19eb58803cc92ccced239928846c30a7121478b58b43a3a00d411fc2e1ea2471"
+  },
+  "data/raw/SST/sst_day_anom_2017.nc": {
+   "groupe": "oisst_journalier",
+   "taille": 1009210006,
+   "sha256": "868a82cdbd9379626414ace5bf7807a8c31c52bf1ab656f3787c02b04faf9124"
+  },
+  "data/raw/SST/sst_day_anom_2018.nc": {
+   "groupe": "oisst_journalier",
+   "taille": 1009210006,
+   "sha256": "edc48dcc2e88c514e8a06f5d2cbf354819ed2acaf82ccd420b7d30938c975270"
+  },
+  "data/raw/SST/sst_day_anom_2019.nc": {
+   "groupe": "oisst_journalier",
+   "taille": 1009210006,
+   "sha256": "4c5cc6420f1c2562dcd96630e102edde3f481cd81af846effa048296e0fcdac0"
+  },
+  "data/raw/SST/sst_day_anom_2020.nc": {
+   "groupe": "oisst_journalier",
+   "taille": 1011974806,
+   "sha256": "62b683d262e93a7744a8c0eb41f61e1c7312044f54db812df962e8bdf8b61358"
+  },
+  "data/raw/SST/sst_day_anom_2021.nc": {
+   "groupe": "oisst_journalier",
+   "taille": 1009210006,
+   "sha256": "3f521485b23a19b11744d7817db328c67d263aca1526a33e202a9bf4091cd7f5"
+  },
+  "data/raw/SST/sst_day_anom_2022.nc": {
+   "groupe": "oisst_journalier",
+   "taille": 1009210006,
+   "sha256": "75a241a73fe8423c54ac1be6a9d7f29f02aafe62e5547e32dd0a48c9c94139f6"
+  },
+  "data/raw/SST/sst_day_anom_2023.nc": {
+   "groupe": "oisst_journalier",
+   "taille": 1009210006,
+   "sha256": "d46bd77810a7da7b15892c6e368618cf2d58f25de6c80e6c3bf26238567ed205"
+  },
+  "data/raw/c3s/ecmwf_s51_1981_emis04.nc": {
+   "groupe": "c3s",
+   "taille": 33230,
+   "sha256": "52f21ec9ff1ab4815d76c93661ebf7f3c64e42aad70ed6435bd9b14c2ac6ede0"
+  },
+  "data/raw/c3s/ecmwf_s51_1982_emis04.nc": {
+   "groupe": "c3s",
+   "taille": 33142,
+   "sha256": "d7077916fb7e3d1870e5a60c15fa359f917d0468a1c2a2f773d494dcf71564d0"
+  },
+  "data/raw/c3s/ecmwf_s51_1983_emis04.nc": {
+   "groupe": "c3s",
+   "taille": 33132,
+   "sha256": "deeddb7b0ab786a38bcdd42841507a68a69e3b23e8bbea4c7c3192b2b00ea824"
+  },
+  "data/raw/c3s/ecmwf_s51_1984_emis04.nc": {
+   "groupe": "c3s",
+   "taille": 33262,
+   "sha256": "75ff499c1699d48392771c45fbc9fbfe10fe3466f57ff6fbe269a12d0a98bc9b"
+  },
+  "data/raw/c3s/ecmwf_s51_1985_emis04.nc": {
+   "groupe": "c3s",
+   "taille": 33205,
+   "sha256": "9300dd173e4ad9276e07665c3eacecb21ac1937dcf0082cc38c156e28bba60da"
+  },
+  "data/raw/c3s/ecmwf_s51_1986_emis04.nc": {
+   "groupe": "c3s",
+   "taille": 33177,
+   "sha256": "d7d60d8a97572d0dbb68e25179d146b26ce4739f21b0e4eafd9a37433e0d44eb"
+  },
+  "data/raw/c3s/ecmwf_s51_1987_emis04.nc": {
+   "groupe": "c3s",
+   "taille": 33197,
+   "sha256": "bf06961dca69102f1f63fa864289a5cfde7c9c4ad53d745c0628fc0696c551a1"
+  },
+  "data/raw/c3s/ecmwf_s51_1988_emis04.nc": {
+   "groupe": "c3s",
+   "taille": 33224,
+   "sha256": "f4758f9f8869829bdd019fce06c5a9d50d900f6768584011a8f4e44927354e58"
+  },
+  "data/raw/c3s/ecmwf_s51_1989_emis04.nc": {
+   "groupe": "c3s",
+   "taille": 33207,
+   "sha256": "665b6cdf87438e9d97282bb82d8267b615ea5b9f6d2c00f794cabaa00bd892a6"
+  },
+  "data/raw/c3s/ecmwf_s51_1990_emis04.nc": {
+   "groupe": "c3s",
+   "taille": 33188,
+   "sha256": "698aa756ddfbab4555ef26fcfa66539184075500343cf0612811bc648ebca779"
+  },
+  "data/raw/c3s/ecmwf_s51_1991_emis04.nc": {
+   "groupe": "c3s",
+   "taille": 33159,
+   "sha256": "454c7714af07fbef81f1796b616e199389d5ca3b95b198dddc41b481ade2d4be"
+  },
+  "data/raw/c3s/ecmwf_s51_1992_emis04.nc": {
+   "groupe": "c3s",
+   "taille": 33130,
+   "sha256": "caf59c7a5c56332bc5e34f9bd5178c0b20c0420adee8d6b1e807419eb2e922bf"
+  },
+  "data/raw/c3s/ecmwf_s51_1993_emis04.nc": {
+   "groupe": "c3s",
+   "taille": 33190,
+   "sha256": "e3dc3e66ef8a21830a48b39f3963f2dcf443ed8ce69b66bf9f0254577c40cb98"
+  },
+  "data/raw/c3s/ecmwf_s51_1994_emis04.nc": {
+   "groupe": "c3s",
+   "taille": 33152,
+   "sha256": "98a6b00c2ebd7a14fd334cbc153f4d5fffc0e8f68a4f33b9d4b370792c44d881"
+  },
+  "data/raw/c3s/ecmwf_s51_1995_emis04.nc": {
+   "groupe": "c3s",
+   "taille": 33145,
+   "sha256": "8cce16e0b95fd3b3087cacf894a3a13ec8349d66c08745e860775f6186300c70"
+  },
+  "data/raw/c3s/ecmwf_s51_1996_emis04.nc": {
+   "groupe": "c3s",
+   "taille": 33242,
+   "sha256": "0b09b97d7d574c299238ed44bc561d4b90e3b76c748965271979981edba5bcb2"
+  },
+  "data/raw/c3s/ecmwf_s51_1997_emis04.nc": {
+   "groupe": "c3s",
+   "taille": 33185,
+   "sha256": "1ddaae21caa1de1a4176f977efaaff71d393b78018eb3af5c89083244566864a"
+  },
+  "data/raw/c3s/ecmwf_s51_1998_emis04.nc": {
+   "groupe": "c3s",
+   "taille": 33176,
+   "sha256": "1f22ea11c79ae9f8d19f655dce5f220eea0e80221d32c939a40dc3db81c6c73f"
+  },
+  "data/raw/c3s/ecmwf_s51_1999_emis04.nc": {
+   "groupe": "c3s",
+   "taille": 33292,
+   "sha256": "de3d9bcccd72ddd23ee4ca961b824612a1c023353cdecb7869bcc4e65278adc0"
+  },
+  "data/raw/c3s/ecmwf_s51_2000_emis04.nc": {
+   "groupe": "c3s",
+   "taille": 33272,
+   "sha256": "03430449362c92a26b4087937ab456f8d29cbb2943c7fe5166daab3c8f84949b"
+  },
+  "data/raw/c3s/ecmwf_s51_2001_emis04.nc": {
+   "groupe": "c3s",
+   "taille": 33197,
+   "sha256": "c951f504b403bcbc28b5b02a2d6e4c98b956f76c05bba089405403f37fecb301"
+  },
+  "data/raw/c3s/ecmwf_s51_2002_emis04.nc": {
+   "groupe": "c3s",
+   "taille": 33233,
+   "sha256": "76aa5650ea9f76652338efead75c65e1ed994d8ccca4454e03d7d559374f147f"
+  },
+  "data/raw/c3s/ecmwf_s51_2003_emis04.nc": {
+   "groupe": "c3s",
+   "taille": 33194,
+   "sha256": "175363fd7c008ab631f0589dfef09f9858fcb04fd87b41c87fcfefac77926fea"
+  },
+  "data/raw/c3s/ecmwf_s51_2004_emis04.nc": {
+   "groupe": "c3s",
+   "taille": 33206,
+   "sha256": "967fe50b94b0a99082e5cb98e78fd9e25ae9f391546525e5a9e3675a41afc22f"
+  },
+  "data/raw/c3s/ecmwf_s51_2005_emis04.nc": {
+   "groupe": "c3s",
+   "taille": 33187,
+   "sha256": "e03d52650b80acdd199d332f9302cca96068b61e340a1a8202bb652463acacc9"
+  },
+  "data/raw/c3s/ecmwf_s51_2006_emis04.nc": {
+   "groupe": "c3s",
+   "taille": 33282,
+   "sha256": "6dbab9df574f749143b0aaad7f2735b99019bf6d229e8ea7dcae7e037a370abf"
+  },
+  "data/raw/c3s/ecmwf_s51_2007_emis04.nc": {
+   "groupe": "c3s",
+   "taille": 33114,
+   "sha256": "1842e23d6688b5e7ccfb792a2b05f5c7de74858fba3435eb61002602f04c85ac"
+  },
+  "data/raw/c3s/ecmwf_s51_2008_emis04.nc": {
+   "groupe": "c3s",
+   "taille": 33285,
+   "sha256": "ec1e4ef97b1fe01bcf0dccf54460688dea4db4ce9988c200a57d29e844c0c907"
+  },
+  "data/raw/c3s/ecmwf_s51_2009_emis04.nc": {
+   "groupe": "c3s",
+   "taille": 33112,
+   "sha256": "557fdebc44507d90202ffe8b06f2241274f65307c9ac2d4104280a102fe2c736"
+  },
+  "data/raw/c3s/ecmwf_s51_2010_emis04.nc": {
+   "groupe": "c3s",
+   "taille": 33250,
+   "sha256": "f42f5e660e04de5a136c9e6832ebd93bde1c187820f78089b18115492fd63e70"
+  },
+  "data/raw/c3s/ecmwf_s51_2011_emis04.nc": {
+   "groupe": "c3s",
+   "taille": 33163,
+   "sha256": "8083bea72eac6453a218f67387c9ebfc8fd4dae5b1b13238cc5310cd106a11d7"
+  },
+  "data/raw/c3s/ecmwf_s51_2012_emis04.nc": {
+   "groupe": "c3s",
+   "taille": 33158,
+   "sha256": "f38f519c6660a165d91aeb5857f3f5273e023850040ff4cefdbee8a01db74760"
+  },
+  "data/raw/c3s/ecmwf_s51_2013_emis04.nc": {
+   "groupe": "c3s",
+   "taille": 33230,
+   "sha256": "dcf881addb1326fc82768b0e53c752507558f7c31404be45547ef67bdc5291e9"
+  },
+  "data/raw/c3s/ecmwf_s51_2014_emis04.nc": {
+   "groupe": "c3s",
+   "taille": 33088,
+   "sha256": "31b07fb2070cea59b294d1972d2ec7285976550272422a3ebcebc87a6da5ad45"
+  },
+  "data/raw/c3s/ecmwf_s51_2015_emis04.nc": {
+   "groupe": "c3s",
+   "taille": 33194,
+   "sha256": "4791bb9123afac12060cc08612986718658926acb2f197772967baf4a676da74"
+  },
+  "data/raw/c3s/ecmwf_s51_2016_emis04.nc": {
+   "groupe": "c3s",
+   "taille": 33190,
+   "sha256": "dd8ced4916b733d3c3603a2bfaf0310ace0520983f9a7877fcf080bbd7e26a1f"
+  },
+  "data/raw/c3s/ecmwf_s51_2017_emis04.nc": {
+   "groupe": "c3s",
+   "taille": 38900,
+   "sha256": "95c007c8d0446efd38595de9630cb3c11f41e2f8cc9e5055a71262ca21397dc0"
+  },
+  "data/raw/c3s/ecmwf_s51_2018_emis04.nc": {
+   "groupe": "c3s",
+   "taille": 38920,
+   "sha256": "48c58df32302907e439b74f9ea652412b6e5a6db0eab9a4dc5fe8919123c40ae"
+  },
+  "data/raw/c3s/ecmwf_s51_2019_emis04.nc": {
+   "groupe": "c3s",
+   "taille": 38890,
+   "sha256": "9e8cf6747a5f19666cd37ed4677c7b3255d702afe64845ca12ac65ca4ddaab49"
+  },
+  "data/raw/c3s/ecmwf_s51_2020_emis04.nc": {
+   "groupe": "c3s",
+   "taille": 39097,
+   "sha256": "38a0fd2924e29a9bc2ce268caab9777b1b730236406c70f12b174842a1ae151d"
+  },
+  "data/raw/c3s/ecmwf_s51_2021_emis04.nc": {
+   "groupe": "c3s",
+   "taille": 39007,
+   "sha256": "249a9355783dedf82eadb3171835861950e87f9f1620e49ad91ef54779b41d97"
+  },
+  "data/raw/c3s/ecmwf_s51_2022_emis04.nc": {
+   "groupe": "c3s",
+   "taille": 39096,
+   "sha256": "e04bd2919def17daca0c01791c3d62af356896525788159bce05bdd92794ac27"
+  },
+  "data/raw/c3s/ecmwf_s51_2023_emis04.nc": {
+   "groupe": "c3s",
+   "taille": 38954,
+   "sha256": "3cc793584524d2e3f9af90110c068c9e2ac181d752de0b93c445599b8dfc1057"
+  },
+  "data/processed/standardized_anomalies_senegal.npz": {
+   "groupe": "chirps_senegal",
+   "taille": 15680356,
+   "sha256": "6089d48881bcb1eba16b37e1c60306ae54ccaaa45b966baf79e3b154770df191"
+  },
+  "data/processed/climatology_senegal.npz": {
+   "groupe": "chirps_senegal",
+   "taille": 1995710,
+   "sha256": "89a320d6024a60f7c4e226de4cadf069ce07d3b2d6c6f672e75aa2762a2a9a64"
+  },
+  "data/raw/ansd/rgph_repertoire_localites_1988-2023.csv": {
+   "groupe": "ansd",
+   "taille": 6288887,
+   "sha256": "a1e16ea50bdbede2eb8768b43dff5091e8212f8fd3fe4370d6da0d7ba539b540"
+  },
+  "data/processed/localites_rgph5_placees.csv": {
+   "groupe": "ansd",
+   "taille": 3064854,
+   "sha256": "de8a7ee02805b00985c58307351bd2ef1d3a1247176aa574d4a55f3f3c0301cb"
+  },
+  "data/raw/inondations/zones_touchees_2005_2009_2012_2020.csv": {
+   "groupe": "inondations",
+   "taille": 13789,
+   "sha256": "5df8f2c180e2a5fe8b0e518cada2701002c8ac26b6e685a2c8c61a43f018789d"
+  }
+ }
+}

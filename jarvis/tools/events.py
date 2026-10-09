@@ -3,7 +3,12 @@
 Meme jeu que le module "Evenements" du dashboard
 (data/processed/extreme_events_phases_senegal.csv via load_events):
 1317 evenements detectes au-dela de 2 sigma sur les anomalies CHIRPS.
+
+Chaque evenement porte aussi les habitants de sa zone (script 33, RGPH-5 2023,
+projection ANSD 2026 du script 37), les memes que la fiche evenement et l'API
+ouverte. Jeu facultatif : sans lui, l'outil repond sans ces champs.
 """
+from . import dataset
 from .common import (PHASES_LABELS, PHASES_TOUTES, SOURCE_EVENTS,
                      ToolInputError, arrondir, champ_bool, champ_decimal,
                      champ_entier, champ_enum, champ_texte, jour, normalise,
@@ -20,10 +25,22 @@ DESCRIPTION = (
     "CHIRPS). Permet de filtrer par annee, mois, phase de saison, region ou "
     "departement, et de trier par intensite ou par date. Utilise cet outil "
     "pour toute question sur des evenements passes: combien, quand, ou, "
-    "lesquels ont ete les plus intenses."
+    "lesquels ont ete les plus intenses. Chaque evenement porte les habitants "
+    "de sa zone touchee (ANSD RGPH-5 2023, et projection ANSD 2026) : tri "
+    "sort_by=population_touchee pour 'les evenements qui ont touche le plus "
+    "d'habitants'. Ce n'est PAS un nombre de sinistres."
 )
 
-TRIS = ["max_precip", "mean_precip", "coverage_percent", "max_anomaly", "date"]
+POPULATION = ("ANSD RGPH-5 2023 (localites placees par leurs coordonnees ANSD), "
+              "projection 2026 : ANSD, API SDMX")
+LECTURE_POPULATION = (
+    "habitants (population 2023) des pixels CHIRPS de 0,25 deg ou l'anomalie a "
+    "depasse +2 sigma ce jour-la : population d'aujourd'hui des zones touchees, "
+    "pas la population de l'annee de l'evenement, et pas un nombre de sinistres "
+    "(tout le pixel n'est pas inonde)")
+
+TRIS = ["max_precip", "mean_precip", "coverage_percent", "max_anomaly", "date",
+        "population_touchee"]
 LIMITE_MAX = 20
 
 SCHEMA = {
@@ -118,6 +135,15 @@ def run(params, data):
         selection = selection[selection["max_precip"] >= seuil]
         filtres["min_max_precip"] = seuil
 
+    pop = dataset.facultatif(data, "population_touchee")
+    if pop is not None:
+        cles = selection["date"].map(jour)
+        selection = selection.assign(
+            population_touchee=cles.map(pop["population_touchee_2023"]).to_numpy())
+    elif tri == "population_touchee":
+        raise ToolInputError("Les habitants des zones touchees ne sont pas "
+                             "disponibles sur ce serveur : choisis un autre tri.")
+
     if selection.empty:
         # Pas une erreur: "aucun evenement ne correspond" est une reponse
         # legitime, que le modele doit pouvoir restituer telle quelle.
@@ -133,7 +159,7 @@ def run(params, data):
     triee = selection.sort_values(tri, ascending=croissant)
     retenus = triee.head(limite)
 
-    evenements = [{
+    evenements = [_avec_population({
         "date": jour(ligne["date"]),
         "phase": ligne["phase"],
         "phase_label": PHASES_LABELS.get(ligne["phase"], ligne["phase"]),
@@ -144,12 +170,12 @@ def run(params, data):
         "region_centroide": ligne.get("centroid_region"),
         "departement_centroide": ligne.get("centroid_department"),
         "regions_touchees": int(ligne["regions_affected"]) if "regions_affected" in ligne else None,
-    } for _, ligne in retenus.iterrows()]
+    }, pop) for _, ligne in retenus.iterrows()]
 
     top_regions = (selection["centroid_region"].dropna().value_counts().head(5)
                    if "centroid_region" in selection.columns else [])
 
-    return {
+    resultat = {
         "n_total": int(len(selection)),
         "n_renvoyes": len(evenements),
         "filtres": filtres,
@@ -173,6 +199,38 @@ def run(params, data):
         "couverture": _couverture(df),
         "source": SOURCE_EVENTS,
     }
+    if pop is not None and selection["population_touchee"].notna().any():
+        h = selection["population_touchee"].dropna()
+        resultat["statistiques"]["habitants_zone_touchee_2023"] = {
+            "mediane": int(h.median()), "maximum": int(h.max()),
+            "date_du_maximum": jour(selection.loc[h.idxmax(), "date"])}
+        resultat["population"] = {"lecture": LECTURE_POPULATION, "source": POPULATION}
+    return resultat
+
+
+def _entier_ou_none(v):
+    try:
+        return None if v is None or v != v else int(v)
+    except (TypeError, ValueError):
+        return None
+
+
+def _avec_population(evt, pop):
+    """Ajoute a un evenement les habitants de sa zone (memes champs que la
+    fiche evenement : 2023, part nationale, departements, projection 2026)."""
+    if pop is None or evt["date"] not in pop.index:
+        return evt
+    p = pop.loc[evt["date"]]
+    evt["habitants_zone_touchee_2023"] = _entier_ou_none(p.get("population_touchee_2023"))
+    evt["part_population_nationale_pct"] = arrondir(p.get("part_population_nationale_pct"), 1)
+    evt["departements_touches"] = _entier_ou_none(p.get("departements_touches"))
+    dep = p.get("departement_le_plus_touche")
+    if isinstance(dep, str) and dep:
+        evt["departement_le_plus_d_habitants_touches"] = dep.title()
+    h26 = _entier_ou_none(p.get("population_touchee_2026"))
+    if h26 is not None:
+        evt["habitants_meme_zone_2026_projection"] = h26
+    return evt
 
 
 def _couverture(df):

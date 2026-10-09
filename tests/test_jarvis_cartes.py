@@ -53,6 +53,12 @@ def test_carte_d_un_evenement(data):
     assert resume["catalogue"]["anomalie_max_sigma"] == 8.14
     assert resume["maximum_sur_la_carte"]["valeur"] == pytest.approx(8.14, abs=0.01)
     assert spec["donnees"]["seuil"] == 2.0          # contour a 2 sigma
+    # Habitants de la zone (script 33), memes champs que search_extreme_events.
+    h = resume.get("habitants")
+    if h is not None:
+        assert h["habitants_zone_touchee_2023"] == 18_069_311
+        assert h["departements_touches"] == 46
+        assert "sinistres" in h["lecture"]
 
 
 def test_date_sans_evenement_propose_les_plus_proches(data):

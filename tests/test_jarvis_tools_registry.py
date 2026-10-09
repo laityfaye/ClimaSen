@@ -32,7 +32,8 @@ def test_les_outils_publics_sont_declares():
                     "present_bulletin_briefing", "get_bulletin_reliability",
                     "explore_ocean_scenario", "get_priority_zones",
                     "generate_report", "make_custom_figure",
-                    "read_report", "edit_report"}
+                    "read_report", "edit_report",
+                    "get_rainfall", "get_ocean_state", "get_locality"}
 
 
 def test_chaque_declaration_est_complete():

@@ -11,6 +11,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 import streamlit as st
 import dashboard_utils as du
 import admin_gate
+import taches_fond
 from dashboard_utils import INDIGO, BLUE, EMERALD, AMBER, ROSE, BASE, nb
 
 SCRIPTS_DIR = BASE / "scripts"
@@ -328,6 +329,50 @@ PIPELINE_STEPS = [
         "exports": {},
     },
 ]
+
+# Taches longues lancees en arriere-plan (scripts/taches_fond.py) : une seule a
+# la fois, elles lisent toutes les 42 Go d'OISST ou telechargent.
+TACHES_LOURDES = ["etape_19", "etape_20", "etape_21", "etape_22"]
+NOMS_TACHES = {"etape_19": "cube SST", "etape_20": "bulletin de veille",
+               "etape_21": "évaluation C3S", "etape_22": "mise à jour mensuelle",
+               "pipeline_complet": "pipeline complet"}
+TACHES_LOURDES.append("pipeline_complet")
+
+# Pipeline complet, dans l'ordre des dependances (09/10/2026). Les etapes 26 a 37
+# ne sont pas des cartes de la page : seules leur sortie principale compte ici.
+_HORS_PAGE = [
+    {"id": "26", "label": "Indice de risque par département",
+     "script": "26_indice_risque_departements.py",
+     "outputs": ["outputs/vulnerabilite/indice_risque_departements.csv"]},
+    {"id": "27", "label": "Indice de risque par arrondissement",
+     "script": "27_indice_risque_arrondissements.py",
+     "outputs": ["outputs/vulnerabilite/indice_risque_arrondissements.csv"]},
+    {"id": "29", "label": "Robustesse de l'indice", "script": "29_robustesse_indice.py",
+     "outputs": ["outputs/vulnerabilite/robustesse/resume.json"]},
+    {"id": "28", "label": "Contours simplifiés", "script": "28_contours_simplifies.py",
+     "outputs": ["data/processed/contours_admin2_simplifies.geojson"]},
+    {"id": "33", "label": "Habitants des zones touchées",
+     "script": "33_population_touchee_evenements.py",
+     "outputs": ["outputs/exposition_evenements/population_touchee_evenements.csv"]},
+    {"id": "34", "label": "Communes reconstruites", "script": "34_communes_reconstruites.py",
+     "outputs": ["data/processed/communes_reconstruites_ansd.geojson"]},
+    {"id": "37", "label": "Exposition projetée 2026-2030", "script": "37_exposition_projetee.py",
+     "outputs": ["outputs/exposition_evenements/population_touchee_projetee.csv"]},
+    {"id": "32", "label": "Manifeste des données (rapports d'Iris)",
+     "script": "32_manifest_donnees.py", "outputs": ["outputs/manifest.json"]},
+]
+_PAR_ID = {e["id"]: e for e in PIPELINE_STEPS}
+CHAINE_COMPLETE = ([_PAR_ID[i] for i in ("01", "02", "03", "03b", "sst", "04", "11", "14",
+                                        "19", "20")] + _HORS_PAGE)
+HORS_CHAINE = ("Laissées à part, avec leur propre bouton : 21 (évaluation C3S, protocole figé, "
+               "clé Copernicus), 22 (mise à jour mensuelle, novembre-avril), 35, 36 et 38 "
+               "(onglet « Données ANSD »), les analyses de contrôle 24, 30, 31 et les "
+               "constructions d'Iris 15, 16, 17, 23, 25.")
+
+
+def _sortie_presente(etape):
+    sorties = etape.get("outputs") or []
+    return bool(sorties) and all((BASE / o).exists() for o in sorties)
 
 
 def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
@@ -932,13 +977,11 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
                 if has_any:
                     st.markdown("</div>", unsafe_allow_html=True)
 
-        # Le pipeline complet exclut la veille pre-saison (telechargements).
-        _complet = [s for s in PIPELINE_STEPS if not s.get("veille")]
-        _n_done  = sum(
-            1 for s in _complet
-            if s.get("outputs") and all((BASE / o).exists() for o in s["outputs"])
-        )
-        _n_total = len(_complet)
+        # Pipeline complet : la chaine CHAINE_COMPLETE, en arriere-plan, arret a la
+        # premiere erreur (avant le 09/10/2026 : 8 etapes, page bloquee, et les
+        # etapes en aval tournaient meme apres un echec en amont).
+        _faites = [e for e in CHAINE_COMPLETE if _sortie_presente(e)]
+        _n_done, _n_total = len(_faites), len(CHAINE_COMPLETE)
         _pct_done = int(_n_done / _n_total * 100) if _n_total else 0
 
         st.markdown(f"""
@@ -947,12 +990,13 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
             <h3>{"Exécuter le pipeline complet" if _admin else "État du pipeline"}</h3>
             <p>
               {_n_total} étapes &nbsp;&middot;&nbsp;
-              Détection &rarr; SST &rarr; Téléconnexions &rarr; Clustering &rarr; Visualisation
+              Détection &rarr; Téléconnexions &rarr; Clustering &rarr; Veille &rarr;
+              Vulnérabilité &rarr; Exposition &rarr; Rapports
             </p>
           </div>
           <div style='text-align:right;margin-left:24px;flex-shrink:0;'>
             <div style='font-size:1.6rem;font-weight:800;color:#fff;line-height:1;'>{_n_done}/{_n_total}</div>
-            <div style='font-size:0.72rem;color:rgba(255,255,255,.7);margin-top:2px;'>étapes exécutées</div>
+            <div style='font-size:0.72rem;color:rgba(255,255,255,.7);margin-top:2px;'>étapes avec sorties</div>
             <div style='background:rgba(255,255,255,.2);border-radius:99px;height:5px;margin-top:8px;width:90px;'>
               <div style='background:#fff;border-radius:99px;height:5px;width:{_pct_done}%;'></div>
             </div>
@@ -960,41 +1004,30 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
         </div>
         """, unsafe_allow_html=True)
 
-        run_all = _admin and st.button("Lancer le pipeline complet", key="btn_run_all",
-                                        type="primary", use_container_width=True)
-
-        if run_all:
-            overall_bar = st.progress(0, text="Démarrage...")
-            all_ok = True
-            results_container = st.container()
-            for i, step in enumerate(_complet):
-                script_path = SCRIPTS_DIR / step["script"]
-                overall_bar.progress(
-                    int(i / len(_complet) * 100),
-                    text=f"Étape {step['num']}/{len(_complet)} : {step['label']}",
-                )
-                if not script_path.exists():
-                    with results_container:
-                        st.warning(f"Script introuvable : `{step['script']}`")
-                    all_ok = False
-                    continue
-                with st.spinner(f"Étape {step['num']} — {step['label']}..."):
-                    rc, out = run_script(script_path)
-                with results_container:
-                    if rc == 0:
-                        st.success(f"Étape {step['num']} terminée : {step['label']}")
-                    else:
-                        st.error(f"Étape {step['num']} en échec : {step['label']} (code {rc})")
-                        with st.expander("Voir la sortie d'erreur"):
-                            st.code(out or "(vide)", language="text")
-                        all_ok = False
-            overall_bar.progress(100, text="Pipeline terminé")
-            if all_ok:
-                st.balloons()
-                st.success("Pipeline complet exécuté avec succès ! Rechargez les autres pages pour voir les nouveaux résultats.")
-            else:
-                st.warning("Pipeline terminé avec des erreurs. Vérifiez les étapes marquées ci-dessus.")
-            st.cache_data.clear()
+        if _admin:
+            _occupe_tout = taches_fond.taches_actives(TACHES_LOURDES)
+            with st.expander("Ordre d'exécution et étapes laissées à part"):
+                st.markdown("\n".join(
+                    "%d. %s — `%s`" % (k + 1, e["label"], e["script"])
+                    for k, e in enumerate(CHAINE_COMPLETE)))
+                st.caption(HORS_CHAINE)
+            run_all = st.button("Lancer le pipeline complet", key="btn_run_all",
+                                type="primary", use_container_width=True,
+                                disabled=bool(_occupe_tout),
+                                help="Tourne en arrière-plan ; s'arrête à la première erreur.")
+            if _occupe_tout:
+                st.caption("Une tâche longue est déjà en cours (%s) : une seule à la fois."
+                           % ", ".join(NOMS_TACHES.get(n, n) for n in _occupe_tout))
+            if run_all and admin_gate.exiger_admin():
+                taches_fond.lancer_chaine("pipeline_complet",
+                                          [e["script"] for e in CHAINE_COMPLETE])
+                st.rerun()
+        taches_fond.suivi("pipeline_complet", cle="suivi_complet")
+        if taches_fond.active("pipeline_complet"):
+            # Les boutons "Executer" ci-dessous liraient des fichiers en cours d'ecriture.
+            st.session_state["_pipeline_complet_actif"] = True
+        else:
+            st.session_state["_pipeline_complet_actif"] = False
 
         st.markdown("<br>", unsafe_allow_html=True)
 
@@ -1005,9 +1038,14 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
             "Teleconnexions": {"color": ROSE},
             "Clustering":     {"color": AMBER},
             "Visualisation":  {"color": EMERALD},
+            "Veille pre-saison": {"color": ROSE},
         }
-        CAT_LIB = {"Detection": "Détection", "Teleconnexions": "Téléconnexions"}
-        CAT_ORDER = ["Detection", "Export", "SST", "Teleconnexions", "Clustering", "Visualisation"]
+        CAT_LIB = {"Detection": "Détection", "Teleconnexions": "Téléconnexions",
+                   "Veille pre-saison": "Veille pré-saison"}
+        # La veille (19-22) etait declaree mais absente de cette liste, donc jamais
+        # affichee (constate le 09/10/2026). Ses etapes partent en arriere-plan.
+        CAT_ORDER = ["Detection", "Export", "SST", "Teleconnexions", "Clustering", "Visualisation",
+                     "Veille pre-saison"]
         steps_by_cat = {}
         for s in PIPELINE_STEPS:
             steps_by_cat.setdefault(s["category"], []).append(s)
@@ -1081,19 +1119,40 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
                         f"</div>",
                         unsafe_allow_html=True,
                     )
+                fond = bool(step.get("veille"))          # tache longue : arriere-plan
+                occupe = taches_fond.taches_actives(TACHES_LOURDES) if fond else []
                 with btn_col:
                     btn_key = f"run_{step['id']}"
                     st.markdown("<div style='padding:14px 0 0 0;'>", unsafe_allow_html=True)
                     if not _admin:
                         clicked = False
+                    elif sc_exists and fond:
+                        clicked = st.button("Lancer", key=btn_key, use_container_width=True,
+                                            type="secondary", disabled=bool(occupe),
+                                            help=("Tâche longue : elle tourne en arrière-plan, "
+                                                  "la page reste utilisable."))
                     elif sc_exists:
-                        clicked = st.button("Exécuter", key=btn_key,
-                                            use_container_width=True, type="secondary")
+                        clicked = st.button(
+                            "Exécuter", key=btn_key, use_container_width=True,
+                            type="secondary",
+                            disabled=st.session_state.get("_pipeline_complet_actif", False),
+                            help=("Indisponible pendant le pipeline complet."
+                                  if st.session_state.get("_pipeline_complet_actif") else None))
                     else:
                         clicked = False
                         st.button("Introuvable", key=btn_key,
                                   disabled=True, use_container_width=True)
                     st.markdown("</div>", unsafe_allow_html=True)
+
+                if fond:
+                    if occupe and _admin:
+                        st.caption("Une tâche longue est déjà en cours (%s) : une seule à la fois."
+                                   % ", ".join(NOMS_TACHES.get(n, n) for n in occupe))
+                    if clicked and admin_gate.exiger_admin():
+                        taches_fond.lancer("etape_%s" % step["id"], step["script"])
+                        st.rerun()
+                    taches_fond.suivi("etape_%s" % step["id"], cle="suivi_%s" % step["id"])
+                    clicked = False
 
                 if clicked:
                     with st.spinner(f"Exécution de l'étape {step_num}..."):
@@ -1284,6 +1343,61 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
             time.sleep(3)
             st.rerun()
 
+        # ── Cube SST mensuel (script 19), a reconstruire apres un telechargement ──
+        st.markdown("<p class='pip-section-title' style='margin-top:24px;'>"
+                    "Reconstruire le cube SST</p>", unsafe_allow_html=True)
+        _cube = BASE / "data" / "processed" / "sst_cube_1deg.npz"
+        _cube_txt = ("présent, mis à jour le %s" % time.strftime(
+            "%d/%m/%Y %H:%M", time.localtime(_cube.stat().st_mtime))) if _cube.exists()             else "<b>absent</b>"
+        st.markdown(
+            f'<p style="font-size:0.78rem;color:{MUTED};margin:0 0 12px 0;">'
+            "Le cube (~80 Mo) résume les fichiers OISST en moyennes mensuelles à 1° et en "
+            "champs des jours d'événements : la veille pré-saison et Iris (état de "
+            "l'océan d'un mois) le lisent. À relancer après un téléchargement. "
+            f"Cube actuel : {_cube_txt}. Durée : environ 7 minutes pour 1983-2023.</p>",
+            unsafe_allow_html=True,
+        )
+        _occupe = taches_fond.taches_actives(TACHES_LOURDES)
+        if not _admin:
+            st.caption("La reconstruction du cube est réservée à l'administrateur.")
+        elif is_running:
+            st.caption("Attendre la fin du téléchargement pour reconstruire le cube.")
+        elif not sst_files_present:
+            st.caption("Aucun fichier OISST : télécharger d'abord les données.")
+        else:
+            _annees = sorted(int(f.stem[-4:]) for f in sst_files_present
+                             if f.suffix == ".nc" and f.stem[-4:].isdigit())
+            col_c1, col_c2, col_cb = st.columns([1, 1, 2])
+            with col_c1:
+                cube_y0 = st.number_input("Année début", min_value=1983, max_value=2100,
+                                          value=_annees[0] if _annees else 1983, step=1,
+                                          key="cube_yr_start")
+            with col_c2:
+                cube_y1 = st.number_input("Année fin", min_value=1983, max_value=2100,
+                                          value=_annees[-1] if _annees else 2023, step=1,
+                                          key="cube_yr_end")
+            with col_cb:
+                st.markdown("<div style='height:28px'></div>", unsafe_allow_html=True)
+                lancer_cube = st.button("Reconstruire le cube", type="primary",
+                                        use_container_width=True, key="btn_cube",
+                                        disabled=bool(_occupe) or cube_y1 < cube_y0)
+            manquantes = [a for a in range(int(cube_y0), int(cube_y1) + 1) if a not in _annees]
+            if manquantes:
+                st.caption("Fichiers absents pour %s : ces années seront ignorées."
+                           % ", ".join(str(a) for a in manquantes[:10]))
+            if _occupe:
+                st.caption("Une tâche longue est déjà en cours (%s)."
+                           % ", ".join(NOMS_TACHES.get(n, n) for n in _occupe))
+            if lancer_cube and admin_gate.exiger_admin():
+                annees = [a for a in range(int(cube_y0), int(cube_y1) + 1) if a in _annees]
+                if not annees:
+                    st.warning("Aucun fichier OISST pour ces années.")
+                else:
+                    taches_fond.lancer("etape_19", "19_build_sst_cube.py",
+                                       ["--annees"] + [str(a) for a in annees])
+                    st.rerun()
+        taches_fond.suivi("etape_19", cle="suivi_cube")
+
         st.markdown("<p class='pip-section-title' style='margin-top:24px;'>Fichiers presents</p>",
                     unsafe_allow_html=True)
         if sst_files_present:
@@ -1315,7 +1429,9 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
             st.markdown(
                 f'<p style="font-size:0.78rem;color:{MUTED};margin:0 0 12px 0;">'
                 f"Supprimez les {n_present} fichiers SST ({nb(total_size_gb, '.1f')} Go) "
-                "une fois le clustering terminé.</p>",
+                "une fois le clustering terminé et le cube reconstruit. Iris perdra alors "
+                "l'état de l'océan d'un jour précis et l'animation des événements hors "
+                "archive ; les mois restent lisibles dans le cube.</p>",
                 unsafe_allow_html=True,
             )
             if "confirm_delete_sst" not in st.session_state:

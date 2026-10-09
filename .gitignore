@@ -55,6 +55,8 @@ timescaledb_data/
 
 # Logs Jarvis (trafic public et audit admin)
 outputs/jarvis_logs/
+# Taches longues de la page Pipeline (etat et journal, propres a chaque serveur)
+outputs/taches/
 
 # Rapports generes par Iris (fichiers de session, purges au bout de 24 h)
 outputs/rapports_iris/
@@ -66,10 +68,14 @@ LINUX/
 # Sauvegardes des modifications de code faites par Jarvis (Phase 10)
 .jarvis/
 
-# Veille pre-saison: cube SST compact (~80 Mo, reconstruit par le script 19)
-# et previsions Copernicus telechargees (le cache se reconstitue seul).
+# Veille pre-saison: cube SST compact (~80 Mo, reconstruit par le script 19).
 data/processed/sst_cube_1deg.npz
-data/raw/c3s/
+# Previsions Copernicus C3S (59 fichiers, 8,5 Mo, variantes du script 21 comprises) : VERSIONNEES depuis le 09/10/2026
+# pour que le serveur les ait sans cle CDS. Exception a la regle data/raw/**/*.nc.
+!data/raw/c3s/
+!data/raw/c3s/*.nc
+!data/raw/c3s/variantes/
+!data/raw/c3s/variantes/*.nc
 
 # Synchronisation ANSD (script 38) : dossiers de travail et etat, propres a chaque serveur
 data/raw/ansd/.odp_nouveau/

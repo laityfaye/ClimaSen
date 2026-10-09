@@ -11,6 +11,11 @@ jinja2>=3.1           # rapports d'Iris: gabarit HTML (jarvis/rapports)
 pyyaml>=6.0           # rapports: catalogue de donnees et figures de reference
 playwright>=1.45      # rapports: PDF par Chromium headless (playwright install chromium)
 
+# Lecture des donnees sources brutes (jarvis/sources.py), utilisees seulement
+# si les fichiers sont sur le serveur : CHIRPS .mat (HDF5) et OISST (NetCDF).
+h5py>=3.3.0
+netCDF4>=1.6.0
+
 # Tests
 pytest>=8.0
 pytest-asyncio>=0.24

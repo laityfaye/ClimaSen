@@ -63,6 +63,18 @@ VALIDES = [
      "filters": [{"column": "Region", "op": "=", "value": "Dakar"}], "top": 12},
     {"dataset": "ehcvm_pauvrete", "mark": "barres_horizontales", "x": "region",
      "y": "taux_pauvrete_p0_pct", "title": "Pauvreté par région en 2021-2022"},
+    # Jeux du 07-09/10/2026 : habitants touches, communes, projections de l'ANSD.
+    {"dataset": "habitants_evenements", "mark": "courbes", "x": "annee",
+     "y": "population_touchee_2023", "aggregation": "mediane"},
+    {"dataset": "habitants_evenements", "mark": "tableau",
+     "columns": ["annee", "mois", "population_touchee_2023", "departement_le_plus_touche"],
+     "y": "population_touchee_2023", "sort": "desc", "top": 10},
+    {"dataset": "communes_exposition", "mark": "barres_horizontales", "x": "commune_ansd",
+     "y": "jours_extremes_par_an", "filters": [{"column": "departement", "op": "=",
+                                                "value": "Pikine"}], "sort": "desc"},
+    {"dataset": "departements", "mark": "tableau", "join": {"dataset": "population_projetee"},
+     "columns": ["departement", "population_2023", "population_projetee.population_2030"],
+     "y": "population_projetee.population_2030", "sort": "desc", "top": 10},
 ]
 
 
@@ -195,3 +207,19 @@ def test_figure_de_reference_complete():
     assert f.origine == "reference" and f.png[:4] == b"\x89PNG"
     with pytest.raises(KeyError):
         figures_reference.figure("inconnue")
+
+
+def test_habitants_par_evenement_egaux_au_script_33():
+    r = M.executer({"dataset": "habitants_evenements", "mark": "tableau",
+                    "columns": ["annee", "population_touchee_2023"],
+                    "y": "population_touchee_2023", "sort": "desc", "top": 1})
+    attendu = pd.read_csv("outputs/exposition_evenements/population_touchee_evenements.csv")
+    assert r["lignes"][0][0] in (2012, "2012")
+    assert str(int(attendu["population_touchee_2023"].max())) in         str(r["lignes"][0][1]).replace(" ", "").replace(" ", "").replace(" ", "")
+
+
+def test_habitants_ne_s_additionnent_pas_entre_evenements():
+    """Une meme personne compte une fois par evenement : la somme serait trompeuse."""
+    with pytest.raises(M.SpecInvalide):
+        M.executer({"dataset": "habitants_evenements", "mark": "barres", "group_by": "annee",
+                    "measure": "population_touchee_2023", "aggregation": "somme"})

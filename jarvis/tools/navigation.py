@@ -50,7 +50,9 @@ DESCRIPTION = (
     "Clustering); indices SST en noms courts (AMO, TNA...); annees = "
     "[debut, fin]; Vulnerabilite: niveau departements|arrondissements, composante "
     "indice|alea|exposition|vulnerabilite, zone = P-code (SN0703, SN070301...) renvoye "
-    "par get_priority_zones. Un filtre invalide est ignore et signale."
+    "par get_priority_zones; Pipeline: onglet Données CHIRPS|Pipeline d'analyse|Données SST|"
+    "Données ANSD (synchronisation avec l'API SDMX de l'ANSD). Un filtre invalide est "
+    "ignore et signale."
 )
 
 SCHEMA = {

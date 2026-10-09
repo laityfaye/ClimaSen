@@ -105,6 +105,13 @@ LOADERS = {
     "correlations": "load_telecon",
     "clustering":   "load_clustering",
     "vulnerabilite": "load_vulnerabilite",
+    # Exposition et donnees de l'ANSD (07-08/10/2026) : memes chiffres que la
+    # fiche evenement et la page Vulnerabilite. Lus en FACULTATIF par les
+    # outils (voir facultatif) : un serveur sans ces fichiers repond quand meme.
+    "population_touchee": "load_population_touchee",
+    "population_projetee": "load_population_projetee",
+    "pauvrete_ansd": "load_pauvrete_ansd",
+    "communes": "load_communes_reconstruites",
 }
 
 # Jeux qui ne viennent pas du dashboard. L'index documentaire (Phase 3) est
@@ -147,6 +154,19 @@ def get(nom: str):
     if nom not in LOADERS:  # pragma: no cover - garde-fou de refactoring
         raise DataUnavailableError("Jeu de donnees inconnu: %s" % nom)
     return _charger(LOADERS[nom])
+
+
+def facultatif(data: dict, nom: str):
+    """Jeu complementaire : celui du dict d'entree s'il y est (tests), sinon
+    lu a la demande ; None s'il manque. Appele depuis run(), donc deja hors de
+    la boucle d'evenements. Un enrichissement absent ne doit jamais faire
+    echouer l'outil qui le porte."""
+    if nom in data:
+        return data[nom]
+    try:
+        return get(nom)
+    except DataUnavailableError:
+        return None
 
 
 async def load(noms) -> dict:

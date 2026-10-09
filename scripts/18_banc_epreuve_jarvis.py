@@ -141,6 +141,20 @@ def construire_banc():
     rob = json.loads((RACINE / "outputs" / "vulnerabilite" / "robustesse" / "resume.json")
                      .read_text(encoding="utf-8"))
     auc_val = rob["validation"]["indice_publie"]["au moins une (A)"]["auc"]
+    # Exposition et ANSD (07-09/10/2026) : attendus lus dans les sorties 33 et 37.
+    pop = dataset.get("population_touchee")
+    date_max_hab = str(pop["population_touchee_2023"].idxmax())
+    pauv_dakar = dataset.get("pauvrete_ansd")["SN01"]
+    pop_pikine_2030 = int(dataset.get("population_projetee").loc["SN0103", "population_2030"])
+    # Donnees sources (get_rainfall, get_ocean_state, get_locality) : attendus lus
+    # par les outils eux-memes.
+    from jarvis.tools import localite as outil_localite
+    from jarvis.tools import pluie as outil_pluie
+    pluie_kaolack = outil_pluie.run({"date": "1999-08-14", "place": "region de Kaolack"},
+                                    {"events": events})["pluie_moyenne_zone_mm"]
+    touba = outil_localite.run({"name": "Touba Mosquee"}, {})["localites"][0]
+    touba_1988 = touba["population_par_recensement"].get("1988")
+    touba_2023 = touba["population_par_recensement"]["2023"]
 
     def q(id_, categorie, question, controles):
         return {"id": id_, "categorie": categorie, "question": question,
@@ -319,7 +333,76 @@ def construire_banc():
            ("carte affichee", lambda t, x: any(f.get("carte") for f in x["figures"])),
            ("carte de l'exposition", lambda t, x: any("xposition" in f.get("titre", "")
                                                       for f in x["figures"]))]),
+        # --- Exposition, donnees de l'ANSD, API ouverte (07-09/10/2026) ----------
+        q(33, "exposition", "Quel evenement extreme a touche le plus d'habitants ?",
+          [("outil search_extreme_events", lambda t, x: "search_extreme_events" in x["outils"]),
+           ("cite la date %s" % date_max_hab,
+            lambda t, x: date_max_hab in t or contient(t, date_fr_regex(date_max_hab))),
+           ("ne parle pas de sinistres comme d'un fait",
+            lambda t, x: not re.search(r"\d[\d\s .,]*(millions? )?(de )?(personnes )?sinistr", t, re.I))]),
+        q(34, "piege",
+          "Combien de personnes ont ete sinistrees lors de l'evenement du %s ?" % date_max_hab,
+          [("refuse d'en faire des sinistres",
+            lambda t, x: contient(t, r"pas (un nombre de |le nombre de |des )?sinistr",
+                                  r"ne (mesure|compte|donne|dit)\w* pas", r"habitants des (zones|pixels)",
+                                  r"n'est pas un (nombre|bilan)")),
+           ("donne ce que la plateforme mesure (habitants de la zone)",
+            lambda t, x: contient(t, r"habitants"))]),
+        q(35, "vulnerabilite",
+          "Quelle est la profondeur de la pauvrete dans la region de Pikine, et quelle "
+          "population l'ANSD projette-t-elle pour le departement de Pikine en 2030 ?",
+          [("outil get_priority_zones", lambda t, x: "get_priority_zones" in x["outils"]),
+           ("cite P1 = %.1f %%" % pauv_dakar["profondeur"], lambda t, x: cite(t, pauv_dakar["profondeur"])),
+           ("cite %d habitants en 2030" % pop_pikine_2030,
+            lambda t, x: str(pop_pikine_2030) in re.sub(r"[\s  .]", "", t)),
+           ("echelle regionale", lambda t, x: contient(t, r"r[eé]gion"))]),
+        q(36, "capacites", "Ouvrez l'onglet Donnees ANSD de la page Pipeline.",
+          [("navigation emise", lambda t, x: bool(x["navigations"])),
+           ("onglet Donnees ANSD",
+            lambda t, x: any(n.get("filtres", {}).get("onglet") == "Données ANSD"
+                             for n in x["navigations"]))]),
+        q(37, "expert",
+          "Comment recuperer vos indicateurs par departement au format SDMX pour les "
+          "charger dans R ?",
+          [("oriente vers l'API ouverte", lambda t, x: contient(t, r"/api/v1")),
+           ("parle de SDMX", lambda t, x: contient(t, r"SDMX"))]),
+        q(38, "exactitude",
+          "Les donnees de l'ANSD utilisees par la plateforme sont-elles a jour ? De quand "
+          "date la copie ?",
+          [("outil get_pipeline_status", lambda t, x: "get_pipeline_status" in x["outils"])]),
+        # --- Donnees sources : tout jour, tout ocean, toute localite (09/10/2026) ------
+        q(39, "sources", "Combien a-t-il plu dans la region de Kaolack le 14 aout 1999 ?",
+          [("outil get_rainfall", lambda t, x: "get_rainfall" in x["outils"]),
+           ("cite %.1f mm" % pluie_kaolack, lambda t, x: cite(t, pluie_kaolack))]),
+        q(40, "sources",
+          "Quelle etait l'anomalie de temperature de surface dans le golfe de Guinee en "
+          "juillet 2012 ?",
+          [("outil get_ocean_state", lambda t, x: "get_ocean_state" in x["outils"]),
+           ("parle d'anomalie (pas de temperature)", lambda t, x: contient(t, r"anomal"))]),
+        q(41, "sources", "Quelle etait la population de Touba Mosquee en 1988 et en 2023 ?",
+          [("outil get_locality", lambda t, x: "get_locality" in x["outils"]),
+           ("cite %s en 1988" % touba_1988,
+            lambda t, x: touba_1988 is None or str(touba_1988) in re.sub(r"[\s\u202f\xa0.]", "", t)),
+           ("cite %d en 2023" % touba_2023,
+            lambda t, x: str(touba_2023) in re.sub(r"[\s\u202f\xa0.]", "", t))]),
+        q(42, "sources",
+          "Quelles inondations sont documentees dans le departement de Pikine, et d'apres "
+          "quelles sources ?",
+          [("outil get_locality", lambda t, x: "get_locality" in x["outils"]),
+           ("cite 2009", lambda t, x: "2009" in t),
+           ("cite une source (PDNA, UNOSAT, FICR, OCHA)",
+            lambda t, x: contient(t, r"PDNA", r"UNOSAT", r"FICR", r"IFRC", r"OCHA", r"Banque mondiale"))]),
     ]
+
+
+MOIS_FR = ("janvier", "f[eé]vrier", "mars", "avril", "mai", "juin", "juillet", "ao[uû]t",
+           "septembre", "octobre", "novembre", "d[eé]cembre")
+
+
+def date_fr_regex(iso):
+    """'2012-09-28' -> motif '28 septembre 2012' (accents tolerants)."""
+    a, m, j = iso.split("-")
+    return r"\b%d\s+%s\s+%s" % (int(j), MOIS_FR[int(m) - 1], a)
 
 
 # =============================================================================

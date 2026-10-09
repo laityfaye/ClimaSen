@@ -60,7 +60,7 @@ def en_docx(rapport) -> bytes:
     style.font.size = Pt(10.5)
 
     marque = doc.add_paragraph()
-    r = marque.add_run("CLIMAT-SEN · RAPPORT GÉNÉRÉ PAR IRIS")
+    r = marque.add_run("ClimatSen · RAPPORT GÉNÉRÉ PAR IRIS")
     r.bold = True
     r.font.size = Pt(8.5)
     _couleur(r, ACCENT)
@@ -132,14 +132,14 @@ def en_docx(rapport) -> bytes:
                 _legende(doc, "", b.legende, _meta_visuel(b))
 
     pied = doc.sections[0].footer.paragraphs[0]
-    r = pied.add_run("CLIMAT-SEN · %s · généré le %s · données %s · complète les alertes "
+    r = pied.add_run("ClimatSen · %s · généré le %s · données %s · complète les alertes "
                      "officielles de l'ANACIM sans les remplacer" % (
                          m.id, m.genere_le, m.version_donnees))
     r.font.size = Pt(7)
     _couleur(r, (0x4A, 0x58, 0x63))
     props = doc.core_properties
     props.title = "%s — %s" % (m.titre, m.sous_titre)
-    props.author = "CLIMAT-SEN (Iris)"
+    props.author = "ClimatSen (Iris)"
     props.subject = m.id
     props.keywords = "version des données %s" % m.version_donnees
     sortie = io.BytesIO()

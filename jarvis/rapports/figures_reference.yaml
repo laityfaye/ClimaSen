@@ -57,7 +57,7 @@ figures:
     legende: Capacité de l'indice et de ses composantes à distinguer les départements touchés par des inondations documentées (script 29).
     unite: AUC (0,5 = hasard)
     periode: 2005-2020
-    source: Inondations documentées (PDNA, UNOSAT, FICR, OCHA) ; indice CLIMAT-SEN
+    source: Inondations documentées (PDNA, UNOSAT, FICR, OCHA) ; indice ClimatSen
     statut: observe
     types: [vulnerabilite, veille]
   - id: sensibilite_departements

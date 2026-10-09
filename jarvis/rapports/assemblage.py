@@ -61,7 +61,7 @@ def assembler(rapport_id, spec, collecte, redaction, journal, manifeste, extras=
     r.ajouter("methodologie", Liste([tf.SOURCES[k] for k in collecte.sources if k in tf.SOURCES]))
     r.ajouter("methodologie", Paragraphe(
         "Tous les chiffres de ce rapport sont lus dans les données de la plateforme "
-        "CLIMAT-SEN (version des données %s) ; aucune valeur n'est saisie à la main. La "
+        "ClimatSen (version des données %s) ; aucune valeur n'est saisie à la main. La "
         "rédaction %s." % (meta.version_donnees,
                            "a été assistée par un modèle de langage (%s), chaque valeur étant "
                            "insérée et vérifiée par le code" % meta.modele
@@ -98,7 +98,7 @@ def assembler(rapport_id, spec, collecte, redaction, journal, manifeste, extras=
             "Fichiers sources et empreintes",
             "Empreinte sha256 (12 premiers caractères) de chaque fichier lu par la plateforme : "
             "elle permet de vérifier qu'un rapport a été produit sur les mêmes données.",
-            "sans objet", "voir colonne Période", "Manifeste CLIMAT-SEN (outputs/manifest.json)"))
+            "sans objet", "voir colonne Période", "Manifeste ClimatSen (outputs/manifest.json)"))
     r.ajouter("annexes", Paragraphe(
         "Rapport %s, version %d, généré le %s. Version des données %s, code %s. Rédaction : %s. Le "
         "registre des %d faits chiffrés de ce rapport (valeur, unité, statut, période, source) "

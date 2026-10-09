@@ -21,7 +21,7 @@ from ..document import Encadre
 from ..faits import RegistreFaits
 from . import Collecte, CollecteImpossible, cellule, figure, fini, tableau
 
-SRC = "Veille pré-saison CLIMAT-SEN"
+SRC = "Veille pré-saison ClimatSen"
 CONSEILS = {
     "faible": "Maintenir la vigilance habituelle : un risque faible n'exclut pas des pluies "
               "intenses locales.",

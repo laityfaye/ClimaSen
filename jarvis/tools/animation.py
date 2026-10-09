@@ -5,26 +5,30 @@ l'ocean "prepare" la saison des mois a l'avance. Cette animation le montre
 pour un evenement donne: anomalies de SST de J-150 au jour J, tous les 15
 jours, sur la bande 36 S - 36 N.
 
-Seuls les evenements de l'archive (scripts/17_build_jarvis_sst_evenements.py,
-les plus intenses de chaque phase) sont animables: les 42 Go de SST brute ne
-sont pas sur le serveur. Le resume donne au modele la moyenne de chaque
-boite d'indice au debut et a la fin: il commente a partir de ces chiffres.
+Les ~30 evenements de l'archive (scripts/17_build_jarvis_sst_evenements.py,
+les plus intenses de chaque phase) sont toujours animables. Les autres le sont
+quand les fichiers OISST journaliers sont sur le serveur (data/raw/SST) :
+l'animation est alors calculee a la volee, a l'identique (jarvis/sources.py,
+~1 s). Le resume donne au modele la moyenne de chaque boite d'indice au debut
+et a la fin: il commente a partir de ces chiffres.
 """
 from .. import cartes
+from .. import sources as S
 from .common import (PHASES, SOURCE_INDICES, ToolInputError, arrondir,
                      champ_texte, resoudre_phase)
 
 NAME = "animate_sst_event"
 LABEL = "Animation de l'océan avant un événement"
 PERMISSION = "public"
-DATASETS = ()
+DATASETS = ("events",)
 
 DESCRIPTION = (
     "Affiche une ANIMATION des anomalies de temperature de surface de la mer "
     "(36S-36N) pendant les 150 jours qui precedent un evenement extreme, une "
-    "image tous les 15 jours: on voit l'ocean evoluer avant la pluie. Seuls "
-    "les ~30 evenements les plus intenses (10 par phase) sont animables: "
-    "donne une date AAAA-MM-JJ, ou une phase seule pour le plus intense de "
+    "image tous les 15 jours: on voit l'ocean evoluer avant la pluie. Tout "
+    "evenement du catalogue est animable (depuis juin 1983) quand la SST "
+    "journaliere est sur le serveur ; sinon seuls les ~30 plus intenses (10 par "
+    "phase). Donne une date AAAA-MM-JJ, ou une phase seule pour le plus intense de "
     "cette phase, ou rien pour la liste. Le resume donne l'evolution de "
     "chaque boite d'indice (debut -> fin): commente a partir de lui."
 )
@@ -45,14 +49,12 @@ def _catalogue():
             for d, p, r in zip(a["dates"], a["phases"], a["rangs"])]
 
 
-def _choisir(params):
+def _choisir(params, data):
     a = cartes.animations()
     date = champ_texte(params, "date", maxi=10)
     if date:
         if date not in a["index"]:
-            raise ToolInputError(
-                "Pas d'animation pour le %s. Evenements animables: %s."
-                % (date, ", ".join(sorted(a["dates"]))))
+            _calculer(date, data, a)
         return date
     if params.get("phase"):
         phase = resoudre_phase(params["phase"])
@@ -64,9 +66,34 @@ def _choisir(params):
     return None
 
 
+def _ligne_catalogue(date, data):
+    ev = data.get("events")
+    if ev is None:
+        return None
+    sel = ev[ev["date"].dt.strftime("%Y-%m-%d") == date]
+    return sel.iloc[0] if len(sel) else None
+
+
+def _calculer(date, data, a):
+    """Animation d'un evenement hors archive, depuis les fichiers OISST."""
+    from datetime import date as Date
+    if _ligne_catalogue(date, data) is None:
+        raise ToolInputError("Aucun evenement extreme le %s dans le catalogue : trouve la "
+                             "date avec search_extreme_events." % date)
+    try:
+        images, boites = S.animation_evenement(Date.fromisoformat(date))
+    except S.SourceAbsente:
+        raise ToolInputError(
+            "La SST journaliere n'est pas sur ce serveur : seuls les evenements de l'archive "
+            "sont animables : %s." % ", ".join(sorted(a["dates"])))
+    except (S.DemandeInvalide, ValueError) as exc:
+        raise ToolInputError(str(exc))
+    cartes.enregistrer_animation(date, images, boites)
+
+
 def run(params, data, figures=None, session_id=""):
     try:
-        date = _choisir(params)
+        date = _choisir(params, data)
     except cartes.CarteIndisponible as exc:
         raise ToolInputError(str(exc))
     if date is None:
@@ -77,11 +104,17 @@ def run(params, data, figures=None, session_id=""):
 
     import numpy as np
     a = cartes.animations()
-    i = a["index"][date]
+    i = a["index"].get(date)
     images = cartes.images_evenement(date)
+    if i is None:
+        ligne = _ligne_catalogue(date, data)
+        phase, rang = ligne["phase"], int(ligne["rank"])
+        origine = "calculee depuis les fichiers OISST journaliers"
+    else:
+        phase, rang = a["phases"][i], a["rangs"][i]
+        origine = "archive des evenements les plus intenses"
     haut = float(np.nanpercentile(np.abs(images), 98))
     vlim = round(min(max(haut, 0.8), 3.0), 2)
-    phase = a["phases"][i]
     spec = {
         "genre": "animation_sst", "type": "animate_sst_event",
         "titre": "L'océan avant l'événement du %s" % date,
@@ -91,7 +124,7 @@ def run(params, data, figures=None, session_id=""):
         "source": SOURCE_INDICES,
     }
     fig = figures.deposer(session_id, spec)
-    boites = a["boites"][i]
+    boites = cartes.boites_evenement(date)
     evolution = {}
     for k, nom in enumerate(a["noms_boites"]):
         debut, fin = float(boites[0][k]), float(boites[-1][k])
@@ -101,7 +134,7 @@ def run(params, data, figures=None, session_id=""):
     return {
         "figure_id": fig.id, "carte": True,
         "titre": spec["titre"], "sous_titre": spec["sous_titre"],
-        "date": date, "phase": phase, "rang_catalogue": a["rangs"][i],
+        "date": date, "phase": phase, "rang_catalogue": rang, "animation": origine,
         "echelle_couleurs_degC": [-vlim, vlim],
         "anomalies_par_boite_degC": evolution,
         "plus_fort_rechauffement": rechauffe[0],
