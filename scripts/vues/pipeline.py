@@ -546,9 +546,14 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
 
         if "chirps_preset" not in st.session_state:
             st.session_state.chirps_preset = "Afrique Ouest"
-            _p0 = PRESETS["Afrique Ouest"]
-            for _k, _v in [("bb_lat_min", _p0["lat_min"]), ("bb_lat_max", _p0["lat_max"]),
-                            ("bb_lon_min", _p0["lon_min"]), ("bb_lon_max", _p0["lon_max"])]:
+        # A CHAQUE affichage, et pas seulement au premier : Streamlit efface l'etat
+        # d'un champ des qu'une execution ne l'affiche pas (autre onglet). Au retour,
+        # les champs repartaient de leur minimum (-35, -18) : zone vide transmise au
+        # telechargement, grille 0 x 0 (09/10/2026). On restaure la zone choisie.
+        _p0 = PRESETS[st.session_state.chirps_preset]
+        for _k, _v in [("bb_lat_min", _p0["lat_min"]), ("bb_lat_max", _p0["lat_max"]),
+                        ("bb_lon_min", _p0["lon_min"]), ("bb_lon_max", _p0["lon_max"])]:
+            if _k not in st.session_state:
                 st.session_state[_k] = float(_v)
 
         st.markdown("<p class='pip-section-title'>Zone géographique</p>", unsafe_allow_html=True)
