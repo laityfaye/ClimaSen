@@ -362,6 +362,17 @@ _HORS_PAGE = [
      "script": "32_manifest_donnees.py", "outputs": ["outputs/manifest.json"]},
 ]
 _PAR_ID = {e["id"]: e for e in PIPELINE_STEPS}
+
+
+def _html_compact(html):
+    """Supprime l'indentation et les lignes vides d'un bloc HTML multiligne.
+
+    Markdown lit une ligne vide suivie d'une ligne indentee de 4 espaces comme un
+    bloc de code : un champ conditionnel vide (annee en cours, erreurs) faisait
+    afficher le HTML brut de la carte de statut au lieu de l'interpreter.
+    """
+    return "\n".join(l.strip() for l in html.splitlines() if l.strip())
+
 CHAINE_COMPLETE = ([_PAR_ID[i] for i in ("01", "02", "03", "03b", "sst", "04", "11", "14",
                                         "19", "20")] + _HORS_PAGE)
 HORS_CHAINE = ("Laissées à part, avec leur propre bouton : 21 (évaluation C3S, protocole figé, "
@@ -764,7 +775,7 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
                 "decoupage":      "Découpage bbox",
                 "sauvegarde":     "Sauvegarde HDF5",
             }.get(ch_phase, ch_phase)
-            st.markdown(f"""
+            st.markdown(_html_compact(f"""
             <div style="background:{CARD};border:1px solid {BORDER};border-radius:12px;
                         padding:16px 20px;margin-bottom:14px;">
               <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
@@ -787,7 +798,7 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
               </p>
               {"<p style='font-size:0.78rem;color:#22C55E;margin:8px 0 0 0;font-weight:600;'>" + str(chirps_status.get('n_days','')) + " jours &bull; " + str(chirps_status.get('n_lat','')) + "x" + str(chirps_status.get('n_lon','')) + " pixels &bull; " + str(chirps_status.get('size_mb','')) + " Mo</p>" if ch_state == "done" else ""}
             </div>
-            """, unsafe_allow_html=True)
+            """), unsafe_allow_html=True)
 
         st.markdown("<br>", unsafe_allow_html=True)
         if not _admin:
@@ -1263,7 +1274,7 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
                 status_html = f'<span style="color:#EF4444;font-weight:700;">Annulé</span>'
             else:
                 status_html = f'<span style="color:{MUTED};">{state}</span>'
-            st.markdown(f"""
+            st.markdown(_html_compact(f"""
             <div style="background:{CARD};border:1px solid {BORDER};border-radius:12px;
                         padding:16px 20px;margin-bottom:14px;">
               <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
@@ -1284,7 +1295,7 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
                 Dernière mise à jour : {dl_status.get("updated_at", "")}
               </p>
             </div>
-            """, unsafe_allow_html=True)
+            """), unsafe_allow_html=True)
 
         if not _admin:
             st.caption("Le téléchargement SST est réservé à l'administrateur.")

@@ -48,6 +48,17 @@ def processus_vivant(pid):
             return bool(ok) and code.value == 259          # STILL_ACTIVE
         finally:
             k32.CloseHandle(h)
+    # Un enfant de Streamlit qui a fini reste "zombie" tant que personne ne le
+    # recolte, et os.kill(pid, 0) le voit vivant : la page Pipeline restait alors
+    # bloquee sur "en cours" (relance toutes les 3 s) apres un telechargement
+    # CHIRPS termine. waitpid le recolte s'il est a nous.
+    try:
+        fini, _ = os.waitpid(int(pid), os.WNOHANG)
+        return fini == 0
+    except ChildProcessError:
+        pass                   # pas notre enfant : simple test d'existence
+    except OSError:
+        return False
     try:
         os.kill(int(pid), 0)
     except PermissionError:

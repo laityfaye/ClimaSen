@@ -5,6 +5,7 @@ aucun vrai calcul. Les fichiers d'etat sont ecrits dans outputs/taches/ sous
 des noms de test, supprimes a la fin.
 """
 import json
+import os
 import sys
 import time
 from datetime import datetime, timedelta, timezone
@@ -201,6 +202,17 @@ def test_observer_un_processus_ne_le_tue_pas():
         p.wait()
     assert not taches_fond.processus_vivant(p.pid)
     assert not taches_fond.processus_vivant(None)
+
+
+@pytest.mark.skipif(os.name == "nt", reason="zombies propres a POSIX")
+def test_un_enfant_termine_non_recolte_n_est_pas_vivant():
+    """La page lance les telechargements avec Popen sans jamais faire wait() :
+    l'enfant termine restait zombie et passait pour vivant."""
+    import subprocess
+    import time
+    p = subprocess.Popen([sys.executable, "-c", "pass"])
+    time.sleep(1.5)                                  # fini, mais pas recolte
+    assert not taches_fond.processus_vivant(p.pid)
 
 
 def test_plus_aucun_os_kill_dans_la_page():
