@@ -5,7 +5,7 @@
 #   pip install -r requirements-scripts.txt
 #
 # Versions de la machine de developpement (09/10/2026) en commentaire.
-shapely>=2.0          # 2.1.0  scripts 16, 26, 27, 28 (contours, indice de risque)
+# shapely est dans requirements.txt : la page Clustering en a besoin.
 geopandas>=1.0        # 1.1.1  scripts 27, 28
 pyproj>=3.6           # 3.7.1  script 34 (communes reconstruites)
 pyshp>=2.3            # 2.3.1  script 34 (lecture des shapefiles)

@@ -24,9 +24,12 @@ versionnés dans ce dépôt et lus en lecture seule.
 - git ; environ 2 Go de disque ; 4 Go de mémoire (8 Go recommandés).
 - Linux, si pip doit compiler h5py ou netCDF4 : `sudo apt-get install libhdf5-dev libnetcdf-dev`.
 - Un accès Internet pour les fonds de carte et pour la conversation avec Iris.
-- Windows : installer de préférence dans un **chemin sans accent** (netCDF4 et h5py
-  ne savent pas ouvrir un chemin accentué ; le code le contourne, mais pas tous les
-  outils tiers).
+- Windows : installer dans un **chemin court et sans accent**, par exemple
+  `C:\ClimaSen`. Certains fichiers du dépôt ont un chemin relatif de 104 caractères :
+  au-delà d'environ 150 caractères pour le dossier d'installation, Windows (limite de
+  260) fait échouer le `git clone` (« Filename too long »). À défaut, cloner avec
+  `git -c core.longpaths=true clone ...`. Les accents gênent netCDF4 et h5py (le code
+  le contourne, mais pas tous les outils tiers).
 
 ## 2. Installation
 
@@ -44,9 +47,9 @@ python -m playwright install chromium    # export PDF des rapports d'Iris
 
 | Fichier | Contenu |
 |---|---|
-| `requirements.txt` | plateforme et calculs (Streamlit, Plotly, pandas, numpy, scipy, scikit-learn, xarray, netCDF4, h5py, matplotlib…) |
+| `requirements.txt` | plateforme et calculs (Streamlit, Plotly, pandas, numpy, scipy, scikit-learn, xarray, netCDF4, h5py, matplotlib, shapely…) |
 | `jarvis/requirements.txt` | Iris, API ouverte, rapports, tests (FastAPI, Uvicorn, Pydantic, SDK Anthropic, Jinja2, python-docx, Playwright, pytest…) |
-| `requirements-scripts.txt` | shapely, geopandas, pyproj, pyshp, cdsapi, cartopy : scripts 14, 16, 20-22, 26-28, 34 seulement |
+| `requirements-scripts.txt` | geopandas, pyproj, pyshp, cdsapi, cartopy : scripts 14, 16, 20-22, 26-28, 34 seulement ; sans eux la plateforme fonctionne (cartes haute résolution sans cartopy, veille sans C3S) |
 
 ## 3. Configuration
 
@@ -145,6 +148,8 @@ erreur. L'état et le journal sont dans `outputs/taches/`.
 ## 9. Problèmes connus
 
 - Python 3.11 ou plus ancien : erreur de syntaxe au lancement (voir Prérequis).
+- Windows, dossier d'installation profond : `git clone` échoue avec « Filename too
+  long » (voir Prérequis : chemin court ou `core.longpaths`).
 - Sans `ANTHROPIC_API_KEY`, ou sans crédit sur le compte Anthropic, le chat d'Iris
   répond par une erreur ; le reste de la plateforme fonctionne.
 - L'export PDF des rapports exige Chromium (`python -m playwright install chromium`) ;
