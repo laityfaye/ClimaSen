@@ -88,18 +88,18 @@ def formulaire_connexion(MUTED: str, cle: str = "admin") -> None:
     with st.expander("Administration"):
         st.markdown(
             f"<p style='font-size:0.78rem;color:{MUTED};margin:0 0 8px 0;'>"
-            "Les actions qui s'executent sur le serveur (pipeline, "
-            "telechargements, suppression de fichiers, relance du clustering) "
-            "sont reservees a l'administrateur.</p>",
+            "Les actions qui s'exécutent sur le serveur (pipeline, "
+            "téléchargements, synchronisation avec l'ANSD, suppression de fichiers, "
+            "relance du clustering) sont réservées à l'administrateur.</p>",
             unsafe_allow_html=True,
         )
         if echecs >= MAX_ECHECS:
-            st.warning("Trop d'essais. Rechargez la page pour reessayer.")
+            st.warning("Trop d'essais. Rechargez la page pour réessayer.")
             return
         with st.form(key=f"{cle}_form", clear_on_submit=True):
             mdp = st.text_input("Mot de passe administrateur", type="password",
                                 key=f"{cle}_pwd")
-            ok = st.form_submit_button("Deverrouiller")
+            ok = st.form_submit_button("Déverrouiller")
         if ok:
             if _verifier(mdp):
                 st.session_state[_CLE_SESSION] = True
