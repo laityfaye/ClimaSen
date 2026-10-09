@@ -173,7 +173,10 @@ def main():
     ev = pd.read_csv(PROCESSED / "extreme_events_phases_senegal.csv", parse_dates=["date"])
 
     dans = loc[loc["pix_i"] >= 0]
-    pop_pix = np.zeros(anom["anomalies"].shape[1:])
+    # Charge une seule fois : chaque acces a anom["anomalies"] relit et
+    # decompresse tout le tableau (56 Mo), une fois par evenement sinon.
+    anomalies = anom["anomalies"]
+    pop_pix = np.zeros(anomalies.shape[1:])
     men_pix = np.zeros_like(pop_pix)
     np.add.at(pop_pix, (dans["pix_i"], dans["pix_j"]), dans["POPULATION"])
     np.add.at(men_pix, (dans["pix_i"], dans["pix_j"]), dans["MENAGE"])
@@ -183,7 +186,7 @@ def main():
     lignes, ecarts = [], 0
     jours_pix = np.zeros(pop_pix.shape)       # jours extremes par pixel, 1981-2023
     for _, e in ev.iterrows():
-        masque = anom["anomalies"][rang[e["date"]]] > SEUIL_SIGMA
+        masque = anomalies[rang[e["date"]]] > SEUIL_SIGMA
         jours_pix += masque
         ecarts += int(masque.sum() != e["coverage_points"])
         pop = float(pop_pix[masque].sum())

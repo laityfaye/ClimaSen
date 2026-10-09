@@ -1,0 +1,55 @@
+{
+  "calcule_le": "2026-10-09T14:52:04+00:00",
+  "methode": "climatologie de reference 1981-2023 (fixe), detecteur du catalogue, mois de mai a octobre",
+  "source": "CHIRPS v2.0 0,25 deg (UCSB Climate Hazards Center) : annuel definitif, complete par les mensuels preliminaires",
+  "population": "ANSD, projections 2023-2030 par commune (API SDMX), localites RGPH-5",
+  "reference_1981_2023": {
+    "evenements_par_an_moyenne": 30.6,
+    "minimum": 15,
+    "maximum": 50
+  },
+  "annees": [
+    {
+      "annee": 2024,
+      "jusqu_au": "2024-12-31",
+      "saison_complete": true,
+      "jours_preliminaires": 0,
+      "evenements": 39,
+      "reference_meme_periode_moyenne": 30.6,
+      "rang_sur_44_meme_periode": 7,
+      "phase_1": 4,
+      "phase_2": 16,
+      "phase_3": 19,
+      "population_touchee_mediane": 2752674,
+      "population_touchee_max": 17783079
+    },
+    {
+      "annee": 2025,
+      "jusqu_au": "2025-12-31",
+      "saison_complete": true,
+      "jours_preliminaires": 0,
+      "evenements": 33,
+      "reference_meme_periode_moyenne": 30.6,
+      "rang_sur_44_meme_periode": 18,
+      "phase_1": 10,
+      "phase_2": 12,
+      "phase_3": 11,
+      "population_touchee_mediane": 2772432,
+      "population_touchee_max": 14977800
+    },
+    {
+      "annee": 2026,
+      "jusqu_au": "2026-10-05",
+      "saison_complete": false,
+      "jours_preliminaires": 35,
+      "evenements": 27,
+      "reference_meme_periode_moyenne": 26.0,
+      "rang_sur_44_meme_periode": 19,
+      "phase_1": 6,
+      "phase_2": 14,
+      "phase_3": 7,
+      "population_touchee_mediane": 3458701,
+      "population_touchee_max": 14121681
+    }
+  ]
+}

@@ -56,13 +56,17 @@ def series(fichier):
                          aggfunc="first")
 
 
-def main():
+def localites_projetees(annees=ANNEES):
+    """Localites placees (script 33) avec leur population projetee par l'ANSD :
+    une colonne POP_<annee> par annee demandee (2023 a 2030). Renvoie aussi la
+    correspondance commune RGPH-5 -> commune ANSD et les series de projection.
+    Reutilisee par le script 39 (saisons recentes)."""
     zones = pd.read_csv(ODP / "CL_REF_AREA_communes.csv", dtype=str)
     nom = dict(zip(zones["code"], zones["nom"]))
     com = series("DF_PROJ_POP_2050_COM.csv")
     dep = series("DF_PROJ_POP_2050_DEP.csv")
-    facteur_com = {a: com[str(a)] / com["2023"] for a in ANNEES}
-    facteur_dep = {a: dep[str(a)] / dep["2023"] for a in ANNEES}
+    facteur_com = {a: com[str(a)] / com["2023"] for a in annees}
+    facteur_dep = {a: dep[str(a)] / dep["2023"] for a in annees}
 
     # Communes ANSD par departement (noms normalises).
     par_dep = {}
@@ -90,17 +94,25 @@ def main():
     corr = pd.DataFrame(lignes)
     loc = loc.merge(corr[["Departement", "COMMUNE", "code_ansd", "code_dep_ansd", "mode"]],
                     on=["Departement", "COMMUNE"], how="left")
-    for a in ANNEES:
+    for a in annees:
         f = loc["code_ansd"].map(facteur_com[a])
         f = f.fillna(loc["code_dep_ansd"].map(facteur_dep[a]))
         loc[f"POP_{a}"] = loc["POPULATION"] * f.fillna(1.0)
+    return loc, corr, com, dep
+
+
+def main():
+    loc, corr, com, dep = localites_projetees(ANNEES)
 
     anom = np.load(PROCESSED / "standardized_anomalies_senegal.npz", allow_pickle=True)
     dates = pd.to_datetime(anom["dates"])
     rang = {d: k for k, d in enumerate(dates)}
     ev = pd.read_csv(PROCESSED / "extreme_events_phases_senegal.csv", parse_dates=["date"])
     dans = loc[loc["pix_i"] >= 0]
-    forme = anom["anomalies"].shape[1:]
+    # Charge une seule fois : chaque acces a anom["anomalies"] relit et
+    # decompresse tout le tableau (56 Mo), 1 317 fois dans la boucle (13 min).
+    anomalies = anom["anomalies"]
+    forme = anomalies.shape[1:]
     pix = {}
     for c in ["POPULATION"] + [f"POP_{a}" for a in ANNEES]:
         pix[c] = np.zeros(forme)
@@ -109,7 +121,7 @@ def main():
     tot = {c: float(loc[c].sum()) for c in pix}
     sorties = []
     for e in ev.itertuples():
-        masque = anom["anomalies"][rang[e.date]] > SEUIL_SIGMA
+        masque = anomalies[rang[e.date]] > SEUIL_SIGMA
         ligne = {"date": e.date.date().isoformat(),
                  "population_touchee_2023": int(round(float(pix["POPULATION"][masque].sum())))}
         for a in ANNEES:
