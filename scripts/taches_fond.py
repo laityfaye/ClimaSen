@@ -27,6 +27,36 @@ LIBELLES = {"en_cours": "En cours", "termine": "Terminé", "erreur": "En erreur"
             "annule": "Annulé", "interrompu": "Interrompu"}
 
 
+def processus_vivant(pid):
+    """Le processus `pid` tourne-t-il encore ? Sans jamais le toucher.
+
+    os.kill(pid, 0) est un simple test sous Linux, mais sous Windows il appelle
+    TerminateProcess : il TUE le processus qu'il devait observer (cas des
+    telechargements CHIRPS / OISST lances depuis la page Pipeline).
+    """
+    if not pid:
+        return False
+    if os.name == "nt":
+        import ctypes
+        k32 = ctypes.windll.kernel32
+        h = k32.OpenProcess(0x1000, False, int(pid))    # PROCESS_QUERY_LIMITED_INFORMATION
+        if not h:
+            return False
+        try:
+            code = ctypes.c_ulong()
+            ok = k32.GetExitCodeProcess(h, ctypes.byref(code))
+            return bool(ok) and code.value == 259          # STILL_ACTIVE
+        finally:
+            k32.CloseHandle(h)
+    try:
+        os.kill(int(pid), 0)
+    except PermissionError:
+        return True            # existe, mais appartient a un autre utilisateur
+    except OSError:
+        return False
+    return True
+
+
 def _lire(nom):
     p = DOSSIER / (nom + ".json")
     try:

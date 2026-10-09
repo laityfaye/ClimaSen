@@ -186,3 +186,23 @@ def test_ordre_de_la_chaine():
         assert pos[amont] < pos[aval], (amont, aval)
     assert ordre[-1] == "32"
     assert not {"21", "22", "35", "36", "38"} & set(ordre)
+
+
+def test_observer_un_processus_ne_le_tue_pas():
+    """os.kill(pid, 0) tuait le telechargement sous Windows : la verification
+    doit laisser le processus vivant, et reconnaitre un processus termine."""
+    import subprocess
+    p = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(6)"])
+    try:
+        assert taches_fond.processus_vivant(p.pid)
+        assert taches_fond.processus_vivant(p.pid)
+        assert p.poll() is None                      # toujours en vie
+    finally:
+        p.wait()
+    assert not taches_fond.processus_vivant(p.pid)
+    assert not taches_fond.processus_vivant(None)
+
+
+def test_plus_aucun_os_kill_dans_la_page():
+    src = (RACINE / "scripts" / "vues" / "pipeline.py").read_text(encoding="utf-8")
+    assert "os.kill" not in src

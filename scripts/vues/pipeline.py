@@ -725,14 +725,7 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
                 return None
 
         def _chirps_running():
-            pid = st.session_state.get("chirps_dl_pid")
-            if not pid:
-                return False
-            try:
-                os.kill(pid, 0)
-                return True
-            except OSError:
-                return False
+            return taches_fond.processus_vivant(st.session_state.get("chirps_dl_pid"))
 
         chirps_status     = _read_chirps_status()
         chirps_is_running = _chirps_running()
@@ -1195,14 +1188,7 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
             return sorted(f for f in SST_DIR.glob("*.nc") if not f.name.startswith("."))
 
         def _dl_running():
-            pid = st.session_state.get("sst_dl_pid")
-            if not pid:
-                return False
-            try:
-                os.kill(pid, 0)
-                return True
-            except OSError:
-                return False
+            return taches_fond.processus_vivant(st.session_state.get("sst_dl_pid"))
 
         sst_files_present = _sst_files()
         total_size_gb     = sum(f.stat().st_size for f in sst_files_present) / 1e9
@@ -1475,12 +1461,7 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
             return "%s/%s/%s %s UTC" % (iso[8:10], iso[5:7], iso[0:4], iso[11:16])
 
         def _sync_en_cours():
-            pid = st.session_state.get("ansd_sync_pid")
-            if not pid:
-                return False
-            try:
-                os.kill(pid, 0)
-            except OSError:
+            if not taches_fond.processus_vivant(st.session_state.get("ansd_sync_pid")):
                 return False
             return (_lire_json(ETAT_SYNC) or {}).get("etat") == "en_cours"
 

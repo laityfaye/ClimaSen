@@ -32,6 +32,7 @@ su - $APP_USER -c "
     venv/bin/pip install --upgrade pip
     venv/bin/pip install -r requirements.txt
     venv/bin/pip install -r jarvis/requirements.txt
+    venv/bin/pip install -r requirements-scripts.txt || echo '[ATTENTION] dependances des scripts geographiques non installees (plateforme non concernee)'
 "
 # Rapports d'Iris: Chromium headless pour l'export PDF (dependances systeme en root).
 $APP_DIR/venv/bin/python -m playwright install-deps chromium
