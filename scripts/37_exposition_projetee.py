@@ -60,7 +60,7 @@ def localites_projetees(annees=ANNEES):
     """Localites placees (script 33) avec leur population projetee par l'ANSD :
     une colonne POP_<annee> par annee demandee (2023 a 2030). Renvoie aussi la
     correspondance commune RGPH-5 -> commune ANSD et les series de projection.
-    Reutilisee par le script 39 (saisons recentes)."""
+    Reutilisee par le script 40 (saisons recentes)."""
     zones = pd.read_csv(ODP / "CL_REF_AREA_communes.csv", dtype=str)
     nom = dict(zip(zones["code"], zones["nom"]))
     com = series("DF_PROJ_POP_2050_COM.csv")

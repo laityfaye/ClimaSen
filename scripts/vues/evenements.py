@@ -1299,13 +1299,13 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
             """, unsafe_allow_html=True)
 
 
-    # ── Suivi des saisons recentes (script 39) ────────────────────────────────
+    # ── Suivi des saisons recentes (script 40) ────────────────────────────────
     _saisons_recentes(df, CARD, TEXT, MUTED, BORDER, plotly_base)
 
 
 def _saisons_recentes(df, CARD, TEXT, MUTED, BORDER, plotly_base):
     """Saisons depuis 2024, detectees avec la climatologie de reference 1981-2023
-    (script 39). Section a part : le catalogue de l'etude, ses filtres et ses
+    (script 40). Section a part : le catalogue de l'etude, ses filtres et ses
     graphiques ne sont pas modifies."""
     donnees = du.load_saisons_recentes()
     if donnees is None:

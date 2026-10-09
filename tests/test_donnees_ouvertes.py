@@ -324,7 +324,7 @@ def test_pauvrete_de_l_api_ansd_identique_a_l_indice(api):
     assert all(a["profondeur_pauvrete_region"] for a in arr.json()["donnees"])
 
 
-# --- saisons recentes (script 39) -------------------------------------------------
+# --- saisons recentes (script 40) -------------------------------------------------
 
 def test_saisons_recentes_publiees_a_part(api):
     """Les evenements depuis 2024 forment un jeu a part : le catalogue 1981-2023

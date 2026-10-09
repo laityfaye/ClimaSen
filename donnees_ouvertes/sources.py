@@ -373,7 +373,7 @@ JEUX = {j.id: j for j in (
         "touchée (population de l'année projetée par l'ANSD).",
         "D", "pays",
         (RACINE / "outputs" / "saisons_recentes" / "evenements_recents.csv",),
-        ("chirps", "rgph5", "localites", "odp", "ocha"), "scripts/39_saisons_recentes.py",
+        ("chirps", "rgph5", "localites", "odp", "ocha"), "scripts/40_saisons_recentes.py",
         ("POPULATION_TOUCHEE_ANNEE", "PART_POPULATION_NATIONALE", "COUVERTURE", "PLUIE_MAX",
          "PIXELS_EXTREMES"),
         _evenements_recents,

@@ -1,5 +1,5 @@
 {
-  "calcule_le": "2026-10-09T16:56:44+00:00",
+  "calcule_le": "2026-10-09T17:08:55+00:00",
   "methode": "climatologie de reference 1981-2023 (fixe), detecteur du catalogue, mois de mai a octobre",
   "source": "CHIRPS v2.0 0,25 deg (UCSB Climate Hazards Center) : annuel definitif, complete par les mensuels preliminaires",
   "population": "ANSD, projections 2023-2030 par commune (API SDMX), localites RGPH-5",

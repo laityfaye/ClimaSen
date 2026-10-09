@@ -366,7 +366,8 @@ CHAINE_COMPLETE = ([_PAR_ID[i] for i in ("01", "02", "03", "03b", "sst", "04", "
                                         "19", "20")] + _HORS_PAGE)
 HORS_CHAINE = ("Laissées à part, avec leur propre bouton : 21 (évaluation C3S, protocole figé, "
                "clé Copernicus), 22 (mise à jour mensuelle, novembre-avril), 35, 36 et 38 "
-               "(onglet « Données ANSD »), les analyses de contrôle 24, 30, 31 et les "
+               "(onglet « Données ANSD »), 40 (saisons récentes, onglet « Données CHIRPS »), "
+               "les analyses de contrôle 24, 30, 31 et les "
                "constructions d'Iris 15, 16, 17, 23, 25.")
 
 
@@ -1616,13 +1617,13 @@ def run(BG, CARD, TEXT, MUTED, BORDER, dff, df, year_range, phases_sel,
 
 
 def _saisons_recentes_chirps(CARD, TEXT, MUTED, BORDER, admin):
-    """Onglet Donnees CHIRPS : etat des saisons recentes (script 39) et bouton de
+    """Onglet Donnees CHIRPS : etat des saisons recentes (script 40) et bouton de
     mise a jour, reserve a l'administrateur. La climatologie de reference
     1981-2023 est conservee : le catalogue et tous les resultats restent
     inchanges, seules les saisons depuis 2024 sont (re)calculees."""
     dossier = BASE / "outputs" / "saisons_recentes"
     etat_f = dossier / ".mise_a_jour.json"
-    script = SCRIPTS_DIR / "39_saisons_recentes.py"
+    script = SCRIPTS_DIR / "40_saisons_recentes.py"
 
     def _lire(p):
         try:

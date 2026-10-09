@@ -28,7 +28,7 @@ Sorties : data/processed/saisons_recentes.npz (pluie et anomalies, grille de l'e
           outputs/saisons_recentes/evenements_recents.csv
           outputs/saisons_recentes/annees_recentes.csv
           outputs/saisons_recentes/resume.json
-Usage   : py -3 scripts/39_saisons_recentes.py [--annee-debut 2024]
+Usage   : py -3 scripts/40_saisons_recentes.py [--annee-debut 2024]
 """
 import argparse
 import importlib.util

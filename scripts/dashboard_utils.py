@@ -280,7 +280,7 @@ def code_commune(adm2_pcode, nom):
 
 @st.cache_data(ttl=300)
 def load_saisons_recentes():
-    """Saisons recentes (script 39) : (evenements, annees, resume), ou None.
+    """Saisons recentes (script 40) : (evenements, annees, resume), ou None.
 
     Evenements depuis 2024 detectes avec la climatologie de reference 1981-2023 ;
     le catalogue de l'etude n'est pas modifie. Colonne `source` : definitif ou
