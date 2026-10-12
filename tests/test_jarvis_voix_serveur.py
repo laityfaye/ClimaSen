@@ -124,3 +124,55 @@ def test_les_prompts_decrivent_le_mode_oral(prompt):
     texte = load_system_prompt(prompt)
     assert "<mode_oral>" in texte
     assert "Aucune mise en forme" in texte
+
+
+# --- robustesse face au service (refus passagers) ------------------------------
+@pytest.fixture
+def faux_service(monkeypatch):
+    """Remplace la connexion au service: `reponses` est consommee a chaque essai."""
+    import asyncio
+    etat = {"essais": 0, "reponses": []}
+
+    async def collecter(texte, voix_nom, debit):
+        etat["essais"] += 1
+        r = etat["reponses"].pop(0)
+        if isinstance(r, Exception):
+            raise r
+        return r
+
+    monkeypatch.setattr(voix, "edge_tts", object())
+    monkeypatch.setattr(voix, "_collecter", collecter)
+    monkeypatch.setattr(voix, "_cache", type(voix._cache)())
+    monkeypatch.setattr(voix, "_file", None)
+    monkeypatch.setattr(asyncio, "sleep", _sans_attente)
+    return etat
+
+
+async def _sans_attente(_):
+    return None
+
+
+def _synth(texte="Bonjour."):
+    import asyncio
+    return asyncio.run(voix.synthetiser(texte, "fr-FR-DeniseNeural", "+5%"))
+
+
+def test_un_refus_passager_est_retente(faux_service):
+    faux_service["reponses"] = [RuntimeError("handshake"), b"", b"mp3"]
+    assert _synth() == b"mp3"
+    assert faux_service["essais"] == 3
+
+
+def test_echec_apres_tous_les_essais(faux_service):
+    from jarvis.errors import UpstreamError
+    faux_service["reponses"] = [RuntimeError("x")] * voix.ESSAIS
+    with pytest.raises(UpstreamError):
+        _synth()
+    assert faux_service["essais"] == voix.ESSAIS
+
+
+def test_une_phrase_deja_dite_vient_du_cache(faux_service):
+    faux_service["reponses"] = [b"mp3"]
+    assert _synth("Accueil.") == b"mp3"
+    assert _synth("Accueil.") == b"mp3"
+    assert faux_service["essais"] == 1

@@ -3151,10 +3151,10 @@
         phrases.forEach(function(p){ total += p.length; });
         phrases.forEach(function(p, k){
           cumul += p.length;
-          // Telechargement lance tout de suite: pret quand son tour vient.
+          // Audio telecharge par precharger(), quelques phrases d'avance.
           // `fin` : position dans le texte brut jusqu'ou afficher quand la
           // voix commence cette phrase (au prorata dans un meme morceau).
-          var item = {texte: p, audio: L.neuronal ? chargerAudio(p) : null,
+          var item = {texte: p, audio: null,
                       fin: k === phrases.length - 1 ? debutPart + longPart
                            : debutPart + Math.round(longPart * cumul / (total || 1))};
           if(L.focusEnAttente !== undefined){
@@ -3166,7 +3166,22 @@
       }
     }
     if(fini){ L.fini = true; }
+    precharger(L);
     avancerLecture(L);
+  }
+
+  /* Seules les phrases proches sont demandees au serveur. Tout lancer d'un
+     coup (20 phrases et plus pour une analyse) faisait refuser des
+     connexions par le service de Microsoft et retardait la premiere phrase
+     au-dela de la garde: Iris passait alors a la voix du navigateur. Une
+     phrase dure plusieurs secondes, sa synthese moins d'une: 3 d'avance
+     suffisent. */
+  var AVANCE_AUDIO = 3;
+  function precharger(L){
+    if(!L.neuronal){ return; }
+    for(var i = 0; i < L.file.length && i < AVANCE_AUDIO; i++){
+      if(!L.file[i].audio){ L.file[i].audio = chargerAudio(L.file[i].texte); }
+    }
   }
 
   function chargerAudio(t){
@@ -3194,6 +3209,8 @@
       return;                                    // la suite arrive avec le flux
     }
     var item = L.file.shift();
+    if(L.neuronal && !item.audio){ item.audio = chargerAudio(item.texte); }
+    precharger(L);
     // Analyse complete : on montre l'element dont la phrase parle.
     if(item.focus !== undefined){ try{ Analyse.focus(item.focus); }catch(e){} }
     L.joue = true;
@@ -3208,26 +3225,37 @@
     else { jouerNavigateur(L, item.texte, suite, debut); }
   }
 
-  /* Au premier echec (service coupe, reseau lent, lecture refusee), toute
-     la suite passe a la voix du navigateur: pas de melange de voix. */
+  /* Une phrase en echec est redemandee une fois (un refus passager du
+     service est frequent). Au second echec (service coupe, reseau lent,
+     lecture refusee), toute la suite passe a la voix du navigateur: pas de
+     melange de voix. */
   function jouerNeuronal(L, item, suite, debut){
     var abandonne = false;
     function repli(){
       if(abandonne){ return; }
       abandonne = true;
+      if(L.no !== lectureNo){ return; }
+      if(!item.reessai && !item.lancee){
+        item.reessai = true;
+        trace("voix neuronale: nouvel essai pour une phrase");
+        item.audio = chargerAudio(item.texte);
+        jouerNeuronal(L, item, suite, debut);
+        return;
+      }
       trace("voix neuronale indisponible: repli sur la voix du navigateur");
       L.neuronal = false;
-      if(L.no === lectureNo){ jouerNavigateur(L, item.texte, suite, debut); }
+      jouerNavigateur(L, item.texte, suite, debut);
     }
-    // Reseau lent: mieux vaut la voix du navigateur que 20 s de silence.
-    var garde = setTimeout(repli, 5000);
+    // Reseau lent: mieux vaut la voix du navigateur qu'un long silence. Le
+    // serveur retente lui-meme un refus du service: on lui en laisse le temps.
+    var garde = setTimeout(repli, 8000);
     item.audio.then(function(blob){
       clearTimeout(garde);
       if(abandonne || L.no !== lectureNo){ return; }
       var url = URL.createObjectURL(blob);
       var a = new Audio(url);
       audioCourant = a;
-      a.onplaying = function(){ Orbe.etat("parole"); if(debut){ debut(); } };
+      a.onplaying = function(){ item.lancee = true; Orbe.etat("parole"); if(debut){ debut(); } };
       a.onended = function(){ URL.revokeObjectURL(url); if(L.no === lectureNo){ suite(); } };
       a.onerror = function(){ URL.revokeObjectURL(url); repli(); };
       var lancement = a.play();
