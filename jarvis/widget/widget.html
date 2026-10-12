@@ -3226,9 +3226,11 @@
   }
 
   /* Une phrase en echec est redemandee une fois (un refus passager du
-     service est frequent). Au second echec (service coupe, reseau lent,
-     lecture refusee), toute la suite passe a la voix du navigateur: pas de
-     melange de voix. */
+     service est frequent). Si elle echoue encore, CETTE phrase est dite par
+     le navigateur et la suivante revient a la voix neuronale: test reel du
+     12/10/2026, un seul echec faisait lire 16 phrases sur 22 avec la voix
+     robotique. Deux phrases perdues d'affilee = service coupe: toute la
+     suite passe au navigateur. */
   function jouerNeuronal(L, item, suite, debut){
     var abandonne = false;
     function repli(){
@@ -3242,8 +3244,13 @@
         jouerNeuronal(L, item, suite, debut);
         return;
       }
-      trace("voix neuronale indisponible: repli sur la voix du navigateur");
-      L.neuronal = false;
+      L.echecs = (L.echecs || 0) + 1;
+      if(L.echecs >= 2){
+        trace("voix neuronale indisponible: repli sur la voix du navigateur");
+        L.neuronal = false;
+      }else{
+        trace("voix neuronale: une phrase dite par le navigateur");
+      }
       jouerNavigateur(L, item.texte, suite, debut);
     }
     // Reseau lent: mieux vaut la voix du navigateur qu'un long silence. Le
@@ -3255,7 +3262,8 @@
       var url = URL.createObjectURL(blob);
       var a = new Audio(url);
       audioCourant = a;
-      a.onplaying = function(){ item.lancee = true; Orbe.etat("parole"); if(debut){ debut(); } };
+      a.onplaying = function(){ item.lancee = true; L.echecs = 0;
+                                Orbe.etat("parole"); if(debut){ debut(); } };
       a.onended = function(){ URL.revokeObjectURL(url); if(L.no === lectureNo){ suite(); } };
       a.onerror = function(){ URL.revokeObjectURL(url); repli(); };
       var lancement = a.play();

@@ -37,9 +37,10 @@ DELAI_ESSAI = 8.0              # un essai bloque au-dela est abandonne
 # WSServerHandshakeError, et la premiere phrase a 6,4 s, au-dela de la garde
 # de 5 s du widget, qui passait alors a la voix du navigateur). D'ou une file
 # a 2 connexions pour tout le serveur et de nouveaux essais espaces: avec
-# eux, 20/20 phrases passent.
+# eux, 20/20 phrases passent. Test reel du meme jour: jusqu'a 3 refus de
+# suite pour une phrase, d'ou 4 essais.
 CONNEXIONS_MAX = 2
-ESSAIS = 3
+ESSAIS = 4
 _file = None                   # asyncio.Semaphore, cree dans la boucle
 
 # Accueil, narration de soutenance: les memes phrases reviennent.
@@ -71,7 +72,7 @@ async def _essais(texte: str, voix: str, debit: str) -> bytes:
     derniere = None
     for k in range(ESSAIS):
         if k:
-            await asyncio.sleep(0.4 * k)
+            await asyncio.sleep(0.5 * k)
         try:
             async with _file:
                 audio = await asyncio.wait_for(_collecter(texte, voix, debit),
